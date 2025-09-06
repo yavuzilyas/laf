@@ -1,2 +1,7 @@
-<h1>Welcome to SvelteKit</h1>
-<p>Visit <a href="https://svelte.dev/docs/kit">svelte.dev/docs/kit</a> to read the documentation</p>
+<script>
+    import App from '$lib/App.svelte'; // SvelteKit’te lib klasörü genellikle komponentler için kullanılır
+</script>
+
+<main>
+  <App name="SvelteKit" />
+</main>
