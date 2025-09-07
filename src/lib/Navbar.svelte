@@ -1,19 +1,13 @@
 <script lang="ts">
         import * as Tooltip from "$lib/components/ui/tooltip/index.js";
-  import SunIcon from "@lucide/svelte/icons/sun";
-  import MoonIcon from "@lucide/svelte/icons/moon";
- 
-  import { resetMode, setMode } from "mode-watcher";
-  import * as DropdownMenu from "$lib/components/ui/dropdown-menu/index.js";
-  import { buttonVariants } from "$lib/components/ui/button/index.js";
   import DropdownMenuMotion from "$lib/components/DropdownMenuMotion.svelte";
-    import {LogIn, CirclePlus, UserCircleIcon, LayoutGridIcon, TrashIcon, BellIcon, LogInIcon } from "@lucide/svelte";
+    import {HandCoins, BadgeInfo, Construction, Cog, LogIn, CirclePlus, UserCircleIcon, LayoutGridIcon, TrashIcon, BellIcon, LogInIcon } from "@lucide/svelte";
   let menu = [
-    { name: "Makale", href: "#" },
-    { name: "Nutuk", href: "#" },
-    { name: "Lügat", href: "#" },
-    { name: "Külliyât", href: "#" },
-    { name: "Tahkikat", href: "#" },
+    { isconstruction: "false", name: "Makale", href: "makale" },
+    { isconstruction: "true", name: "Nutuk", href: "" },
+    { isconstruction: "true", name: "Lügat", href: "" },
+    { isconstruction: "true", name: "Külliyât", href: "" },
+    { isconstruction: "true", name: "Tahkikat", href: "" },
   ];
   import logo from '$lib/assets/laf1.svg';
 
@@ -27,26 +21,38 @@
   // Giriş yapmamış kullanıcı menüsü
   const loggedOutItems = [
     { icon: LogInIcon, name: "Giriş", href: "/login" },
-    { icon: CirclePlus, name: "Kayıt", href: "/register" },
+    { icon: Cog, name: "Ayarlar", href: "/login" },
+    { icon: HandCoins, name: "Bağışlar", href: "/login" },
+    { icon: BadgeInfo, name: "Yardım", href: "/login" },
   ];
   // Kullanıcının giriş durumuna göre items seç
   const items = loggedOutItems;
 </script>
  
 
-<nav class="w-full text-[var(--laf-white)] border-b-1 py-1">
+<nav class="w-full text-secondary-foreground border-b-1 py-1">
   <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
     <div class="flex items-center justify-between">
       <!-- Logo -->
-      <img class="max-h-5" src="{logo}" alt="LAF" />
+      <img class="max-h-5 fill-primary" src="{logo}" alt="LAF" />
 
       <!-- Menu -->
-      <div class="hidden md:flex text-gray-200 space-x-4 text-xs">
+      <div class="hidden md:flex text-secondary-foreground space-x-4 text-xs">
         {#each menu as item}
 
             <Tooltip.Provider>
   <Tooltip.Root>
-    <Tooltip.Trigger><a href={item.href} class="font-bold cursor-pointer">{item.name}</a></Tooltip.Trigger>
+    <Tooltip.Trigger>{#if item.isconstruction == "true"}
+      <a href={item.href} class="text-secondary-foreground/75 group flex items-center gap-1 font-bold cursor-pointer">
+        {item.name} 
+        <Construction size={16} strokeWidth={1.75} />
+      </a>
+{:else}
+<a href={item.href} class="group flex items-center gap-1 font-bold cursor-pointer">
+  {item.name} 
+</a>
+{/if}
+</Tooltip.Trigger>
     <Tooltip.Content>
       <p>{item.name} sayfasına git.</p>
     </Tooltip.Content>
