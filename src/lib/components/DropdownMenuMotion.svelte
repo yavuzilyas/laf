@@ -25,13 +25,13 @@ let list = {
     transition: {
       type: "spring",
       bounce: 0,
-      duration: 0.4,
+      duration: 0.45,
     },
   },
   hidden: {
     clipPath: "inset(10% 0% 90% 100% round 12px)", // sağdan sola kapanır
     transition: {
-      duration: 0.22,
+      duration: 0.27,
       type: "spring",
       bounce: 0,
     },
@@ -45,7 +45,7 @@ let variants = {
     opacity: 1,
     x: 0,             // sola kayma animasyonu burada
     filter: "blur(0px)",
-    transition: { duration: 0.22, delay: i * 0.10 },
+    transition: { duration: 0.22, delay: i * 0.08},
   }),
   hidden: {
     opacity: 0,
@@ -80,7 +80,7 @@ let variants = {
       <ul
   use:motion
   class={cn(
-    "absolute right-0 top-full mt-2.5 z-[60] w-max space-y-2 px-3.5 py-2 bg-secondary rounded-xl origin-top-right shadow-lg",
+    "absolute right-0 top-full mt-2.5 z-[60] w-max  px-3.5 py-2 bg-secondary rounded-xl origin-top-right shadow-lg",
     isOpen ? "pointer-events-auto" : "pointer-events-none"
   )}
 >
@@ -96,17 +96,17 @@ let variants = {
     <a
       href={item.href ?? "/"}
       class={cn(
-        "group flex items-center gap-2 rounded-md border border-transparent text-primary/85 focus-visible:outline-none duration-200 hover:text-primary",
+        "group flex py-1 items-center gap-2 rounded-md border border-transparent text-primary/85 focus-visible:outline-none duration-200 hover:text-primary",
         item?.customStyle
       )}
       use:motion
     >
-      <svelte:component this={item.icon} size={16} strokeWidth={1.4} />
-      <span class="text-secondary-foreground/85 flex items-center gap-1 text-xs duration-200 font-bold hover:text-secondary-foreground">
+      <svelte:component this={item.icon} size={16} strokeWidth={1.75} />
+      <span class="text-secondary-foreground/85 flex items-center gap-1 text-xs duration-333 font-bold hover:text-secondary-foreground">
         {item.name}
         <ChevronRightIcon
           size={12}
-          class="-translate-x-1 scale-0 opacity-0 group-hover:opacity-100 group-hover:scale-100 group-hover:translate-x-0 transition-all"
+          class="-translate-x-5 scale-0 opacity-0 group-hover:opacity-100 group-hover:scale-100 group-hover:translate-x-0 transition-all"
         />
       </span>
     </a>
@@ -120,12 +120,12 @@ let variants = {
   animate={isOpen ? "visible" : "hidden"}
   let:motion
 >
-  <li  use:motion>
-    <Button class="cursor-pointer" onclick={toggleMode} variant="outline" size="icon">
-      <SunIcon
-        class="paddtext-primary h-[1.2rem] w-[1.2rem] rotate-0 scale-100 !transition-all dark:-rotate-90 dark:scale-0 duration-[666ms]"
+  <li class="mt-1" use:motion>
+    <Button class="w-full cursor-pointer" onclick={toggleMode} variant="outline" size="icon">
+      <SunIcon size={20}
+        class="text-primary h-[1.2rem] w-[1.2rem] rotate-0 scale-100 !transition-all dark:-rotate-90 dark:scale-0 duration-[666ms]"
       />
-      <MoonIcon
+      <MoonIcon size={20}
         class="text-primary absolute h-[1.2rem] w-[1.2rem] rotate-90 scale-0 !transition-all dark:rotate-0 dark:scale-100 duration-[666ms]"
       />
     </Button>
