@@ -10,6 +10,9 @@
     { isconstruction: "true", name: "Tahkikat", href: "" },
   ];
   import logo from '$lib/assets/laf1.svg';
+    import { dativeSuffix } from './utils/suffix'; // türkçe ekler için
+    const nameWithDative = (n: string) => dativeSuffix(n, { apostrophe: true });
+
 
     const loggedInItems = [
     { icon: UserCircleIcon, name: "Hesap", href: "/hesap" },
@@ -33,31 +36,52 @@
 <nav class="w-full text-secondary-foreground border-b-1 py-1">
   <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
     <div class="flex items-center justify-between">
-      <!-- Logo -->
-      <img class="max-h-5 fill-primary" src="{logo}" alt="LAF" />
+      <Tooltip.Provider>
+ <Tooltip.Root>
+  <Tooltip.Trigger>   
+    <a href="/"><img class="max-h-5 fill-primary" src="{logo}" alt="LAF" /></a>
+  </Tooltip.Trigger>
+  <Tooltip.Content>
+   <p>Ana sayfaya git.</p>
+  </Tooltip.Content>
+ </Tooltip.Root>
+</Tooltip.Provider>
+      
 
       <!-- Menu -->
       <div class="hidden md:flex text-secondary-foreground space-x-4 text-xs">
         {#each menu as item}
 
+{#if item.isconstruction == "true"}
             <Tooltip.Provider>
   <Tooltip.Root>
-    <Tooltip.Trigger>{#if item.isconstruction == "true"}
+    <Tooltip.Trigger>
       <a href={item.href} class="text-secondary-foreground/75 group flex items-center gap-1 font-bold cursor-pointer">
         {item.name} 
         <Construction size={16} strokeWidth={1.75} />
       </a>
-{:else}
-<a href={item.href} class="group flex items-center gap-1 font-bold cursor-pointer">
-  {item.name} 
-</a>
-{/if}
-</Tooltip.Trigger>
+      </Tooltip.Trigger>
     <Tooltip.Content>
-      <p>{item.name} sayfasına git.</p>
+      <p>{item.name} imar merhalesindedir.</p>
     </Tooltip.Content>
   </Tooltip.Root>
 </Tooltip.Provider>
+{:else}
+            <Tooltip.Provider>
+  <Tooltip.Root>
+    <Tooltip.Trigger>
+<a href={item.href} class="group flex items-center gap-1 font-bold cursor-pointer">
+  {item.name} 
+</a>
+</Tooltip.Trigger>
+    <Tooltip.Content>
+      <p>{nameWithDative(item.name)} git.</p> 
+<!-- son harfine göre ek alır -->
+    </Tooltip.Content>
+  </Tooltip.Root>
+</Tooltip.Provider>
+{/if}
+
 
         {/each}
       </div>
@@ -83,7 +107,6 @@
 </DropdownMenu.Root> -->
         <!-- <a href="#log-in" class="text-sm font-bold text-[var(--laf-yellow)]">Giriş Yap</a> -->
     <DropdownMenuMotion {items} />
-
     </div>
     </div>
   </div>

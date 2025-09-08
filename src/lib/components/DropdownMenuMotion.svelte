@@ -29,7 +29,7 @@ let list = {
     },
   },
   hidden: {
-    clipPath: "inset(10% 0% 90% 100% round 12px)", // sağdan sola kapanır
+    clipPath: "inset(0% 10% 100% 90% round 12px)", // sağdan sola kapanır
     transition: {
       duration: 0.27,
       type: "spring",
@@ -49,7 +49,7 @@ let variants = {
   }),
   hidden: {
     opacity: 0,
-    x: 10,            // başlangıçta sağdan 10px ötede
+    x: 18,            // başlangıçta sağdan 10px ötede
     filter: "blur(6px)",
   },
 };
@@ -96,13 +96,13 @@ let variants = {
     <a
       href={item.href ?? "/"}
       class={cn(
-        "group flex py-1 items-center gap-2 rounded-md border border-transparent text-primary/85 focus-visible:outline-none duration-200 hover:text-primary",
+        "group flex py-1 items-center gap-2 rounded-md border border-transparent text-primary focus-visible:outline-none duration-200 hover:text-primary",
         item?.customStyle
       )}
       use:motion
     >
       <svelte:component this={item.icon} size={16} strokeWidth={1.75} />
-      <span class="text-secondary-foreground/85 flex items-center gap-1 text-xs duration-333 font-bold hover:text-secondary-foreground">
+      <span class="text-secondary-foreground flex items-center gap-1 text-xs duration-333 font-bold hover:text-secondary-foreground">
         {item.name}
         <ChevronRightIcon
           size={12}
