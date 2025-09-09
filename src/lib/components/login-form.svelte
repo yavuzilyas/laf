@@ -16,8 +16,8 @@
 
 <form class={cn("flex flex-col gap-6", className)} bind:this={ref} {...restProps}>
 	<div class="flex flex-col items-center gap-2 text-center">
-		<h1 class="text-2xl font-bold">Giriş Yap</h1>
-		<p class="text-muted-foreground text-balance text-sm">
+		<h1 class="text-sm font-bold">Giriş Yap</h1>
+		<p class="text-muted-foreground text-balance text-xs">
 			E-posta adresiniz ve şifrenizle giriş yapın.
 		</p>
 	</div>
@@ -29,7 +29,7 @@
 		<div class="grid gap-3">
 			<div class="flex items-center">
 				<Label for="password-{id}">Şifre</Label>
-				<a href="##" class="ml-auto text-sm underline-offset-4 hover:underline">
+				<a href="##" class="ml-auto text-xs underline-offset-4 hover:underline">
 					Şifreni mi unuttun?
 				</a>
 			</div>
@@ -37,7 +37,7 @@
 		</div>
 		<Button type="submit" class="w-full">Giriş yap</Button>
 		<div
-			class="after:border-border relative text-center text-sm after:absolute after:inset-0 after:top-1/2 after:z-0 after:flex after:items-center after:border-t"
+			class="after:border-border relative text-center text-xs after:absolute after:inset-0 after:top-1/2 after:z-0 after:flex after:items-center after:border-t"
 		>
 			<span class="bg-background text-muted-foreground relative z-10 px-2">
 				Ya da
@@ -53,7 +53,7 @@
 			Github ile giriş yap
 		</Button>
 	</div>
-	<div class="text-center text-sm">
+	<div class="text-center text-xs">
 		Hesabın yok mu?
 		<a href="##" class="underline underline-offset-4"> Kayıt ol</a>
 	</div>
