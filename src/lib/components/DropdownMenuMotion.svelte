@@ -67,7 +67,7 @@ let variants = {
     >
       <div style="transform-origin: 50% 55%;">
         <Motion animate={svgControls} let:motion>
-          <UserRound class="text-primary"/>
+          <UserRound size={22} strokeWidth={2} class="text-primary"/>
         </Motion>
       </div>
     </button>

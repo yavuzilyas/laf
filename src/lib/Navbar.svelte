@@ -33,13 +33,13 @@
 </script>
  
 
-<nav class="w-full text-secondary-foreground border-b-1 py-1">
+<nav class="w-full text-secondary-foreground border-b-1 py-0.75">
   <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
     <div class="flex items-center justify-between">
       <Tooltip.Provider>
  <Tooltip.Root>
   <Tooltip.Trigger>   
-    <a href="/"><img class="max-h-5 fill-primary" src="{logo}" alt="LAF" /></a>
+    <a href="/"><img class="max-h-4.5 fill-primary" src="{logo}" alt="LAF" /></a>
   </Tooltip.Trigger>
   <Tooltip.Content>
    <p>Ana sayfaya git.</p>
