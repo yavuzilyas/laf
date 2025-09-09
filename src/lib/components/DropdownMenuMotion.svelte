@@ -25,7 +25,6 @@ let list = {
     transition: {
       type: "spring",
       bounce: 0,
-      duration: 0.45,
     },
   },
   hidden: {
