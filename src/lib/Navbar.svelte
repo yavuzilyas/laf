@@ -56,13 +56,13 @@
             <Tooltip.Provider>
   <Tooltip.Root>
     <Tooltip.Trigger>
-      <a href={item.href} class="text-secondary-foreground/75 group flex items-center gap-1 font-bold cursor-pointer">
-        {item.name} 
-        <Construction size={16} strokeWidth={1.75} />
+      <a href={item.href} class="text-secondary-foreground/75 group flex items-center gap-0.5 font-bold cursor-pointer">{item.name}<Construction size={16} strokeWidth={1.75} />
       </a>
       </Tooltip.Trigger>
-    <Tooltip.Content>
-      <p>{item.name} imar merhalesindedir.</p>
+    <Tooltip.Content class="align-center text-center flex items-center gap-1.5">
+      <p class="text-secondary-foreground group flex items-center gap-0.5 font-bold cursor-pointer">
+        {item.name} 
+        <Construction size={16} strokeWidth={1.75} /> </p><span class="text-secondary-foreground font-medium"> imar merhalesindedir.</span>
     </Tooltip.Content>
   </Tooltip.Root>
 </Tooltip.Provider>
@@ -75,7 +75,7 @@
 </a>
 </Tooltip.Trigger>
     <Tooltip.Content>
-      <p>{nameWithDative(item.name)} git.</p> 
+      <p><span class="font-bold text-secondary-foreground">{nameWithDative(item.name)}</span> git.</p> 
 <!-- son harfine göre ek alır -->
     </Tooltip.Content>
   </Tooltip.Root>
