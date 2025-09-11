@@ -7,3 +7,13 @@ export function start_mongo() : Promise<MongoClient> {
     return client.connect();
 }
 export default client.db();
+
+
+// Bağlantıyı bir promise olarak export et
+export const clientPromise = client.connect();
+
+
+export const getUsersCollection = async () => {
+  const db = (await client).db("laf_app");
+  return db.collection("users");
+};

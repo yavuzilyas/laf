@@ -3,6 +3,9 @@
   import "../app.css";
   import { ModeWatcher } from "mode-watcher";
   let { children } = $props();
+  import ToastHost from "$lib/components/ToastHost.svelte";
+  import Preloader from "$lib/components/Preloader.svelte";
+  
 </script>
 
 <svelte:head>
@@ -10,4 +13,6 @@
 </svelte:head>
 
 <ModeWatcher />
+<Preloader />
+<ToastHost />
 {@render children?.()}

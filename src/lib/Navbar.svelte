@@ -2,6 +2,20 @@
         import * as Tooltip from "$lib/components/ui/tooltip/index.js";
   import DropdownMenuMotion from "$lib/components/DropdownMenuMotion.svelte";
     import {HandCoins, BadgeInfo, Construction, Cog, LogIn, CirclePlus, UserCircleIcon, LayoutGridIcon, TrashIcon, BellIcon, LogInIcon } from "@lucide/svelte";
+  import logo from '$lib/assets/laf1.svg';
+    import { dativeSuffix } from './utils/suffix'; // türkçe ekler için
+    const nameWithDative = (n: string) => dativeSuffix(n, { apostrophe: true });
+  import { page } from "$app/stores";
+
+  type MenuItem = {
+    icon?: any;
+    name?: string;
+    href?: string;
+    custom?: boolean;
+    element?: () => any;
+    customStyle?: string;
+  };
+
   let menu = [
     { isconstruction: "false", name: "Makale", href: "makale" },
     { isconstruction: "true", name: "Nutuk", href: "" },
@@ -9,27 +23,33 @@
     { isconstruction: "true", name: "Külliyât", href: "" },
     { isconstruction: "true", name: "Tahkikat", href: "" },
   ];
-  import logo from '$lib/assets/laf1.svg';
-    import { dativeSuffix } from './utils/suffix'; // türkçe ekler için
-    const nameWithDative = (n: string) => dativeSuffix(n, { apostrophe: true });
 
-
-    const loggedInItems = [
+    const loggedInItems: MenuItem[] = [
     { icon: UserCircleIcon, name: "Hesap", href: "/hesap" },
     { icon: LayoutGridIcon, name: "Ayarlar", href: "/ayarlar" },
     { icon: BellIcon, name: "Bildirimler", href: "/bildirim" },
-    { icon: TrashIcon, name: "Çıkış Yap", href: "/logout", customStyle: "!text-red-500 hover:bg-red-500/10" },
+    { icon: HandCoins, name: "Bağışlar", href: "/login" },
+    { icon: BadgeInfo, name: "Yardım", href: "/login" },
+    { icon: TrashIcon, name: "Çıkış Yap", href: "/logout", customStyle: "!text-red-500"},
   ];
 
-  // Giriş yapmamış kullanıcı menüsü
-  const loggedOutItems = [
+  const baseLoggedOut: MenuItem[] = [
     { icon: LogInIcon, name: "Giriş", href: "/login" },
     { icon: Cog, name: "Ayarlar", href: "/login" },
     { icon: HandCoins, name: "Bağışlar", href: "/login" },
     { icon: BadgeInfo, name: "Yardım", href: "/login" },
   ];
-  // Kullanıcının giriş durumuna göre items seç
-  const items = loggedOutItems;
+
+  const loginHref = $derived(`/login?redirectTo=${encodeURIComponent($page.url.pathname + $page.url.search)}`);
+
+  let items = $state<MenuItem[]>(baseLoggedOut);
+  $effect(() => {
+    if ($page.data.user) {
+      items = loggedInItems;
+    } else {
+      items = baseLoggedOut.map((it) => ({ ...it, href: loginHref }));
+    }
+  });
 </script>
  
 
@@ -86,26 +106,6 @@
         {/each}
       </div>
       <div class="">
-        <!-- <DropdownMenu.Root>
-  <DropdownMenu.Trigger
-    class="{buttonVariants({ variant: "outline", size: "icon" })}"
-  >
-    <SunIcon
-      class="h-[1.2rem] w-[1.2rem] rotate-0 scale-100 !transition-all dark:-rotate-90 dark:scale-0"
-    />
-    <MoonIcon
-      class="absolute h-[1.2rem] w-[1.2rem] rotate-90 scale-0 !transition-all dark:rotate-0 dark:scale-100"
-    />
-    <span class="sr-only">Tema seçimi</span>
-  </DropdownMenu.Trigger>
-  <DropdownMenu.Content align="end">
-    <DropdownMenu.Item onclick={() => setMode("light")}>Beyaz</DropdownMenu.Item
-    >
-    <DropdownMenu.Item onclick={() => setMode("dark")}>Siyah</DropdownMenu.Item>
-    <DropdownMenu.Item onclick={() => resetMode()}>Sistem</DropdownMenu.Item>
-  </DropdownMenu.Content>
-</DropdownMenu.Root> -->
-        <!-- <a href="#log-in" class="text-sm font-bold text-[var(--laf-yellow)]">Giriş Yap</a> -->
     <DropdownMenuMotion {items} />
     </div>
     </div>

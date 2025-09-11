@@ -88,12 +88,8 @@ module.exports = {
 				},
 			},
 			shine: {
-				from: {
-					backgroundPosition: "0 0",
-				},
-				to: {
-					backgroundPosition: "-200% 0",
-				},
+				from: { backgroundPosition: "0 0" },
+				to: { backgroundPosition: "-200% 0" },
 			},
 			"border-width": {
 				from: {

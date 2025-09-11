@@ -8,15 +8,7 @@
   import UserRound from "@lucide/svelte/icons/user-round";
   import { toggleMode } from "mode-watcher";
   import { Button } from "$lib/components/ui/button/index.js";
-export let items: {
-  icon?: any;
-  name?: string;
-  href?: string;
-  custom?: boolean;
-  element?: () => any;
-  customStyle?: string;
-}
-[] = []; // dışarıdan gelecek
+export let items: { icon?: any; name?: string; href?: string; custom?: boolean; element?: () => any; customStyle?: string; }[] = [];
   let svgControls = useAnimation();
 
 let list = {
@@ -40,7 +32,7 @@ let list = {
 
 
 let variants = {
-  visible: (i) => ({
+  visible: (i: number) => ({
     opacity: 1,
     x: 0,             // sola kayma animasyonu burada
     filter: "blur(0px)",
@@ -58,7 +50,7 @@ let variants = {
 </script>
 
 <!-- NAV'i relative yaptık: absolute olan ul buna göre hizalanır -->
-<nav class={cn("relative max-w-[200px] w-full mx-auto  z-50")}>
+<nav class={cn("relative max-w-[200px] w-full mx-auto  z-50")}> 
   <Motion whileTap={{ scale: 0.97 }} let:motion>
     <button
       use:motion
@@ -85,30 +77,30 @@ let variants = {
 >
 {#each items as item, i}
   <Motion
-    as="li"
     custom={i + 1}
     {variants}
     initial="hidden"
     animate={isOpen ? "visible" : "hidden"}
     let:motion
   >
-    <a
-      href={item.href ?? "/"}
-      class={cn(
-        "group flex py-1 items-center gap-2 rounded-md border border-transparent text-primary focus-visible:outline-none duration-200 hover:text-primary",
-        item?.customStyle
-      )}
-      use:motion
-    >
-      <svelte:component this={item.icon} size={16} strokeWidth={1.75} />
-      <span class="text-secondary-foreground flex items-center gap-1 text-xs duration-333 font-bold hover:text-secondary-foreground">
-        {item.name}
-        <ChevronRightIcon
-          size={12}
-          class="-translate-x-5 scale-0 opacity-0 group-hover:opacity-100 group-hover:scale-100 group-hover:translate-x-0 transition-all"
-        />
-      </span>
-    </a>
+    <li use:motion>
+      <a
+        href={item.href ?? "/"}
+        class={cn(
+          "group flex py-1 items-center gap-2 rounded-md border border-transparent text-primary focus-visible:outline-none duration-200 hover:text-primary",
+          item?.customStyle
+        )}
+      >
+        <svelte:component this={item.icon} size={16} strokeWidth={1.75} />
+        <span class="text-secondary-foreground flex items-center gap-1 text-xs duration-333 font-bold hover:text-secondary-foreground">
+          {item.name}
+          <ChevronRightIcon
+            size={12}
+            class="-translate-x-5 scale-0 opacity-0 group-hover:opacity-100 group-hover:scale-100 group-hover:translate-x-0 transition-all"
+          />
+        </span>
+      </a>
+    </li>
   </Motion>
 {/each}
 
@@ -120,7 +112,7 @@ let variants = {
   let:motion
 >
   <li class="mt-1" use:motion>
-    <Button class="w-full cursor-pointer" onclick={toggleMode} variant="outline" size="icon">
+    <Button class="w-full" onclick={toggleMode} variant="outline" size="icon">
       <SunIcon size={20}
         class="text-primary h-[1.2rem] w-[1.2rem] rotate-0 scale-100 !transition-all dark:-rotate-90 dark:scale-0 duration-[666ms]"
       />
