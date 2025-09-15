@@ -1,7 +1,10 @@
 <script lang="ts">
         import * as Tooltip from "$lib/components/ui/tooltip/index.js";
   import DropdownMenuMotion from "$lib/components/DropdownMenuMotion.svelte";
-    import {HandCoins, BadgeInfo, Construction, Cog, LogIn, CirclePlus, UserCircleIcon, LayoutGridIcon, TrashIcon, BellIcon, LogInIcon } from "@lucide/svelte";
+    import { Button } from "$lib/components/ui/button";
+  import { showToast, persistToast } from "$lib/hooks/toast";
+import SettingsDialog from "$lib/components/settings-dialog.svelte";
+    import {HandCoins, BadgeInfo, Construction, Cog, LogIn, CirclePlus, UserCircleIcon, LayoutGridIcon, TrashIcon, BellIcon,LogOutIcon, LogInIcon, UserRound } from "@lucide/svelte";
   import logo from '$lib/assets/laf1.svg';
     import { dativeSuffix } from './utils/suffix'; // türkçe ekler için
     const nameWithDative = (n: string) => dativeSuffix(n, { apostrophe: true });
@@ -25,17 +28,16 @@
   ];
 
     const loggedInItems: MenuItem[] = [
-    { icon: UserCircleIcon, name: "Hesap", href: "/hesap" },
-    { icon: LayoutGridIcon, name: "Ayarlar", href: "/ayarlar" },
-    { icon: BellIcon, name: "Bildirimler", href: "/bildirim" },
+    { icon: UserRound, name: "Hesap", href: "/hesap" },
+    { icon: Cog, name: "Ayarlar", onClick: () => { openSettings = true; } },
+    { icon: BellIcon, name: "Bildirimler", href: "/bildirimler"},
     { icon: HandCoins, name: "Bağışlar", href: "/login" },
     { icon: BadgeInfo, name: "Yardım", href: "/login" },
-    { icon: TrashIcon, name: "Çıkış Yap", href: "/logout", customStyle: "!text-red-500"},
+    { icon: LogOutIcon, name: "Çıkış Yap", href: "/logout", customStyle: "!text-red-500"},
   ];
 
   const baseLoggedOut: MenuItem[] = [
     { icon: LogInIcon, name: "Giriş", href: "/login" },
-    { icon: Cog, name: "Ayarlar", href: "/login" },
     { icon: HandCoins, name: "Bağışlar", href: "/login" },
     { icon: BadgeInfo, name: "Yardım", href: "/login" },
   ];
@@ -50,16 +52,17 @@
       items = baseLoggedOut.map((it) => ({ ...it, href: loginHref }));
     }
   });
+let openSettings = $state(false);
 </script>
- 
 
+<SettingsDialog bind:open={openSettings} />
 <nav class="w-full text-secondary-foreground border-b-1 py-0.75">
-  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+  <div class="max-w-7xl mx-auto py-1 sm:py-0 px-4 sm:px-6 lg:px-8">
     <div class="flex items-center justify-between">
       <Tooltip.Provider>
  <Tooltip.Root>
   <Tooltip.Trigger>   
-    <a href="/"><img class="max-h-4.5 fill-primary" src="{logo}" alt="LAF" /></a>
+    <a href="/" ><img class="max-h-5.5 sm:max-h-4.5 fill-primary" src="{logo}" alt="LAF" /></a>
   </Tooltip.Trigger>
   <Tooltip.Content>
    <p>Ana sayfaya git.</p>
@@ -105,9 +108,9 @@
 
         {/each}
       </div>
-      <div class="">
-    <DropdownMenuMotion {items} />
-    </div>
+
+<div>
+    <DropdownMenuMotion {items} /></div>
     </div>
   </div>
 </nav>

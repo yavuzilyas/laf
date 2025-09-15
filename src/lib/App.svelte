@@ -1,9 +1,50 @@
 <script>
   import Navbar from "$lib/Navbar.svelte";
+  import Spotlight from "$lib/components/Spotlight.svelte";
+import { cn } from "$lib/utils";
+  import Timeline from "$lib/components/timeline/Timeline.svelte";
+  import Content1 from "$lib/components/timeline/Content1.svelte";
+  import Content2 from "$lib/components/timeline/Content2.svelte";
+  import Content3 from "$lib/components/timeline/Content3.svelte";
+
+  let timelineData = [
+    {
+      title: "Svelte 5",
+      content: Content1,
+    },
+    {
+      title: "Early 2023",
+      content: Content2,
+    },
+    {
+      title: "Changelog",
+      content: Content3,
+    },
+  ];
+
 </script>
 
 <Navbar />
 
-<main class="max-w-4xl mx-auto px-4 py-10 space-y-6 ">
+<main class="w-full h-full">
+  <div class="md:h-[30rem] w-full  flex flex-col md:items-center md:justify-center  antialiased bg-grid-white/[0.02] relative overflow-hidden"
+>
+  <Spotlight class="-top-3 left-1 md:left-40 md:-top-8" fill="white" />
+  <div class=" max-w-8xl mx-auto  relative z-10 w-full px-2 pt-12 md:p-4">
+    <h1
+      class="text-3xl md:text-7xl md:h-38 font-bold text-center bg-clip-text text-transparent bg-gradient-to-b from-primary to-primary/66 bg-opacity-50"
+    >
+      Liberterten Anarşist<br />  Faaliyet.
+    </h1>
+    <p
+      class="mt-2 md:mt-4 font-normal text-sm md:text-base text-neutral-300 max-w-lg text-center mx-auto"
+    >
+      Anarşist, liberteryen eylem ve entelektüel bilgi paylaşım platformu
+    </p>
+  </div>
 
+
+</div>
+
+<Timeline {timelineData} />
 </main>

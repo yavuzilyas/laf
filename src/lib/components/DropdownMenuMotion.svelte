@@ -1,6 +1,7 @@
 <script lang="ts">
-    let isOpen = false;import {ChevronRightIcon} from "@lucide/svelte";
+      let isOpen = false;
 
+  import {ChevronRightIcon} from "@lucide/svelte";
   import { Motion, useAnimation } from "svelte-motion";
   import { cn } from "$lib/utils";
   import SunIcon from "@lucide/svelte/icons/sun";
@@ -8,7 +9,15 @@
   import UserRound from "@lucide/svelte/icons/user-round";
   import { toggleMode } from "mode-watcher";
   import { Button } from "$lib/components/ui/button/index.js";
-export let items: { icon?: any; name?: string; href?: string; custom?: boolean; element?: () => any; customStyle?: string; }[] = [];
+export let items: { 
+    icon?: any; 
+    name?: string; 
+    href?: string; 
+    custom?: boolean; 
+    element?: () => any; 
+    customStyle?: string;
+    onClick?: () => void; // Yeni prop
+  }[] = [];
   let svgControls = useAnimation();
 
 let list = {
@@ -18,18 +27,18 @@ let list = {
       type: "spring",
       bounce: 0,
     },
+    filter: "blur(0px)",
   },
   hidden: {
-    clipPath: "inset(0% 10% 100% 90% round 12px)", // sağdan sola kapanır
+    clipPath: "inset(5% 5% 95% 95% round 12px)", // sağdan sola kapanır
     transition: {
-      duration: 0.27,
+      duration: 0.45,
       type: "spring",
       bounce: 0,
     },
+    filter: "blur(12px)",
   },
 };
-
-
 
 let variants = {
   visible: (i: number) => ({
@@ -44,9 +53,15 @@ let variants = {
     filter: "blur(6px)",
   },
 };
-
-
-
+function handleItemClick(item: any) {
+    if (item.onClick) {
+      item.onClick();
+      isOpen = false; // Menüyü kapat
+    }
+    // Eğer href varsa, normal link davranışı (sayfa yenileme) olacak, ancak onClick yoksa.
+    // Eğer her ikisi de varsa, onClick çalıştıktan sonra sayfa yenilenecektir. Bu genellikle istenmez.
+    // Bu nedenle, genellikle bir öğede ya href ya da onClick olmalı.
+  }
 </script>
 
 <!-- NAV'i relative yaptık: absolute olan ul buna göre hizalanır -->
@@ -55,11 +70,11 @@ let variants = {
     <button
       use:motion
       on:click={() => (isOpen = !isOpen)}
-      class="cursor-pointer w-full flex items-center justify-between rounded-xl outline-none"
+      class=" w-full flex items-center justify-between rounded-xl outline-none"
     >
       <div style="transform-origin: 50% 55%;">
         <Motion animate={svgControls} let:motion>
-          <UserRound size={22} strokeWidth={2} class="text-primary"/>
+          <UserRound size={22} strokeWidth={2} class=" scale-110 md:scale-100 text-primary"/>
         </Motion>
       </div>
     </button>
@@ -71,10 +86,11 @@ let variants = {
       <ul
   use:motion
   class={cn(
-    "absolute right-0 top-full mt-2.5 z-[60] w-max  px-3.5 py-2 bg-secondary rounded-xl origin-top-right shadow-lg",
+    "absolute right-0 top-full mt-2.5 z-[60] w-max  px-3.5 py-2 bg-secondary/66 backdrop-blur-md rounded-xl origin-top-right shadow-lg",
     isOpen ? "pointer-events-auto" : "pointer-events-none"
   )}
 >
+
 {#each items as item, i}
   <Motion
     custom={i + 1}
@@ -84,22 +100,41 @@ let variants = {
     let:motion
   >
     <li use:motion>
-      <a
-        href={item.href ?? "/"}
-        class={cn(
-          "group flex py-1 items-center gap-2 rounded-md border border-transparent text-primary focus-visible:outline-none duration-200 hover:text-primary",
-          item?.customStyle
-        )}
-      >
-        <svelte:component this={item.icon} size={16} strokeWidth={1.75} />
-        <span class="text-secondary-foreground flex items-center gap-1 text-xs duration-333 font-bold hover:text-secondary-foreground">
-          {item.name}
-          <ChevronRightIcon
-            size={12}
-            class="-translate-x-5 scale-0 opacity-0 group-hover:opacity-100 group-hover:scale-100 group-hover:translate-x-0 transition-all"
-          />
-        </span>
-      </a>
+      {#if item.onClick}
+        <button
+          on:click={() => handleItemClick(item)}
+          class={cn(
+            "!cursor-pointer group flex py-1 items-center gap-2 rounded-md border border-transparent text-primary focus-visible:outline-none duration-200 hover:text-primary w-full",
+            item?.customStyle
+          )}
+        >
+          <svelte:component this={item.icon} size={16} strokeWidth={1.75} />
+          <span class="text-secondary-foreground flex items-center gap-1 text-sm md:text-xs duration-333 font-bold hover:text-secondary-foreground">
+            {item.name}
+            <ChevronRightIcon
+              size={12}
+              class="-translate-x-5 scale-0 opacity-0 group-hover:opacity-100 group-hover:scale-100 group-hover:translate-x-0 transition-all"
+            />
+          </span>
+        </button>
+      {:else}
+        <a
+          href={item.href ?? "/"}
+          class={cn(
+            "group flex py-1 items-center gap-2 rounded-md border border-transparent text-primary focus-visible:outline-none duration-200 hover:text-primary",
+            item?.customStyle
+          )}
+        >
+          <svelte:component this={item.icon} size={16} strokeWidth={1.75} />
+          <span class="text-secondary-foreground flex items-center gap-1 text-sm md:text-xs duration-333 font-bold hover:text-secondary-foreground">
+            {item.name}
+            <ChevronRightIcon
+              size={12}
+              class="-translate-x-5 scale-0 opacity-0 group-hover:opacity-100 group-hover:scale-100 group-hover:translate-x-0 transition-all"
+            />
+          </span>
+        </a>
+      {/if}
     </li>
   </Motion>
 {/each}
