@@ -4,7 +4,7 @@
     import { Button } from "$lib/components/ui/button";
   import { showToast, persistToast } from "$lib/hooks/toast";
 import SettingsDialog from "$lib/components/settings-dialog.svelte";
-    import {HandCoins, BadgeInfo, Construction, Cog, LogIn, CirclePlus, UserCircleIcon, LayoutGridIcon, TrashIcon, BellIcon,LogOutIcon, LogInIcon, UserRound } from "@lucide/svelte";
+    import {HandCoins, BadgeInfo, Construction, Cog, LogIn, UserCircleIcon, LayoutGridIcon, TrashIcon, BellIcon,LogOutIcon, LogInIcon, UserRound } from "@lucide/svelte";
   import logo from '$lib/assets/laf1.svg';
     import { dativeSuffix } from './utils/suffix'; // türkçe ekler için
     const nameWithDative = (n: string) => dativeSuffix(n, { apostrophe: true });

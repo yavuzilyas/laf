@@ -10,7 +10,7 @@
   import { fly } from "svelte/transition";
   import ScratchToReveal from "./ScratchToReveal.svelte";
   import { LockKeyhole, RotateCcwKey, ShieldAlert, UserRoundPlus, KeyRound, LogIn } from "@lucide/svelte";
-
+ import Loader2Icon from "@lucide/svelte/icons/loader-2";
   let {
     mode = "login",
     ref = $bindable(null),
@@ -55,6 +55,7 @@
   let emailErrorExiting = $state(false);
 
 import { generateMnemonic, validateMnemonic } from '@scure/bip39';
+
   import { wordlist } from '@scure/bip39/wordlists/english';
 
   // ... mevcut kodlar
@@ -81,23 +82,20 @@ import { generateMnemonic, validateMnemonic } from '@scure/bip39';
     }
   }
 
+
+import { sha256 } from 'js-sha256';
+
 async function finalizeRegister() {
   if (selection.length !== mnemonic.length || !selection.every((w, i) => w === mnemonic[i])) {
-    showToast("Kelime silsilesi hatalı", "error");
+    showToast("Kelime sırası hatalı", "error");
     return;
   }
   loading = true;
   try {
-    // Her kelime için ayrı hash hesapla
-    const encoder = new TextEncoder();
-    const mnemonicHashes: string[] = [];
-
-    for (const word of mnemonic) {
-      const buffer = await crypto.subtle.digest("SHA-256", encoder.encode(word));
-      const hashArray = Array.from(new Uint8Array(buffer));
-      const hashHex = hashArray.map(b => b.toString(16).padStart(2, "0")).join("");
-      mnemonicHashes.push(hashHex);
-    }
+    // js-sha256 ile hash hesaplama
+    const mnemonicHashes: string[] = mnemonic.map(word => {
+      return sha256(word);
+    });
 
     const res = await fetch(`/register`, {
       method: "POST",
@@ -108,7 +106,7 @@ async function finalizeRegister() {
         name, 
         surname, 
         email: email || undefined,
-        mnemonicHashes // artık array olarak gidiyor
+        mnemonicHashes
       })
     });
 
@@ -126,7 +124,6 @@ async function finalizeRegister() {
     loading = false;
   }
 }
-
   function shuffle<T>(array: T[]): T[] {
     const a = [...array];
     for (let i = a.length - 1; i > 0; i--) {
@@ -359,10 +356,9 @@ async function finalizeRegister() {
         </div>
         <Button type="submit" class="w-full" disabled={loading}>
           {#if loading}
-            <span class="inline-flex items-center gap-2">
-              <span class="h-3 w-3 animate-spin rounded-full border-2 border-current border-r-transparent"></span>
+            <Loader2Icon class="animate-spin" />
               Giriş yapılıyor...
-            </span>
+
           {:else}
             Giriş yap
           {/if}
@@ -412,7 +408,7 @@ async function finalizeRegister() {
           <Button type="submit" class="w-1/2" disabled={loading}>
             {#if loading}
               <span class="inline-flex items-center gap-2">
-                <span class="h-3 w-3 animate-spin rounded-full border-2 border-current border-r-transparent"></span>
+                <Loader2Icon class="animate-spin" />
                 Doğrulanıyor...
               </span>
             {:else}
@@ -490,10 +486,8 @@ async function finalizeRegister() {
           </div>
           <Button type="submit" class="w-full mt-2" disabled={loading || !!nicknameError || !!emailError || isValidating}>
             {#if isValidating}
-              <span class="inline-flex items-center gap-2">
-                <span class="h-3 w-3 animate-spin rounded-full border-2 border-current border-r-transparent"></span>
-                Kontrol ediliyor...
-              </span>
+            <Loader2Icon class="animate-spin" />
+              Kontrol ediliyor...
               
             {:else}
               Devam et
@@ -516,17 +510,17 @@ async function finalizeRegister() {
         <div use:motion >
         <div class="flex flex-col items-center gap-1">
           <RotateCcwKey size={48} class="text-primary" />
-          <h1 class="text-base font-bold">BIP39 Kurtarma Şifresi</h1>
-          <p class="text-sm underline-primary text-neutral-100"> Aşağıdaki altını kazıyın, görünen 12'li kelime silsilesini sırasıyla beraber bir kağıda yazın müteakiben kağıdı muhafaza edin.</p>
+          <h1 class="text-base font-bold">BIP-39 Kurtarma Şifresi</h1>
+          <p class="text-sm underline-primary text-neutral-100"> Aşağıdaki altını kazıyın, oluşturulan kelime silsilesini sırasıyla beraber bir kağıda yazın müteakiben kağıdı muhafaza edin.</p>
           <ScratchToReveal
       minScratchPercentage={85}
-      class="flex items-center justify-center overflow-hidden rounded-2xl my-3 bg-background"
+      class="flex items-center justify-center overflow-hidden rounded-2xl my-1 bg-background"
       gradientColors={["#FFB300", "#FF9D0A", "#FFD500"]}
       onComplete={() => {
         
       }}
     >
-    <div class="grid grid-cols-3 gap-1 my-2 text-xs">
+    <div class="grid grid-cols-3 gap-1 my-3 text-xs">
       {#each mnemonic as w, i}
         <div class="font-bold rounded-md bg-secondary border-primary border-0.5 px-1.5 py-1 text-primary">{i + 1}. {w}</div>
       {/each}
@@ -535,11 +529,10 @@ async function finalizeRegister() {
               <ul class="list-disc text-xs text-neutral-300">
             <li>Bu dizi, hesabınızı kurtarmak için veya bilgilerinizi değiştirmeniz için şarttır.</li>
             <li>Hesabınızın güvenliği için tekrar gösterilmeyecektir.</li>
-            <li>Ekran görüntüsü almayın.</li>
           </ul>
-                      <div class="flex flex-col gap-1 my-2 bg-secondary/33 rounded-xl px-5 py-4">
+                      <div class="flex flex-col gap-1 my-1.5 bg-secondary/33 rounded-xl px-4 py-2.5">
                         <div class="flex flex-row gap-1 "><LockKeyhole size={16} class="text-primary" />
-          <h1 class="text-sm font-bold">BIP-39 Nedir?</h1></div>
+          <h1 class="text-xs font-bold">BIP-39 Nedir?</h1></div>
 
           <p class="text-xs underline-primary text-neutral-100">Bitcoin Improvement Proposal 39 nam standardına tevfikan, 2048 kelimelik bir lügat arasından rastgele seçilen
              muhafaza edeceğiniz bir hatırlanabilir dizi oluşturur. İbaredeki kelimelerin nizamı,
@@ -548,7 +541,7 @@ async function finalizeRegister() {
 
           
         </div>
-        <div class="flex gap-2 mt-2" >
+        <div class="flex gap-2 mt-1.5" >
             <Button type="button" class="w-1/2" onclick={() => (step = 1)} variant="outline">Geri</Button>
             <Button type="button" class="w-1/2" onclick={proceedRegisterStep2}>Devam</Button>
           </div>
@@ -605,10 +598,8 @@ async function finalizeRegister() {
             <Button type="button" class="w-1/2" onclick={() => (step = 1)} variant="outline">Başa dön</Button>
             <Button type="button" class="w-1/2" disabled={loading || selection.length !== mnemonic.length} onclick={finalizeRegister}>
               {#if loading}
-                <span class="inline-flex items-center gap-2">
-                  <span class="h-3 w-3 animate-spin rounded-full border-2 border-current border-r-transparent"></span>
+                <Loader2Icon class="animate-spin" />
                   Kaydediliyor...
-                </span>
               {:else}
                 Kaydı tamamla
               {/if}

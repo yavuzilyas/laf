@@ -1,5 +1,7 @@
 <script>
   import Navbar from "$lib/Navbar.svelte";
+    import Footer from "$lib/Footer.svelte";
+
   import Spotlight from "$lib/components/Spotlight.svelte";
 import { cn } from "$lib/utils";
   import Timeline from "$lib/components/timeline/Timeline.svelte";
@@ -21,11 +23,13 @@ import { cn } from "$lib/utils";
       content: Content3,
     },
   ];
-
+import LanguageSelector from '$lib/components/LanguageSelector.svelte';
+  import { currentLocale } from '$lib/stores/locale';
+import { t } from '$lib/utils/i18n';
 </script>
 
 <Navbar />
-
+<LanguageSelector />
 <main class="w-full h-full">
   <div class="md:h-[30rem] w-full  flex flex-col md:items-center md:justify-center  antialiased bg-grid-white/[0.02] relative overflow-hidden"
 >
@@ -48,3 +52,4 @@ import { cn } from "$lib/utils";
 
 <Timeline {timelineData} />
 </main>
+<Footer />

@@ -4,8 +4,8 @@
 	"version": "0.0.1",
 	"type": "module",
 	"overrides": {
-  "cookie": "^0.7.0"
-},
+		"cookie": "^0.7.0"
+	},
 	"scripts": {
 		"dev": "vite dev",
 		"build": "vite build",
@@ -32,6 +32,7 @@
 		"eslint": "^9.18.0",
 		"eslint-config-prettier": "^10.0.1",
 		"eslint-plugin-svelte": "^3.0.0",
+		"formsnap": "^2.0.1",
 		"globals": "^16.0.0",
 		"postcss": "^8.5.6",
 		"prettier": "^3.4.2",
@@ -41,6 +42,7 @@
 		"svelte-check": "^4.0.0",
 		"svelte-motion": "^0.12.2",
 		"svelte-sonner": "^1.0.5",
+		"sveltekit-superforms": "^2.27.1",
 		"tailwind-merge": "^3.3.1",
 		"tailwind-variants": "^1.0.0",
 		"tailwindcss": "^4.1.13",
@@ -54,8 +56,9 @@
 		"@types/bip39": "^2.4.2",
 		"bcrypt": "^6.0.0",
 		"bip39": "^3.1.0",
+		"crypto-js": "^4.2.0",
+		"js-sha256": "^0.11.1",
 		"mode-watcher": "^1.1.0",
 		"mongodb": "^6.19.0"
 	}
-	
 }

@@ -4,7 +4,7 @@
 	import logo from "$lib/assets/laf1.svg";
 </script>
 
-<div class="text-xs grid min-h-svh">
+<div class="max-h-screen max-w-screen md:w-auto md:h-auto text-xs grid  ">
 	<div class="flex flex-col gap-4 p-6 md:p-10">
 		<div class="flex text-secondary-foreground justify-center gap-2 md:justify-start">
 			<a href="/" class="flex text-base items-center gap-2 font-bold">

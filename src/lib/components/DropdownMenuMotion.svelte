@@ -1,7 +1,7 @@
 <script lang="ts">
       let isOpen = false;
 
-  import {ChevronRightIcon} from "@lucide/svelte";
+  import {Menu, ChevronRightIcon, CircleChevronDown} from "@lucide/svelte";
   import { Motion, useAnimation } from "svelte-motion";
   import { cn } from "$lib/utils";
   import SunIcon from "@lucide/svelte/icons/sun";
@@ -74,7 +74,7 @@ function handleItemClick(item: any) {
     >
       <div style="transform-origin: 50% 55%;">
         <Motion animate={svgControls} let:motion>
-          <UserRound size={22} strokeWidth={2} class=" scale-110 md:scale-100 text-primary"/>
+          <Menu class=" scale-110 md:scale-100 text-primary"size={20} strokeWidth={2} />
         </Motion>
       </div>
     </button>

@@ -9,7 +9,7 @@
 	let renderList = $state<{ toast: Toast; exiting?: boolean }[]>([]);
 	let toastQueue: Toast[] = $state([]); // Bildirim kuyruğu
 	let isShowingToast = $state(false); // Şu anda bildirim gösteriliyor mu?
-	const EXIT_MS = 250;
+	const EXIT_MS = 333;
 	$effect(() => {
 		const unsub = toasts.subscribe((v) => {
 			// Yeni bildirimleri kuyruğa ekle
@@ -94,7 +94,7 @@
 	};
 </script>
 
-<div class="w-full fixed translate z-[70] flex flex-col justify-center items-center gap-1">
+<div class="w-full h-0 fixed translate z-[70] flex flex-col justify-center items-center gap-1">
 	{#each renderList as item, i (item.toast.id)}
 		<Motion
 			custom={i + 1}
