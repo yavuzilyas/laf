@@ -8,7 +8,7 @@
 
   
   import { setLocale, currentLocale, availableLocales } from '$lib/stores/locale';
-  
+  import { t } from '$lib/utils/i18n';
   import { onMount } from 'svelte';
   
   // Store'dan değeri almak için

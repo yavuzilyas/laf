@@ -25,4 +25,3 @@ export const handle: Handle = async ({ event, resolve }) => {
     transformPageChunk: ({ html }) => html.replace('%lang%', locale)
   });
 };
-

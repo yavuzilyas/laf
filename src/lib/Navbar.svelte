@@ -9,6 +9,8 @@ import SettingsDialog from "$lib/components/settings-dialog.svelte";
     import { dativeSuffix } from './utils/suffix'; // türkçe ekler için
     const nameWithDative = (n: string) => dativeSuffix(n, { apostrophe: true });
   import { page } from "$app/stores";
+  
+  import * as Carousel from "$lib/components/ui/carousel/index.js";
 
   type MenuItem = {
     icon?: any;
@@ -56,23 +58,21 @@ let openSettings = $state(false);
 </script>
 
 <SettingsDialog bind:open={openSettings} />
-<nav class="w-full text-secondary-foreground border-b-1 py-0.75">
-  <div class="max-w-7xl mx-auto py-1 sm:py-0 px-4 sm:px-6 lg:px-8">
+<nav class="w-full text-secondary-foreground border-b-1">
+  <div class="max-w-7xl mx-auto  py-0 sm:py-1 px-3 sm:px-6 lg:px-8">
     <div class="flex items-center justify-between">
       <Tooltip.Provider>
  <Tooltip.Root>
   <Tooltip.Trigger>   
-    <a href="/" ><img class="max-h-5.5 sm:max-h-4.5 fill-primary" src="{logo}" alt="LAF" /></a>
+    <a href="/" ><img class="max-h-4.5 fill-primary" src="{logo}" alt="LAF" /></a>
   </Tooltip.Trigger>
   <Tooltip.Content>
    <p>Ana sayfaya git.</p>
   </Tooltip.Content>
  </Tooltip.Root>
 </Tooltip.Provider>
-      
 
-      <!-- Menu -->
-      <div class="hidden md:flex text-secondary-foreground space-x-4 text-xs">
+      <div class=" pb-2 pt-2.5 max-w-50 sm:p-0 sm:max-w-full overflow-auto flex text-secondary-foreground space-x-4 text-xs">
         {#each menu as item}
 
 {#if item.isconstruction == "true"}
@@ -93,7 +93,7 @@ let openSettings = $state(false);
             <Tooltip.Provider>
   <Tooltip.Root>
     <Tooltip.Trigger>
-<a href={item.href} class="group flex items-center gap-1 font-bold cursor-pointer">
+<a href={item.href} class="group flex items-center font-bold cursor-pointer">
   {item.name} 
 </a>
 </Tooltip.Trigger>

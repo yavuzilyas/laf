@@ -9,6 +9,10 @@
   import UserRound from "@lucide/svelte/icons/user-round";
   import { toggleMode } from "mode-watcher";
   import { Button } from "$lib/components/ui/button/index.js";
+    import * as Carousel from "$lib/components/ui/carousel/index.js";
+import "/node_modules/flag-icons/css/flag-icons.min.css";
+import LanguageSelector from '$lib/components/LanguageSelector.svelte';
+
 export let items: { 
     icon?: any; 
     name?: string; 
@@ -65,7 +69,7 @@ function handleItemClick(item: any) {
 </script>
 
 <!-- NAV'i relative yaptık: absolute olan ul buna göre hizalanır -->
-<nav class={cn("relative max-w-[200px] w-full mx-auto  z-50")}> 
+<nav class={cn("relative max-w-fit w-min mx-auto  z-50")}> 
   <Motion whileTap={{ scale: 0.97 }} let:motion>
     <button
       use:motion
@@ -157,7 +161,18 @@ function handleItemClick(item: any) {
     </Button>
   </li>
 </Motion>
+<Motion
+  custom={items.length + 2}
+  {variants}
+  initial="hidden"
+  animate={isOpen ? "visible" : "hidden"}
+  let:motion
+>
+  <li class="mt-1" use:motion>
+<LanguageSelector />
 
+  </li>
+</Motion>
 
       </ul>
     </Motion>
