@@ -6,7 +6,7 @@
 import SettingsDialog from "$lib/components/settings-dialog.svelte";
     import {HandCoins, BadgeInfo, Construction, Cog, LogIn, UserCircleIcon, LayoutGridIcon, TrashIcon, BellIcon,LogOutIcon, LogInIcon, UserRound } from "@lucide/svelte";
   import logo from '$lib/assets/laf1.svg';
-    import { dativeSuffix } from './utils/suffix'; // türkçe ekler için
+    import { dativeSuffix } from './utils/turkish-suffix'; // türkçe ekler için
     const nameWithDative = (n: string) => dativeSuffix(n, { apostrophe: true });
   import { page } from "$app/stores";
   

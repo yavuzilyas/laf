@@ -4,13 +4,11 @@
   import {Menu, ChevronRightIcon, CircleChevronDown} from "@lucide/svelte";
   import { Motion, useAnimation } from "svelte-motion";
   import { cn } from "$lib/utils";
-  import SunIcon from "@lucide/svelte/icons/sun";
-  import MoonIcon from "@lucide/svelte/icons/moon";
-  import UserRound from "@lucide/svelte/icons/user-round";
-  import { toggleMode } from "mode-watcher";
+  import {UserRound }from "@lucide/svelte";
+
   import { Button } from "$lib/components/ui/button/index.js";
-    import * as Carousel from "$lib/components/ui/carousel/index.js";
-import "/node_modules/flag-icons/css/flag-icons.min.css";
+  import LanguageSelector from "./LanguageSelector.svelte";
+
 export let items: { 
     icon?: any; 
     name?: string; 
@@ -140,6 +138,18 @@ function handleItemClick(item: any) {
     </li>
   </Motion>
 {/each}
+<Motion
+  custom={items.length + 1}
+  {variants}
+  initial="hidden"
+  animate={isOpen ? "visible" : "hidden"}
+  let:motion
+>
+  <li class="mt-1" use:motion>
+<LanguageSelector />
+
+  </li>
+</Motion>
 
       </ul>
     </Motion>

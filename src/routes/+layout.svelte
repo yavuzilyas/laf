@@ -1,18 +1,27 @@
 <script lang="ts">
-	import favicon from '$lib/assets/favicon.svg';
+  import favicon from '$lib/assets/laf1.svg';
   import "../app.css";
-  import { ModeWatcher } from "mode-watcher";
   import ToastHost from "$lib/components/ToastHost.svelte";
   import Preloader from "$lib/components/Preloader.svelte";
-    let { children } = $props();
+  import { onMount } from 'svelte';
+  import { i18n } from '$lib/stores/i18n.svelte.js';
+  import LanguageSelector from '$lib/components/LanguageSelector.svelte';
 
+  // Props declaration import'lardan sonra gelir
+  let { children } = $props();
+
+  onMount(async () => {
+    // Sayfa yüklendiğinde mevcut locale'i yükle
+    await i18n.loadLocale(i18n.currentLocale);
+  });
 </script>
 
 <svelte:head>
-	<link rel="icon" href={favicon} />
+  <link rel="icon" href={favicon} />
 </svelte:head>
 
-<ModeWatcher />
 <Preloader />
 <ToastHost />
+
+
 {@render children?.()}

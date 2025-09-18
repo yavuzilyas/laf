@@ -1,5 +1,31 @@
 {
-
+  "app": {
+    "title": "Uygulama Başlığı"
+  },
+  "common": {
+    "language": "Dil",
+    "loading": "Yükleniyor...",
+    "save": "Kaydet",
+    "cancel": "İptal",
+    "confirm": "Onayla",
+    "searchLanguage": "Dil ara...",
+    "noLanguageFound": "Dil bulunamadı."
+  },
+  "pages": {
+    "home": {
+      "title": "Ana Sayfa",
+      "welcome": "Hoş geldiniz!",
+      "greeting": "Merhaba {{name}}!",
+      "userCount": "{{count}} kullanıcı çevrimiçi",
+      "today": "Bugün",
+      "price": "Fiyat"
+    }
+  },
+  "errors": {
+    "notFound": "Sayfa bulunamadı",
+    "serverError": "Sunucu hatası"
+  }
+,
   "language_selector": {
     "label": "Dil seçin",
     "default": "Dil",

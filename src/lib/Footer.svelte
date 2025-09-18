@@ -2,7 +2,7 @@
         import * as Tooltip from "$lib/components/ui/tooltip/index.js";
       import logo from "$lib/assets/laf1.svg";
     import { Button } from "$lib/components/ui/button";
-        import { dativeSuffix } from './utils/suffix'; // türkçe ekler için
+        import { dativeSuffix } from './utils/turkish-suffix'; // türkçe ekler için
 </script>
 
 <footer class="w-full text-secondary-foreground border-t-1 p-6">

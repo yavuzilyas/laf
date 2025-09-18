@@ -23,6 +23,7 @@ import { cn } from "$lib/utils";
       content: Content3,
     },
   ];
+  import { i18n, dativeSuffix, locativeSuffix } from '$lib/stores/i18n.svelte.js';
 
 </script>
 
@@ -40,7 +41,7 @@ import { cn } from "$lib/utils";
     <p
       class="mt-2 md:mt-4 font-normal text-sm md:text-base text-neutral-300 max-w-lg text-center mx-auto"
     >
-      <!-- {t('MainPageDescription')} -->
+      {i18n.t('MainPageDescription')}
     </p>
   </div>
 
