@@ -10,8 +10,6 @@ import SettingsDialog from "$lib/components/settings-dialog.svelte";
     const nameWithDative = (n: string) => dativeSuffix(n, { apostrophe: true });
   import { page } from "$app/stores";
   
-  import * as Carousel from "$lib/components/ui/carousel/index.js";
-
   type MenuItem = {
     icon?: any;
     name?: string;

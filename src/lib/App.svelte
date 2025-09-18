@@ -23,8 +23,7 @@ import { cn } from "$lib/utils";
       content: Content3,
     },
   ];
-  import { currentLocale } from '$lib/stores/locale';
-import { t } from '$lib/utils/i18n';
+
 </script>
 
 <Navbar />
@@ -41,7 +40,7 @@ import { t } from '$lib/utils/i18n';
     <p
       class="mt-2 md:mt-4 font-normal text-sm md:text-base text-neutral-300 max-w-lg text-center mx-auto"
     >
-      {t('MainPageDescription')}
+      <!-- {t('MainPageDescription')} -->
     </p>
   </div>
 

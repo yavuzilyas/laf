@@ -1,7 +1,24 @@
 
 {
-  
+      "language_selector": {
+    "label": "Select language",
+    "default": "Language",
+    "search_placeholder": "Search language...",
+    "not_found": "Language not found"
+  },
+  "GoToHomePage" : "Go to home page.",
   "MainPageDescription" : "Anarchist, libertarian action and intellectual knowledge sharing platform",
+  "DevelopmentStage" : "is in the development stage.",
+  "ThePage" : "page.",
+  "Articles" : "Articles",
+  "Lugath" : "Lugath",
+  "FooterQuote-1" : "Extremism in defense of liberty is no vice.",
+  "FooterQuote-2" : "Moderation in pursuit of justice is no virtue.",
+  "Donations" : "Donations",
+  "Login" : "Login",
+  "Logout" : "Logout",
+  "NotFound" : "not found.",
+  "IsNotCorrect" : "is not correct.",
 
   "0 bytes": "0 bytes",
   "0 hour": "0 hour",

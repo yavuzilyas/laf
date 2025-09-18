@@ -10,7 +10,8 @@
   import { fly } from "svelte/transition";
   import ScratchToReveal from "./ScratchToReveal.svelte";
   import { LockKeyhole, RotateCcwKey, ShieldAlert, UserRoundPlus, KeyRound, LogIn } from "@lucide/svelte";
- import Loader2Icon from "@lucide/svelte/icons/loader-2";
+ import Loader from "@lucide/svelte/icons/loader";
+ 
   let {
     mode = "login",
     ref = $bindable(null),
@@ -356,7 +357,7 @@ async function finalizeRegister() {
         </div>
         <Button type="submit" class="w-full" disabled={loading}>
           {#if loading}
-            <Loader2Icon class="animate-spin" />
+            <Loader class="animate-spin" />
               Giriş yapılıyor...
 
           {:else}
@@ -408,7 +409,7 @@ async function finalizeRegister() {
           <Button type="submit" class="w-1/2" disabled={loading}>
             {#if loading}
               <span class="inline-flex items-center gap-2">
-                <Loader2Icon class="animate-spin" />
+                <Loader class="animate-spin" />
                 Doğrulanıyor...
               </span>
             {:else}
@@ -486,7 +487,7 @@ async function finalizeRegister() {
           </div>
           <Button type="submit" class="w-full mt-2" disabled={loading || !!nicknameError || !!emailError || isValidating}>
             {#if isValidating}
-            <Loader2Icon class="animate-spin" />
+            <Loader class="animate-spin" />
               Kontrol ediliyor...
               
             {:else}
@@ -598,7 +599,7 @@ async function finalizeRegister() {
             <Button type="button" class="w-1/2" onclick={() => (step = 1)} variant="outline">Başa dön</Button>
             <Button type="button" class="w-1/2" disabled={loading || selection.length !== mnemonic.length} onclick={finalizeRegister}>
               {#if loading}
-                <Loader2Icon class="animate-spin" />
+                <Loader class="animate-spin" />
                   Kaydediliyor...
               {:else}
                 Kaydı tamamla

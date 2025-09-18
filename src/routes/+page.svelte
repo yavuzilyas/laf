@@ -1,7 +1,11 @@
-<script>
-    import App from '$lib/App.svelte'; // SvelteKit’te lib klasörü genellikle komponentler için kullanılır
+<script lang="ts">
+  import App from '$lib/App.svelte';
+  import Loader from '$lib/components/load.svelte';
 </script>
 
+<Loader />
+
 <main>
+  <slot />
   <App name="SvelteKit" />
 </main>

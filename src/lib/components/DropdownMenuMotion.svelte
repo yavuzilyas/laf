@@ -11,8 +11,6 @@
   import { Button } from "$lib/components/ui/button/index.js";
     import * as Carousel from "$lib/components/ui/carousel/index.js";
 import "/node_modules/flag-icons/css/flag-icons.min.css";
-import LanguageSelector from '$lib/components/LanguageSelector.svelte';
-
 export let items: { 
     icon?: any; 
     name?: string; 
@@ -53,7 +51,7 @@ let variants = {
   }),
   hidden: {
     opacity: 0,
-    x: 18,            // başlangıçta sağdan 10px ötede
+    x: 24,            // başlangıçta sağdan 10px ötede
     filter: "blur(6px)",
   },
 };
@@ -90,7 +88,7 @@ function handleItemClick(item: any) {
       <ul
   use:motion
   class={cn(
-    "absolute right-0 top-full mt-2.5 z-[60] w-max  px-3.5 py-2 bg-secondary/66 backdrop-blur-md rounded-xl origin-top-right shadow-lg",
+    "absolute right-0 top-full mt-4 sm:mt-2.5 z-[60] w-max  px-3.5 py-2 bg-secondary/66 backdrop-blur-md rounded-xl origin-top-right shadow-lg",
     isOpen ? "pointer-events-auto" : "pointer-events-none"
   )}
 >
@@ -113,7 +111,7 @@ function handleItemClick(item: any) {
           )}
         >
           <svelte:component this={item.icon} size={16} strokeWidth={1.75} />
-          <span class="text-secondary-foreground flex items-center gap-1 text-sm md:text-xs duration-333 font-bold hover:text-secondary-foreground">
+          <span class="text-secondary-foreground flex items-center gap-1 text-xs md:text-xs duration-333 font-bold hover:text-secondary-foreground">
             {item.name}
             <ChevronRightIcon
               size={12}
@@ -130,7 +128,7 @@ function handleItemClick(item: any) {
           )}
         >
           <svelte:component this={item.icon} size={16} strokeWidth={1.75} />
-          <span class="text-secondary-foreground flex items-center gap-1 text-sm md:text-xs duration-333 font-bold hover:text-secondary-foreground">
+          <span class="text-secondary-foreground flex items-center gap-1 text-xs md:text-xs duration-333 font-bold hover:text-secondary-foreground">
             {item.name}
             <ChevronRightIcon
               size={12}
@@ -142,37 +140,6 @@ function handleItemClick(item: any) {
     </li>
   </Motion>
 {/each}
-
-<Motion
-  custom={items.length + 1}
-  {variants}
-  initial="hidden"
-  animate={isOpen ? "visible" : "hidden"}
-  let:motion
->
-  <li class="mt-1" use:motion>
-    <Button class="w-full" onclick={toggleMode} variant="outline" size="icon">
-      <SunIcon size={20}
-        class="text-primary h-[1.2rem] w-[1.2rem] rotate-0 scale-100 !transition-all dark:-rotate-90 dark:scale-0 duration-[666ms]"
-      />
-      <MoonIcon size={20}
-        class="text-primary absolute h-[1.2rem] w-[1.2rem] rotate-90 scale-0 !transition-all dark:rotate-0 dark:scale-100 duration-[666ms]"
-      />
-    </Button>
-  </li>
-</Motion>
-<Motion
-  custom={items.length + 2}
-  {variants}
-  initial="hidden"
-  animate={isOpen ? "visible" : "hidden"}
-  let:motion
->
-  <li class="mt-1" use:motion>
-<LanguageSelector />
-
-  </li>
-</Motion>
 
       </ul>
     </Motion>

@@ -6,9 +6,7 @@ start_mongo().then(() : void  => { console.log("MongoDB connected."); } ).catch(
 
 export const handle: Handle = async ({ event, resolve }) => {
   const session = event.cookies.get("session");
-  // Cookie'den dil tercihini oku, yoksa varsayılan 'en'
-  const locale = event.cookies.get('locale') || 'en';
-  
+
   if (session) {
     try {
       const users = await getUsersCollection();
@@ -21,7 +19,5 @@ export const handle: Handle = async ({ event, resolve }) => {
     }
   }
 
-   return resolve(event, {
-    transformPageChunk: ({ html }) => html.replace('%lang%', locale)
-  });
+  return resolve(event);
 };
