@@ -2,7 +2,7 @@
         import * as Tooltip from "$lib/components/ui/tooltip/index.js";
       import logo from "$lib/assets/laf1.svg";
     import { Button } from "$lib/components/ui/button";
-        import { dativeSuffix } from './utils/turkish-suffix'; // türkçe ekler için
+          import { i18n, dativeSuffix, locativeSuffix } from '$lib/stores/i18n.svelte.js';
 </script>
 
 <footer class="w-full text-secondary-foreground border-t-1 p-6">
@@ -15,16 +15,16 @@
                 <a href="/" ><img class="max-h-7.5 sm:max-h-7 fill-primary" src="{logo}" alt="LAF" /></a>
               </Tooltip.Trigger>
             <Tooltip.Content>
-              <p>Ana sayfaya git.</p>
+              <p>{i18n.t('GoToHomePage')}</p>
             </Tooltip.Content>
           </Tooltip.Root>
         </Tooltip.Provider>
         <div class="border-l-1 pl-3 border-white/75">
-          <h1 class="font-bold">E-posta:</h1>
+          <h1 class="font-bold">{i18n.t('E-mail')}:</h1>
           <a href="mailto:contact@laf.de" class="hover:underline underline-offset-3">contact@laf.de</a>
           </div>
         </div>
-          <p class="font-bold text-sm text-end italic text-primary">Özgürlük yolunda ekstremizm bir kötülük olmadığı gibi,<br>adalet mücadelesinde ılımlılık erdemsizliktir.</p>
+          <p class="font-bold text-sm text-end italic text-primary">{i18n.t('FooterQuote-1')}<br>{i18n.t('FooterQuote-2')}</p>
         </div>
   </div>
 </footer>

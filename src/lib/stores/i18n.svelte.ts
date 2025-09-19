@@ -17,8 +17,8 @@ import { browser } from '$app/environment';
 
 // Static import map - Vite uyumlu
 const LOCALE_MODULES = {
-  'tr': () => import('$lib/locales/tr.json'),
   'en': () => import('$lib/locales/en.json'),
+  'tr': () => import('$lib/locales/tr.json'),
   'de': () => import('$lib/locales/de.json'),
   'fr': () => import('$lib/locales/fr.json'),
   'es': () => import('$lib/locales/es.json'),
@@ -178,7 +178,7 @@ class I18nStore {
 // i18n konfigürasyonu
 const i18nConfig: I18nConfig = {
   defaultLocale: 'en',
-  availableLocales: ['tr', 'en'],
+  availableLocales: ['en', 'tr'],
   fallbackLocale: 'tr'
 };
 
@@ -201,4 +201,4 @@ export {
   instrumentalSuffix,
   applySuffix,
   applySuffixTemplate 
-} from '$lib/utils/turkish-suffix.ts';
+} from '$lib/utils/turkish-suffix';

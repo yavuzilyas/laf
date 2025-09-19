@@ -11,7 +11,8 @@
   import ScratchToReveal from "./ScratchToReveal.svelte";
   import { LockKeyhole, RotateCcwKey, ShieldAlert, UserRoundPlus, KeyRound, LogIn } from "@lucide/svelte";
  import Loader from "@lucide/svelte/icons/loader";
- 
+       import { i18n, dativeSuffix, locativeSuffix } from '$lib/stores/i18n.svelte.js';
+
   let {
     mode = "login",
     ref = $bindable(null),

@@ -10,17 +10,17 @@
     tr: 'Türkçe'
   };
 
-  let currentLocale = $state(i18n.currentLocale);
+  // i18n store'dan reaktif olarak currentLocale'i al
+  const currentLocale = $derived(i18n.currentLocale);
   
   const triggerContent = $derived(
     localeNames[currentLocale] || "Diller"
   );
 </script>
   <Select.Root 
-
     type="single" 
     name="language" 
-    bind:value={currentLocale}
+    value={currentLocale}
     onValueChange={(val: string) => i18n.setLocale(val)}
     disabled={i18n.loading}
   >
@@ -29,7 +29,7 @@
     </Select.Trigger>
     <Select.Content   class="max-w-28.5 text-xs">
       <Select.Group>
-        <Select.Label class="text-xs">Diller</Select.Label>
+        <Select.Label class="text-xs">{i18n.t('Languages')}</Select.Label>
         {#each i18n.availableLocales as locale}
           <Select.Item class="text-xs" value={locale}>
             {localeNames[locale] || locale}

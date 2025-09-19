@@ -36,7 +36,7 @@ import { cn } from "$lib/utils";
     <h1
       class="text-3xl md:text-7xl md:h-38 font-bold text-center bg-clip-text text-transparent bg-gradient-to-b from-primary to-primary/66 bg-opacity-50"
     >
-      Liberterten Anarşist<br />  Faaliyet.
+      Liberteryen Anarşist<br />  Faaliyet.
     </h1>
     <p
       class="mt-2 md:mt-4 font-normal text-sm md:text-base text-neutral-300 max-w-lg text-center mx-auto"

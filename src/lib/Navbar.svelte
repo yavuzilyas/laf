@@ -6,8 +6,8 @@
 import SettingsDialog from "$lib/components/settings-dialog.svelte";
     import {HandCoins, BadgeInfo, Construction, Cog, LogIn, UserCircleIcon, LayoutGridIcon, TrashIcon, BellIcon,LogOutIcon, LogInIcon, UserRound } from "@lucide/svelte";
   import logo from '$lib/assets/laf1.svg';
-    import { dativeSuffix } from './utils/turkish-suffix'; // türkçe ekler için
-    const nameWithDative = (n: string) => dativeSuffix(n, { apostrophe: true });
+      import { i18n, dativeSuffix, locativeSuffix } from '$lib/stores/i18n.svelte.js';
+
   import { page } from "$app/stores";
   
   type MenuItem = {
@@ -19,28 +19,30 @@ import SettingsDialog from "$lib/components/settings-dialog.svelte";
     customStyle?: string;
   };
 
-  let menu = [
-    { isconstruction: "false", name: "Makale", href: "makale" },
-    { isconstruction: "true", name: "Nutuk", href: "" },
-    { isconstruction: "true", name: "Lügat", href: "" },
-    { isconstruction: "true", name: "Külliyât", href: "" },
-    { isconstruction: "true", name: "Tahkikat", href: "" },
-  ];
+  // Reaktif menu array'i - dil değiştiğinde otomatik güncellenir
+  let menu = $derived([
+    { isconstruction: "false", name: i18n.t('Articles'), href: "articles" },
+    { isconstruction: "true", name: i18n.t('Lugath'), href: "lugath" },
+    { isconstruction: "true", name: i18n.t('Bicorpus'), href: "bicorpus" },
+    { isconstruction: "true", name: i18n.t('Tacicat'), href: "tacicat" },
+  ]);
 
-    const loggedInItems: MenuItem[] = [
-    { icon: UserRound, name: "Hesap", href: "/hesap" },
-    { icon: Cog, name: "Ayarlar", onClick: () => { openSettings = true; } },
-    { icon: BellIcon, name: "Bildirimler", href: "/bildirimler"},
-    { icon: HandCoins, name: "Bağışlar", href: "/login" },
-    { icon: BadgeInfo, name: "Yardım", href: "/login" },
-    { icon: LogOutIcon, name: "Çıkış Yap", href: "/logout", customStyle: "!text-red-500"},
-  ];
+  // Reaktif logged-in items - dil değiştiğinde otomatik güncellenir
+  const loggedInItems = $derived<MenuItem[]>([
+    { icon: UserRound, name: i18n.t('Account'), href: "hesap" },
+    { icon: Cog, name: i18n.t('Settings'), onClick: () => { openSettings = true; } },
+    { icon: BellIcon, name: i18n.t('Notifications'), href: "bildirimler"},
+    { icon: HandCoins, name: i18n.t('Donations'), href: "donations" },
+    { icon: BadgeInfo, name: i18n.t('Help'), href: "help" },
+    { icon: LogOutIcon, name: i18n.t('Logout'), href: "logout", customStyle: "!text-red-500"},
+  ]);
 
-  const baseLoggedOut: MenuItem[] = [
-    { icon: LogInIcon, name: "Giriş", href: "/login" },
-    { icon: HandCoins, name: "Bağışlar", href: "/login" },
-    { icon: BadgeInfo, name: "Yardım", href: "/login" },
-  ];
+  // Reaktif logged-out items - dil değiştiğinde otomatik güncellenir
+  const baseLoggedOut = $derived<MenuItem[]>([
+    { icon: LogInIcon, name: i18n.t('Login'), href: "login" },
+    { icon: HandCoins, name: i18n.t('Donations'), href: "donations" },
+    { icon: BadgeInfo, name: i18n.t('Help'), href: "help" },
+  ]);
 
   const loginHref = $derived(`/login?redirectTo=${encodeURIComponent($page.url.pathname + $page.url.search)}`);
 
@@ -65,7 +67,7 @@ let openSettings = $state(false);
     <a href="/" ><img class="max-h-4.5 fill-primary" src="{logo}" alt="LAF" /></a>
   </Tooltip.Trigger>
   <Tooltip.Content>
-   <p>Ana sayfaya git.</p>
+   <p>{i18n.t('GoToHomePage')}</p>
   </Tooltip.Content>
  </Tooltip.Root>
 </Tooltip.Provider>
@@ -83,7 +85,7 @@ let openSettings = $state(false);
     <Tooltip.Content class="align-center text-center flex items-center gap-1.5">
       <p class="text-secondary-foreground group flex items-center gap-0.5 font-bold cursor-pointer">
         {item.name} 
-        <Construction size={16} strokeWidth={1.75} /> </p><span class="text-secondary-foreground font-medium"> imar merhalesindedir.</span>
+        <Construction size={16} strokeWidth={1.75} /> </p><span class="text-secondary-foreground font-medium"> {i18n.t('DevelopmentStage')}</span>
     </Tooltip.Content>
   </Tooltip.Root>
 </Tooltip.Provider>
@@ -96,7 +98,7 @@ let openSettings = $state(false);
 </a>
 </Tooltip.Trigger>
     <Tooltip.Content>
-      <p><span class="font-bold text-secondary-foreground">{nameWithDative(item.name)}</span> git.</p> 
+      <p>{#if i18n.currentLocale === 'tr'}<span class="font-bold text-secondary-foreground">{dativeSuffix(item.name)}</span> {i18n.t('goto')}{:else}{i18n.t('goto')} <span class="font-bold text-secondary-foreground">{item.name}</span>{/if}</p> 
 <!-- son harfine göre ek alır -->
     </Tooltip.Content>
   </Tooltip.Root>
