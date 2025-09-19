@@ -17,21 +17,21 @@
 	import MnemonicVerificationPopup from "$lib/components/MnemonicVerificationPopup.svelte";
 	import { showToast } from "$lib/hooks/toast";
   import Loader2Icon from "@lucide/svelte/icons/loader-2";
+      import { t, tJoin, tMany } from '$lib/stores/i18n.svelte.js';
 
-	const data = {
+	const settingsData = $derived({
 		account: [
-			{ name: "Üyelik", icon: CirclePlus },
-			{ name: "Bağışlarım", icon: HandCoins },
-			{ name: "Ödüllerim", icon: FileBadge },
+			{ name: tJoin(['MyPlus']), value:"account", icon: CirclePlus },
+			{ name: tJoin(['MyDonations']), value:"donations", icon: HandCoins },
+			{ name: tJoin(['MyAwards']), value:"awards", icon: FileBadge },
 		],
 		settings: [
-			{ name: "Tema", icon: PaintbrushIcon },
-			{ name: "Mesaj", icon: MessageCircleIcon },
-			{ name: "Dil ve Bölge", icon: GlobeIcon },
-			{ name: "Gizlilik ve Görünürlük", icon: LockIcon },
-			{ name: "Ayarlar", icon: SettingsIcon },
+			{ name: t('Theme'), value:"theme", icon: PaintbrushIcon },
+			{ name: t('Messages'), value:"messages", icon: MessageCircleIcon },
+			{ name: tJoin(['Language', 'and', 'Region']), value:"language",icon: GlobeIcon },
+			{ name: t('Settings'), value:"settings", icon: SettingsIcon },
 		],
-	};
+	});
 
 	let { open = false } = $props(); // Dışarıdan gelecek prop
 	
@@ -49,7 +49,7 @@
 			});
 
 			if (res.ok) {
-				showToast("Hesabınız başarıyla silindi", "success");
+				showToast(t('auth.success.accountDeleted'), "success");
 				// Kullanıcıyı çıkış yaptır veya ana sayfaya yönlendir
 				setTimeout(() => {
 					window.location.href = "/";
@@ -76,9 +76,25 @@
 		showMnemonicVerification = false;
 		 open = true;
 	}
+	// SettingsDialog içinde
+import { createEventDispatcher } from 'svelte';
+
+const dispatch = createEventDispatcher();
+
+function handleClose() {
+    dispatch('close');
+}
+
+// Dialog kapanırken
+// <Dialog.Root bind:open onOpenChange={handleOpenChange}>
+function handleOpenChange(newOpen) {
+    if (!newOpen) {
+        dispatch('close');
+    }
+}
 </script>
 
-<Dialog.Root bind:open>
+<Dialog.Root bind:open onOpenChange={handleOpenChange}>
 	<Dialog.Trigger>
 		{#snippet child({ props })}
 			<Button class="hidden" size="sm" {...props}>Open Dialog</Button>
@@ -88,20 +104,20 @@
 		class="overflow-hidden p-0 md:max-h-[500px] md:max-w-[700px] lg:max-w-[800px]"
 		trapFocus={false}
 	>
-		<Tabs.Root value="Mesajlar">
+		<Tabs.Root value="settings">
 			<Sidebar.Provider class="items-start">
 				<Sidebar.Root>
 					<Sidebar.Content class="overflow-y-auto">
 						<Sidebar.Group>
-							<Sidebar.GroupLabel class="flex flex-row gap-1 font-bold text-secondary-foreground"><UserRound class="text-primary"size={28} outline={1.75} />Hesap</Sidebar.GroupLabel>
+							<Sidebar.GroupLabel class="flex flex-row gap-1 font-bold text-secondary-foreground"><UserRound class="text-primary"size={28} outline={1.75} />{t('MyAccount')}</Sidebar.GroupLabel>
 							<Sidebar.GroupContent>
 								<Sidebar.Menu>
-									{#each data.account as hesapItem (hesapItem.name)}
+									{#each settingsData.account as hesapItem (hesapItem.value)}
 										<Sidebar.MenuItem>
 											<Sidebar.MenuButton>
 												{#snippet child({ props })}
 													<Tabs.List>
-														<Tabs.Trigger value={hesapItem.name} {...props}><hesapItem.icon />{hesapItem.name}</Tabs.Trigger>
+														<Tabs.Trigger value={hesapItem.value} {...props}><hesapItem.icon />{hesapItem.name}</Tabs.Trigger>
 													</Tabs.List>
 												{/snippet}
 											</Sidebar.MenuButton>
@@ -111,15 +127,15 @@
 							</Sidebar.GroupContent>
 						</Sidebar.Group>
 						<Sidebar.Group>
-							<Sidebar.GroupLabel class="flex flex-row gap-1 font-bold text-secondary-foreground"><Cog class="text-primary"size={28} outline={1.75} />Ayarlar</Sidebar.GroupLabel>
+							<Sidebar.GroupLabel class="flex flex-row gap-1 font-bold text-secondary-foreground"><Cog class="text-primary"size={28} outline={1.75} />{t('Settings')}</Sidebar.GroupLabel>
 							<Sidebar.GroupContent>
 								<Sidebar.Menu>
-									{#each data.settings as settingsItem (settingsItem.name)}
+									{#each settingsData.settings as settingsItem (settingsItem.value)}
 										<Sidebar.MenuItem>
-											<Sidebar.MenuButton isActive={settingsItem.name === "Ayarlar"}>
+											<Sidebar.MenuButton isActive={settingsItem.value === 'settings'}>
 												{#snippet child({ props })}
 													<Tabs.List>
-														<Tabs.Trigger value={settingsItem.name} {...props}><settingsItem.icon/>{settingsItem.name}</Tabs.Trigger>
+														<Tabs.Trigger value={settingsItem.value} {...props}><settingsItem.icon/>{settingsItem.name}</Tabs.Trigger>
 													</Tabs.List>
 												{/snippet}
 											</Sidebar.MenuButton>
@@ -131,18 +147,31 @@
 					</Sidebar.Content>
 				</Sidebar.Root>
 				<Sidebar.Trigger class="mt-3 ml-3 scale-125 md:hidden">
-					<Breadcrumb.Link href="#">Ayarlar</Breadcrumb.Link>
+					<Breadcrumb.Link href="#">{t('Settings')}</Breadcrumb.Link>
 				</Sidebar.Trigger>
-				<Tabs.Content value="Ayarlar">
-					<main class="text-end flex h-[480px] flex-1 flex-col pt-8 overflow-hidden">
-						<div class="flex w-full items-end justify-end flex-1 flex-col gap-2 overflow-y-auto p-4">
+				<Tabs.Content value="settings">
+					        <header
+          class="flex h-16 shrink-0 items-center gap-2 transition-[width,height] ease-linear group-has-[[data-collapsible=icon]]/sidebar-wrapper:h-12"
+        >
+          <div class="flex items-center gap-2 px-6">
+            <Breadcrumb.Root>
+              <Breadcrumb.List>
+                <Breadcrumb.Item class="hidden md:block">
+                  <Breadcrumb.Link href="">{t('Settings')}</Breadcrumb.Link>
+                </Breadcrumb.Item>
+                <Breadcrumb.Separator class="hidden md:block" />
+              </Breadcrumb.List>
+            </Breadcrumb.Root>
+          </div>
+        </header>
+					<main class="text-end flex h-full flex-1 flex-col p-6 gap-1.5 overflow-y-auto">
 							<div class="flex w-full justify-end items-center py-2 px-4 rounded-lg border space-x-2">
 								<Switch id="lock-dm" />
-								<Label for="lock-dm">DM'i kapat</Label>
+								<Label for="lock-dm">{t('LockTheMessages')}</Label>
 							</div>
 							<div class="flex w-full justify-end  items-center py-2 px-4 rounded-lg border space-x-2">
 								<Switch id="hide-profile" />
-								<Label for="hide-profile">Profili Gizle</Label>
+								<Label for="hide-profile">{t('HideTheProfile')}</Label>
 							</div>
 							<div class="pt-4 w-full flex flex-col items-end border-t mt-4">
 								<Button 
@@ -155,20 +184,19 @@
 									{#if isDeletingAccount}
 										<span class="inline-flex items-center gap-2">
   											<Loader2Icon class="animate-spin" />
-											Siliniyor...
+											{t('Deleting')}...
 										</span>
 									{:else}
 										<span class="inline-flex items-center gap-2">
 											<TrashIcon size={16} />
-											Hesabı Sil
+											{t('DeleteTheAccount')}
 										</span>
 									{/if}
 								</Button>
 								<p class="text-xs text-end text-muted-foreground mt-2">
-									Hesabınızı silmek için BIP-39 doğrulaması gerekecektir.
+									{t('DeleteTheAccountBIP39Info')}
 								</p>
 							</div>
-						</div>
 					</main>
 				</Tabs.Content>
 			</Sidebar.Provider>

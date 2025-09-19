@@ -5,7 +5,7 @@ import { ObjectId } from 'mongodb';
 export async function POST({ request, cookies }) {
   const session = cookies.get('session');
   if (!session) {
-    return json({ error: 'Yetkisiz erişim' }, { status: 401 });
+    return json({ errorKey: 'auth.errors.unauthorized' }, { status: 401 });
   }
 
   const { index, word, attempts = 0 } = await request.json();
@@ -14,11 +14,11 @@ export async function POST({ request, cookies }) {
   const user = await users.findOne({ _id: new ObjectId(session) });
   
   if (!user?.mnemonicHashes?.length) {
-    return json({ error: 'Kullanıcı bulunamadı' }, { status: 404 });
+    return json({ errorKey: 'auth.errors.userNotFound' }, { status: 404 });
   }
 
   if (index < 0 || index >= user.mnemonicHashes.length) {
-    return json({ error: 'Geçersiz indeks' }, { status: 400 });
+    return json({ errorKey: 'auth.errors.invalidIndex' }, { status: 400 });
   }
 
   // Hash hesaplama
@@ -29,10 +29,10 @@ export async function POST({ request, cookies }) {
 
   if (hashHex !== user.mnemonicHashes[index]) {
     if (attempts >= 2) {
-      return json({ error: '3 başarısız deneme', reset: true }, { status: 400 });
+      return json({ errorKey: 'auth.errors.maxAttemptsReached', reset: true }, { status: 400 });
     }
-    return json({ error: 'Yanlış kelime', attempts: attempts + 1 }, { status: 400 });
+    return json({ errorKey: 'auth.errors.wrongMnemonic', attempts: attempts + 1 }, { status: 400 });
   }
 
-  return json({ success: true });
+  return json({ success: true, successKey: 'auth.success.mnemonicVerified' });
 }

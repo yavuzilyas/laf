@@ -5,14 +5,14 @@ import { ObjectId } from 'mongodb';
 export async function GET({ cookies }) {
   const session = cookies.get('session');
   if (!session) {
-    return json({ error: 'Yetkisiz erişim' }, { status: 401 });
+    return json({ errorKey: 'auth.errors.unauthorized' }, { status: 401 });
   }
 
   const users = await getUsersCollection();
   const user = await users.findOne({ _id: new ObjectId(session) });
   
   if (!user?.mnemonicHashes?.length) {
-    return json({ error: 'Kullanıcı bulunamadı' }, { status: 404 });
+    return json({ errorKey: 'auth.errors.userNotFound' }, { status: 404 });
   }
 
   const randomIndex = Math.floor(Math.random() * user.mnemonicHashes.length);

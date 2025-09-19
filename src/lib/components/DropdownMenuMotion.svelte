@@ -74,7 +74,7 @@ function handleItemClick(item: any) {
     >
       <div style="transform-origin: 50% 55%;">
         <Motion animate={svgControls} let:motion>
-          <Menu class=" scale-110 md:scale-100 text-primary"size={20} strokeWidth={2} />
+          <Menu class=" scale-110 cursor-pointer md:scale-100 text-primary"size={20} strokeWidth={2} />
         </Motion>
       </div>
     </button>

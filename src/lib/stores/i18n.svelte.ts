@@ -190,6 +190,67 @@ export const t = (key: TranslationKey, values?: InterpolationValues) => i18n.t(k
 export const setLocale = (locale: string) => i18n.setLocale(locale);
 export const getCurrentLocale = () => i18n.currentLocale;
 
+// Convenience helpers for arrays of keys
+export const tMany = (keys: TranslationKey[], values?: InterpolationValues) =>
+  keys.map((k) => i18n.t(k, values));
+
+export const tJoin = (keys: TranslationKey[], sep = ' ', values?: InterpolationValues) =>
+  tMany(keys, values).join(sep);
+
+// Attach helpers as methods for ergonomic usage: t.many([...]) and t.join([...], sep)
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+(t as any).many = tMany;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+(t as any).join = tJoin;
+
+// Locale-aware lower-first utility (handles Turkish dotted/dotless i)
+function lowerFirstLocaleAware(input: string, locale: string): string {
+  if (!input) return input;
+  const first = input[0];
+  const rest = input.slice(1);
+  if (locale === 'tr') {
+    // Turkish casing rules
+    const map: Record<string, string> = { 'I': 'ı', 'İ': 'i' };
+    const lowerFirst = map[first] ?? first.toLocaleLowerCase('tr');
+    return lowerFirst + rest;
+  }
+  return first.toLocaleLowerCase(locale || undefined) + rest;
+}
+
+export const tLowerFirst = (key: TranslationKey, values?: InterpolationValues) =>
+  lowerFirstLocaleAware(i18n.t(key, values), i18n.currentLocale);
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+(t as any).lowerFirst = tLowerFirst;
+
+// Locale-aware Turkish suffix helpers
+export const suffix = (word: string, suffixType: string, opts?: any) =>
+  i18n.currentLocale === 'tr' ? applySuffix(word, suffixType, opts) : word;
+
+export const tSuffix = (key: TranslationKey, suffixType: string, opts?: any, values?: InterpolationValues) =>
+  suffix(i18n.t(key, values), suffixType, opts);
+
+// Attach on t for ergonomic usage: t.suffix(word, 'dative'), t.sfx('Key','dative')
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+(t as any).suffix = suffix;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+(t as any).sfx = tSuffix;
+
+// Attach reactive-like getters and common methods so components can use t.currentLocale, t.setLocale, etc.
+try {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const tf = t as any;
+  Object.defineProperties(tf, {
+    currentLocale: { get: () => i18n.currentLocale },
+    availableLocales: { get: () => i18n.availableLocales },
+    loading: { get: () => i18n.loading }
+  });
+  tf.setLocale = (locale: string) => i18n.setLocale(locale);
+  tf.loadLocale = (locale: string) => i18n.loadLocale(locale);
+} catch (_) {
+  // no-op if defineProperties fails
+}
+
 // Turkish suffix exports
 export { 
   dativeSuffix, 

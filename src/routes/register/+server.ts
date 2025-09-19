@@ -16,7 +16,7 @@ export const POST: RequestHandler = async ({ request }) => {
   const { nickname, password, name, surname, email, mnemonicHashes, validateOnly } = await request.json();
 
   if (!nickname || !password) {
-    return new Response(JSON.stringify({ error: "Kullanıcı adı ve şifre gerekli" }), { status: 400 });
+    return new Response(JSON.stringify({ errorKey: "auth.errors.usernameRequired" }), { status: 400 });
   }
 
   const users = await getUsersCollection();
@@ -24,14 +24,14 @@ export const POST: RequestHandler = async ({ request }) => {
   // Check for nickname conflict
   const existingNickname = await users.findOne({ nickname });
   if (existingNickname) {
-    return new Response(JSON.stringify({ error: "Bu kullanıcı adı zaten kayıtlı" }), { status: 400 });
+    return new Response(JSON.stringify({ errorKey: "auth.errors.usernameExists" }), { status: 400 });
   }
 
   // Check for email conflict (only if email is provided)
   if (email) {
     const existingEmail = await users.findOne({ email });
     if (existingEmail) {
-      return new Response(JSON.stringify({ error: "Bu e-posta adresi zaten kayıtlı" }), { status: 400 });
+      return new Response(JSON.stringify({ errorKey: "auth.errors.emailExists" }), { status: 400 });
     }
   }
 
@@ -52,5 +52,5 @@ export const POST: RequestHandler = async ({ request }) => {
     createdAt: new Date() 
   });
 
-  return new Response(JSON.stringify({ success: true }), { status: 201 });
+  return new Response(JSON.stringify({ success: true, successKey: "auth.success.registerSuccess" }), { status: 201 });
 };

@@ -17,7 +17,7 @@
   }
   
   .animate-spotlight {
-    animation: spotlight 2s ease .75s 1 forwards;
+    animation: spotlight 5s ease 3.3s 1 forwards;
   }
 </style>
 <svg

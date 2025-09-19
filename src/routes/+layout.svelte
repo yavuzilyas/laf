@@ -6,6 +6,7 @@
   import { onMount } from 'svelte';
   import { i18n } from '$lib/stores/i18n.svelte.js';
   import LanguageSelector from '$lib/components/LanguageSelector.svelte';
+  import { ModeWatcher } from "mode-watcher";
 
   // Props declaration import'lardan sonra gelir
   let { children } = $props();
@@ -23,5 +24,5 @@
 <Preloader />
 <ToastHost />
 
-
+<ModeWatcher />
 {@render children?.()}

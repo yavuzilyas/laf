@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { toasts, type Toast, showToast } from "$lib/hooks/toast";
 	import { readAndClearPendingToast } from "$lib/hooks/toast";
+	import { t } from '$lib/stores/i18n.svelte.js';
 	import { cn } from "$lib/utils";
 	import { CheckCircle2, XCircle, Info } from "@lucide/svelte";
 	import { Motion } from "svelte-motion";
@@ -62,12 +63,40 @@
 		});
 	}
 
-	$effect.pre(() => {
-		const pending = readAndClearPendingToast();
-		if (pending) {
-			showToast(pending.message, pending.type, pending.duration);
-		}
-	});
+	// Keep a reactive reference to locale so UI updates when language changes
+    const currentLocale = $derived(t.currentLocale);
+
+    $effect.pre(() => {
+        const pending = readAndClearPendingToast();
+        if (!pending) return;
+        if (pending.message) {
+            showToast(pending.message, pending.type, pending.duration);
+        } else if (pending.key) {
+            // Translate on the client at display time for reactivity
+            showToastKeyInternal(pending.key, pending.type, pending.duration);
+        } else if (pending.keys && pending.keys.length) {
+            showToastKeysInternal(pending.keys, pending.sep || ' ', pending.type, pending.duration);
+        }
+    });
+
+    // Internal helpers to push translated toasts that will re-render on locale change
+    function translatedMessageOf(item: Toast): string {
+        if (item.message) return item.message;
+        if (item.key) return t(item.key);
+        if (item.keys && item.keys.length) return t.join(item.keys, item.sep || ' ');
+        return '';
+    }
+
+    function showToastKeyInternal(key: string, type: Toast['type'], duration = 2500) {
+        const id = Date.now() + Math.random();
+        const toast: Toast = { id, key, type, duration } as any;
+        // render list is managed by subscription; push via toasts store API
+        // For simplicity, reuse showToast with current translation
+        showToast(t(key), type, duration);
+    }
+    function showToastKeysInternal(keys: string[], sep: string, type: Toast['type'], duration = 2500) {
+        showToast(t.join(keys, sep), type, duration);
+    }
 
 	const itemVariants = {
 		visible: {
@@ -114,7 +143,7 @@
 				)}
 			>
 				<span class="text-primary flex items-center flex-row"><img src={logo} class="w-auto h-3.5" alt="LAF Logo" />:</span>
-			<span class="gap-1 flex flex-row items-center">
+            <span class="gap-1 flex flex-row items-center">
 				{#if item.toast.type === "success"}
 					<CheckCircle2 class="w-4 h-4 text-green-400 flex-shrink-0" />
 				{:else if item.toast.type === "error"}
@@ -122,8 +151,8 @@
 				{:else}
 					<Info class="w-4 h-4 text-sky-400 flex-shrink-0" />
 				{/if}
-				{item.toast.message}</span>
-			</div>
-		</Motion>
-	{/each}
+				                {translatedMessageOf(item.toast)}</span>
+            </div>
+        </Motion>
+    {/each}
 </div>

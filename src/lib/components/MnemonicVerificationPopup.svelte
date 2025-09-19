@@ -4,6 +4,7 @@
   import { Label } from "$lib/components/ui/label";
   import { ShieldAlert, X } from "@lucide/svelte";
   import { showToast } from "$lib/hooks/toast";
+      import { t, tJoin, tMany } from '$lib/stores/i18n.svelte.js';
 
   let { open = false, onVerified = () => {}, onCancel = () => {} } = $props();
 
@@ -54,7 +55,7 @@
       const data = await res.json();
 
       if (res.ok) {
-        showToast("Doğrulama başarılı", "success");
+        showToast(t('auth.success.mnemonicVerified'), "success");
         open = false;
         onVerified();
         resetState();
@@ -62,7 +63,7 @@
         handleVerificationError(data);
       }
     } catch (error) {
-      showToast("Bağlantı hatası", "error");
+      showToast(t('auth.errors.connectionError'), "error");
     } finally {
       loading = false;
     }
@@ -70,7 +71,7 @@
 
   function handleVerificationError(data: any) {
     if (data.reset) {
-      showToast("3 başarısız deneme. İşlem iptal edildi.", "error");
+      showToast(t('auth.errors.ProcessCanceled'), "error");
       open = false;
       onCancel();
       resetState();
@@ -78,7 +79,7 @@
       attemptCount++;
       remainingAttempts = 3 - attemptCount;
       mnemonicAnswer = "";
-      showToast(data.error || "Yanlış kelime", "error");
+      showToast(data.error || t('auth.errors.wrongMnemonic'), "error");
     }
   }
 
@@ -119,7 +120,7 @@
 
 {#if open}
   <div
-    class="fixed inset-0 bg-black/50 backdrop-blur-sm z-60 flex items-center justify-center p-4"
+    class="fixed inset-0 overflow-hidden overscroll-none bg-black/50 backdrop-blur-sm z-60 flex items-center justify-center p-4"
     onclick={handleCancel}
     role="presentation"
     tabindex="-1"
@@ -137,7 +138,7 @@
       <div class="flex items-center z-60  justify-between mb-4">
         <div class="flex items-center z-60 gap-2">
           <ShieldAlert size={20} class="text-primary z-60 " />
-          <h2 class="text-lg font-semibold z-60 " id="modal-title">Doğrulama Gerekli</h2>
+          <h2 class="text-lg font-semibold z-60 " id="modal-title">{t('VerificationIsRequired')}</h2>
         </div>
         <Button variant="ghost" size="sm" onclick={handleCancel} class="z-60  h-8 w-8 p-0">
           <X size={16} />
@@ -147,19 +148,19 @@
       <!-- Content -->
       <div class="space-y-4 z-60 ">
         <p class="z-60 text-sm text-muted-foreground">
-          İşlemi tamamlamak için BIP-39 silsilenizdeki kelimenizi girin
+          {t('EnterTheMnemonicWord')}
         </p>
 
         {#if mnemonicIndex !== null}
           <div class="z-60 space-y-2">
-            <Label for="mnemonic-answer">Silsile Kelimesi</Label>
+
             <p class="z-60 text-sm font-medium text-primary bg-primary/10 p-2 rounded-md">
-              BIP-39 silsilenizdeki {mnemonicIndex + 1}. kelime nedir?
+              {t("auth.login.mnemonicQuestionP1")} {mnemonicIndex + 1}{t("auth.login.mnemonicQuestionP2")}
             </p>
             <Input
               id="mnemonic-answer"
               type="text"
-              placeholder="Kelimeyi girin"
+              placeholder={t('EnterMnemonic')}
               bind:value={mnemonicAnswer}
               disabled={loading}
               autofocus
@@ -169,7 +170,7 @@
           {#if attemptCount > 0}
             <div class="z-60  bg-yellow-500/20 border border-yellow-500/50 rounded-md p-2">
               <p class="z-60 text-xs text-yellow-500 text-center">
-                {remainingAttempts} deneme hakkınız kaldı
+                {remainingAttempts} {t('attemptsLeft')}
               </p>
             </div>
           {/if}
@@ -183,7 +184,7 @@
       <!-- Footer -->
       <div class="z-60 flex gap-3 mt-6">
         <Button variant="outline" class="z-60 flex-1" onclick={handleCancel} disabled={loading}>
-          İptal
+         {t('Cancel')}
         </Button>
         <Button
           class="flex-1 z-60 "
@@ -193,10 +194,10 @@
           {#if loading}
             <span class="z-60 inline-flex items-center gap-2">
               <span class="z-60 h-3 w-3 animate-spin rounded-full border-2 border-current border-r-transparent"></span>
-              Doğrulanıyor...
+              {t("Loading")}...
             </span>
           {:else}
-            Doğrula ({remainingAttempts})
+            {t('Verificate')}({remainingAttempts})
           {/if}
         </Button>
       </div>

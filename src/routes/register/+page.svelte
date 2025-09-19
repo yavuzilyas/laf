@@ -2,7 +2,12 @@
 	import GalleryVerticalEndIcon from "@lucide/svelte/icons/gallery-vertical-end";
 	import AuthForm from "$lib/components/AuthForm.svelte";
 	import logo from "$lib/assets/laf1.svg";
+  import { i18n } from '$lib/stores/i18n.svelte.js';
 </script>
+
+<svelte:head>
+  <title>{i18n.t('auth.title.register')}</title>
+</svelte:head>
 
 <div class="max-h-screen max-w-screen md:w-auto md:h-auto text-xs grid  ">
 	<div class="flex flex-col gap-4 p-6 md:p-10">

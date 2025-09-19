@@ -1,31 +1,4 @@
 {
-  "app": {
-    "title": "Uygulama Başlığı"
-  },
-  "common": {
-    "language": "Dil",
-    "loading": "Yükleniyor...",
-    "save": "Kaydet",
-    "cancel": "İptal",
-    "confirm": "Onayla",
-    "searchLanguage": "Dil ara...",
-    "noLanguageFound": "Dil bulunamadı."
-  },
-  "pages": {
-    "home": {
-      "title": "Ana Sayfa",
-      "welcome": "Hoş geldiniz!",
-      "greeting": "Merhaba {{name}}!",
-      "userCount": "{{count}} kullanıcı çevrimiçi",
-      "today": "Bugün",
-      "price": "Fiyat"
-    }
-  },
-  "errors": {
-    "notFound": "Sayfa bulunamadı",
-    "serverError": "Sunucu hatası"
-  }
-,
   "language_selector": {
     "label": "Dil seçin",
     "default": "Dil",
@@ -38,7 +11,7 @@
   "DevelopmentStage" : "imar merhalesindedir.",
   "ThePage" : "sayfası.",
   "Articles" : "Makale",
-  "Lugath" : "Lügat",
+  "Lexicon" : "Lügat",
   "Tacicat" : "Tahkikat",
   "Bicorpus" : "Külliyât",
   "Donations" : "Bağışlar",
@@ -48,6 +21,73 @@
   "IsNotCorrect" : "doğru değil",
   "mnemonic" : "silsile",
 
+  "UsernameOrEmail": "Kullanıcı adı veya e-posta",
+  "ForgotPassword": "Şifreni mi unuttun?",
+  "SigningIn": "Giriş yapılıyor...",
+  "NoAccount": "Hesabın yok mu?",
+  "HaveAccount": "Hesabın var mı?",
+  "TwoFactorAuth": "İki Adımlı Doğrulama",
+  "Register": "Kayıt ol",
+    "mnemonicWord": "BIP-39 kelimesi",
+
+  "VerificationIsRequired": "Doğrulama Gerekli",
+  "EnterTheMnemonicWord": "İşlemi tamamlamak için BIP-39 silsilenizden bir kelime girin.",
+  "attemptsLeft": "hakkınız kaldı.",
+  "EnterMnemonic": "Silsiledeki kelimeyi girin.",
+  "auth": {
+    "title": {
+      "login": "Giriş",
+      "register": "Kayıt"
+    },
+    "login": {
+      "subtitle": "Kullanıcı adın/e-postan ile şifrenle giriş yap",
+      "mnemonicAnswer": "Silsile Kelimesi",
+      "mnemonicQuestionP1": "BIP-39 silsilenizdeki",
+      "mnemonicQuestionP2": ". kelime nedir?"
+    },
+    "register": {
+      "subtitle": "Formu doldurun; opsiyonel alanları boş bırakabilirsiniz.",
+      "mnemonicTitle": "BIP-39 Kurtarma Şifresi",
+      "mnemonicSubtitle": "Aşağıdaki alanı kazıyın ve oluşturulan silsileyi not alın.",
+      "mnemonicInfoTitle": "BIP-39 Nedir?",
+      "mnemonicInfo": "Bitcoin Improvement Proposal 39 standardına göre 2048 kelimelik bir listeden seçilerek hatırlanabilir bir dizi oluşturulur. Kelimelerin sırası size özel bir sırdır. Güvenle saklayın; kaybolursa geri getirilemez.",
+      "mnemonicInfo1": "Bu dizi, hesabınızı kurtarmak veya bilgilerinizi değiştirmek için gereklidir.",
+      "mnemonicInfo2": "Hesabınızın güvenliği için tekrar gösterilmeyecektir.",
+      "verifyOrderTitle": "Kelime sırasını doğrula",
+      "verifyOrderSubtitle": "Doğru sırayı doğrulamak için aşağıdaki kelimelere sırayla tıklayın.",
+      "complete": "Kaydı tamamla"
+    },
+    "errors": {
+      "missingFields": "Eksik alanlar var.",
+      "wrongPassword": "Yanlış şifre.",
+      "invalidMnemonicIndex": "Geçersiz silsile indeksi.",
+      "wrongMnemonic": "Girdiğiniz kelime hatalı.",
+      "maxAttemptsReached": "3 başarısız deneme. Captcha testini doğrulayın.",
+      "usernameRequired": "Kullanıcı adı ve şifre gerekli.",
+      "usernameExists": "Bu kullanıcı adı zaten kayıtlı.",
+      "emailExists": "Bu e-posta adresi zaten kayıtlı.",
+      "connectionError": "Bağlantı hatası.",
+      "unauthorized": "Yetkisiz erişim.",
+      "userNotFound": "Kullanıcı bulunamadı.",
+      "serverError": "Sunucu hatası.",
+      "invalidIndex": "Geçersiz indeks."
+    },
+    "success": {
+      "loginSuccess": "Giriş başarılı.",
+      "registerSuccess": "Kayıt başarılı! Giriş yapabilirsiniz.",
+      "passwordCorrect": "Şifre doğru, BIP-39 doğrulamasını tamamlayın.",
+      "accountDeleted": "Hesap başarıyla silindi.",
+      "mnemonicVerified": "Silsile doğrulaması başarılı."
+    }
+  },
+    "MyAccount" : "Hesabım",
+  "MyPlus" : "Plus Hesabım",
+  "MyDonations" : "Bağışlarım",
+  "MyAwards" : "Ödüllerim",
+    "DeleteTheAccount": "Hesabı Sil",
+  "LockTheMessages": "DM'i kapat",
+  "HideTheProfile": "Profili gizle",
+  "DeleteTheAccountBIP39Info": "Hesabınızı silmek için BIP-39 doğrulaması gerekir.",
   "FooterQuote-1" : "Özgürlük yolunda ekstremizm bir kötülük olmadığı gibi,",
   "FooterQuote-2" : "adalet mücadelesinde ılımlılık erdemsizliktir.",
   "0 bytes": "0 bayt",

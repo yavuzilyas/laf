@@ -6,24 +6,24 @@ export const POST: RequestHandler = async ({ request, cookies }) => {
   const { identifier, password, mnemonicIndex, mnemonicAnswer, attemptCount = 0 } = await request.json();
 
   if (!identifier || !password) {
-    return new Response(JSON.stringify({ error: "Eksik alanlar var" }), { status: 400 });
+    return new Response(JSON.stringify({ errorKey: "auth.errors.missingFields" }), { status: 400 });
   }
 
   const users = await getUsersCollection();
   const user = await users.findOne({ $or: [{ email: identifier }, { nickname: identifier }] });
   if (!user) {
-    return new Response(JSON.stringify({ error: "Kullanıcı bulunamadı" }), { status: 400 });
+    return new Response(JSON.stringify({ errorKeys: ["Account", "NotFound"] }), { status: 400 });
   }
 
   const ok = await bcrypt.compare(password, user.password);
   if (!ok) {
-    return new Response(JSON.stringify({ error: "Yanlış şifre" }), { status: 400 });
+    return new Response(JSON.stringify({ errorKey: "auth.errors.wrongPassword" }), { status: 400 });
   }
 
   // İki adımlı doğrulama - mnemonic kontrolü
   if (mnemonicIndex !== undefined && mnemonicAnswer !== undefined) {
     if (mnemonicIndex < 0 || mnemonicIndex >= user.mnemonicHashes.length) {
-      return new Response(JSON.stringify({ error: "Geçersiz silsile indeksi" }), { status: 400 });
+      return new Response(JSON.stringify({ errorKey: "auth.errors.invalidMnemonicIndex" }), { status: 400 });
     }
 
     // Girdiği kelimenin hash'ini hesapla
@@ -38,14 +38,14 @@ export const POST: RequestHandler = async ({ request, cookies }) => {
       
       if (remainingAttempts > 0) {
         return new Response(JSON.stringify({ 
-          error: `Girdiğiniz kelime hatalı.`,
+          errorKey: "auth.errors.wrongMnemonic",
           requiresMnemonic: true,
           mnemonicIndex: mnemonicIndex,
           attemptCount: attemptCount + 1
         }), { status: 400 });
       } else {
         return new Response(JSON.stringify({ 
-          error: "3 başarısız deneme. Captha testini doğrulayın.",
+          errorKey: "auth.errors.maxAttemptsReached",
           resetMnemonic: true
         }), { status: 400 });
       }
@@ -57,7 +57,8 @@ export const POST: RequestHandler = async ({ request, cookies }) => {
       success: true, 
       requiresMnemonic: true, 
       mnemonicIndex: randomIndex,
-      attemptCount: 0
+      attemptCount: 0,
+      infoKey: "auth.success.passwordCorrect"
     }), { status: 200 });
   }
 
@@ -70,5 +71,5 @@ export const POST: RequestHandler = async ({ request, cookies }) => {
     maxAge: 60 * 60 * 24 * 7
   });
 
-  return new Response(JSON.stringify({ success: true }));
+  return new Response(JSON.stringify({ success: true, successKey: "auth.success.loginSuccess" }));
 };

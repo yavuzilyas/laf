@@ -5,7 +5,7 @@ import { ObjectId } from 'mongodb';
 export async function DELETE({ cookies }) {
   const session = cookies.get('session');
   if (!session) {
-    return json({ error: 'Yetkisiz erişim' }, { status: 401 });
+    return json({ errorKey: 'auth.errors.unauthorized' }, { status: 401 });
   }
 
   try {
@@ -13,15 +13,15 @@ export async function DELETE({ cookies }) {
     const result = await users.deleteOne({ _id: new ObjectId(session) });
     
     if (result.deletedCount === 0) {
-      return json({ error: 'Kullanıcı bulunamadı' }, { status: 404 });
+      return json({ errorKey: 'auth.errors.userNotFound' }, { status: 404 });
     }
 
     // Session cookie'sini temizle
     cookies.delete('session', { path: '/' });
     
-    return json({ success: true });
+    return json({ success: true, successKey: 'auth.success.accountDeleted' });
   } catch (error) {
     console.error('Hesap silme hatası:', error);
-    return json({ error: 'Sunucu hatası' }, { status: 500 });
+    return json({ errorKey: 'auth.errors.serverError' }, { status: 500 });
   }
 }

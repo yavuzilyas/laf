@@ -6,7 +6,7 @@
 import SettingsDialog from "$lib/components/settings-dialog.svelte";
     import {HandCoins, BadgeInfo, Construction, Cog, LogIn, UserCircleIcon, LayoutGridIcon, TrashIcon, BellIcon,LogOutIcon, LogInIcon, UserRound } from "@lucide/svelte";
   import logo from '$lib/assets/laf1.svg';
-      import { i18n, dativeSuffix, locativeSuffix } from '$lib/stores/i18n.svelte.js';
+      import { t, tJoin, tMany } from '$lib/stores/i18n.svelte.js';
 
   import { page } from "$app/stores";
   
@@ -21,30 +21,37 @@ import SettingsDialog from "$lib/components/settings-dialog.svelte";
 
   // Reaktif menu array'i - dil değiştiğinde otomatik güncellenir
   let menu = $derived([
-    { isconstruction: "false", name: i18n.t('Articles'), href: "articles" },
-    { isconstruction: "true", name: i18n.t('Lugath'), href: "lugath" },
-    { isconstruction: "true", name: i18n.t('Bicorpus'), href: "bicorpus" },
-    { isconstruction: "true", name: i18n.t('Tacicat'), href: "tacicat" },
+    { isconstruction: "false", name: t('Articles'), href: "articles" },
+    { isconstruction: "true", name: t('Lexicon'), href: "lugath" },
+    // { isconstruction: "true", name: t('Bicorpus'), href: "bicorpus" },
+    // { isconstruction: "true", name: t('Tacicat'), href: "tacicat" },
   ]);
 
   // Reaktif logged-in items - dil değiştiğinde otomatik güncellenir
   const loggedInItems = $derived<MenuItem[]>([
-    { icon: UserRound, name: i18n.t('Account'), href: "hesap" },
-    { icon: Cog, name: i18n.t('Settings'), onClick: () => { openSettings = true; } },
-    { icon: BellIcon, name: i18n.t('Notifications'), href: "bildirimler"},
-    { icon: HandCoins, name: i18n.t('Donations'), href: "donations" },
-    { icon: BadgeInfo, name: i18n.t('Help'), href: "help" },
-    { icon: LogOutIcon, name: i18n.t('Logout'), href: "logout", customStyle: "!text-red-500"},
+    { icon: UserRound, name: t('Account'), href: t('Account') },
+    { icon: Cog, name: t('Settings'), onClick: handleSettingsClick },
+    { icon: BellIcon, name: t('Notifications'), href: t('Notifications')},
+    { icon: HandCoins, name: t('Donations'), href: t('Donations') },
+    { icon: BadgeInfo, name: t('Help'), href: t('Help') },
+    { icon: LogOutIcon, name: t('Logout'), href: t('Logout'), customStyle: "!text-red-500"},
   ]);
-
+// Ve fonksiyonu ekleyin:
+function handleSettingsClick() {
+    console.log('Settings clicked, current state:', openSettings);
+    openSettings = true;
+    console.log('Settings state after:', openSettings);
+}
   // Reaktif logged-out items - dil değiştiğinde otomatik güncellenir
   const baseLoggedOut = $derived<MenuItem[]>([
-    { icon: LogInIcon, name: i18n.t('Login'), href: "login" },
-    { icon: HandCoins, name: i18n.t('Donations'), href: "donations" },
-    { icon: BadgeInfo, name: i18n.t('Help'), href: "help" },
+    { icon: LogInIcon, name: t('Login'), href: "login" },
+    { icon: HandCoins, name: t('Donations'), href: "donations" },
+    { icon: BadgeInfo, name: t('Help'), href: "help" },
   ]);
 
-  const loginHref = $derived(`/login?redirectTo=${encodeURIComponent($page.url.pathname + $page.url.search)}`);
+  // Locale-aware login path: /giris for tr, /login otherwise
+  const loginPath = $derived(t.currentLocale === 'tr' ? '/giris' : '/login');
+  const loginHref = $derived(`${loginPath}?redirectTo=${encodeURIComponent($page.url.pathname + $page.url.search)}`);
 
   let items = $state<MenuItem[]>(baseLoggedOut);
   $effect(() => {
@@ -56,8 +63,8 @@ import SettingsDialog from "$lib/components/settings-dialog.svelte";
   });
 let openSettings = $state(false);
 </script>
+<SettingsDialog bind:open={openSettings} on:close={() => openSettings = false} />
 
-<SettingsDialog bind:open={openSettings} />
 <nav class="w-full text-secondary-foreground border-b-1">
   <div class="max-w-7xl mx-auto  py-0 sm:py-1 px-3 sm:px-6 lg:px-8">
     <div class="flex items-center justify-between">
@@ -67,7 +74,7 @@ let openSettings = $state(false);
     <a href="/" ><img class="max-h-4.5 fill-primary" src="{logo}" alt="LAF" /></a>
   </Tooltip.Trigger>
   <Tooltip.Content>
-   <p>{i18n.t('GoToHomePage')}</p>
+   <p>{t('GoToHomePage')}</p>
   </Tooltip.Content>
  </Tooltip.Root>
 </Tooltip.Provider>
@@ -85,7 +92,7 @@ let openSettings = $state(false);
     <Tooltip.Content class="align-center text-center flex items-center gap-1.5">
       <p class="text-secondary-foreground group flex items-center gap-0.5 font-bold cursor-pointer">
         {item.name} 
-        <Construction size={16} strokeWidth={1.75} /> </p><span class="text-secondary-foreground font-medium"> {i18n.t('DevelopmentStage')}</span>
+        <Construction size={16} strokeWidth={1.75} /> </p><span class="text-secondary-foreground font-medium"> {t('DevelopmentStage')}</span>
     </Tooltip.Content>
   </Tooltip.Root>
 </Tooltip.Provider>
@@ -98,7 +105,7 @@ let openSettings = $state(false);
 </a>
 </Tooltip.Trigger>
     <Tooltip.Content>
-      <p>{#if i18n.currentLocale === 'tr'}<span class="font-bold text-secondary-foreground">{dativeSuffix(item.name)}</span> {i18n.t('goto')}{:else}{i18n.t('goto')} <span class="font-bold text-secondary-foreground">{item.name}</span>{/if}</p> 
+      <p>{#if t.currentLocale === 'tr'}<span class="font-bold text-secondary-foreground">{dativeSuffix(item.name)}</span> {t('goto')}{:else}{t('goto')} <span class="font-bold text-secondary-foreground">{item.name}</span>{/if}</p> 
 <!-- son harfine göre ek alır -->
     </Tooltip.Content>
   </Tooltip.Root>

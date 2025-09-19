@@ -5,13 +5,13 @@
   import { Button } from "$lib/components/ui/button";
   import { cn, type WithElementRef } from "$lib/utils";
   import type { HTMLFormAttributes } from "svelte/elements";
-  import { showToast, persistToast } from "$lib/hooks/toast";
+  import { showToast, persistToast, showToastKey, persistToastKey } from "$lib/hooks/toast";
   import { Motion } from "svelte-motion";
   import { fly } from "svelte/transition";
   import ScratchToReveal from "./ScratchToReveal.svelte";
   import { LockKeyhole, RotateCcwKey, ShieldAlert, UserRoundPlus, KeyRound, LogIn } from "@lucide/svelte";
- import Loader from "@lucide/svelte/icons/loader";
-       import { i18n, dativeSuffix, locativeSuffix } from '$lib/stores/i18n.svelte.js';
+  import Loader from "@lucide/svelte/icons/loader";
+      import { t, i18n, dativeSuffix, locativeSuffix } from '$lib/stores/i18n.svelte.js';
 
   let {
     mode = "login",
@@ -65,7 +65,7 @@ import { generateMnemonic, validateMnemonic } from '@scure/bip39';
   async function proceedRegisterStep1(e) {
     e.preventDefault();
     if (!nickname || !regPassword) {
-      showToast("Kullanıcı adı ve şifre gerekli", "error");
+      showToastKey("auth.errors.usernameRequired", "error");
       return;
     }
     if (nicknameError || emailError) {
@@ -114,10 +114,18 @@ async function finalizeRegister() {
 
     const data = await res.json().catch(() => ({}));
     if (res.ok) {
-      persistToast("Kayıt başarılı! Giriş yapabilirsiniz.", "success");
+      if (data.successKey) {
+        persistToastKey(data.successKey, "success");
+      } else {
+        persistToast("Kayıt başarılı! Giriş yapabilirsiniz.", "success");
+      }
       window.location.assign("/login");
     } else {
-      showToast(data?.error || "Bir hata oluştu", "error");
+      if (data.errorKey) {
+        showToastKey(data.errorKey, "error");
+      } else {
+        showToast(data?.error || "Bir hata oluştu", "error");
+      }
     }
   } catch (error) {
     console.error("Registration error:", error);
@@ -158,30 +166,54 @@ async function finalizeRegister() {
           mnemonicIndex = data.mnemonicIndex;
           attemptCount = data.attemptCount || 0;
           remainingAttempts = 3 - attemptCount;
-          mnemonicQuestion = `BIP-39 silsilenizdeki ${data.mnemonicIndex + 1}. kelime nedir?`;
-          showToast("Şifre doğru, BIP-39 doğrulamasını tamamlayın.", "info");
+
+
+          mnemonicQuestion = `${t('auth.login.mnemonicQuestionP1')}${data.mnemonicIndex + 1}${t('auth.login.mnemonicQuestionP2')}`;
+          if (data.infoKey) {
+            showToastKey(data.infoKey, "info");
+          } else {
+            showToast("Şifre doğru, BIP-39 doğrulamasını tamamlayın.", "info");
+          }
         } else {
           // Tüm doğrulamalar başarılı
           const params = new URLSearchParams(window.location.search);
           const redirectTo = params.get("redirectTo");
-          persistToast("Giriş başarılı", "success");
+          if (data.successKey) {
+            persistToastKey(data.successKey, "success");
+          } else {
+            persistToast("Giriş başarılı", "success");
+          }
           window.location.assign(redirectTo || "/");
         }
       } else {
         if (data.resetMnemonic) {
           // 3 başarısız deneme, başa dön
           resetMnemonicStep();
-          showToast(data.error || "3 başarısız deneme. Captha'ya yönlendiriliyorsunuz.", "error");
+          if (data.errorKey) {
+            showToastKey(data.errorKey, "error");
+          } else {
+            showToast(data.error || "3 başarısız deneme. Captha'ya yönlendiriliyorsunuz.", "error");
+          }
         } else if (data.requiresMnemonic) {
           // Yanlış mnemonic, yeniden dene
           mnemonicStep = true;
           mnemonicIndex = data.mnemonicIndex;
           attemptCount = data.attemptCount || 0;
           remainingAttempts = 3 - attemptCount;
-          showToast(data.error || "Hatalı silsile kelimesi", "error");
+          if (data.errorKey) {
+            showToastKey(data.errorKey, "error");
+          } else {
+            showToast(data.error || "Hatalı silsile kelimesi", "error");
+          }
         } else {
           // Diğer hatalar
-          showToast(data?.error || "Bir hata oluştu", "error");
+          if (data.errorKey) {
+            showToastKey(data.errorKey, "error");
+          } else if (data.errorKeys) {
+            showToastKeys(data.errorKeys, "error");
+          } else {
+            showToast(data?.error || "Bir hata oluştu", "error");
+          }
           if (mnemonicStep) {
             resetMnemonicStep();
           }
@@ -341,17 +373,17 @@ async function finalizeRegister() {
       <!-- Normal login form -->
       <div use:motion class="flex flex-col items-center gap-4 text-center">
         <LogIn size={36} class="text-primary" />
-        <h1 class="text-base font-bold">Giriş yap</h1>
-        <p class=" text-neutral-100 text-balance text-sm">Kullanıcı adı veya e-posta ile birlikte şifrenizle giriş yapın.</p>
+        <h1 class="text-base font-bold">{i18n.t('Login')}</h1>
+        <p class=" text-neutral-100 text-balance text-sm">{i18n.t('auth.login.subtitle') || ''}</p>
         <div class="grid gap-3 w-full">
           <div class="grid gap-3">
-            <Label for="identifier-{id}">Kullanıcı adı veya e-posta</Label>
-            <Input id="identifier-{id}" name="identifier" type="text" placeholder="kullanıcı adı veya m@example.com" required bind:value={identifier} disabled={loading} />
+            <Label for="identifier-{id}">{i18n.t('UsernameOrEmail')}</Label>
+            <Input id="identifier-{id}" name="identifier" type="text" placeholder="m@example.com" required bind:value={identifier} disabled={loading} />
           </div>
           <div class="grid gap-3">
             <div class="flex items-center">
-              <Label for="password-{id}">Şifre</Label>
-              <a href="/forgot" class="text-primary ml-auto text-xs underline-offset-4 hover:underline">Şifreni mi unuttun?</a>
+              <Label for="password-{id}">{i18n.t('Password')}</Label>
+              <a href="/forgot" class="text-primary ml-auto text-xs underline-offset-4 hover:underline">{i18n.t('ForgotPassword')}</a>
             </div>
             <Input id="password-{id}" name="password" type="password" required bind:value={password} disabled={loading} />
           </div>
@@ -359,16 +391,16 @@ async function finalizeRegister() {
         <Button type="submit" class="w-full" disabled={loading}>
           {#if loading}
             <Loader class="animate-spin" />
-              Giriş yapılıyor...
+              {i18n.t('SigningIn')}
 
           {:else}
-            Giriş yap
+            {i18n.t('Login')}
           {/if}
         </Button>
         <div class="text-center text-xs">
-          Hesabın yok mu?
-          <a href="/register" class="text-primary underline underline-offset-4">
-            Kayıt ol
+          {i18n.t('NoAccount')}
+          <a href={i18n.currentLocale === 'tr' ? '/kayit' : '/register'} class="text-primary underline underline-offset-4">
+            {i18n.t('Register')}
           </a>
         </div>
       </div>
@@ -379,12 +411,12 @@ async function finalizeRegister() {
       <!-- Mnemonic doğrulama formu -->
       <div use:motion class="flex flex-col items-center gap-4 text-center">
         <KeyRound size={36} class="text-primary" />
-        <h1 class="text-base font-bold">İki Adımlı Doğrulama</h1>
+        <h1 class="text-base font-bold">{i18n.t('TwoFactorAuth') || 'İki Adımlı Doğrulama'}</h1>
         <p class="text-neutral-100 text-balance text-sm">{mnemonicQuestion}</p>
         
         <div class="grid gap-3 w-full">
           <div class="grid gap-3">
-            <Label for="mnemonic-answer-{id}">Silsile Kelimesi</Label>
+            <Label for="mnemonic-answer-{id}">{i18n.t('auth.login.mnemonicAnswer')}</Label>
             <Input 
               id="mnemonic-answer-{id}" 
               type="text" 
@@ -405,16 +437,16 @@ async function finalizeRegister() {
         
         <div class="flex gap-2 w-full">
           <Button type="button" class="w-1/2" onclick={resetMnemonicStep} variant="outline" disabled={loading}>
-            Geri
+            {i18n.t('Back')}
           </Button>
           <Button type="submit" class="w-1/2" disabled={loading}>
             {#if loading}
               <span class="inline-flex items-center gap-2">
                 <Loader class="animate-spin" />
-                Doğrulanıyor...
+                {i18n.t('Verifying')}
               </span>
             {:else}
-              Doğrula
+              {i18n.t('Verify')}
             {/if}
           </Button>
         </div>
@@ -429,12 +461,12 @@ async function finalizeRegister() {
         <div use:motion>
             <div class="flex flex-col items-center gap-1 text-center">
               <UserRoundPlus size={48} class="text-primary" />
-      <h1 class="text-base font-bold">Kayıt ol</h1>
-      <p class="text-neutral-100 text-balance text-sm">Formu doldurun, opsiyonel alanları boş bırakabilirsiniz.</p>
+      <h1 class="text-base font-bold">{i18n.t('Register')}</h1>
+      <p class="text-neutral-100 text-balance text-sm">{i18n.t('auth.register.subtitle') || ''}</p>
     </div>
         <div  class="grid gap-3 mt-4">
           <div class="grid gap-2">
-            <Label for="nickname-{id}">Kullanıcı adı</Label>
+            <Label for="nickname-{id}">{i18n.t('Username')}</Label>
             <Input 
               id="nickname-{id}" 
               type="text" 
@@ -455,19 +487,19 @@ async function finalizeRegister() {
             {/if}
     </div>
       <div class="grid gap-2">
-            <Label for="regpass-{id}">Şifre</Label>
-            <Input id="regpass-{id}" placeholder="Şifre" type="password" required bind:value={regPassword} disabled={loading} />
+            <Label for="regpass-{id}">{i18n.t('Password')}</Label>
+            <Input id="regpass-{id}" placeholder="••••••••" type="password" required bind:value={regPassword} disabled={loading} />
       </div>
             <div class="grid gap-2">
-            <Label for="name-{id}">İsim (opsiyonel)</Label>
+            <Label for="name-{id}">{i18n.t('Name')}</Label>
             <Input id="name-{id}" placeholder="İsminiz" type="name"  bind:value={name} disabled={loading} />
       </div>
       <div class="grid gap-2">
-            <Label for="surname-{id}">Soyisim (opsiyonel)</Label>
+            <Label for="surname-{id}">{i18n.t('Surname')}</Label>
             <Input id="surname-{id}" placeholder="Soy isminiz" type="surname"  bind:value={surname} disabled={loading} />
       </div>
           <div class="grid gap-2" >
-            <Label for="email-{id}">E-posta (opsiyonel)</Label>
+            <Label for="email-{id}">{i18n.t('Email')}</Label>
             <Input 
               id="email-{id}" 
               type="email" 
@@ -489,16 +521,16 @@ async function finalizeRegister() {
           <Button type="submit" class="w-full mt-2" disabled={loading || !!nicknameError || !!emailError || isValidating}>
             {#if isValidating}
             <Loader class="animate-spin" />
-              Kontrol ediliyor...
+              {i18n.t('Verifying')}
               
             {:else}
-              Devam et
+              {i18n.t('Continue')}
             {/if}
     </Button>
     <div class="text-center text-xs">
-      Hesabın var mı?
-      <a href="/login" class="text-primary underline underline-offset-4">
-        Giriş yap
+      {i18n.t('HaveAccount')}
+      <a href={i18n.currentLocale === 'tr' ? '/giris' : '/login'} class="text-primary underline underline-offset-4">
+        {i18n.t('Login')}
       </a>
     </div>
         </div>
@@ -512,8 +544,8 @@ async function finalizeRegister() {
         <div use:motion >
         <div class="flex flex-col items-center gap-1">
           <RotateCcwKey size={48} class="text-primary" />
-          <h1 class="text-base font-bold">BIP-39 Kurtarma Şifresi</h1>
-          <p class="text-sm underline-primary text-neutral-100"> Aşağıdaki altını kazıyın, oluşturulan kelime silsilesini sırasıyla beraber bir kağıda yazın müteakiben kağıdı muhafaza edin.</p>
+          <h1 class="text-base font-bold">{i18n.t('auth.register.mnemonicTitle')}</h1>
+          <p class="text-sm underline-primary text-neutral-100">{i18n.t('auth.register.mnemonicSubtitle')}</p>
           <ScratchToReveal
       minScratchPercentage={85}
       class="flex items-center justify-center overflow-hidden rounded-2xl my-1 bg-background"
@@ -529,23 +561,21 @@ async function finalizeRegister() {
       </div>
     </ScratchToReveal>
               <ul class="list-disc text-xs text-neutral-300">
-            <li>Bu dizi, hesabınızı kurtarmak için veya bilgilerinizi değiştirmeniz için şarttır.</li>
-            <li>Hesabınızın güvenliği için tekrar gösterilmeyecektir.</li>
+            <li>{i18n.t('auth.register.mnemonicInfo1')}</li>
+            <li>{i18n.t('auth.register.mnemonicInfo2')}</li>
           </ul>
                       <div class="flex flex-col gap-1 my-1.5 bg-secondary/33 rounded-xl px-4 py-2.5">
                         <div class="flex flex-row gap-1 "><LockKeyhole size={16} class="text-primary" />
-          <h1 class="text-xs font-bold">BIP-39 Nedir?</h1></div>
+          <h1 class="text-xs font-bold">{i18n.t('auth.register.mnemonicInfoTitle')}</h1></div>
 
-          <p class="text-xs underline-primary text-neutral-100">Bitcoin Improvement Proposal 39 nam standardına tevfikan, 2048 kelimelik bir lügat arasından rastgele seçilen
-             muhafaza edeceğiniz bir hatırlanabilir dizi oluşturur. İbaredeki kelimelerin nizamı,
-            size mahsus olan bir hazineyi vücuda getirir. Bu hazineyi muhafaza etmek, servetinizin anahtarıdır; zira kaybedildiğinde bir daha erişilemeyecektir.</p>
+          <p class="text-xs underline-primary text-neutral-100">{i18n.t('auth.register.mnemonicInfo')}</p>
           </div>
 
           
         </div>
         <div class="flex gap-2 mt-1.5" >
-            <Button type="button" class="w-1/2" onclick={() => (step = 1)} variant="outline">Geri</Button>
-            <Button type="button" class="w-1/2" onclick={proceedRegisterStep2}>Devam</Button>
+            <Button type="button" class="w-1/2" onclick={() => (step = 1)} variant="outline">{i18n.t('Back')}</Button>
+            <Button type="button" class="w-1/2" onclick={proceedRegisterStep2}>{i18n.t('Continue')}</Button>
           </div>
           </div>
       </Motion>
@@ -557,8 +587,8 @@ async function finalizeRegister() {
         <div class="gap-2" use:motion>
         <div class="flex flex-col items-center gap-2">
           <KeyRound size={48} class="text-primary" />
-          <h1 class="text-base font-bold text-center">Kelime sırasını doğrula</h1>
-          <p class="text-xs text-neutral-100">Kelime sırasını doğrulamak için aşağıdan doğru sırayla kelimelere tıklayın.</p>
+          <h1 class="text-base font-bold text-center">{i18n.t('auth.register.verifyOrderTitle')}</h1>
+          <p class="text-xs text-neutral-100">{i18n.t('auth.register.verifyOrderSubtitle')}</p>
           </div>
           <div class="min-h-22 rounded-md bg-secondary px-2 py-2 text-xs flex flex-start flex-wrap gap-1  my-3">
             {#each selection as w, i (w)}
@@ -597,13 +627,13 @@ async function finalizeRegister() {
 
         </div>
                   <div class="flex gap-2  my-3">
-            <Button type="button" class="w-1/2" onclick={() => (step = 1)} variant="outline">Başa dön</Button>
+            <Button type="button" class="w-1/2" onclick={() => (step = 1)} variant="outline">{i18n.t('Back')}</Button>
             <Button type="button" class="w-1/2" disabled={loading || selection.length !== mnemonic.length} onclick={finalizeRegister}>
               {#if loading}
                 <Loader class="animate-spin" />
-                  Kaydediliyor...
+                {i18n.t('Saving') || i18n.t('Loading')}
               {:else}
-                Kaydı tamamla
+                {i18n.t('auth.register.complete') || 'Kaydı tamamla'}
               {/if}
             </Button>
           </div>

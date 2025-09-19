@@ -24,7 +24,7 @@
           <a href="mailto:contact@laf.de" class="hover:underline underline-offset-3">contact@laf.de</a>
           </div>
         </div>
-          <p class="font-bold text-sm text-end italic text-primary">{i18n.t('FooterQuote-1')}<br>{i18n.t('FooterQuote-2')}</p>
+          <p class="font-medium max-w-56 text-sm text-end  text-primary">{i18n.t('FooterQuote-1')}<br>{i18n.t('FooterQuote-2')}</p>
         </div>
   </div>
 </footer>
