@@ -3,8 +3,10 @@
 	import AuthForm from "$lib/components/AuthForm.svelte";
 	import logo from "$lib/assets/laf1.svg";
   import { i18n } from '$lib/stores/i18n.svelte.js';
+  import Loader from '$lib/components/load.svelte';
 </script>
 
+<Loader />
 <svelte:head>
   <title>{i18n.t('auth.title.login')}</title>
 </svelte:head>

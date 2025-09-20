@@ -17,3 +17,8 @@ export const getUsersCollection = async () => {
   const db = (await client).db("laf_app");
   return db.collection("users");
 };
+
+export const getArticlesCollection = async () => {
+  const db = (await client).db("laf_app");
+  return db.collection("articles");
+};

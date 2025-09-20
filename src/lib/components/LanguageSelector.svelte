@@ -24,10 +24,10 @@
     onValueChange={(val: string) => t.setLocale(val)}
     disabled={t.loading}
   >
-    <Select.Trigger class="w-28.5 text-xs">
+    <Select.Trigger class="w-32 text-xs font-bold">
       {triggerContent}
     </Select.Trigger>
-    <Select.Content   class="max-w-28.5 text-xs">
+    <Select.Content   class="max-w-28.5 text-xs font-bold">
       <Select.Group>
         <Select.Label class="text-xs">{t('Languages')}</Select.Label>
         {#each t.availableLocales as locale}

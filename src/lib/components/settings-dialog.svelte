@@ -74,7 +74,6 @@
 	// Mnemonic doğrulama iptal edildiğinde
 	function handleMnemonicCancel() {
 		showMnemonicVerification = false;
-		 open = true;
 	}
 	// SettingsDialog içinde
 import { createEventDispatcher } from 'svelte';
@@ -178,7 +177,7 @@ function handleOpenChange(newOpen) {
 									id="delete-account" 
 									type="button" 
 									variant="destructive"
-									onclick={() => {showMnemonicVerification = true; open = false;}}
+									onclick={() => {showMnemonicVerification = true;}}
 									disabled={isDeletingAccount}
 								>
 									{#if isDeletingAccount}
@@ -206,7 +205,7 @@ function handleOpenChange(newOpen) {
 
 <!-- Mnemonic Doğrulama Popup'ı -->
 <MnemonicVerificationPopup class="z-100"
-	bind:open={showMnemonicVerification}
+	bind:openVerif={showMnemonicVerification}
 	onVerified={handleMnemonicVerified}
 	onCancel={handleMnemonicCancel}
 	title="Hesap Silme Onayı"

@@ -29,12 +29,12 @@ import SettingsDialog from "$lib/components/settings-dialog.svelte";
 
   // Reaktif logged-in items - dil değiştiğinde otomatik güncellenir
   const loggedInItems = $derived<MenuItem[]>([
-    { icon: UserRound, name: t('Account'), href: t('Account') },
+    { icon: UserRound, name: t('Account'), href: t('account') },
     { icon: Cog, name: t('Settings'), onClick: handleSettingsClick },
-    { icon: BellIcon, name: t('Notifications'), href: t('Notifications')},
-    { icon: HandCoins, name: t('Donations'), href: t('Donations') },
-    { icon: BadgeInfo, name: t('Help'), href: t('Help') },
-    { icon: LogOutIcon, name: t('Logout'), href: t('Logout'), customStyle: "!text-red-500"},
+    { icon: BellIcon, name: t('Notifications'), href: t('notifications')},
+    { icon: HandCoins, name: t('Donations'), href: t('donations') },
+    { icon: BadgeInfo, name: t('Help'), href: t('help') },
+    { icon: LogOutIcon, name: t('Logout'), href: 'logout', customStyle: "!text-red-500"},
   ]);
 // Ve fonksiyonu ekleyin:
 function handleSettingsClick() {

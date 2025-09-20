@@ -19,7 +19,7 @@
     class="overflow-none fixed w-full h-full pb-28 z-1000 inset-0 flex flex-col items-center justify-center bg-black/80 backdrop-blur-3xl"
     out:fade={{ duration: 333 }}
   >
-    <img src={logo} alt="LAF" class="h-24 w-24" />
+    <img src={logo} alt="LAF" class="h-20 w-20" />
     <Loader size="32" class="text-primary animate-spin" />
   </div>
 {/if}

@@ -90,7 +90,7 @@
         const y = clientY - rect.top + 15;
         ctx.globalCompositeOperation = "destination-out";
         ctx.beginPath();
-        ctx.arc(x, y, 30, 0, Math.PI * 2);
+        ctx.arc(x, y, 33, 0, Math.PI * 2);
         ctx.fill();
       }
     }
@@ -165,6 +165,7 @@ async function startAnimation() {
     .scratch-container {
       position: relative;
       user-select: none;
+      animation: shimmer 2s infinite;
     }
   
     canvas {

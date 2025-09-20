@@ -10,4 +10,5 @@ export const GET: RequestHandler = async ({ cookies }) => {
 		maxAge: 0
 	});
 	throw redirect(303, '/');
+	
 };

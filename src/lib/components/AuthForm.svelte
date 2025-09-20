@@ -45,6 +45,13 @@
   let shuffled: string[] = $state([]);
   let selection: string[] = $state([]);
 
+
+import { generateMnemonic, validateMnemonic } from '@scure/bip39';
+
+  import { wordlist } from '@scure/bip39/wordlists/english';
+
+  // ... mevcut kodlar
+
   // Validation state
   let nicknameError = $state("");
   let emailError = $state("");
@@ -55,13 +62,6 @@
   let emailErrorKey = $state(0);
   let nicknameErrorExiting = $state(false);
   let emailErrorExiting = $state(false);
-
-import { generateMnemonic, validateMnemonic } from '@scure/bip39';
-
-  import { wordlist } from '@scure/bip39/wordlists/english';
-
-  // ... mevcut kodlar
-
   async function proceedRegisterStep1(e) {
     e.preventDefault();
     if (!nickname || !regPassword) {
@@ -168,7 +168,7 @@ async function finalizeRegister() {
           remainingAttempts = 3 - attemptCount;
 
 
-          mnemonicQuestion = `${t('auth.login.mnemonicQuestionP1')}${data.mnemonicIndex + 1}${t('auth.login.mnemonicQuestionP2')}`;
+          mnemonicQuestion = `${t('auth.login.mnemonicQuestionP1')} ${data.mnemonicIndex + 1}${t('auth.login.mnemonicQuestionP2')}`;
           if (data.infoKey) {
             showToastKey(data.infoKey, "info");
           } else {
@@ -233,117 +233,99 @@ async function finalizeRegister() {
     attemptCount = 0;
     remainingAttempts = 3;
   }
-  async function validateNickname(nick: string) {
-    clearTimeout(nicknameTimeout);
-    if (!nick || nick.length < 2) {
-      if (nicknameError) {
-        // Trigger exit animation
-        nicknameErrorExiting = true;
-        setTimeout(() => {
-          nicknameError = "";
-          nicknameErrorExiting = false;
-        }, 200);
-      } else {
-        nicknameError = "";
+  async function validateNickname(value: string) {
+  clearTimeout(nicknameTimeout);
+  nicknameTimeout = setTimeout(async () => {
+    if (!value) {
+      // error göster
+      if (!nicknameError) {
+        nicknameError = t("auth.errors.usernameRequired");
       }
       return;
     }
-    nicknameTimeout = setTimeout(async () => {
-      isValidating = true;
-      try {
-        const res = await fetch("/register", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ nickname: nick, password: "dummy", email: "", validateOnly: true })
-        });
-        const data = await res.json().catch(() => ({}));
-        if (res.status === 400 && data.error?.includes("kullanıcı adı")) {
-          nicknameError = data.error;
-          nicknameErrorKey++;
-        } else {
-          if (nicknameError) {
-            // Trigger exit animation
-            nicknameErrorExiting = true;
-            setTimeout(() => {
+
+    isValidating = true;
+    try {
+      const res = await fetch("/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ nickname: value, password: "dummy", validateOnly: true })
+      });
+
+      if (!res.ok) {
+        const data = await res.json();
+        if (nicknameError !== t(data.errorKey)) {
+          nicknameErrorExiting = false; // yeni hata varsa direkt değiştir
+          nicknameErrorKey++; // react-like key ile re-render zorla
+        }
+        nicknameError = t(data.errorKey);
+      } else {
+        if (nicknameError) {
+          // error → success geçişi
+          nicknameErrorExiting = true; // çıkış animasyonu başlat
+          const oldErrorKey = nicknameErrorKey;
+          setTimeout(() => {
+            // animasyon bitince temizle
+            if (nicknameErrorKey === oldErrorKey) {
               nicknameError = "";
               nicknameErrorExiting = false;
-            }, 200);
-          } else {
-            nicknameError = "";
-          }
+            }
+          }, 200); // CSS’teki slideOutFade süresiyle aynı olmalı
         }
-      } catch {
-        if (nicknameError) {
-          // Trigger exit animation
-          nicknameErrorExiting = true;
-          setTimeout(() => {
-            nicknameError = "";
-            nicknameErrorExiting = false;
-          }, 200);
-        } else {
-          nicknameError = "";
-        }
-      } finally {
-        isValidating = false;
       }
-    }, 500);
-  }
+    } catch (err) {
+      console.error("Nickname validation failed", err);
+    } finally {
+      isValidating = false;
+    }
+  }, 400); // debounce
+}
 
-  async function validateEmail(em: string) {
-    clearTimeout(emailTimeout);
-    if (!em || !em.includes("@")) {
-      if (emailError) {
-        // Trigger exit animation
-        emailErrorExiting = true;
-        setTimeout(() => {
-          emailError = "";
-          emailErrorExiting = false;
-        }, 200);
-      } else {
-        emailError = "";
-      }
+async function validateEmail(value: string) {
+  clearTimeout(emailTimeout);
+  emailTimeout = setTimeout(async () => {
+    if (!value) {
+      emailError = "";
       return;
     }
-    emailTimeout = setTimeout(async () => {
-      isValidating = true;
-      try {
-        const res = await fetch("/register", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ nickname: "dummy", password: "dummy", email: em, validateOnly: true })
-        });
-        const data = await res.json().catch(() => ({}));
-        if (res.status === 400 && data.error?.includes("e-posta")) {
-          emailError = data.error;
-          emailErrorKey++;
-        } else {
-          if (emailError) {
-            // Trigger exit animation
-            emailErrorExiting = true;
-            setTimeout(() => {
+
+    isValidating = true;
+    try {
+      const res = await fetch("/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ nickname: "dummy", password: "dummy", email: value, validateOnly: true })
+      });
+
+            if (!res.ok) {
+        const data = await res.json();
+        if (emailError !== t(data.errorKey)) {
+          emailErrorExiting = false; // yeni hata varsa direkt değiştir
+          emailErrorKey++; // react-like key ile re-render zorla
+        }
+        emailError = t(data.errorKey);
+      } else {
+        if (emailError) {
+          // error → success geçişi
+          emailErrorExiting = true; // çıkış animasyonu başlat
+          const oldErrorKey = emailErrorKey;
+          setTimeout(() => {
+            // animasyon bitince temizle
+            if (emailErrorKey === oldErrorKey) {
               emailError = "";
               emailErrorExiting = false;
-            }, 200);
-          } else {
-            emailError = "";
-          }
+            }
+          }, 200); // CSS’teki slideOutFade süresiyle aynı olmalı
         }
-      } catch {
-        if (emailError) {
-          // Trigger exit animation
-          emailErrorExiting = true;
-          setTimeout(() => {
-            emailError = "";
-            emailErrorExiting = false;
-          }, 200);
-        } else {
-          emailError = "";
-        }
-      } finally {
-        isValidating = false;
       }
-    }, 500);
-  }
+    } catch (err) {
+      console.error("Email validation failed", err);
+    } finally {
+      isValidating = false;
+    }
+  }, 400);
+}
+
 
   function proceedRegisterStep2() {
     step = 3;
@@ -371,19 +353,19 @@ async function finalizeRegister() {
           <Motion variants={stepVariants} initial="hidden" animate="visible" let:motion>
 
       <!-- Normal login form -->
-      <div use:motion class="flex flex-col items-center gap-4 text-center">
+      <div use:motion class="flex flex-col items-center gap-2 text-center">
         <LogIn size={36} class="text-primary" />
-        <h1 class="text-base font-bold">{i18n.t('Login')}</h1>
-        <p class=" text-neutral-100 text-balance text-sm">{i18n.t('auth.login.subtitle') || ''}</p>
-        <div class="grid gap-3 w-full">
+        <h1 class="text-base font-bold">{t('Login')}</h1>
+        <p class=" text-secondary-foreground/70 text-balance text-sm">{t('auth.login.subtitle') || ''}</p>
+        <div class="grid gap-3 w-full mt-3">
           <div class="grid gap-3">
-            <Label for="identifier-{id}">{i18n.t('UsernameOrEmail')}</Label>
+            <Label for="identifier-{id}">{t('UsernameOrEmail')}</Label>
             <Input id="identifier-{id}" name="identifier" type="text" placeholder="m@example.com" required bind:value={identifier} disabled={loading} />
           </div>
           <div class="grid gap-3">
             <div class="flex items-center">
-              <Label for="password-{id}">{i18n.t('Password')}</Label>
-              <a href="/forgot" class="text-primary ml-auto text-xs underline-offset-4 hover:underline">{i18n.t('ForgotPassword')}</a>
+              <Label for="password-{id}">{t('Password')}</Label>
+              <a href="/forgot" class="text-primary ml-auto text-xs underline-offset-4 hover:underline">{t('ForgotPassword')}</a>
             </div>
             <Input id="password-{id}" name="password" type="password" required bind:value={password} disabled={loading} />
           </div>
@@ -391,16 +373,16 @@ async function finalizeRegister() {
         <Button type="submit" class="w-full" disabled={loading}>
           {#if loading}
             <Loader class="animate-spin" />
-              {i18n.t('SigningIn')}
+              {t('SigningIn')}
 
           {:else}
-            {i18n.t('Login')}
+            {t('Login')}
           {/if}
         </Button>
         <div class="text-center text-xs">
-          {i18n.t('NoAccount')}
-          <a href={i18n.currentLocale === 'tr' ? '/kayit' : '/register'} class="text-primary underline underline-offset-4">
-            {i18n.t('Register')}
+          {t('NoAccount')}
+          <a href={i18n.currentLocale === 'tr' ? '/kayit' : '/register'} class="text-primary font-bold underline underline-offset-4">
+            {t('Register')}
           </a>
         </div>
       </div>
@@ -411,12 +393,12 @@ async function finalizeRegister() {
       <!-- Mnemonic doğrulama formu -->
       <div use:motion class="flex flex-col items-center gap-4 text-center">
         <KeyRound size={36} class="text-primary" />
-        <h1 class="text-base font-bold">{i18n.t('TwoFactorAuth') || 'İki Adımlı Doğrulama'}</h1>
-        <p class="text-neutral-100 text-balance text-sm">{mnemonicQuestion}</p>
+        <h1 class="text-base font-bold">{t('TwoFactorAuth') || 'İki Adımlı Doğrulama'}</h1>
+        <p class="text-secondary-foreground/70 text-balance text-sm">{mnemonicQuestion}</p>
         
         <div class="grid gap-3 w-full">
           <div class="grid gap-3">
-            <Label for="mnemonic-answer-{id}">{i18n.t('auth.login.mnemonicAnswer')}</Label>
+            <Label for="mnemonic-answer-{id}">{t('auth.login.mnemonicAnswer')}</Label>
             <Input 
               id="mnemonic-answer-{id}" 
               type="text" 
@@ -437,16 +419,16 @@ async function finalizeRegister() {
         
         <div class="flex gap-2 w-full">
           <Button type="button" class="w-1/2" onclick={resetMnemonicStep} variant="outline" disabled={loading}>
-            {i18n.t('Back')}
+            {t('Back')}
           </Button>
           <Button type="submit" class="w-1/2" disabled={loading}>
             {#if loading}
               <span class="inline-flex items-center gap-2">
                 <Loader class="animate-spin" />
-                {i18n.t('Verifying')}
+                {t('Verifying')}
               </span>
             {:else}
-              {i18n.t('Verify')}
+              {t('Verify')}
             {/if}
           </Button>
         </div>
@@ -461,12 +443,12 @@ async function finalizeRegister() {
         <div use:motion>
             <div class="flex flex-col items-center gap-1 text-center">
               <UserRoundPlus size={48} class="text-primary" />
-      <h1 class="text-base font-bold">{i18n.t('Register')}</h1>
-      <p class="text-neutral-100 text-balance text-sm">{i18n.t('auth.register.subtitle') || ''}</p>
+      <h1 class="text-base font-bold">{t('Register')}</h1>
+      <p class="text-secondary-foreground/70 text-balance text-sm">{t('auth.register.subtitle') || ''}</p>
     </div>
         <div  class="grid gap-3 mt-4">
           <div class="grid gap-2">
-            <Label for="nickname-{id}">{i18n.t('Username')}</Label>
+            <Label for="nickname-{id}">{t('Username')}</Label>
             <Input 
               id="nickname-{id}" 
               type="text" 
@@ -487,19 +469,19 @@ async function finalizeRegister() {
             {/if}
     </div>
       <div class="grid gap-2">
-            <Label for="regpass-{id}">{i18n.t('Password')}</Label>
+            <Label for="regpass-{id}">{t('Password')}</Label>
             <Input id="regpass-{id}" placeholder="••••••••" type="password" required bind:value={regPassword} disabled={loading} />
       </div>
             <div class="grid gap-2">
-            <Label for="name-{id}">{i18n.t('Name')}</Label>
+            <Label for="name-{id}">{t('Name')}</Label>
             <Input id="name-{id}" placeholder="İsminiz" type="name"  bind:value={name} disabled={loading} />
       </div>
       <div class="grid gap-2">
-            <Label for="surname-{id}">{i18n.t('Surname')}</Label>
+            <Label for="surname-{id}">{t('Surname')}</Label>
             <Input id="surname-{id}" placeholder="Soy isminiz" type="surname"  bind:value={surname} disabled={loading} />
       </div>
           <div class="grid gap-2" >
-            <Label for="email-{id}">{i18n.t('Email')}</Label>
+            <Label for="email-{id}">{t('Email')}</Label>
             <Input 
               id="email-{id}" 
               type="email" 
@@ -521,16 +503,16 @@ async function finalizeRegister() {
           <Button type="submit" class="w-full mt-2" disabled={loading || !!nicknameError || !!emailError || isValidating}>
             {#if isValidating}
             <Loader class="animate-spin" />
-              {i18n.t('Verifying')}
+              {t('Verifying')}
               
             {:else}
-              {i18n.t('Continue')}
+              {t('Continue')}
             {/if}
     </Button>
     <div class="text-center text-xs">
-      {i18n.t('HaveAccount')}
-      <a href={i18n.currentLocale === 'tr' ? '/giris' : '/login'} class="text-primary underline underline-offset-4">
-        {i18n.t('Login')}
+      {t('HaveAccount')}
+      <a href={i18n.currentLocale === 'tr' ? '/giris' : '/login'} class="text-primary font-bold underline underline-offset-4">
+        {t('Login')}
       </a>
     </div>
         </div>
@@ -544,38 +526,39 @@ async function finalizeRegister() {
         <div use:motion >
         <div class="flex flex-col items-center gap-1">
           <RotateCcwKey size={48} class="text-primary" />
-          <h1 class="text-base font-bold">{i18n.t('auth.register.mnemonicTitle')}</h1>
-          <p class="text-sm underline-primary text-neutral-100">{i18n.t('auth.register.mnemonicSubtitle')}</p>
+          <h1 class="text-base font-bold">{t('auth.register.mnemonicTitle')}</h1>
+          <p class="text-sm underline-hard-primary text-secondary-foreground/70">{t('auth.register.mnemonicSubtitle')}</p>
           <ScratchToReveal
-      minScratchPercentage={85}
-      class="flex items-center justify-center overflow-hidden rounded-2xl my-1 bg-background"
-      gradientColors={["#FFB300", "#FF9D0A", "#FFD500"]}
+      minScratchPercentage={75}
+      class="flex items-center justify-center overflow-hidden rounded-2xl my-2 bg-background"
+      gradientColors={["gray", "lightgray", "gray"]}
       onComplete={() => {
         
       }}
     >
-    <div class="grid grid-cols-3 gap-1 my-3 text-xs">
+    <div class="grid grid-cols-3 gap-0.5 m-2 text-xs">
       {#each mnemonic as w, i}
-        <div class="font-bold rounded-md bg-secondary border-primary border-0.5 px-1.5 py-1 text-primary">{i + 1}. {w}</div>
+        <div class="font-bold m-0.5 rounded-md bg-gradient-to-b shadow-sm drop-shadow-md from-yellow-300 via-yellow-500 to-yellow-400 border-yellow-400 ring-yellow-500 border-1 ring-1 px-1.5 py-1 text-white">{i + 1}. {w}</div>
       {/each}
       </div>
     </ScratchToReveal>
-              <ul class="list-disc text-xs text-neutral-300">
-            <li>{i18n.t('auth.register.mnemonicInfo1')}</li>
-            <li>{i18n.t('auth.register.mnemonicInfo2')}</li>
-          </ul>
-                      <div class="flex flex-col gap-1 my-1.5 bg-secondary/33 rounded-xl px-4 py-2.5">
-                        <div class="flex flex-row gap-1 "><LockKeyhole size={16} class="text-primary" />
-          <h1 class="text-xs font-bold">{i18n.t('auth.register.mnemonicInfoTitle')}</h1></div>
 
-          <p class="text-xs underline-primary text-neutral-100">{i18n.t('auth.register.mnemonicInfo')}</p>
+                      <div class="flex flex-col gap-1 my-1.5 bg-secondary/50 rounded-xl px-4 py-2.5">
+                        <div class="flex flex-row gap-1 "><LockKeyhole size={14} strokeWidth={2.5} class="text-primary" />
+          <h1 class="text-xs font-bold">{t('auth.register.mnemonicInfoTitle')}</h1></div>
+
+          <p class="text-xs underline-hard-primary text-secondary-foreground/80">{t('auth.register.mnemonicInfo')}</p>
+                        <ul class="list-disc list-inside text-xs text-secondary-foreground/80">
+            <li>{t('auth.register.mnemonicInfo1')}</li>
+            <li>{t('auth.register.mnemonicInfo2')}</li>
+          </ul>
           </div>
 
           
         </div>
         <div class="flex gap-2 mt-1.5" >
-            <Button type="button" class="w-1/2" onclick={() => (step = 1)} variant="outline">{i18n.t('Back')}</Button>
-            <Button type="button" class="w-1/2" onclick={proceedRegisterStep2}>{i18n.t('Continue')}</Button>
+            <Button type="button" class="w-1/2" onclick={() => (step = 1)} variant="outline">{t('Back')}</Button>
+            <Button type="button" class="w-1/2" onclick={proceedRegisterStep2}>{t('Continue')}</Button>
           </div>
           </div>
       </Motion>
@@ -587,8 +570,8 @@ async function finalizeRegister() {
         <div class="gap-2" use:motion>
         <div class="flex flex-col items-center gap-2">
           <KeyRound size={48} class="text-primary" />
-          <h1 class="text-base font-bold text-center">{i18n.t('auth.register.verifyOrderTitle')}</h1>
-          <p class="text-xs text-neutral-100">{i18n.t('auth.register.verifyOrderSubtitle')}</p>
+          <h1 class="text-base font-bold text-center">{t('auth.register.verifyOrderTitle')}</h1>
+          <p class="text-xs text-secondary-foreground/70">{t('auth.register.verifyOrderSubtitle')}</p>
           </div>
           <div class="min-h-22 rounded-md bg-secondary px-2 py-2 text-xs flex flex-start flex-wrap gap-1  my-3">
             {#each selection as w, i (w)}
@@ -596,7 +579,7 @@ async function finalizeRegister() {
                 type="button"
                 in:fly={{ y: 8, duration: 160 }} 
                 out:fly={{ y: -8, duration: 140 }} 
-                class="h-min rounded bg-primary/10 text-primary px-2 py-0.5"
+                class="font-bold h-min m-0.5 rounded-md bg-gradient-to-b shadow-sm drop-shadow-md from-yellow-300 via-yellow-500 to-yellow-400 border-yellow-400 ring-yellow-500 border-1 ring-1 px-1.5 py-1 text-white"
                 onclick={(e) => {
                   e.preventDefault();
                   const index = selection.indexOf(w);
@@ -627,13 +610,13 @@ async function finalizeRegister() {
 
         </div>
                   <div class="flex gap-2  my-3">
-            <Button type="button" class="w-1/2" onclick={() => (step = 1)} variant="outline">{i18n.t('Back')}</Button>
+            <Button type="button" class="w-1/2" onclick={() => (step = 1)} variant="outline">{t('Back')}</Button>
             <Button type="button" class="w-1/2" disabled={loading || selection.length !== mnemonic.length} onclick={finalizeRegister}>
               {#if loading}
                 <Loader class="animate-spin" />
-                {i18n.t('Saving') || i18n.t('Loading')}
+                {t('Saving') || t('Loading')}
               {:else}
-                {i18n.t('auth.register.complete') || 'Kaydı tamamla'}
+                {t('Complete')}
               {/if}
             </Button>
           </div>

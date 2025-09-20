@@ -34,12 +34,12 @@ import { cn } from "$lib/utils";
   <Spotlight class="-top-3 left-1 md:left-40 md:-top-8" fill="white" />
   <div class=" max-w-8xl mx-auto  relative z-10 w-full px-2 pt-12 md:p-4">
     <h1
-      class="text-3xl md:text-7xl md:h-38 font-bold text-center bg-clip-text text-transparent bg-gradient-to-b from-primary to-primary/66 bg-opacity-50"
+      class="text-3xl md:text-7xl md:h-38 font-bold text-center bg-clip-text text-transparent bg-gradient-to-b from-hard-primary to-hard-primary/50 bg-opacity-50"
     >
       Liberteryen Anarşist<br />  Faaliyet.
     </h1>
     <p
-      class="mt-2 md:mt-4 font-normal text-sm md:text-base text-neutral-300 max-w-lg text-center mx-auto"
+      class="mt-2 md:mt-4 font-bold text-sm md:text-base text-secondary-foreground/66 max-w-lg text-center mx-auto"
     >
       {i18n.t('MainPageDescription')}
     </p>

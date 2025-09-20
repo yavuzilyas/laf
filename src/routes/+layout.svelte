@@ -1,5 +1,5 @@
 <script lang="ts">
-  import favicon from '$lib/assets/laf1.svg';
+  import favicon from '$lib/assets/favicon.svg';
   import "../app.css";
   import ToastHost from "$lib/components/ToastHost.svelte";
   import Preloader from "$lib/components/Preloader.svelte";
@@ -9,7 +9,7 @@
   import { ModeWatcher } from "mode-watcher";
 
   // Props declaration import'lardan sonra gelir
-  let { children } = $props();
+  let { children, data } = $props();
 
   onMount(async () => {
     // Sayfa yüklendiğinde mevcut locale'i yükle

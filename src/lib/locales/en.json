@@ -72,6 +72,7 @@
       "ProcessCanceled": "Process canceled."
     },
     "success": {
+      "logoutSuccess": "Logout successful",
       "loginSuccess": "Login successful",
       "registerSuccess": "Registration successful! You can now log in.",
       "passwordCorrect": "Password is correct, complete BIP-39 verification.",

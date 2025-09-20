@@ -5,8 +5,8 @@
   import { ShieldAlert, X } from "@lucide/svelte";
   import { showToast } from "$lib/hooks/toast";
       import { t, tJoin, tMany } from '$lib/stores/i18n.svelte.js';
-
-  let { open = false, onVerified = () => {}, onCancel = () => {} } = $props();
+import { cn } from "$lib/utils.js";
+  let { openVerif = false, onVerified = () => {}, onCancel = () => {} } = $props();
 
   let loading = $state(false);
   let mnemonicIndex = $state<number | null>(null);
@@ -56,7 +56,7 @@
 
       if (res.ok) {
         showToast(t('auth.success.mnemonicVerified'), "success");
-        open = false;
+        openVerif = false;
         onVerified();
         resetState();
       } else {
@@ -72,7 +72,7 @@
   function handleVerificationError(data: any) {
     if (data.reset) {
       showToast(t('auth.errors.ProcessCanceled'), "error");
-      open = false;
+      openVerif = false;
       onCancel();
       resetState();
     } else {
@@ -84,7 +84,7 @@
   }
 
   function handleCancel() {
-    open = false;
+    openVerif = false;
     resetState();
     onCancel();
   }
@@ -102,13 +102,13 @@
   }
 
   $effect(() => {
-    if (open && !mnemonicIndex && !loading) {
+    if (openVerif && !mnemonicIndex && !loading) {
       getMnemonicQuestion();
     }
   });
 
   $effect(() => {
-    if (open) {
+    if (openVerif) {
       const handleEscape = (e: KeyboardEvent) => {
         if (e.key === 'Escape') handleCancel();
       };
@@ -116,42 +116,19 @@
       return () => window.removeEventListener('keydown', handleEscape);
     }
   });
+ import * as Drawer from "$lib/components/ui/drawer/index.js";
 </script>
+<Drawer.Root  bind:open={openVerif} dismissible={true} onClose={handleCancel}>
+ <Drawer.Trigger class="sr-only">openVerif</Drawer.Trigger>
+ <Drawer.Content>
+      <div class="mx-auto w-full py-2 px-8 md:px-0 max-w-sm">
 
-{#if open}
-  <div
-    class="fixed inset-0 overflow-hidden overscroll-none bg-black/50 backdrop-blur-sm z-60 flex items-center justify-center p-4"
-    onclick={handleCancel}
-    role="presentation"
-    tabindex="-1"
-  >
-    <div
-      class="bg-background border border-border rounded-lg z-60 shadow-lg w-full max-w-md p-6"
-      onclick={(e) => e.stopPropagation()}
-      onkeydown={handleKeyPress}
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="modal-title"
-      tabindex="0"
-    >
-      <!-- Header -->
-      <div class="flex items-center z-60  justify-between mb-4">
-        <div class="flex items-center z-60 gap-2">
-          <ShieldAlert size={20} class="text-primary z-60 " />
-          <h2 class="text-lg font-semibold z-60 " id="modal-title">{t('VerificationIsRequired')}</h2>
-        </div>
-        <Button variant="ghost" size="sm" onclick={handleCancel} class="z-60  h-8 w-8 p-0">
-          <X size={16} />
-        </Button>
-      </div>
-
-      <!-- Content -->
-      <div class="space-y-4 z-60 ">
-        <p class="z-60 text-sm text-muted-foreground">
-          {t('EnterTheMnemonicWord')}
-        </p>
-
-        {#if mnemonicIndex !== null}
+  <Drawer.Header>
+    <ShieldAlert size={20} class="text-primary z-60 " />
+   <Drawer.Title>{t('VerificationIsRequired')}</Drawer.Title>
+   <Drawer.Description>{t('EnterTheMnemonicWord')}</Drawer.Description>
+  </Drawer.Header>
+  {#if mnemonicIndex !== null}
           <div class="z-60 space-y-2">
 
             <p class="z-60 text-sm font-medium text-primary bg-primary/10 p-2 rounded-md">
@@ -179,14 +156,8 @@
             <div class="z-60 h-6 w-6 animate-spin rounded-full border-2 border-primary border-r-transparent"></div>
           </div>
         {/if}
-      </div>
-
-      <!-- Footer -->
-      <div class="z-60 flex gap-3 mt-6">
-        <Button variant="outline" class="z-60 flex-1" onclick={handleCancel} disabled={loading}>
-         {t('Cancel')}
-        </Button>
-        <Button
+  <Drawer.Footer class="flex flex-row ">
+           <Button
           class="flex-1 z-60 "
           onclick={verifyMnemonic}
           disabled={loading || !mnemonicAnswer.trim() || mnemonicIndex === null}
@@ -200,13 +171,10 @@
             {t('Verificate')}({remainingAttempts})
           {/if}
         </Button>
+          <Button variant="outline" class="z-60 flex-1" onclick={handleCancel} disabled={loading}>
+         {t('Cancel')}
+        </Button>
+  </Drawer.Footer>
       </div>
-    </div>
-  </div>
-{/if}
-
-<style>
-  :global(body:has(.fixed.inset-0)) {
-    overflow: hidden;
-  }
-</style>
+ </Drawer.Content>
+</Drawer.Root>   

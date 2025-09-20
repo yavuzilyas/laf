@@ -5,7 +5,10 @@
   import { Motion, useAnimation } from "svelte-motion";
   import { cn } from "$lib/utils";
   import {UserRound }from "@lucide/svelte";
-
+  import SunIcon from "@lucide/svelte/icons/sun";
+  import MoonIcon from "@lucide/svelte/icons/moon";
+ 
+  import { toggleMode } from "mode-watcher";
   import { Button } from "$lib/components/ui/button/index.js";
   import LanguageSelector from "./LanguageSelector.svelte";
 
@@ -74,7 +77,7 @@ function handleItemClick(item: any) {
     >
       <div style="transform-origin: 50% 55%;">
         <Motion animate={svgControls} let:motion>
-          <Menu class=" scale-110 cursor-pointer md:scale-100 text-primary"size={20} strokeWidth={2} />
+          <Menu class=" scale-110 cursor-pointer md:scale-100 text-primary"size={20} strokeWidth={2.25} />
         </Motion>
       </div>
     </button>
@@ -108,11 +111,11 @@ function handleItemClick(item: any) {
             item?.customStyle
           )}
         >
-          <svelte:component this={item.icon} size={16} strokeWidth={1.75} />
+          <svelte:component this={item.icon} size={16} strokeWidth={2.25} />
           <span class="text-secondary-foreground flex items-center gap-1 text-xs md:text-xs duration-333 font-bold hover:text-secondary-foreground">
             {item.name}
             <ChevronRightIcon
-              size={12}
+              size={12} strokeWidth={2.25}
               class="-translate-x-5 scale-0 opacity-0 group-hover:opacity-100 group-hover:scale-100 group-hover:translate-x-0 transition-all"
             />
           </span>
@@ -125,7 +128,7 @@ function handleItemClick(item: any) {
             item?.customStyle
           )}
         >
-          <svelte:component this={item.icon} size={16} strokeWidth={1.75} />
+          <svelte:component this={item.icon} size={16} strokeWidth={2.25} />
           <span class="text-secondary-foreground flex items-center gap-1 text-xs md:text-xs duration-333 font-bold hover:text-secondary-foreground">
             {item.name}
             <ChevronRightIcon
@@ -146,7 +149,27 @@ function handleItemClick(item: any) {
   let:motion
 >
   <li class="mt-1" use:motion>
-<LanguageSelector />
+
+<Button class="w-full flex flex-row text-xs justify-start gap-2"onclick={toggleMode} variant="outline">
+  <SunIcon strokeWidth={2.25}
+    class="h-[1.2rem] w-[1.2rem] rotate-0 scale-100 !transition-all text-primary dark:-rotate-90 dark:scale-0"
+  />
+  <MoonIcon strokeWidth={2.25}
+    class="absolute h-[1.2rem] w-[1.2rem] text-primary  rotate-90 scale-0 !transition-all dark:rotate-0 dark:scale-100"
+  />
+  <span>Theme</span>
+</Button>
+  </li>
+</Motion>
+<Motion
+  custom={items.length + 1}
+  {variants}
+  initial="hidden"
+  animate={isOpen ? "visible" : "hidden"}
+  let:motion
+>
+  <li class="mt-1" use:motion>
+<LanguageSelector/>
 
   </li>
 </Motion>

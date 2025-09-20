@@ -49,7 +49,7 @@
 		}, nextToast.duration || 3000);
 	}
 	
-	function removeToast(id: string) {
+	function removeToast(id: number) {
 		// Bildirimi kapat
 		renderList.forEach((item) => {
 			if (item.toast.id === id && !item.exiting) {
@@ -89,13 +89,21 @@
 
     function showToastKeyInternal(key: string, type: Toast['type'], duration = 2500) {
         const id = Date.now() + Math.random();
-        const toast: Toast = { id, key, type, duration } as any;
-        // render list is managed by subscription; push via toasts store API
-        // For simplicity, reuse showToast with current translation
-        showToast(t(key), type, duration);
+        const toast: Toast = { id, key, type, duration };
+        // Add the toast with the key directly to maintain reactivity
+        toastQueue.push(toast);
+        if (!isShowingToast && toastQueue.length === 1) {
+            showNextToast();
+        }
     }
     function showToastKeysInternal(keys: string[], sep: string, type: Toast['type'], duration = 2500) {
-        showToast(t.join(keys, sep), type, duration);
+        const id = Date.now() + Math.random();
+        const toast: Toast = { id, keys, sep, type, duration };
+        // Add the toast with the keys directly to maintain reactivity
+        toastQueue.push(toast);
+        if (!isShowingToast && toastQueue.length === 1) {
+            showNextToast();
+        }
     }
 
 	const itemVariants = {
@@ -139,17 +147,17 @@
 				class={cn(
 					"w-10/12 md:w-fit",
 					"rounded-xl px-4.5 py-2.5 mt-1 md:mt-2 text-sm font-bold flex items-center select-none justify-center gap-2",
-					"bg-neutral-900/66 text-neutral-50 backdrop-blur-md"
+					"bg-secondary/80 text-secondary-foreground backdrop-blur-md"
 				)}
 			>
-				<span class="text-primary flex items-center flex-row"><img src={logo} class="w-auto h-3.5" alt="LAF Logo" />:</span>
+				<span class="flex items-center text-hard-primary  flex-row"><img src={logo} class="text-hard-primary w-auto h-3.5" alt="LAF Logo" />:</span>
             <span class="gap-1 flex flex-row items-center">
 				{#if item.toast.type === "success"}
-					<CheckCircle2 class="w-4 h-4 text-green-400 flex-shrink-0" />
+					<CheckCircle2 class="w-4 h-4 text-green-500 flex-shrink-0" />
 				{:else if item.toast.type === "error"}
-					<XCircle class="w-4 h-4 text-red-400 flex-shrink-0" />
+					<XCircle class="w-4 h-4 text-red-500 flex-shrink-0" />
 				{:else}
-					<Info class="w-4 h-4 text-sky-400 flex-shrink-0" />
+					<Info class="w-4 h-4 text-sky-500 flex-shrink-0" />
 				{/if}
 				                {translatedMessageOf(item.toast)}</span>
             </div>
