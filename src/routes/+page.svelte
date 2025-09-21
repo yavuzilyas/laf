@@ -3,7 +3,6 @@
   import Loader from '$lib/components/load.svelte';
 </script>
 
-<Loader />
 
 <main>
   <slot />

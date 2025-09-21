@@ -23,8 +23,7 @@
         BookOpen
     } from "@lucide/svelte";
     
-    // WYSIWYG Editor
-    import { onMount } from 'svelte';
+
     
     let { data } = $props();
     let user = data?.user;
@@ -49,7 +48,7 @@
     let isSaving = $state(false);
     let newTag = $state("");
     let editorElement: HTMLElement;
-    let quillEditor: any;
+
 
     // Categories
     const categories = [
@@ -71,37 +70,7 @@
         { label: "Français", value: "fr" }
     ];
 
-    onMount(async () => {
-        // Initialize Quill Editor
-        if (typeof window !== 'undefined') {
-            const Quill = (await import('quill')).default;
-            
-            if (editorElement) {
-                quillEditor = new Quill(editorElement, {
-                    theme: 'snow',
-                    placeholder: 'Makalenizi buraya yazın...',
-                    modules: {
-                        toolbar: [
-                            [{ 'header': [1, 2, 3, false] }],
-                            ['bold', 'italic', 'underline', 'strike'],
-                            [{ 'list': 'ordered'}, { 'list': 'bullet' }],
-                            [{ 'indent': '-1'}, { 'indent': '+1' }],
-                            ['blockquote', 'code-block'],
-                            ['link'],
-                            [{ 'align': [] }],
-                            ['clean']
-                        ]
-                    }
-                });
-
-                // Listen for text changes
-                quillEditor.on('text-change', () => {
-                    articleData.content = quillEditor.root.innerHTML;
-                });
-            }
-        }
-    });
-
+    
     const addTag = (tag: string) => {
         if (tag.trim() && !articleData.tags.includes(tag.trim())) {
             articleData.tags = [...articleData.tags, tag.trim()];
@@ -157,7 +126,7 @@
 
             if (response.ok) {
                 const result = await response.json();
-                goto(`/makale/${result.slug}`);
+                goto(`/article/${result.slug}`);
             } else {
                 const error = await response.json();
                 alert(error.message || 'Makale yayınlanırken hata oluştu');
@@ -197,36 +166,26 @@
             `);
         }
     };
+
+	import { EdraEditor, EdraToolBar, EdraDragHandleExtended } from '$lib/components/edra/shadcn/index.js';
+	// Editor states
+	let content = $state<Content>();
+	let editor = $state<Editor>();
+	function onUpdate() {
+		content = editor?.getJSON();
+	}
+    
 </script>
 
 <svelte:head>
-    <title>Makale Yaz - LAF</title>
+    <title>{t('writeArticle')}</title>
     <meta name="description" content="Yeni makale yazın ve yayınlayın" />
-    <link href="https://cdn.quilljs.com/1.3.6/quill.snow.css" rel="stylesheet">
-    <script src="https://cdn.quilljs.com/1.3.6/quill.min.js"></script>
-    <style>
-        .ql-editor {
-            min-height: 400px;
-            font-size: 16px;
-            line-height: 1.6;
-        }
-        .ql-toolbar {
-            border-top: 1px solid #ccc;
-            border-left: 1px solid #ccc;
-            border-right: 1px solid #ccc;
-        }
-        .ql-container {
-            border-bottom: 1px solid #ccc;
-            border-left: 1px solid #ccc;
-            border-right: 1px solid #ccc;
-        }
-    </style>
 </svelte:head>
 
 <Navbar />
 
-<main class="min-h-screen bg-background">
-    <div class="container mx-auto px-4 py-8 max-w-7xl">
+<main class=" bg-background">
+    <div class="container mx-auto px-4 py-8">
         {#if !user}
             <!-- Not logged in state -->
             <div class="flex flex-col items-center justify-center py-12 text-center">
@@ -241,7 +200,7 @@
             <!-- Article Editor -->
             <div class="space-y-6">
                 <!-- Header -->
-                <div class="flex items-center justify-between">
+                <div class="flex items-end justify-between">
                     <div>
                         <h1 class="text-3xl font-bold">Yeni Makale</h1>
                         <p class="text-muted-foreground">Düşüncelerinizi paylaşın</p>
@@ -263,45 +222,45 @@
                     </div>
                 </div>
 
-                <Separator />
-
                 <!-- Article Form -->
                 <div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
                     <!-- Main Content -->
-                    <div class="lg:col-span-3 space-y-6">
-                        <!-- Title -->
-                        <div>
-                            <Label for="title" class="text-base font-semibold">Başlık</Label>
+                    <div class="lg:col-span-3 space-y-4">
+
                             <Input 
                                 id="title"
                                 bind:value={articleData.title}
                                 placeholder="Makalenizin başlığını yazın..."
-                                class="text-lg h-12"
+                                class="text-base font-bold !bg-background h-12"
                             />
-                        </div>
 
-                        <!-- Excerpt -->
-                        <div>
-                            <Label for="excerpt" class="text-base font-semibold">Özet</Label>
                             <Textarea 
                                 id="excerpt"
                                 bind:value={articleData.excerpt}
                                 placeholder="Makalenizin kısa bir özetini yazın..."
                                 rows="3"
                             />
+
+
+
+	<div class="bg-background z-50 size-full h-fit  rounded-md overflow-hidden border border-dashed">
+		{#if editor && !editor.isDestroyed}
+			<EdraToolBar
+				class="bg-secondary/50 flex w-full items-center overflow-x-auto border-b border-dashed p-0.5"
+				{editor}
+			/>
+			<EdraDragHandleExtended {editor} />
+		{/if}
+		<EdraEditor
+			bind:editor
+			{content}
+			class="h-[32rem] max-h-screen overflow-y-scroll p-7"
+			{onUpdate}
+		/>
+	</div>
+
                         </div>
 
-                        <!-- Content Editor -->
-                        <div>
-                            <Label class="text-base font-semibold">İçerik</Label>
-                            <div class="border rounded-lg overflow-hidden">
-                                <div 
-                                    bind:this={editorElement}
-                                    class="min-h-96"
-                                ></div>
-                            </div>
-                        </div>
-                    </div>
 
                     <!-- Sidebar -->
                     <div class="space-y-6">
@@ -356,15 +315,31 @@
                                 </CardTitle>
                             </CardHeader>
                             <CardContent class="space-y-4">
-                                <!-- Category -->
                                 <div>
-                                    <Label class="text-sm font-medium">Kategori</Label>
+                                    <Label class="text-sm font-medium">Alan</Label>
                                     <Select.Root
                                         value={articleData.category}
                                         onValueChange={(value) => articleData.category = value}
                                     >
                                         <Select.Trigger class="w-full">
-                                            {articleData.category || 'Kategori Seçin'}
+                                            {articleData.category || 'Alan Seçin'}
+                                        </Select.Trigger>
+                                        <Select.Content>
+                                            {#each categories as category}
+                                                <Select.Item value={category}>{category}</Select.Item>
+                                            {/each}
+                                        </Select.Content>
+                                    </Select.Root>
+                                </div>
+                                <!-- Category -->
+                                <div>
+                                    <Label class="text-sm font-medium">Dal</Label>
+                                    <Select.Root
+                                        value={articleData.category}
+                                        onValueChange={(value) => articleData.category = value}
+                                    >
+                                        <Select.Trigger class="w-full">
+                                            {articleData.category || 'Dal Seçin'}
                                         </Select.Trigger>
                                         <Select.Content>
                                             {#each categories as category}

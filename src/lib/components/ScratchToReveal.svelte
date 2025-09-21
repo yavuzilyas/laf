@@ -22,7 +22,6 @@
     let canvas: HTMLCanvasElement | null;
     let ctx: CanvasRenderingContext2D | null;
   
-    //   const controls = tweened(1, { duration: 500, easing: cubicOut });
     let controls = useAnimation();
   
     onMount(() => {
@@ -53,6 +52,7 @@
   
       const handleTouchMove = (event: TouchEvent) => {
         if (!isScratching) return;
+        event.preventDefault(); // Scroll'u engelle
         const touch = event.touches[0];
         scratch(touch.clientX, touch.clientY);
       };
@@ -63,7 +63,8 @@
       };
   
       document.addEventListener("mousemove", handleMouseMove);
-      document.addEventListener("touchmove", handleTouchMove);
+      // Touch event'leri için passive: false kullanarak preventDefault'i etkin hale getir
+      document.addEventListener("touchmove", handleTouchMove, { passive: false });
       document.addEventListener("mouseup", stopScratching);
       document.addEventListener("touchend", stopScratching);
   
@@ -79,7 +80,8 @@
       isScratching = true;
     }
   
-    function handleTouchStart() {
+    function handleTouchStart(event: TouchEvent) {
+      event.preventDefault(); // Scroll'u engelle
       isScratching = true;
     }
   
@@ -90,30 +92,30 @@
         const y = clientY - rect.top + 15;
         ctx.globalCompositeOperation = "destination-out";
         ctx.beginPath();
-        ctx.arc(x, y, 33, 0, Math.PI * 2);
+        ctx.arc(x, y, 25, 0, Math.PI * 2);
         ctx.fill();
       }
     }
   
-async function startAnimation() {
-  // Önce 0.5 saniyede 1.5 boyutuna büyüsün
-  await controls.start({
-    scale: 1.18,
-    transition: { duration: 0.66 }
-  });
-  
-  // Sonra 1.4-1.45 arasında sonsuz döngüde titresin
-  await controls.start({
-    scale: [1.18, 1.15, 1.18],
-    transition: {
-      duration: 6,
-      repeat: Infinity,
-      ease: "easeInOut"
+    async function startAnimation() {
+      // Önce 0.5 saniyede 1.5 boyutuna büyüsün
+      await controls.start({
+        scale: 1.18,
+        transition: { duration: 0.66 }
+      });
+      
+      // Sonra 1.4-1.45 arasında sonsuz döngüde titresin
+      await controls.start({
+        scale: [1.18, 1.15, 1.18],
+        transition: {
+          duration: 6,
+          repeat: Infinity,
+          ease: "easeInOut"
+        }
+      });
+      
+      if (onComplete) onComplete();
     }
-  });
-  
-  if (onComplete) onComplete();
-}
   
     function checkCompletion() {
       if (isComplete) return;
@@ -137,41 +139,50 @@ async function startAnimation() {
         }
       }
     }
-  </script>
+</script>
   
-  <!-- svelte-ignore a11y-no-static-element-interactions -->
-  <Motion let:motion animate={controls}>
-    <div
-      use:motion
-      class={cn("scratch-container", _class)}
-      style="width: fit-items; height: 100%; cursor:
-       url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIzMiIgaGVpZ2h0PSIzMiIgdmlld0JveD0iMCAwIDMyIDMyIj4KICA8Y2lyY2xlIGN4PSIxNiIgY3k9IjE2IiByPSIxNSIgc3R5bGU9ImZpbGw6I2ZmZjtzdHJva2U6IzAwMDtzdHJva2Utd2lkdGg6MXB4OyIgLz4KPC9zdmc+'), auto; z-index: 90;"
-    >
-      <canvas
-        bind:this={canvas}
-        {width}
-        {height}
-        class="z-20"
-        on:mousedown={handleMouseDown}
-        on:touchstart={handleTouchStart}
-      ></canvas>
-      <div style="position: relative;">
-        <slot />
-      </div>
+<!-- svelte-ignore a11y-no-static-element-interactions -->
+<Motion let:motion animate={controls}>
+  <div
+    use:motion
+    class={cn("scratch-container", _class)}
+    style="width: fit-items; height: 100%; cursor:
+     url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIzMiIgaGVpZ2h0PSIzMiIgdmlld0JveD0iMCAwIDMyIDMyIj4KICA8Y2lyY2xlIGN4PSIxNiIgY3k9IjE2IiByPSIxNSIgc3R5bGU9ImZpbGw6I2ZmZjtzdHJva2U6IzAwMDtzdHJva2Utd2lkdGg6MXB4OyIgLz4KPC9zdmc+'), auto; z-index: 90; touch-action: none;"
+  >
+    <canvas
+      bind:this={canvas}
+      {width}
+      {height}
+      class="z-20"
+      on:mousedown={handleMouseDown}
+      on:touchstart={handleTouchStart}
+      style="touch-action: none;"
+    ></canvas>
+    <div style="position: relative;">
+      <slot />
     </div>
-  </Motion>
+  </div>
+</Motion>
   
-  <style>
-    .scratch-container {
-      position: relative;
-      user-select: none;
-      animation: shimmer 2s infinite;
-    }
-  
-    canvas {
-      position: absolute;
-      top: 0;
-      left: 0;
-    }
-  </style>
-  
+<style>
+  .scratch-container {
+    position: relative;
+    user-select: none;
+    animation: shimmer 2s infinite;
+    /* Mobilde pinch-zoom ve scroll'u engelle */
+    touch-action: none;
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    -khtml-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+  }
+
+  canvas {
+    position: absolute;
+    top: 0;
+    left: 0;
+    /* Canvas üzerinde tüm touch hareketlerini engelle */
+    touch-action: none;
+  }
+</style>
