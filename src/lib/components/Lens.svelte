@@ -1,8 +1,8 @@
 <script lang="ts">
     import { scale } from "svelte/transition";
   
-    export let zoomFactor = 1.5;
-    export let lensSize = 170;
+    export let zoomFactor = 2;
+    export let lensSize = 166;
     export let isStatic = false;
     export let position = { x: 200, y: 150 };
     export let hovering: boolean;
@@ -69,7 +69,7 @@
   {#if isStatic && hovering}
     <div
       in:scale
-      out:scale={{ duration: 400 }}
+      out:scale={{ duration: 666 }}
       class="absolute inset-0 overflow-hidden pointer-events-none"
       style="
           mask-image: radial-gradient(circle {lensSize /
@@ -88,7 +88,7 @@
     </div>
   {:else if hovering}
     <div
-      transition:scale={{ duration: 400 }}
+      transition:scale={{ duration: 666 }}
       class="absolute inset-0 overflow-hidden pointer-events-none"
       style="
               mask-image: radial-gradient(circle {lensSize /

@@ -80,6 +80,55 @@
       "mnemonicVerified": "Silsile doğrulaması başarılı."
     }
   },
+  "t": {
+    "Theme": "Tema"
+  },
+    "articles": {
+    "allArticles": "Tüm Makaleler",
+    "subtitle": "Liberter anarşizm, özgürlük ve bireysel haklar üzerine makalelerimizi keşfedin.",
+    "description": "Liberter anarşizm, özgürlük ve bireysel haklar hakkında makaleler okuyun",
+    "featured": "Öne Çıkan",
+    "readMore": "Devamını Oku",
+    "readArticle": "Makaleyi Oku",
+    "minRead": "dk okuma",
+    "min": "dk",
+    "loading": "Yükleniyor...",
+    "loadMore": "Daha Fazla",
+    "loadingMore": "Daha fazla makale yükleniyor...",
+    "noArticles": "Makale Bulunamadı",
+    "noArticlesDescription": "Arama kriterlerinize uygun makale bulunamadı.",
+    
+    "search": {
+      "placeholder": "Makalelerde ara...",
+      "recent": "Son Aramalar",
+      "popular": "Popüler",
+      "tag": "Etiket",
+      "category": "Kategori",
+      "recentSearches": "Son Aramalar",
+      "noSuggestions": "Öneri bulunamadı",
+      "searchFor": "Şunu ara",
+      "searchingFor": "Aranan",
+      "clear": "Temizle"
+    },
+
+    "filters": {
+      "title": "Filtreler",
+      "clearAll": "Tümünü Temizle",
+      "clear": "Temizle",
+      "dateRange": "Tarih Aralığı",
+      "language": "Dil",
+      "category": "Kategori",
+      "type": "Tür",
+      "selectLanguage": "Dil seçin",
+      "selectCategory": "Kategori seçin",
+      "selectType": "Tür seçin",
+      "selectDate": "Tarih aralığı seçin",
+      "allLanguages": "Tüm diller",
+      "allCategories": "Tüm kategoriler",
+      "allTypes": "Tüm türler",
+      "allTime": "Tüm zamanlar"
+    }
+  },
     "MyAccount" : "Hesabım",
   "MyPlus" : "Plus Hesabım",
   "MyDonations" : "Bağışlarım",

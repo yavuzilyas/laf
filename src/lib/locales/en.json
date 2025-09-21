@@ -80,6 +80,55 @@
       "mnemonicVerified": "Mnemonic verification successful."
     }
   },
+    "articles": {
+    "allArticles": "All Articles",
+    "subtitle": "Explore our collection of articles on libertarian anarchism, freedom, and individual rights.",
+    "description": "Read articles about libertarian anarchism, freedom, and individual rights",
+    "featured": "Featured",
+    "readMore": "Read More",
+    "readArticle": "Read Article",
+    "minRead": "min read",
+    "min": "min",
+    "loading": "Loading...",
+    "loadMore": "Load More",
+    "loadingMore": "Loading more articles...",
+    "noArticles": "No Articles Found",
+    "noArticlesDescription": "There are no articles matching your search criteria.",
+    
+    "search": {
+      "placeholder": "Search articles...",
+      "recent": "Recent Searches",
+      "popular": "Popular",
+      "tag": "Tag",
+      "category": "Category",
+      "recentSearches": "Recent Searches",
+      "noSuggestions": "No suggestions found",
+      "searchFor": "Search for",
+      "searchingFor": "Searching for",
+      "clear": "Clear"
+    },
+
+    "filters": {
+      "title": "Filters",
+      "clearAll": "Clear All",
+      "clear": "Clear",
+      "dateRange": "Date Range",
+      "language": "Language",
+      "category": "Category",
+      "type": "Type",
+      "selectLanguage": "Select language",
+      "selectCategory": "Select category",
+      "selectType": "Select type",
+      "selectDate": "Select date range",
+      "allLanguages": "All languages",
+      "allCategories": "All categories",
+      "allTypes": "All types",
+      "allTime": "All time"
+    }
+  },
+  "t": {
+    "Theme": "Theme"
+  },
   "MyAccount" : "My Account",
   "MyPlus" : "Plus",
   "MyDonations" : "My Donations",

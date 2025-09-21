@@ -4,7 +4,7 @@
   import { Badge } from "$lib/components/ui/badge";
   import { Calendar, Clock, User, Eye, MessageCircle, Heart } from "@lucide/svelte";
   import { t } from '$lib/stores/i18n.svelte.ts';
-
+  import Lens from '$lib/components/Lens.svelte';
   interface Article {
     id: string;
     title: string;
@@ -241,11 +241,13 @@
   )} {...restProps}>
     {#if article.coverImage}
       <div class="relative overflow-hidden">
+        <Lens>
         <img 
           src={article.coverImage} 
           alt={article.title}
           class="aspect-[16/9] w-full object-cover transition-transform duration-300 group-hover:scale-105"
         />
+        </Lens>
         <div class="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent" />
         {#if article.featured}
           <Badge class="absolute top-3 right-3 bg-primary text-primary-foreground">
