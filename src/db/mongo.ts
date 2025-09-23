@@ -1,5 +1,5 @@
-// src/lib/server/db/mongo.ts
-import { MongoClient } from 'mongodb';
+// src/lib/server/db/mongo.ts (genişletilmiş)
+import { MongoClient, ObjectId } from 'mongodb';
 import { MONGODB_URL } from '$env/static/private';
 
 const client = new MongoClient(MONGODB_URL);
@@ -10,11 +10,9 @@ export function start_mongo(): Promise<MongoClient> {
 }
 
 export default client.db("laf_app");
-
-// Bağlantıyı bir promise olarak export et
 export const clientPromise = client.connect();
 
-// === Collections ===
+// Collections
 export const getUsersCollection = async () => {
     const db = (await clientPromise).db("laf_app");
     return db.collection("users");
@@ -25,14 +23,24 @@ export const getArticlesCollection = async () => {
     return db.collection("articles");
 };
 
-// yeni: drafts collection
 export const getDraftsCollection = async () => {
     const db = (await clientPromise).db("laf_app");
     return db.collection("drafts");
 };
 
-// yeni: versions collection
 export const getVersionsCollection = async () => {
     const db = (await clientPromise).db("laf_app");
     return db.collection("versions");
+};
+
+// Yardımcı fonksiyonlar
+export const toObjectId = (id: string | ObjectId): ObjectId => {
+    return typeof id === 'string' ? new ObjectId(id) : id;
+};
+
+export const fromObjectId = (obj: any) => {
+    if (obj && obj._id) {
+        obj._id = obj._id.toString();
+    }
+    return obj;
 };

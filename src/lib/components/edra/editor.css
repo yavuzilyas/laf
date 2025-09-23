@@ -199,7 +199,7 @@ input[type='checkbox'] {
 .drag-handle {
 	position: fixed;
 	z-index: 50;
-	width: 1.5rem;
+	width: 2rem;
 	height: 1.5rem;
 	display: flex;
 	padding-right: 0.5rem;

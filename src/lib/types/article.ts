@@ -1,53 +1,56 @@
-// types/article.ts
+// src/lib/types/article.ts
 export interface ArticleTranslation {
-  language: string;
   title: string;
-  excerpt: string;
-  content: any; // Editor JSON content
+  summary: string;
+  content: string;
   slug: string;
-  isActive: boolean;
 }
 
 export interface Article {
   _id?: string;
+  translations: {
+    [key: string]: ArticleTranslation;
+  };
+  defaultLanguage: string;
+  status: 'draft' | 'published' | 'scheduled';
   authorId: string;
-  translations: ArticleTranslation[];
+  
+  // Ortak alanlar (dilden bağımsız)
   category: string;
-  subCategory?: string;
   tags: string[];
-  status: 'draft' | 'published';
-  featuredImage?: string;
-  publishedAt?: Date;
+  coverImage?: string;
+  featured: boolean;
+  allowComments: boolean;
+  
+  // İstatistikler
+  stats: {
+    views: number;
+    likes: number;
+    comments: number;
+  };
+  
+  // Zaman damgaları
   createdAt: Date;
   updatedAt: Date;
-  viewCount: number;
-  likeCount: number;
-  commentCount: number;
-  currentVersion: number;
+  publishedAt?: Date;
+  scheduledAt?: Date;
+}
+
+export interface ArticleDraft {
+  _id?: string;
+  articleId?: string;
+  data: Partial<Article>;
+  lastSaved: Date;
+  authorId: string;
+  hasUnpublishedChanges: boolean;
 }
 
 export interface ArticleVersion {
   _id?: string;
   articleId: string;
-  version: number;
-  translations: ArticleTranslation[];
-  category: string;
-  subCategory?: string;
-  tags: string[];
-  status: 'draft' | 'published';
+  versionNumber: number;
+  data: Article;
   createdAt: Date;
-  createdBy: string;
-  changeDescription?: string;
-}
-
-export interface ArticleDraft {
-  _id?: string;
-  articleId?: string; // null for new articles
   authorId: string;
-  translations: ArticleTranslation[];
-  category: string;
-  subCategory?: string;
-  tags: string[];
-  lastSavedAt: Date;
-  autoSave: boolean;
+  note?: string; // Versiyon notu
 }
