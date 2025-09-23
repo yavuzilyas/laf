@@ -5,8 +5,12 @@
     import { Input } from "$lib/components/ui/input";
     import { Label } from "$lib/components/ui/label";
     import { Textarea } from "$lib/components/ui/textarea";
+  import * as Tabs from "$lib/components/ui/tabs/index.js";
+
     import { Badge } from "$lib/components/ui/badge";
     import * as Select from "$lib/components/ui/select";
+        import { ScrollArea } from "$lib/components/ui/scroll-area";
+
     import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "$lib/components/ui/card";
     import { Separator } from "$lib/components/ui/separator";
     import { t } from '$lib/stores/i18n.svelte.ts';
@@ -139,34 +143,6 @@
         }
     };
 
-    const previewArticle = () => {
-        // Open preview in new tab/modal
-        const previewWindow = window.open('', '_blank');
-        if (previewWindow) {
-            previewWindow.document.write(`
-                <html>
-                    <head>
-                        <title>${articleData.title || 'Önizleme'}</title>
-                        <style>
-                            body { font-family: system-ui, sans-serif; max-width: 800px; margin: 0 auto; padding: 2rem; }
-                            h1 { color: #1f2937; }
-                            .meta { color: #6b7280; font-size: 0.875rem; margin-bottom: 2rem; }
-                            .content { line-height: 1.7; }
-                        </style>
-                    </head>
-                    <body>
-                        <h1>${articleData.title || 'Başlıksız Makale'}</h1>
-                        <div class="meta">
-                            Kategori: ${articleData.category || 'Belirlenmemiş'} | 
-                            Dil: ${languages.find(l => l.value === articleData.language)?.label || 'Türkçe'}
-                        </div>
-                        <div class="content">${articleData.content || 'İçerik henüz yazılmamış.'}</div>
-                    </body>
-                </html>
-            `);
-        }
-    };
-
 	import { EdraEditor, EdraToolBar, EdraDragHandleExtended } from '$lib/components/edra/shadcn/index.js';
 	// Editor states
 	let content = $state<Content>();
@@ -185,7 +161,7 @@
 <Navbar />
 
 <main class=" bg-background">
-    <div class="container mx-auto px-4 py-8">
+    <div class="container max-w-7xl mx-auto px-4 md:px-0 py-6">
         {#if !user}
             <!-- Not logged in state -->
             <div class="flex flex-col items-center justify-center py-12 text-center">
@@ -198,7 +174,7 @@
             </div>
         {:else}
             <!-- Article Editor -->
-            <div class="space-y-6">
+            <div class="space-y-4">
                 <!-- Header -->
                 <div class="flex items-end justify-between">
                     <div>
@@ -207,10 +183,6 @@
                     </div>
                     
                     <div class="flex items-center gap-2">
-                        <Button variant="outline" onclick={previewArticle}>
-                            <Eye class="w-4 h-4 mr-2" />
-                            Önizleme
-                        </Button>
                         <Button variant="outline" onclick={saveAsDraft} disabled={isSaving}>
                             <Save class="w-4 h-4 mr-2" />
                             {isSaving ? 'Kaydediliyor...' : 'Taslak Kaydet'}
@@ -223,9 +195,14 @@
                 </div>
 
                 <!-- Article Form -->
-                <div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
-                    <!-- Main Content -->
-                    <div class="lg:col-span-3 space-y-4">
+                <div class="grid grid-cols-1 lg:grid-cols-6 gap-4">
+                    <Tabs.Root value="tr" class="lg:col-span-5 ">
+  <Tabs.List>
+    <Tabs.Trigger value="tr">Türkçe</Tabs.Trigger>
+  </Tabs.List>
+  <Tabs.Content value="tr" class="space-y-4">
+    <!-- Main Content -->
+
 
                             <Input 
                                 id="title"
@@ -235,6 +212,7 @@
                             />
 
                             <Textarea 
+                            
                                 id="excerpt"
                                 bind:value={articleData.excerpt}
                                 placeholder="Makalenizin kısa bir özetini yazın..."
@@ -243,51 +221,55 @@
 
 
 
-	<div class="bg-background z-50 size-full h-fit  rounded-md overflow-hidden border border-dashed">
+	<div class="bg-background z-50 size-full h-fit  rounded-md overflow-hidden border  border-solid">
 		{#if editor && !editor.isDestroyed}
 			<EdraToolBar
-				class="bg-secondary/50 flex w-full items-center overflow-x-auto border-b border-dashed p-0.5"
+				class="bg-secondary/50 flex w-full items-center overflow-x-auto p-0.5"
 				{editor}
 			/>
 			<EdraDragHandleExtended {editor} />
 		{/if}
+        <ScrollArea orientation="vertical" class="h-[calc(90vh)]">
 		<EdraEditor
 			bind:editor
 			{content}
-			class="h-[32rem] max-h-screen overflow-y-scroll p-7"
+			class=" py-7 p-10"
 			{onUpdate}
 		/>
-	</div>
+        </ScrollArea>   
 
                         </div>
+  </Tabs.Content>
+</Tabs.Root>
+
 
 
                     <!-- Sidebar -->
-                    <div class="space-y-6">
+                    <div class="space-y-4">
                         <!-- Publish Settings -->
                         <Card>
                             <CardHeader>
-                                <CardTitle class="flex items-center gap-2">
+                                <CardTitle class="flex items-center gap-1">
                                     <Send class="w-4 h-4" />
                                     Yayın Ayarları
                                 </CardTitle>
                             </CardHeader>
-                            <CardContent class="space-y-4">
+                            <CardContent class="space-y-2 ">
                                 <!-- Status -->
                                 <div>
                                     <Label class="text-sm font-medium">Durum</Label>
-                                    <div class="mt-1">
+
                                         <Badge variant={articleData.status === 'published' ? 'default' : 'secondary'}>
                                             {articleData.status === 'published' ? 'Yayında' : 'Taslak'}
                                         </Badge>
-                                    </div>
+
                                 </div>
 
                                 <!-- Language -->
                                 <div>
                                     <Label class="text-sm font-medium flex items-center gap-2">
                                         <Globe class="w-3 w-3" />
-                                        Dil
+                                        Aktif Diller
                                     </Label>
                                     <Select.Root
                                         value={articleData.language}
@@ -314,7 +296,7 @@
                                     Kategori & Etiketler
                                 </CardTitle>
                             </CardHeader>
-                            <CardContent class="space-y-4">
+                            <CardContent class="space-y-2 ">
                                 <div>
                                     <Label class="text-sm font-medium">Alan</Label>
                                     <Select.Root
@@ -350,13 +332,13 @@
                                 </div>
 
                                 <!-- Tags -->
-                                <div>
+                                <div class="flex flex-col gap-1">
                                     <Label class="text-sm font-medium">Etiketler</Label>
-                                    <div class="flex gap-2 mt-2">
+                                    <div class="flex ">
                                         <Input 
                                             bind:value={newTag}
                                             placeholder="Etiket ekle..."
-                                            class="flex-1"
+                                            class="flex-1 border-r-0 rounded-r-none"
                                             onkeydown={(e) => {
                                                 if (e.key === 'Enter') {
                                                     e.preventDefault();
@@ -366,8 +348,8 @@
                                             }}
                                         />
                                         <Button 
-                                            size="sm" 
                                             variant="outline"
+                                            class="border-l-0 rounded-l-none"
                                             onclick={() => {
                                                 addTag(newTag);
                                                 newTag = "";
@@ -378,7 +360,8 @@
                                     </div>
                                     
                                     {#if articleData.tags.length > 0}
-                                        <div class="flex flex-wrap gap-2 mt-3">
+                                        <ScrollArea orientation="horizontal" >
+                                            <div class="flex flex-row gap-1 pb-1">
                                             {#each articleData.tags as tag}
                                                 <Badge variant="outline" class="gap-1">
                                                     {tag}
@@ -390,7 +373,8 @@
                                                     </button>
                                                 </Badge>
                                             {/each}
-                                        </div>
+                                            </div>
+                                        </ScrollArea>
                                     {/if}
                                 </div>
                             </CardContent>
