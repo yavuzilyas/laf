@@ -220,7 +220,7 @@ async function finalizeRegister() {
         }
       }
     } catch {
-      showToast("Bağlantı hatası", "error");
+      showToast("Error", "error");
     } finally {
       loading = false;
     }

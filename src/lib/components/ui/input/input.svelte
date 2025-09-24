@@ -1,7 +1,10 @@
 <script lang="ts">
 	import type { HTMLInputAttributes, HTMLInputTypeAttribute } from "svelte/elements";
 	import { cn, type WithElementRef } from "$lib/utils.js";
-
+	import { playSound } from "$lib/stores/sound"; 
+  function handlePopClick(e: MouseEvent) {
+    playSound("pop"); 
+  }
 	type InputType = Exclude<HTMLInputTypeAttribute, "file">;
 
 	type Props = WithElementRef<
@@ -29,6 +32,8 @@
 			"aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive",
 			className
 		)}
+			  onclick={handlePopClick}
+
 		type="file"
 		bind:files
 		bind:value
@@ -47,5 +52,7 @@
 		{type}
 		bind:value
 		{...restProps}
+			  onclick={handlePopClick}
+
 	/>
 {/if}

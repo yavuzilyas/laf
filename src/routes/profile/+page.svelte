@@ -150,6 +150,27 @@
     };
 
     let newInterest = $state("");
+      import { Motion, useAnimation } from "svelte-motion";
+
+    let list = {
+  visible: {
+    clipPath: "inset(0% 0% 0% 0% round 12px)",
+    transition: {
+      type: "spring",
+      bounce: 0,
+    },
+    filter: "blur(0px)",
+  },
+  hidden: {
+    clipPath: "inset(5% 5% 95% 95% round 12px)", // sağdan sola kapanır
+    transition: {
+      duration: 0.45,
+      type: "spring",
+      bounce: 0,
+    },
+    filter: "blur(12px)",
+  },
+};
 </script>
 
 <svelte:head>
@@ -173,6 +194,7 @@
             </div>
         {:else}
             <!-- Profile Header -->
+             
             <div class="mb-8">
                 <Card>
                     <CardContent class="p-6">
@@ -232,6 +254,7 @@
                                                 bind:value={profileData.bio} 
                                                 placeholder={t('profile.bioPlaceholder')}
                                                 rows="3"
+                                                class="max-h-fit"
                                             />
                                         </div>
 

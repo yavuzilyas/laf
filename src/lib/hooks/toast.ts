@@ -19,7 +19,7 @@ let idCounter = 1;
 
 export const toasts = { subscribe };
 
-export function showToast(message: string, type: ToastType = 'info', duration = 2500): number {
+export function showToast(message: string, type: ToastType = 'info', duration = 3000): number {
     const id = idCounter++;
     update((list) => [...list, { id, message, type, duration }]);
     if (duration > 0) {
@@ -28,14 +28,14 @@ export function showToast(message: string, type: ToastType = 'info', duration = 
     return id;
 }
 
-export function showToastKey(key: string, type: ToastType = 'info', duration = 2500): number {
+export function showToastKey(key: string, type: ToastType = 'info', duration = 3000): number {
     const id = idCounter++;
     update((list) => [...list, { id, key, type, duration }]);
     if (duration > 0) setTimeout(() => dismissToast(id), duration);
     return id;
 }
 
-export function showToastKeys(keys: string[], type: ToastType = 'info', duration = 2500, sep = ' '): number {
+export function showToastKeys(keys: string[], type: ToastType = 'info', duration = 3000, sep = ' '): number {
     const id = idCounter++;
     update((list) => [...list, { id, keys, sep, type, duration }]);
     if (duration > 0) setTimeout(() => dismissToast(id), duration);
@@ -48,19 +48,19 @@ export function dismissToast(id: number): void {
 
 const PENDING_TOAST_KEY = '__pending_toast__';
 
-export function persistToast(message: string, type: ToastType = 'info', duration = 2500): void {
+export function persistToast(message: string, type: ToastType = 'info', duration = 3000): void {
     try {
         sessionStorage.setItem(PENDING_TOAST_KEY, JSON.stringify({ message, type, duration }));
     } catch {}
 }
 
-export function persistToastKey(key: string, type: ToastType = 'info', duration = 2500): void {
+export function persistToastKey(key: string, type: ToastType = 'info', duration = 3000): void {
     try {
         sessionStorage.setItem(PENDING_TOAST_KEY, JSON.stringify({ key, type, duration }));
     } catch {}
 }
 
-export function persistToastKeys(keys: string[], type: ToastType = 'info', duration = 2500, sep = ' '): void {
+export function persistToastKeys(keys: string[], type: ToastType = 'info', duration = 3000, sep = ' '): void {
     try {
         sessionStorage.setItem(PENDING_TOAST_KEY, JSON.stringify({ keys, sep, type, duration }));
     } catch {}

@@ -29,7 +29,7 @@ import SettingsDialog from "$lib/components/settings-dialog.svelte";
 
   // Reaktif logged-in items - dil değiştiğinde otomatik güncellenir
   const loggedInItems = $derived<MenuItem[]>([
-    { icon: UserRound, name: t('Account'), href: t('account') },
+    { icon: UserRound, name: t('Account'), href: "profile" },
     { icon: Cog, name: t('Settings'), onClick: handleSettingsClick },
     { icon: BellIcon, name: t('Notifications'), href: t('notifications')},
     { icon: HandCoins, name: t('Donations'), href: t('donations') },

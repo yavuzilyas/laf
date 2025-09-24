@@ -18,6 +18,7 @@
 	import { showToast } from "$lib/hooks/toast";
   import Loader2Icon from "@lucide/svelte/icons/loader-2";
       import { t, tJoin, tMany } from '$lib/stores/i18n.svelte.js';
+	  	import { playSound } from "$lib/stores/sound"; 
 
 	const settingsData = $derived({
 		account: [
@@ -82,6 +83,8 @@ const dispatch = createEventDispatcher();
 
 function handleClose() {
     dispatch('close');
+	    playSound("pop"); 
+
 }
 
 // Dialog kapanırken
@@ -89,8 +92,11 @@ function handleClose() {
 function handleOpenChange(newOpen) {
     if (!newOpen) {
         dispatch('close');
+			    playSound("pop"); 
+
     }
 }
+
 </script>
 
 <Dialog.Root bind:open onOpenChange={handleOpenChange}>

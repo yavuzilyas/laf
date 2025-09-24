@@ -2,7 +2,11 @@
 	import CheckIcon from "@lucide/svelte/icons/check";
 	import { Select as SelectPrimitive } from "bits-ui";
 	import { cn, type WithoutChild } from "$lib/utils.js";
-
+	import { playSound } from "$lib/stores/sound"; // 🔥 ekle
+  function handleTabClick(e: MouseEvent) {
+    playSound("tap");  // sound çal
+    // sonra orijinal click davranışı devam eder (component’e iletilecek)
+  }
 	let {
 		ref = $bindable(null),
 		class: className,
@@ -21,6 +25,8 @@
 		"data-[highlighted]:bg-accent cursor-pointer data-[highlighted]:text-accent-foreground [&_svg:not([class*='text-'])]:text-muted-foreground outline-hidden *:[span]:last:flex *:[span]:last:items-center *:[span]:last:gap-2 relative flex w-full select-none items-center gap-2 rounded-sm py-1.5 pl-2 pr-8 text-sm data-[disabled]:pointer-events-none data-[disabled]:opacity-50 [&_svg:not([class*='size-'])]:size-4 [&_svg]:pointer-events-none [&_svg]:shrink-0",
 		className
 	)}
+	  onclick={handleTabClick}
+
 	{...restProps}
 >
 	{#snippet children({ selected, highlighted })}

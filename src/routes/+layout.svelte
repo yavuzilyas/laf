@@ -10,9 +10,14 @@
 
   // Props declaration import'lardan sonra gelir
   let { children, data } = $props();
+  import { preloadSounds } from "$lib/stores/sound";
+  import { soundFiles } from "$lib/sounds";
+
 
   onMount(async () => {
     // Sayfa yüklendiğinde mevcut locale'i yükle
+        preloadSounds(soundFiles);
+
     await i18n.loadLocale(i18n.currentLocale);
   });
 </script>

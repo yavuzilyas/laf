@@ -1,7 +1,7 @@
 <script lang="ts">
       let isOpen = false;
 
-  import {Menu, ChevronRightIcon, CircleChevronDown} from "@lucide/svelte";
+  import {Menu, ChevronRightIcon, Volume2, VolumeOff} from "@lucide/svelte";
   import { Motion, useAnimation } from "svelte-motion";
   import { cn } from "$lib/utils";
   import {UserRound }from "@lucide/svelte";
@@ -12,6 +12,7 @@
   import { Button } from "$lib/components/ui/button/index.js";
   import LanguageSelector from "./LanguageSelector.svelte";
   import { t } from '$lib/stores/i18n.svelte.ts';
+	import { playSound } from "$lib/stores/sound"; // 🔥 ekle
 
 export let items: { 
     icon?: any; 
@@ -66,6 +67,12 @@ function handleItemClick(item: any) {
     // Eğer her ikisi de varsa, onClick çalıştıktan sonra sayfa yenilenecektir. Bu genellikle istenmez.
     // Bu nedenle, genellikle bir öğede ya href ya da onClick olmalı.
   }
+    import { soundEnabled } from "$lib/stores/sound";
+
+ // toggle fonksiyonu
+function toggle() {
+  soundEnabled.update(v => !v);
+}
 </script>
 
 <!-- NAV'i relative yaptık: absolute olan ul buna göre hizalanır -->
@@ -73,7 +80,7 @@ function handleItemClick(item: any) {
   <Motion whileTap={{ scale: 0.97 }} let:motion>
     <button
       use:motion
-      on:click={() => (isOpen = !isOpen)}
+      on:click={() => (isOpen = !isOpen, playSound("tab"))}
       class=" w-full flex items-center justify-between rounded-xl outline-none"
     >
       <div style="transform-origin: 50% 55%;">
@@ -90,7 +97,7 @@ function handleItemClick(item: any) {
       <ul
   use:motion
   class={cn(
-    "absolute right-0 top-full mt-4 sm:mt-2.5 z-[60] w-max  px-3.5 py-2 bg-secondary/66 backdrop-blur-md rounded-xl origin-top-right shadow-lg",
+    "absolute flex flex-col gap-1 right-0 top-full mt-4 sm:mt-3 z-[60] w-max  px-3.5 py-2 bg-secondary/66 backdrop-blur-md rounded-xl origin-top-right shadow-lg",
     isOpen ? "pointer-events-auto" : "pointer-events-none"
   )}
 >
@@ -105,10 +112,10 @@ function handleItemClick(item: any) {
   >
     <li use:motion>
       {#if item.onClick}
-        <button
-          on:click={() => handleItemClick(item)}
+        <Button  size="sm" variant="outline"
+          onclick={() => handleItemClick(item)}
           class={cn(
-            "!cursor-pointer group flex py-1 items-center gap-2 rounded-md border border-transparent text-primary focus-visible:outline-none duration-200 hover:text-primary w-full",
+            "text-primary hover:text-primary w-full",
             item?.customStyle
           )}
         >
@@ -120,12 +127,12 @@ function handleItemClick(item: any) {
               class="-translate-x-5 scale-0 opacity-0 group-hover:opacity-100 group-hover:scale-100 group-hover:translate-x-0 transition-all"
             />
           </span>
-        </button>
+        </Button>
       {:else}
-        <a
+        <Button size="sm" variant="outline"
           href={item.href ?? "/"}
           class={cn(
-            "group flex py-1 items-center gap-2 rounded-md border border-transparent text-primary focus-visible:outline-none duration-200 hover:text-primary",
+            "text-primary hover:text-primary w-full",
             item?.customStyle
           )}
         >
@@ -137,7 +144,7 @@ function handleItemClick(item: any) {
               class="-translate-x-5 scale-0 opacity-0 group-hover:opacity-100 group-hover:scale-100 group-hover:translate-x-0 transition-all"
             />
           </span>
-        </a>
+        </Button>
       {/if}
     </li>
   </Motion>
@@ -149,7 +156,8 @@ function handleItemClick(item: any) {
   animate={isOpen ? "visible" : "hidden"}
   let:motion
 >
-  <li class="mt-1" use:motion>
+<div use:motion class="flex flex-row gap-1">
+  <li>
 
 <Button class="w-fit flex flex-row text-xs justify-center gap-2"onclick={toggleMode} variant="outline">
   <SunIcon strokeWidth={2.25}
@@ -161,6 +169,20 @@ function handleItemClick(item: any) {
 
 </Button>
   </li>
+    <li >
+
+<Button class="w-fit flex flex-row text-xs justify-center gap-2" onclick={toggle} variant="outline">
+    <Volume2
+    class="h-[1.2rem] w-[1.2rem] text-primary transition-all
+           {$soundEnabled ? 'scale-100 opacity-100' : 'scale-0 opacity-0 absolute'}"
+  />
+  <VolumeOff
+    class="h-[1.2rem] w-[1.2rem] text-primary transition-all
+           {$soundEnabled ? 'scale-0 opacity-0 absolute' : 'scale-100 opacity-100'}"
+  />
+</Button>
+  </li>
+  </div>
 </Motion>
 <Motion
   custom={items.length + 1}
@@ -169,7 +191,7 @@ function handleItemClick(item: any) {
   animate={isOpen ? "visible" : "hidden"}
   let:motion
 >
-  <li class="mt-1" use:motion>
+  <li use:motion>
 <LanguageSelector/>
 
   </li>
