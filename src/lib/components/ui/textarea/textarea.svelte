@@ -1,16 +1,45 @@
 <script lang="ts">
 	import { cn, type WithElementRef, type WithoutChildren } from "$lib/utils.js";
 	import type { HTMLTextareaAttributes } from "svelte/elements";
-	import { playSound } from "$lib/stores/sound"; 
-  function handlePopClick(e: MouseEvent) {
-    playSound("pop"); 
-  }
+	import { playSound } from "$lib/stores/sound";
+
+	function handlePopClick(e: MouseEvent) {
+		playSound("pop");
+	}
+
+	function handleInput(event: Event) {
+		const textarea = event.target as HTMLTextAreaElement;
+
+		let currentValue = textarea.value;
+
+		// Karakter limiti
+		if (maxCharacters !== undefined && currentValue.length > maxCharacters) {
+			currentValue = currentValue.slice(0, maxCharacters);
+		}
+
+		// Satır limiti
+		if (maxLines !== undefined) {
+			const lines = currentValue.split("\n");
+			if (lines.length > maxLines) {
+				currentValue = lines.slice(0, maxLines).join("\n");
+			}
+		}
+
+		textarea.value = currentValue;
+		value = currentValue;
+	}
+
 	let {
 		ref = $bindable(null),
 		value = $bindable(),
 		class: className,
+		maxLines,
+		maxCharacters,
 		...restProps
-	}: WithoutChildren<WithElementRef<HTMLTextareaAttributes>> = $props();
+	}: WithoutChildren<WithElementRef<HTMLTextareaAttributes> & {
+		maxLines?: number;
+		maxCharacters?: number;
+	}> = $props();
 </script>
 
 <textarea
@@ -21,6 +50,7 @@
 		className
 	)}
 	bind:value
+	oninput={handleInput}
 	onclick={handlePopClick}
 	{...restProps}
-></textarea>
+/>

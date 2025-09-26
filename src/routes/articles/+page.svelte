@@ -186,36 +186,25 @@
         <div class="space-y-8">
             <!-- Page Header -->
             <div class="text-center space-y-4">
-                <div class="flex flex-col md:flex-row items-center justify-between gap-4">
-                    <div class="text-center md:text-left">
+                <div class="flex flex-col items-center gap-4">
+
                         <h1 class="text-3xl font-bold tracking-tight md:text-4xl">
                             {t('articles.allArticles')}
                         </h1>
                         <p class="text-lg text-muted-foreground max-w-2xl">
                             {t('articles.subtitle')}
                         </p>
-                    </div>
-                    
-                    {#if data?.user}
-                        <Button href="/makale-yaz" size="lg" class="shrink-0">
+                        <Button href="/write" size="sm" class="shrink-0">
                             <BookOpen class="w-4 h-4 mr-2" />
                             Makale Yaz
                         </Button>
-                    {/if}
+
                 </div>
             </div>
 
             <!-- Search and Controls -->
             <div class="space-y-6">
-                <div class="max-w-2xl mx-auto">
-                    <ArticleSearch
-                        value={searchQuery}
-                        suggestions={searchSuggestions}
-                        recentSearches={recentSearches}
-                        onSearch={handleSearch}
-                        onClear={() => searchQuery = ""}
-                    />
-                </div>
+
 
                 <!-- Filter and Layout Controls -->
                 <div class="flex items-center justify-between">
@@ -229,7 +218,15 @@
                             {articles.length} makale
                         </span>
                     </div>
-                    
+                                    <div class="w-1/2">
+                    <ArticleSearch
+                        value={searchQuery}
+                        suggestions={searchSuggestions}
+                        recentSearches={recentSearches}
+                        onSearch={handleSearch}
+                        onClear={() => searchQuery = ""}
+                    />
+                </div>
                     <div class="flex items-center gap-1 rounded-lg border p-1">
                         <Button
                             variant={layoutMode === "grid" ? "default" : "ghost"}

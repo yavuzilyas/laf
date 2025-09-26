@@ -171,8 +171,9 @@
     filter: "blur(12px)",
   },
 };
+    import Loader from "$lib/components/load.svelte";
 </script>
-
+<Loader />
 <svelte:head>
     <title>{t('profile.title')} - LAF</title>
     <meta name="description" content={t('profile.description')} />

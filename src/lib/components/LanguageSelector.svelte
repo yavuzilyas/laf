@@ -24,7 +24,7 @@
     onValueChange={(val: string) => t.setLocale(val)}
     disabled={t.loading}
   >
-    <Select.Trigger class="w-32 text-xs font-bold">
+    <Select.Trigger size="sm" class="w-full md:w-32 text-xs font-bold">
       {triggerContent}
     </Select.Trigger>
     <Select.Content   class="max-w-28.5 text-xs font-bold">

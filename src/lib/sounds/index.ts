@@ -11,5 +11,6 @@ export const soundFiles: Record<string, string> = {
   info: "src/lib/sounds/notification_ambient.wav",
   errorNot:"src/lib/sounds/alert_error-01.wav",
   swift: "src/lib/sounds/focus_change_large.m4a",
-  refresh: "src/lib/sounds/ui_refresh-feed.wav"
+  refresh: "src/lib/sounds/ui_refresh-feed.wav",
+  loading: "src/lib/sounds/ui_loading.wav"
 };

@@ -1,5 +1,6 @@
 // src/lib/stores/sound.ts
 import { writable } from "svelte/store";
+import { browser } from '$app/environment';
 
 type SoundFiles = {
   [key: string]: {
@@ -49,10 +50,27 @@ export const sounds: SoundFiles = {
   },
   refresh:{
     wav: "src/lib/sounds/ui_refresh-feed.wav"
+  },
+  loading:{
+    wav: "src/lib/sounds/ui_loading.wav"
   }
 };
 
-export const soundEnabled = writable(true);
+// Local storage'dan başlangıç değerini al
+const getInitialSoundState = () => {
+  if (!browser) return false;
+  const stored = localStorage.getItem('soundEnabled');
+  return stored ? JSON.parse(stored) : false;
+};
+
+export const soundEnabled = writable(getInitialSoundState());
+
+// Store değiştiğinde local storage'ı güncelle
+soundEnabled.subscribe((value) => {
+  if (browser) {
+    localStorage.setItem('soundEnabled', JSON.stringify(value));
+  }
+});
 
 let audioCtx: AudioContext | null = null;
 const bufferCache: Record<string, AudioBuffer> = {};

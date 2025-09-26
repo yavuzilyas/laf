@@ -56,7 +56,7 @@
   
 <!-- svelte-ignore a11y-no-static-element-interactions -->
 <div
-  class="relative overflow-hidden rounded-2xl z-20 cursor-none touch-none"
+  class="relative overflow-hidden z-20 cursor-none touch-none"
   on:mouseenter={() => (hovering = true)}
   on:mouseleave={() => (hovering = false)}
   on:mousemove={handleMouseMove}

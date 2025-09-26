@@ -216,7 +216,8 @@
                                 id="excerpt"
                                 bind:value={articleData.excerpt}
                                 placeholder="Makalenizin kısa bir özetini yazın..."
-                                rows="3"
+                                maxLines="3" maxCharacters="333"
+                                class="max-h-fit resize-none"
                             />
 
 

@@ -65,8 +65,8 @@ let openSettings = $state(false);
 </script>
 <SettingsDialog bind:open={openSettings} on:close={() => openSettings = false} />
 
-<nav class="w-full text-secondary-foreground border-b-1">
-  <div class="max-w-7xl mx-auto  py-0 sm:py-1 px-3 sm:px-6 lg:px-8">
+<nav class="w-full sticky top-0 z-40 bg-background text-secondary-foreground border-b-1">
+  <div class="max-w-7xl mx-auto  py-0 sm:py-1 px-4 sm:px-6 lg:px-8">
     <div class="flex items-center justify-between">
       <Tooltip.Provider>
  <Tooltip.Root>
@@ -121,3 +121,4 @@ let openSettings = $state(false);
     </div>
   </div>
 </nav>
+<div class="h-3 sm:h-3"></div> 

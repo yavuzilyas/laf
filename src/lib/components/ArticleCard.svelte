@@ -5,6 +5,7 @@
   import { Calendar, Clock, User, Eye, MessageCircle, Heart } from "@lucide/svelte";
   import { t } from '$lib/stores/i18n.svelte.ts';
   import Lens from '$lib/components/Lens.svelte';
+  
   interface Article {
     id: string;
     title: string;
@@ -49,6 +50,10 @@
     if (text.length <= maxLength) return text;
     return text.slice(0, maxLength).trim() + '...';
   };
+    import { Motion, useMotionTemplate, useMotionValue } from "svelte-motion";
+  let mouseX = useMotionValue(0);
+  let mouseY = useMotionValue(0);
+  let background = useMotionTemplate`radial-gradient(200px circle at ${mouseX}px ${mouseY}px, rgba(51, 51, 51, 0.4), transparent 80%)`;
 </script>
 
 {#if variant === "featured"}
@@ -234,7 +239,29 @@
   </article>
 
 {:else}
-  <!-- Default Article Card -->
+  
+<!-- svelte-ignore a11y-no-static-element-interactions -->
+<div
+  on:mousemove={(e) => {
+    const { left, top } = e.currentTarget.getBoundingClientRect();
+
+    mouseX.set(e.clientX - left);
+    mouseY.set(e.clientY - top);
+  }}
+  class="group relative w-full h-fit overflow-hidden rounded-xl bg-neutral-950"
+>
+
+  <Motion
+    style={{
+      background,
+    }}
+    let:motion
+  >
+    <div
+      use:motion
+      class="pointer-events-none absolute -inset-px rounded-xl opacity-0 transition duration-300 group-hover:opacity-100"
+    ></div>
+  </Motion>
   <article class={cn(
     "group h-fit overflow-hidden rounded-xl border bg-card text-card-foreground shadow-sm transition-all hover:shadow-md",
     className
@@ -326,4 +353,5 @@
       </div>
     </div>
   </article>
+  </div>
 {/if}
