@@ -33,6 +33,21 @@ export const getVersionsCollection = async () => {
     return db.collection("versions");
 };
 
+export const getCommentsCollection = async () => {
+    const db = (await clientPromise).db("laf_app");
+    return db.collection("comments");
+};
+
+export const getSavesCollection = async () => {
+    const db = (await clientPromise).db("laf_app");
+    return db.collection("saves");
+};
+
+export const getLikesCollection = async () => {
+    const db = (await clientPromise).db("laf_app");
+    return db.collection("likes");
+};
+
 // Yardımcı fonksiyonlar
 export const toObjectId = (id: string | ObjectId): ObjectId => {
     return typeof id === 'string' ? new ObjectId(id) : id;

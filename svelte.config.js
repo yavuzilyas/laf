@@ -19,6 +19,19 @@ const config = {
 	alias: {
       "@/*": "./path/to/lib/*",
     }
+  ,
+  // Silence noisy non-critical warnings to keep terminal clean
+  onwarn: (warning, handler) => {
+    const ignoreCodes = new Set([
+      'state_referenced_locally',
+      'element_invalid_self_closing_tag',
+      'element_implicitly_closed',
+      'legacy_code',
+      'svelte_component_deprecated'
+    ]);
+    if (ignoreCodes.has(warning.code)) return;
+    handler(warning);
+  }
 };
 
 export default config;

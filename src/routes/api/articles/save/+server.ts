@@ -1,11 +1,12 @@
 // src/routes/api/articles/save/+server.ts
 import { json } from '@sveltejs/kit';
-import { getArticlesCollection, getDraftsCollection, getVersionsCollection } from '$lib/server/db/mongo';
+import { getArticlesCollection, getDraftsCollection, getVersionsCollection } from '$db/mongo';
 import { ObjectId } from 'mongodb';
 import { slugify } from '$lib/utils/slugify';
 
 export async function POST({ request, locals }) {
-    if (!locals.user) {
+    const user = (locals as any)?.user;
+    if (!user) {
         return json({ error: 'Unauthorized' }, { status: 401 });
     }
 
@@ -16,8 +17,14 @@ export async function POST({ request, locals }) {
         const drafts = await getDraftsCollection();
         const versions = await getVersionsCollection();
 
-        // Slug kontrolü ve oluşturma
-        for (const [lang, translation] of Object.entries(data.translations)) {
+        // defaultLanguage yoksa mevcut çevirilerden ilkini ata
+        if (!data.defaultLanguage) {
+            const langs = Object.keys(data.translations || {});
+            if (langs.length > 0) data.defaultLanguage = langs[0];
+        }
+
+        // Slug kontrolü ve oluşturma (dil bazlı)
+        for (const [lang, translation] of Object.entries<any>(data.translations || {})) {
             if (translation.title && !translation.slug) {
                 translation.slug = slugify(translation.title) + `-${lang}`;
             }
@@ -26,7 +33,7 @@ export async function POST({ request, locals }) {
             if (translation.slug) {
                 const existing = await articles.findOne({
                     [`translations.${lang}.slug`]: translation.slug,
-                    _id: data._id ? { $ne: new ObjectId(data._id) } : { $exists: true }
+                    _id: (data._id || data.id) ? { $ne: new ObjectId(data._id || data.id) } : { $exists: true }
                 });
 
                 if (existing) {
@@ -37,7 +44,7 @@ export async function POST({ request, locals }) {
 
         const articleData = {
             ...data,
-            authorId: new ObjectId(locals.user.id),
+            authorId: new ObjectId(user.id),
             updatedAt: new Date(),
             stats: data.stats || { views: 0, likes: 0, comments: 0 }
         };
@@ -45,9 +52,10 @@ export async function POST({ request, locals }) {
         let result;
         let articleId;
 
-        if (data._id) {
+        const existingId = data._id || data.id;
+        if (existingId) {
             // Güncelleme
-            articleId = new ObjectId(data._id);
+            articleId = new ObjectId(existingId);
             await articles.updateOne(
                 { _id: articleId },
                 { $set: articleData }
@@ -80,17 +88,17 @@ export async function POST({ request, locals }) {
                 versionNumber: versionCount + 1,
                 data: articleData,
                 createdAt: new Date(),
-                authorId: new ObjectId(locals.user.id)
+                authorId: new ObjectId(user.id)
             });
 
             // Taslağı temizle
             await drafts.deleteOne({ articleId });
         }
 
-        return json({ 
-            success: true, 
+        return json({
+            success: true,
             articleId: articleId.toString(),
-            slug: data.translations[data.defaultLanguage]?.slug 
+            slug: articleData.translations?.[articleData.defaultLanguage as string]?.slug
         });
 
     } catch (error) {

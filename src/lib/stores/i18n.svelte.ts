@@ -14,6 +14,20 @@ export type InterpolationValues = Record<string, string | number>;
 
 // stores/i18n.svelte.ts
 import { browser } from '$app/environment';
+import {
+  dativeSuffix,
+  locativeSuffix,
+  ablativeSuffix,
+  accusativeSuffix,
+  possessiveSuffix,
+  pluralSuffix,
+  instrumentalSuffix,
+  applySuffix,
+  applySuffixTemplate
+} from '$lib/utils/turkish-suffix';
+
+// Toggle to silence missing translation warnings in terminal
+const WARN_MISSING_TRANSLATIONS = false;
 
 // Static import map - Vite uyumlu
 const LOCALE_MODULES = {
@@ -144,7 +158,9 @@ class I18nStore {
         }
       }
       
-      console.warn(`Translation missing for key: ${key}`);
+      if (WARN_MISSING_TRANSLATIONS) {
+        console.warn(`Translation missing for key: ${key}`);
+      }
       return key;
     }
 
@@ -189,6 +205,8 @@ export const i18n = new I18nStore(i18nConfig);
 export const t = (key: TranslationKey, values?: InterpolationValues) => i18n.t(key, values);
 export const setLocale = (locale: string) => i18n.setLocale(locale);
 export const getCurrentLocale = () => i18n.currentLocale;
+// Back-compat shim for older imports
+export const getReactiveT = () => t;
 
 // Convenience helpers for arrays of keys
 export const tMany = (keys: TranslationKey[], values?: InterpolationValues) =>
@@ -252,14 +270,14 @@ try {
 }
 
 // Turkish suffix exports
-export { 
-  dativeSuffix, 
-  locativeSuffix, 
-  ablativeSuffix, 
-  accusativeSuffix, 
-  possessiveSuffix, 
+export {
+  dativeSuffix,
+  locativeSuffix,
+  ablativeSuffix,
+  accusativeSuffix,
+  possessiveSuffix,
   pluralSuffix,
   instrumentalSuffix,
   applySuffix,
-  applySuffixTemplate 
-} from '$lib/utils/turkish-suffix';
+  applySuffixTemplate
+};

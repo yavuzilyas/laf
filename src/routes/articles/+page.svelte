@@ -8,7 +8,7 @@
     import { Button } from "$lib/components/ui/button";
     import { Separator } from "$lib/components/ui/separator";
     import { t } from '$lib/stores/i18n.svelte.ts';
-    import { BookOpen, TrendingUp, Clock, Users, Grid, List } from "@lucide/svelte";
+    import { PenLine, TrendingUp, Clock, Users, Grid, List } from "@lucide/svelte";
 
     // Get data from server
     let { data } = $props();
@@ -19,8 +19,8 @@
         title: "Liberteryen Anarşizmin Temel İlkeleri ve Modern Topluma Etkisi",
         excerpt: "Özgürlük ve bireysel haklar temelinde şekillenen liberteryen anarşizmin, günümüz toplumsal yapılarına nasıl alternatif sunduğunu keşfedin.",
         author: {
-            name: "Ahmet Özkan",
-            avatar: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=32&h=32&fit=crop&crop=face"
+            name: "Hoppe",
+            avatar: "https://external-content.duckduckgo.com/iu/?u=https%3A%2F%2Ftse1.mm.bing.net%2Fth%2Fid%2FOIP.kzKgWfenuiLQvNlGpenU1AHaGo%3Fpid%3DApi&f=1&ipt=54bca2141ed5e0dbef988821abc0123c47a86c873e94c5d7655735f297c84976&ipo=images"
         },
         publishedAt: "2024-01-15",
         readTime: 8,
@@ -30,95 +30,65 @@
         comments: 23,
         likes: 89,
         featured: true,
-        coverImage: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=800&h=400&fit=crop"
+        coverImage: "https://www.wiwo.de/politik/konjunktur/hans-hermann-hoppe-steuern-sind-enteignung/9282336.html"
     };
 
     const articles = [
         {
-            id: "2",
-            title: "Devletsiz Toplum: Utopya mı Gerçeklik mi?",
-            excerpt: "Tarih boyunca devletsiz toplum örneklerini inceleyerek, modern dünyada böyle bir yapının mümkün olup olmadığını tartışıyoruz.",
-            author: {
-                name: "Zeynep Kaya",
-                avatar: "https://images.unsplash.com/photo-1494790108755-2616b612b786?w=32&h=32&fit=crop&crop=face"
-            },
-            publishedAt: "2024-01-12",
-            readTime: 6,
-            category: "Tarih",
-            tags: ["devletsizlik", "toplum", "tarih"],
-            views: 890,
-            comments: 15,
-            likes: 67,
-            coverImage: "https://images.unsplash.com/photo-1541339907198-e08756dedf3f?w=400&h=300&fit=crop"
+                    id: "1",
+        title: "Liberteryen Anarşizmin Temel İlkeleri ve Modern Topluma Etkisi",
+        excerpt: "Özgürlük ve bireysel haklar temelinde şekillenen liberteryen anarşizmin, günümüz toplumsal yapılarına nasıl alternatif sunduğunu keşfedin.",
+        author: {
+            name: "Hoppe",
+            avatar: "https://external-content.duckduckgo.com/iu/?u=https%3A%2F%2Ftse1.mm.bing.net%2Fth%2Fid%2FOIP.kzKgWfenuiLQvNlGpenU1AHaGo%3Fpid%3DApi&f=1&ipt=54bca2141ed5e0dbef988821abc0123c47a86c873e94c5d7655735f297c84976&ipo=images"
+        },
+        publishedAt: "2024-01-15",
+        readTime: 8,
+        category: "Teori",
+        tags: ["anarşizm", "özgürlük", "bireycilik", "toplum"],
+        views: 1250,
+        comments: 23,
+        likes: 89,
+        featured: true,
+        coverImage: "https://external-content.duckduckgo.com/iu/?u=https%3A%2F%2Fwww.wiwo.de%2Fimages%2Fiv_hans-hermann_hoppe_sr-pr%2F9285006%2F2-format11240.jpg&f=1&nofb=1&ipt=e3b327d90efeb0041c31d4752e25534a52a665144a01148efdccbf3461d80edb"
         },
         {
-            id: "3",
-            title: "Ekonomik Özgürlük ve Serbest Piyasa",
-            excerpt: "Liberteryen ekonomi anlayışının temel prensipleri ve serbest piyasanın bireysel özgürlüklerle ilişkisi.",
-            author: {
-                name: "Mehmet Demir",
-                avatar: "https://images.unsplash.com/photo-1560250097-0b93528c311a?w=32&h=32&fit=crop&crop=face"
-            },
-            publishedAt: "2024-01-10",
-            readTime: 10,
-            category: "Ekonomi",
-            tags: ["ekonomi", "serbest-piyasa", "özgürlük"],
-            views: 1100,
-            comments: 28,
-            likes: 95,
-            coverImage: "https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?w=400&h=300&fit=crop"
+                    id: "2",
+        title: "Liberteryen Anarşizmin Temel İlkeleri ve Modern Topluma Etkisi",
+        excerpt: "Özgürlük ve bireysel haklar temelinde şekillenen liberteryen anarşizmin, günümüz toplumsal yapılarına nasıl alternatif sunduğunu keşfedin.",
+        author: {
+            name: "Hoppe",
+            avatar: "https://external-content.duckduckgo.com/iu/?u=https%3A%2F%2Ftse1.mm.bing.net%2Fth%2Fid%2FOIP.kzKgWfenuiLQvNlGpenU1AHaGo%3Fpid%3DApi&f=1&ipt=54bca2141ed5e0dbef988821abc0123c47a86c873e94c5d7655735f297c84976&ipo=images"
         },
-        {
-            id: "4",
-            title: "Bireysel Haklar ve Toplumsal Sorumluluk",
-            excerpt: "Bireysel hakların korunması ile toplumsal sorumluluk arasındaki dengeyi liberteryen perspektiften ele alıyoruz.",
-            author: {
-                name: "Ayşe Yılmaz",
-                avatar: "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=32&h=32&fit=crop&crop=face"
-            },
-            publishedAt: "2024-01-08",
-            readTime: 7,
-            category: "Felsefe",
-            tags: ["bireysel-haklar", "sorumluluk", "felsefe"],
-            views: 750,
-            comments: 19,
-            likes: 54,
-            coverImage: "https://images.unsplash.com/photo-1521737604893-d14cc237f11d?w=400&h=300&fit=crop"
+        publishedAt: "2024-01-15",
+        readTime: 8,
+        category: "Teori",
+        tags: ["anarşizm", "özgürlük", "bireycilik", "toplum"],
+        views: 1250,
+        comments: 23,
+        likes: 89,
+        featured: true,
+        coverImage: "https://external-content.duckduckgo.com/iu/?u=https%3A%2F%2Fwww.wiwo.de%2Fimages%2Fiv_hans-hermann_hoppe_sr-pr%2F9285006%2F2-format11240.jpg&f=1&nofb=1&ipt=e3b327d90efeb0041c31d4752e25534a52a665144a01148efdccbf3461d80edb"
         },
+
         {
-            id: "5",
-            title: "Anarşist Hareketin Türkiye'deki Tarihi",
-            excerpt: "Türkiye'de anarşist düşüncenin gelişimi ve önemli temsilcilerinin katkıları üzerine kapsamlı bir inceleme.",
-            author: {
-                name: "Can Özdemir",
-                avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=32&h=32&fit=crop&crop=face"
-            },
-            publishedAt: "2024-01-05",
-            readTime: 12,
-            category: "Tarih",
-            tags: ["türkiye", "anarşizm", "tarih", "hareket"],
-            views: 980,
-            comments: 31,
-            likes: 78,
-            coverImage: "https://images.unsplash.com/photo-1524995997946-a1c2e315a42f?w=400&h=300&fit=crop"
+                    id: "3",
+        title: "Liberteryen Anarşizmin Temel İlkeleri ve Modern Topluma Etkisi",
+        excerpt: "Özgürlük ve bireysel haklar temelinde şekillenen liberteryen anarşizmin, günümüz toplumsal yapılarına nasıl alternatif sunduğunu keşfedin.",
+        author: {
+            name: "Hoppe",
+            avatar: "https://external-content.duckduckgo.com/iu/?u=https%3A%2F%2Ftse1.mm.bing.net%2Fth%2Fid%2FOIP.kzKgWfenuiLQvNlGpenU1AHaGo%3Fpid%3DApi&f=1&ipt=54bca2141ed5e0dbef988821abc0123c47a86c873e94c5d7655735f297c84976&ipo=images"
         },
-        {
-            id: "6",
-            title: "Teknoloji ve Özgürlük: Dijital Çağda Anarşizm",
-            excerpt: "Dijital teknolojilerin özgürlük mücadelesindeki rolü ve internet çağında anarşist prensiplerin uygulanması.",
-            author: {
-                name: "Emre Şahin",
-                avatar: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=32&h=32&fit=crop&crop=face"
-            },
-            publishedAt: "2024-01-03",
-            readTime: 9,
-            category: "Teknoloji",
-            tags: ["teknoloji", "dijital", "internet", "özgürlük"],
-            views: 1350,
-            comments: 42,
-            likes: 112,
-            coverImage: "https://images.unsplash.com/photo-1518709268805-4e9042af2176?w=400&h=300&fit=crop"
-        }
+        publishedAt: "2024-01-15",
+        readTime: 8,
+        category: "Teori",
+        tags: ["anarşizm", "özgürlük", "bireycilik", "toplum"],
+        views: 1250,
+        comments: 23,
+        likes: 89,
+        featured: true,
+        coverImage: "https://external-content.duckduckgo.com/iu/?u=https%3A%2F%2Fwww.wiwo.de%2Fimages%2Fiv_hans-hermann_hoppe_sr-pr%2F9285006%2F2-format11240.jpg&f=1&nofb=1&ipt=e3b327d90efeb0041c31d4752e25534a52a665144a01148efdccbf3461d80edb"
+        },
     ];
 
     const filterOptions = {
@@ -182,52 +152,42 @@
 <Navbar />
 <main class="flex flex-col min-h-screen">
     <!-- Main Content -->
-    <section class="container mx-auto px-4 py-12">
-        <div class="space-y-8">
+    <section class="container mx-auto space-y-4 px-4 pt-6 sm:pt-10">
+        <div class="space-y-8 flex flex-col items-center">
             <!-- Page Header -->
-            <div class="text-center space-y-4">
-                <div class="flex flex-col items-center gap-4">
+            <div class="text-center space-y-3">
+                <div class="flex flex-col items-center gap-3">
 
-                        <h1 class="text-3xl font-bold tracking-tight md:text-4xl">
+                        <h1 class="text-xl font-bold tracking-tight md:text-4xl">
                             {t('articles.allArticles')}
                         </h1>
-                        <p class="text-lg text-muted-foreground max-w-2xl">
+                        <p class="text-sm  text-muted-foreground max-w-2xl">
                             {t('articles.subtitle')}
                         </p>
                         <Button href="/write" size="sm" class="shrink-0">
-                            <BookOpen class="w-4 h-4 mr-2" />
-                            Makale Yaz
+                            <PenLine class="w-4 h-4 mr-2" />
+                            {t('articles.writeArticle')}
                         </Button>
-
                 </div>
             </div>
+                <div class="flex flex-col sm:flex-row items-center gap-3">
 
-            <!-- Search and Controls -->
-            <div class="space-y-6">
-
-
-                <!-- Filter and Layout Controls -->
-                <div class="flex items-center justify-between">
-                    <div class="flex items-center gap-2">
-                        <ArticleFilterPopover
-                            options={filterOptions}
-                            activeFilters={activeFilters}
-                            onFiltersChange={handleFiltersChange}
-                        />
-                        <span class="text-sm text-muted-foreground">
-                            {articles.length} makale
-                        </span>
-                    </div>
-                                    <div class="w-1/2">
                     <ArticleSearch
                         value={searchQuery}
                         suggestions={searchSuggestions}
                         recentSearches={recentSearches}
                         onSearch={handleSearch}
                         onClear={() => searchQuery = ""}
+                        class="w-full "
                     />
-                </div>
+       
                     <div class="flex items-center gap-1 rounded-lg border p-1">
+                                                <ArticleFilterPopover
+                            options={filterOptions}
+                            activeFilters={activeFilters}
+                            onFiltersChange={handleFiltersChange}
+                        />
+
                         <Button
                             variant={layoutMode === "grid" ? "default" : "ghost"}
                             size="sm"
@@ -258,7 +218,7 @@
                 hasMore={true}
                 onLoadMore={handleLoadMore}
             />
-        </div>
+
     </section>
 </main>
 

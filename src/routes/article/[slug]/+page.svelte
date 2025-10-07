@@ -5,6 +5,7 @@
     import { Button } from "$lib/components/ui/button";
     import { Separator } from "$lib/components/ui/separator";
     import { t } from '$lib/stores/i18n.svelte.ts';
+    import { EdraEditor } from '$lib/components/edra/shadcn/index.js';
     import { 
         Calendar, 
         Clock, 
@@ -13,8 +14,30 @@
         MessageCircle, 
         Share2,
         User,
-        ArrowLeft
+        ArrowLeft,
+        Languages
     } from "@lucide/svelte";
+
+    // Local state for like button
+    let { data } = $props();
+    let likesCount = $state<number>(data.article?.stats?.likes ?? 0);
+    let liked = $state<boolean>(false);
+
+    async function toggleLike() {
+        try {
+            const res = await fetch(`/api/articles/${data.article._id}/like`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ action: liked ? 'unlike' : 'like' })
+            });
+            if (!res.ok) return;
+            const json = await res.json();
+            liked = !!json.liked;
+            likesCount += liked ? 1 : -1;
+        } catch (e) {
+            // no-op
+        }
+    }
 
     let { data } = $props();
     let article = data?.article;
@@ -34,8 +57,16 @@
 
     const calculateReadTime = (content: string) => {
         const wordsPerMinute = 200;
-        const wordCount = content.replace(/<[^>]*>/g, '').split(/\s+/).length;
+        const text = typeof content === 'string' ? content : JSON.stringify(content);
+        const wordCount = text.replace(/<[^>]*>/g, '').split(/\s+/).length;
         return Math.ceil(wordCount / wordsPerMinute);
+    };
+
+    const switchToLanguage = (lang: string) => {
+        const target = article?.availableTranslations?.[lang];
+        if (target?.slug) {
+            window.location.href = `/article/${target.slug}`;
+        }
     };
 </script>
 
@@ -136,13 +167,57 @@
                         Paylaş
                     </Button>
                 </div>
+
+                <!-- Language switcher -->
+                {#if article.availableTranslations}
+                <div class="mt-4 flex flex-wrap items-center gap-2">
+                    <span class="text-sm text-muted-foreground flex items-center gap-1">
+                        <Languages class="w-4 h-4" /> Diller:
+                    </span>
+                    {#each Object.keys(article.availableTranslations) as lang}
+                        <Button
+                            size="sm"
+                            variant={lang === article.language ? 'default' : 'outline'}
+                            onclick={() => switchToLanguage(lang)}
+                        >
+                            {lang.toUpperCase()}
+                        </Button>
+                    {/each}
+                </div>
+                {/if}
             </header>
 
             <Separator class="mb-8" />
 
+            <!-- Action bar -->
+            <div class="mb-6 flex items-center gap-3">
+                <Button variant={liked ? 'default' : 'outline'} size="sm" onclick={toggleLike} class="gap-2">
+                    <Heart class={liked ? 'h-4 w-4 fill-current' : 'h-4 w-4'} />
+                    <span>{likesCount}</span>
+                </Button>
+                <!-- Placeholders for future actions: save, comment, share -->
+                <!--
+                <Button variant="outline" size="sm" class="gap-2">
+                    <Bookmark class="h-4 w-4" /> Kaydet
+                </Button>
+                <Button variant="outline" size="sm" class="gap-2">
+                    <MessageCircle class="h-4 w-4" /> Yorumlar
+                </Button>
+                <Button variant="outline" size="sm" class="gap-2" onclick={() => navigator.share ? navigator.share({ url: location.href, title: article.title }) : navigator.clipboard.writeText(location.href)}>
+                    <Share2 class="h-4 w-4" /> Paylaş
+                </Button>
+                -->
+            </div>
+
             <!-- Article content -->
             <div class="prose prose-lg max-w-none">
-                {@html article.content}
+                {#if typeof article.content === 'string'}
+                    {@html article.content}
+                {:else}
+                    <div class="rounded-md border">
+                        <EdraEditor content={article.content} editable={false} class="py-6 px-6" />
+                    </div>
+                {/if}
             </div>
 
             <!-- Article tags -->

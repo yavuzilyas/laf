@@ -120,5 +120,4 @@ let openSettings = $state(false);
     <DropdownMenuMotion {items} /></div>
     </div>
   </div>
-</nav>
-<div class="h-3 sm:h-3"></div> 
+</nav> 

@@ -7,7 +7,7 @@
 		"cookie": "^0.7.0"
 	},
 	"scripts": {
-		"dev": "vite dev",
+		"dev": "vite dev --logLevel error",
 		"build": "vite build",
 		"preview": "vite preview",
 		"prepare": "svelte-kit sync || echo ''",

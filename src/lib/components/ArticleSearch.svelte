@@ -117,7 +117,7 @@
       bind:this={inputRef}
       bind:value={searchQuery}
       placeholder={placeholder || t('articles.search.placeholder')}
-      class="pl-10 pr-10"
+      class="pl-10 pr-10 text-xs"
       onfocus={() => showSuggestions && (showDropdown = true)}
       onblur={() => setTimeout(() => showDropdown = false, 200)}
       onkeydown={handleKeydown}
@@ -148,7 +148,7 @@
           <div class="space-y-1">
             {#each recentSearches.slice(0, 5) as recent}
               <button
-                class="flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-sm hover:bg-accent hover:text-accent-foreground"
+                class="flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-xs hover:bg-accent hover:text-accent-foreground"
                 onclick={() => handleSuggestionClick({ type: 'recent', value: recent })}
               >
                 <Clock class="h-3 w-3 text-muted-foreground" />
@@ -171,7 +171,7 @@
               <div class="space-y-1">
                 {#each items.slice(0, 5) as suggestion}
                   <button
-                    class="flex w-full items-center justify-between rounded-sm px-2 py-1.5 text-sm hover:bg-accent hover:text-accent-foreground"
+                    class="flex w-full items-center justify-between rounded-sm px-2 py-1.5 text-xs hover:bg-accent hover:text-accent-foreground"
                     onclick={() => handleSuggestionClick(suggestion)}
                   >
                     <div class="flex items-center gap-2">
@@ -193,7 +193,7 @@
 
       <!-- No Results -->
       {#if searchQuery && suggestions.length === 0}
-        <div class="px-2 py-3 text-center text-sm text-muted-foreground">
+        <div class="px-2 py-3 text-center text-xs text-muted-foreground">
           {t('articles.search.noSuggestions')}
         </div>
       {/if}
@@ -202,7 +202,7 @@
       {#if searchQuery}
         <div class="border-t pt-2 mt-2">
           <button
-            class="flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-sm font-medium hover:bg-accent hover:text-accent-foreground"
+            class="flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-xs font-medium hover:bg-accent hover:text-accent-foreground"
             onclick={() => handleSearch()}
           >
             <Search class="h-3 w-3" />
@@ -216,7 +216,7 @@
 
 <!-- Search Results Summary (if needed) -->
 {#if value && value !== searchQuery}
-  <div class="mt-2 flex items-center gap-2 text-sm text-muted-foreground">
+  <div class="mt-2 flex items-center gap-2 text-xs text-muted-foreground">
     <Search class="h-4 w-4" />
     {t('articles.search.searchingFor')}: 
     <Badge variant="secondary">{value}</Badge>

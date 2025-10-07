@@ -116,7 +116,7 @@
       <div class="flex justify-center pt-8">
         <Button
           variant="outline"
-          size="lg"
+          size="sm"
           onclick={onLoadMore}
           disabled={loading}
           class="min-w-32"
@@ -133,7 +133,7 @@
 
     <!-- Loading More Indicator -->
     {#if loading && articles.length > 0}
-      <div class="flex justify-center py-4">
+      <div class="flex justify-center pt-4">
         <div class="flex items-center gap-2 text-sm text-muted-foreground">
           <Loader class="h-4 w-4 animate-spin" />
           {t('articles.loadingMore')}

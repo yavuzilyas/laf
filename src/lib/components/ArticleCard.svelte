@@ -8,6 +8,7 @@
   
   interface Article {
     id: string;
+    slug?: string;
     title: string;
     excerpt: string;
     content?: string;
@@ -134,7 +135,7 @@
           </div>
         </div>
         
-        <Button variant="outline" size="sm">
+        <Button variant="outline" size="sm" href={article.slug ? `/article/${article.slug}` : undefined}>
           {t('articles.readMore')}
         </Button>
       </div>
@@ -242,15 +243,18 @@
   
 <!-- svelte-ignore a11y-no-static-element-interactions -->
 <div
-  on:mousemove={(e) => {
+  role="presentation"
+  onmousemove={(e) => {
     const { left, top } = e.currentTarget.getBoundingClientRect();
 
     mouseX.set(e.clientX - left);
     mouseY.set(e.clientY - top);
   }}
-  class="group relative w-full h-fit overflow-hidden rounded-xl bg-neutral-950"
+  class="group relative h-fit w-full overflow-hidden rounded-xl bg-neutral-950"
 >
-
+  <div
+    class="absolute right-5 top-0 h-px w-80 bg-gradient-to-l from-transparent via-white/30 via-10% to-transparent"
+  />
   <Motion
     style={{
       background,
@@ -263,72 +267,62 @@
     ></div>
   </Motion>
   <article class={cn(
-    "group h-fit overflow-hidden rounded-xl border bg-card text-card-foreground shadow-sm transition-all hover:shadow-md",
+    "group h-fit overflow-hidden rounded-xl border text-card-foreground shadow-sm transition-all hover:shadow-md",
     className
   )} {...restProps}>
     {#if article.coverImage}
-      <div class="relative overflow-hidden">
+      <div class="relative  p-4 pb-0 overflow-hidden">
         <Lens>
-        <img 
-          src={article.coverImage} 
-          alt={article.title}
-          class="aspect-[16/9] w-full object-cover transition-transform duration-300 group-hover:scale-105"
-        />
+        <a href={article.slug ? `/article/${article.slug}` : undefined}>
+          <img 
+            src={article.coverImage} 
+            alt={article.title}
+            class="aspect-[16/9] rounded-2xl w-full object-cover transition-transform duration-300 "
+          />
+        </a>
         </Lens>
-        <div class="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent" />
-        {#if article.featured}
-          <Badge class="absolute top-3 right-3 bg-primary text-primary-foreground">
-            {t('articles.featured')}
-          </Badge>
-        {/if}
+
       </div>
     {/if}
     
-    <div class="p-6 space-y-4">
-      <div class="flex items-center gap-2 text-sm text-muted-foreground">
+    <div class="p-4 space-y-3">
+      <div class="flex items-center gap-4 text-sm text-muted-foreground">
         <Badge variant="secondary">
           {article.category}
         </Badge>
-        <span>•</span>
+
         <div class="flex items-center gap-1">
           <Calendar class="h-3 w-3" />
           <time>{formatDate(article.publishedAt)}</time>
         </div>
-        <span>•</span>
+
         <div class="flex items-center gap-1">
           <Clock class="h-3 w-3" />
-          <span>{article.readTime} {t('articles.minRead')}</span>
+          <span>{article.readTime} {t('min')}</span>
         </div>
       </div>
       
       <div>
-        <h2 class="text-xl font-bold leading-tight tracking-tight group-hover:text-primary transition-colors">
-          {article.title}
+        <h2 class="text-base font-bold leading-tight tracking-tight group-hover:text-primary transition-colors">
+          <a href={article.slug ? `/article/${article.slug}` : undefined}>{article.title}</a>
         </h2>
-        <p class="mt-2 text-muted-foreground">
+        <p class="mt-2 text-sm text-muted-foreground">
           {truncateText(article.excerpt, 150)}
         </p>
       </div>
       
-      <div class="flex flex-wrap gap-1">
-        {#each article.tags.slice(0, 4) as tag}
-          <Badge variant="outline" class="text-xs">
-            #{tag}
-          </Badge>
-        {/each}
-      </div>
       
-      <div class="flex items-center justify-between pt-2">
+      <div class="flex items-center justify-between">
         <div class="flex items-center gap-2">
           {#if article.author.avatar}
             <img 
               src={article.author.avatar} 
               alt={article.author.name}
-              class="h-8 w-8 rounded-full object-cover"
+              class="h-10 w-10 rounded-full object-cover"
             />
           {:else}
-            <div class="flex h-8 w-8 items-center justify-center rounded-full bg-muted">
-              <User class="h-4 w-4" />
+            <div class="flex h-10 w-10 items-center justify-center rounded-full bg-muted">
+              <User class="h-4 w-5" />
             </div>
           {/if}
           <div class="text-sm">
