@@ -10,49 +10,49 @@ type SoundFiles = {
   };
 };
 
-// Burada farklı variantlara özel ses dosyalarını map’le
+// Burada farklı variantlara özel ses dosyalarını map'le
 export const sounds: SoundFiles = {
   click: {
-    wav: "src/lib/sounds/navigation_backward-selection-minimal.wav",
+    wav: "/sounds/navigation_backward-selection-minimal.wav",
   },
   error: {
-    wav: "src/lib/sounds/alert_error-02.wav",
+    wav: "/sounds/alert_error-02.wav",
   },
   plink: {
-    wav: "src/lib/sounds/navigation_backward-selection.wav"
+    wav: "/sounds/navigation_backward-selection.wav"
   },
   pop: {
-    wav: "src/lib/sounds/navigation_forward-selection-minimal.wav"
+    wav: "/sounds/navigation_forward-selection-minimal.wav"
   },
   tap: {
-    wav: "src/lib/sounds/navigation_backward-selection.wav"
+    wav: "/sounds/navigation_backward-selection.wav"
   },
   tab: {
-    wav: "src/lib/sounds/ui_tap-variant-02.wav"
+    wav: "/sounds/ui_tap-variant-02.wav"
   },
   lock: {
-    wav: "src/lib/sounds/ui_lock.wav"
+    wav: "/sounds/ui_lock.wav"
   },
   unlock: {
-    wav: "src/lib/sounds/ui_unlock.wav"
+    wav: "/sounds/ui_unlock.wav"
   },
   success: {
-    wav: "src/lib/sounds/notification_high-intensity.wav"
+    wav: "/sounds/notification_high-intensity.wav"
   },
   info: {
-    wav: "src/lib/sounds/notification_ambient.wav"
+    wav: "/sounds/notification_ambient.wav"
   },
   errorNot: {
-    wav: "src/lib/sounds/alert_error-01.wav"
+    wav: "/sounds/alert_error-01.wav"
   },
   swift:{
-    wav: "src/lib/sounds/focus_change_large.m4a"
+    wav: "/sounds/focus_change_large.m4a"
   },
   refresh:{
-    wav: "src/lib/sounds/ui_refresh-feed.wav"
+    wav: "/sounds/ui_refresh-feed.wav"
   },
   loading:{
-    wav: "src/lib/sounds/ui_loading.wav"
+    wav: "/sounds/ui_loading.wav"
   }
 };
 
@@ -88,9 +88,17 @@ export async function loadSound(key: string, url: string) {
   const ctx = getAudioCtx();
   if (!ctx) return;
 
-  const res = await fetch(url);
-  const arrayBuffer = await res.arrayBuffer();
-  bufferCache[key] = await ctx.decodeAudioData(arrayBuffer);
+  try {
+    const res = await fetch(url);
+    if (!res.ok) {
+      console.warn(`Ses dosyası yüklenemedi: ${url}`);
+      return;
+    }
+    const arrayBuffer = await res.arrayBuffer();
+    bufferCache[key] = await ctx.decodeAudioData(arrayBuffer);
+  } catch (error) {
+    console.warn(`Ses yükleme hatası (${key}):`, error);
+  }
 }
 
 export function playSound(key: string) {

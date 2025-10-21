@@ -86,7 +86,7 @@
     <!-- Articles Display -->
     {#if layout === "grid"}
       <div class={cn(
-        "grid gap-6",
+        "grid gap-3 sm:gap-6",
         variant === "featured" ? "lg:grid-cols-2" : "sm:grid-cols-2 lg:grid-cols-3",
         variant === "compact" && "sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3"
       )}>

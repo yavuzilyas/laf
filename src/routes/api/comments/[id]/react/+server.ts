@@ -2,6 +2,7 @@
 import { json } from '@sveltejs/kit';
 import { ObjectId } from 'mongodb';
 import { getCommentsCollection } from '$db/mongo';
+import { notifyCommentLike } from '$lib/server/notifications';
 
 export async function POST({ params, request, locals }) {
   const user = (locals as any)?.user;
@@ -46,6 +47,11 @@ export async function POST({ params, request, locals }) {
     if (action === 'like') {
       update.likes = (comment.likes || 0) + 1;
       update.dislikes = (comment.dislikes || 0) - 1;
+      try {
+        await notifyCommentLike({ commentId: params.id, likerId: user.id, articleId: comment.articleId?.toString?.() || comment.articleId });
+      } catch (error) {
+        console.error('Failed to send comment like notification', error);
+      }
     } else {
       update.likes = (comment.likes || 0) - 1;
       update.dislikes = (comment.dislikes || 0) + 1;
@@ -60,5 +66,12 @@ export async function POST({ params, request, locals }) {
   if (action === 'like') update.likes = (comment.likes || 0) + 1;
   if (action === 'dislike') update.dislikes = (comment.dislikes || 0) + 1;
   await comments.updateOne({ _id: commentId }, { $set: update });
+  if (action === 'like') {
+    try {
+      await notifyCommentLike({ commentId: params.id, likerId: user.id, articleId: comment.articleId?.toString?.() || comment.articleId });
+    } catch (error) {
+      console.error('Failed to send comment like notification', error);
+    }
+  }
   return json({ reaction: action, previous: null });
 }

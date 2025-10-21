@@ -36,17 +36,24 @@
     class?: string;
   } = $props();
 
-  let filters = $state<ActiveFilters>({ ...activeFilters });
+  // Varsayılan olarak tüm filtreler boş (hepsi seçili)
+  let filters = $state<ActiveFilters>({
+    language: "",
+    category: "",
+    type: "",
+    dateRange: "",
+    customDateRange: undefined
+  });
   let open = $state(false);
 
-  const updateFilters = (newFilters: Partial<ActiveFilters>) => {
-    filters = { ...filters, ...newFilters };
-    onFiltersChange?.(filters);
-  };
-
   const clearAllFilters = () => {
-    filters = {};
-    onFiltersChange?.(filters);
+    filters = {
+      language: "",
+      category: "",
+      type: "",
+      dateRange: "",
+      customDateRange: undefined
+    };
   };
 
   const hasActiveFilters = $derived(
@@ -57,8 +64,13 @@
     filters.customDateRange
   );
 
-  const getActiveFilterCount = $derived(() => {
-    return Object.values(filters).filter(Boolean).length;
+  const getActiveFilterCount = $derived(
+    Object.values(filters).filter(Boolean).length
+  );
+
+  // Propagate changes when date range is updated via binding
+  $effect(() => {
+    onFiltersChange?.(filters);
   });
 </script>
 
@@ -72,9 +84,9 @@
     {...restProps}
   >
     <Filter class="h-4 w-4" />
-    {#if getActiveFilterCount() > 0}
+    {#if getActiveFilterCount > 0}
       <span class="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground">
-        {getActiveFilterCount()}
+        {getActiveFilterCount}
       </span>
     {/if}
   </PopoverTrigger>
@@ -108,13 +120,10 @@
           {t('articles.filters.dateRange')}
         </label>
         <div class="space-y-2">
-
-
           <DateRangePicker 
             bind:value={filters.customDateRange}
-            onValueChange={(value) => updateFilters({ customDateRange: value, dateRange: value ? "" : filters.dateRange })}
           />
-
+        </div>
       </div>
 
       <!-- Language Filter -->
@@ -123,12 +132,12 @@
           <Globe class="h-3 w-3" />
           {t('articles.filters.language')}
         </label>
-        <Select.Root
-          value={filters.language}
-          onValueChange={(value) => updateFilters({ language: value })}
+        <Select.Root 
+          selected={{ value: filters.language, label: filters.language ? options.languages.find(l => l.value === filters.language)?.label : t('articles.filters.allLanguages') }}
+          onSelectedChange={(v) => { if (v) filters.language = v.value; }}
         >
           <Select.Trigger class="h-8 text-xs">
-            {filters.language ? options.languages.find(l => l.value === filters.language)?.label : t('articles.filters.selectLanguage')}
+            {filters.language ? options.languages.find(l => l.value === filters.language)?.label : t('articles.filters.allLanguages')}
           </Select.Trigger>
           <Select.Content>
             <Select.Item value="">{t('articles.filters.allLanguages')}</Select.Item>
@@ -145,12 +154,12 @@
           <BookOpen class="h-3 w-3" />
           {t('articles.filters.category')}
         </label>
-        <Select.Root
-          value={filters.category}
-          onValueChange={(value) => updateFilters({ category: value })}
+        <Select.Root 
+          selected={{ value: filters.category, label: filters.category || t('articles.filters.allCategories') }}
+          onSelectedChange={(v) => { if (v) filters.category = v.value; }}
         >
           <Select.Trigger class="h-8 text-xs">
-            {filters.category || t('articles.filters.selectCategory')}
+            {filters.category || t('articles.filters.allCategories')}
           </Select.Trigger>
           <Select.Content>
             <Select.Item value="">{t('articles.filters.allCategories')}</Select.Item>
@@ -167,12 +176,12 @@
           <Tag class="h-3 w-3" />
           {t('articles.filters.type')}
         </label>
-        <Select.Root
-          value={filters.type}
-          onValueChange={(value) => updateFilters({ type: value })}
+        <Select.Root 
+          selected={{ value: filters.type, label: filters.type || t('articles.filters.allTypes') }}
+          onSelectedChange={(v) => { if (v) filters.type = v.value; }}
         >
           <Select.Trigger class="h-8 text-xs">
-            {filters.type || t('articles.filters.selectType')}
+            {filters.type || t('articles.filters.allTypes')}
           </Select.Trigger>
           <Select.Content>
             <Select.Item value="">{t('articles.filters.allTypes')}</Select.Item>

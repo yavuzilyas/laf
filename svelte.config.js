@@ -1,4 +1,4 @@
-import adapter from '@sveltejs/adapter-auto';
+import adapter from '@sveltejs/adapter-node';
 import { vitePreprocess } from '@sveltejs/vite-plugin-svelte';
 
 /** @type {import('@sveltejs/kit').Config} */
@@ -15,23 +15,7 @@ const config = {
 		alias: {
 			$db: './src/db'
 		}
-	},
-	alias: {
-      "@/*": "./path/to/lib/*",
-    }
-  ,
-  // Silence noisy non-critical warnings to keep terminal clean
-  onwarn: (warning, handler) => {
-    const ignoreCodes = new Set([
-      'state_referenced_locally',
-      'element_invalid_self_closing_tag',
-      'element_implicitly_closed',
-      'legacy_code',
-      'svelte_component_deprecated'
-    ]);
-    if (ignoreCodes.has(warning.code)) return;
-    handler(warning);
-  }
+	}
 };
 
 export default config;

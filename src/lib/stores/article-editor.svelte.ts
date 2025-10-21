@@ -25,10 +25,7 @@ class ArticleEditorStore {
   private _availableLanguages = $state<string[]>([getCurrentLocale()]);
   private _isLoading = $state(false);
   private _isSaving = $state(false);
-  private _isAutosaving = $state(false);
   private _collaborationStates = $state<Record<string, CollaborationState>>({});
-  private _autosaveTimer: NodeJS.Timeout | null = null;
-  private _hasUnsavedChanges = $state(false);
   private _versions = $state<ArticleVersion[]>([]);
 
   constructor() {
@@ -56,13 +53,6 @@ class ArticleEditorStore {
     return this._isSaving;
   }
 
-  get isAutosaving() {
-    return this._isAutosaving;
-  }
-
-  get hasUnsavedChanges() {
-    return this._hasUnsavedChanges;
-  }
 
   get collaborationStates() {
     return this._collaborationStates;
@@ -191,48 +181,7 @@ class ArticleEditorStore {
   }
 
   private markAsChanged() {
-    this._hasUnsavedChanges = true;
     this._articleData.updatedAt = new Date();
-    this.scheduleAutosave();
-  }
-
-  private scheduleAutosave() {
-    if (!browser) return;
-    if (this._autosaveTimer) clearTimeout(this._autosaveTimer);
-    // Debounce 2s after last change
-    this._autosaveTimer = setTimeout(() => {
-      if (this._hasUnsavedChanges && !this._isSaving) {
-        this.autosave();
-      }
-    }, 2000) as unknown as NodeJS.Timeout;
-  }
-
-  private async autosave() {
-    if (!browser || this._isSaving) return;
-
-    this._isAutosaving = true;
-    try {
-      const response = await fetch('/api/articles/save', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          ...this._articleData,
-          status: 'draft'
-        })
-      });
-
-      if (response.ok) {
-        const res = await response.json();
-        this._articleData.autosaveAt = new Date();
-        this._articleData.id = res.articleId ?? this._articleData.id;
-        this._hasUnsavedChanges = false;
-        console.log('Autosaved successfully');
-      }
-    } catch (error) {
-      console.error('Autosave failed:', error);
-    } finally {
-      this._isAutosaving = false;
-    }
   }
 
   async loadDraft() {
@@ -246,7 +195,6 @@ class ArticleEditorStore {
         if (data) {
           this._articleData = { ...data };
           this._availableLanguages = Object.keys(data.translations);
-          this._hasUnsavedChanges = false;
         }
       }
     } catch (error) {
@@ -273,7 +221,6 @@ class ArticleEditorStore {
       if (response.ok) {
         const result = await response.json();
         this._articleData.id = result.articleId || this._articleData.id;
-        this._hasUnsavedChanges = false;
         return true;
       }
       return false;
@@ -312,7 +259,6 @@ class ArticleEditorStore {
         const result = await response.json();
         this._articleData.id = result.articleId || this._articleData.id;
         this._articleData.status = 'published';
-        this._hasUnsavedChanges = false;
         return result;
       }
       return false;
@@ -364,9 +310,7 @@ class ArticleEditorStore {
   }
 
   destroy() {
-    if (this._autosaveTimer) {
-      clearTimeout(this._autosaveTimer);
-    }
+    // No-op: autosave removed
   }
 }
 

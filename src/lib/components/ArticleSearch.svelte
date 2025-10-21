@@ -37,6 +37,13 @@
   let showDropdown = $state(false);
   let inputRef: HTMLInputElement;
 
+  // Reactive search - her tuş vuruşunda otomatik arama
+  $effect(() => {
+    if (searchQuery !== undefined) {
+      onSearch?.(searchQuery.trim());
+    }
+  });
+
   const handleSearch = (query?: string) => {
     const searchTerm = query || searchQuery;
     if (searchTerm.trim()) {
@@ -48,7 +55,10 @@
   const handleClear = () => {
     searchQuery = "";
     onClear?.();
-    inputRef?.focus();
+    // Focus input if it exists and has focus method
+    if (inputRef && typeof inputRef.focus === 'function') {
+      inputRef.focus();
+    }
   };
 
   const handleSuggestionClick = (suggestion: SearchSuggestion) => {
@@ -62,7 +72,10 @@
       handleSearch();
     } else if (event.key === 'Escape') {
       showDropdown = false;
-      inputRef?.blur();
+      // Blur input if it exists and has blur method
+      if (inputRef && typeof inputRef.blur === 'function') {
+        inputRef.blur();
+      }
     }
   };
 

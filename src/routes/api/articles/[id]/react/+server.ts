@@ -2,6 +2,7 @@
 import { json } from '@sveltejs/kit';
 import { ObjectId } from 'mongodb';
 import { getArticlesCollection, getLikesCollection } from '$db/mongo';
+import { notifyArticleLike } from '$lib/server/notifications';
 
 // Not: Eski "likes" koleksiyonunu kullanmaya devam ediyoruz ama içine "type" alanı ekliyoruz.
 // type: 'like' | 'dislike'
@@ -31,7 +32,8 @@ export async function POST({ params, request, locals }) {
         await articles.updateOne({ _id: articleId }, { $inc: { 'stats.dislikes': -1 } });
       }
     }
-    return json({ reaction: null, previous });
+    const updatedArticle = await articles.findOne({ _id: articleId });
+    return json({ reaction: null, previous, stats: updatedArticle?.stats || { likes: 0, dislikes: 0, comments: 0, views: 0 } });
   }
 
   // 2️⃣ Aynı reaksiyon yeniden gönderildiyse (geri al)
@@ -42,7 +44,8 @@ export async function POST({ params, request, locals }) {
     } else {
       await articles.updateOne({ _id: articleId }, { $inc: { 'stats.dislikes': -1 } });
     }
-    return json({ reaction: null, previous: action });
+    const updatedArticle = await articles.findOne({ _id: articleId });
+    return json({ reaction: null, previous: action, stats: updatedArticle?.stats || { likes: 0, dislikes: 0, comments: 0, views: 0 } });
   }
 
   // 3️⃣ Farklı reaksiyonla değiştirme
@@ -54,6 +57,11 @@ export async function POST({ params, request, locals }) {
         { _id: articleId },
         { $inc: { 'stats.likes': 1, 'stats.dislikes': -1 } }
       );
+      try {
+        await notifyArticleLike({ articleId: params.id, likerId: user.id });
+      } catch (error) {
+        console.error('Failed to send like notification', error);
+      }
     } else {
       await articles.updateOne(
         { _id: articleId },
@@ -61,7 +69,8 @@ export async function POST({ params, request, locals }) {
       );
     }
 
-    return json({ reaction: action, previous });
+    const updatedArticle = await articles.findOne({ _id: articleId });
+    return json({ reaction: action, previous, stats: updatedArticle?.stats || { likes: 0, dislikes: 0, comments: 0, views: 0 } });
   }
 
   // 4️⃣ İlk defa reaksiyon veriyorsa
@@ -74,9 +83,22 @@ export async function POST({ params, request, locals }) {
 
   if (action === 'like') {
     await articles.updateOne({ _id: articleId }, { $inc: { 'stats.likes': 1 } });
+    try {
+      await notifyArticleLike({ articleId: params.id, likerId: user.id });
+    } catch (error) {
+      console.error('Failed to send like notification', error);
+    }
   } else if (action === 'dislike') {
     await articles.updateOne({ _id: articleId }, { $inc: { 'stats.dislikes': 1 } });
   }
 
-  return json({ reaction: action, previous });
+  // Güncel istatistikleri al
+  const updatedArticle = await articles.findOne({ _id: articleId });
+
+  return json({
+    reaction: action,
+    previous,
+    stats: updatedArticle?.stats || { likes: 0, dislikes: 0, comments: 0, views: 0 }
+  });
 }
+

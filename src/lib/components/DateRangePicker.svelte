@@ -5,7 +5,8 @@
   CalendarDate,
   DateFormatter,
   type DateValue,
-  getLocalTimeZone
+  getLocalTimeZone,
+  today
  } from "@internationalized/date";
  import { cn } from "$lib/utils.js";
  import { buttonVariants } from "$lib/components/ui/button/index.js";
@@ -15,11 +16,25 @@
  const df = new DateFormatter("en-US", {
   dateStyle: "medium"
  });
+
+ let {
+  value = $bindable(),
+  onValueChange
+ }: {
+  value?: DateRange;
+  onValueChange?: (value: DateRange | undefined) => void;
+ } = $props();
  
- let value: DateRange = $state({
-  start: new CalendarDate(2022, 1, 20),
-  end: new CalendarDate(2022, 1, 20).add({ days: 20 })
- });
+ // Bugünün tarihini al
+ const todayDate = today(getLocalTimeZone());
+ 
+ // Başlangıç değeri - bugünden 30 gün öncesi ile bugün arası
+ if (!value) {
+  value = {
+   start: todayDate.subtract({ days: 30 }),
+   end: todayDate
+  };
+ }
  
  let startValue: DateValue | undefined = $state(undefined);
 </script>

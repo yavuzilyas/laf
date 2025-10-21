@@ -1,8 +1,10 @@
 import type { PageServerLoad } from './$types';
 import { getArticlesCollection, getUsersCollection } from '$db/mongo';
+import { ObjectId } from 'mongodb';
 
 export const load: PageServerLoad = async ({ locals }) => {
   const articlesCol = await getArticlesCollection();
+  const usersCol = await getUsersCollection();
   const user = (locals as any)?.user ?? null;
 
   const docs = await articlesCol
@@ -40,12 +42,32 @@ export const load: PageServerLoad = async ({ locals }) => {
     const publishedRaw = a.publishedAt || a.createdAt || new Date();
     const publishedAt = new Date(publishedRaw).toISOString();
 
+    // Yazar bilgilerini kullanıcı koleksiyonundan al
+    let authorName = 'Unknown';
+    let authorAvatar: string | undefined;
+
+    if (a.authorId) {
+      try {
+        const userDoc = await usersCol.findOne({ _id: new ObjectId(a.authorId) });
+        if (userDoc) {
+          // Önce isim soyisim kontrolü, sonra kullanıcı adı
+          const fullName = `${userDoc.name || ''} ${userDoc.surname || ''}`.trim();
+          authorName = fullName || userDoc.nickname || 'Unknown';
+          authorAvatar = userDoc.avatar;
+        }
+      } catch (error) {
+        console.error('Error fetching author:', error);
+      }
+    } else if (a.authorName) {
+      authorName = a.authorName;
+    }
+
     items.push({
       id: a._id.toString(),
       slug: tr.slug || '',
       title,
       excerpt,
-      author: { name: a.authorName || 'Unknown' },
+      author: { name: authorName, avatar: authorAvatar },
       publishedAt,
       readTime,
       category: a.category || '',

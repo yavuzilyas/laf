@@ -21,7 +21,6 @@ export interface ArticleData {
   updatedAt?: Date;
   publishedAt?: Date;
   version: number;
-  autosaveAt?: Date;
   defaultLanguage?: string; // the primary language for slug redirects
 }
 

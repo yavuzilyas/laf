@@ -80,7 +80,8 @@
       "usernameRepeats": "Too many repeated characters.",
       "nameTooShort": "At least 2 characters.",
       "nameFormat": "Only letters, spaces and hyphens are allowed.",
-      "emailFormat": "Enter a valid email."
+      "emailFormat": "Enter a valid email.",
+      "copyFailed": "Copy failed!"
     },
     "success": {
       "logoutSuccess": "Logout successful",
@@ -88,7 +89,8 @@
       "registerSuccess": "Registration successful! You can now log in.",
       "passwordCorrect": "Password is correct, complete BIP-39 verification.",
       "accountDeleted": "Account deleted successfully.",
-      "mnemonicVerified": "Mnemonic verification successful."
+      "mnemonicVerified": "Mnemonic verification successful.",
+      "passwordCopied": "Password copied!"
     },
     "password": {
       "veryWeak": "Very weak",
@@ -187,14 +189,61 @@
     "versionDescription": "View and restore previous versions",
     "version": "Version",
     "restore": "Restore",
-    "noVersions": "No version history available"
+    "noVersions": "No version history available",
+    "loadDraft": "Load Draft"
+  },
+  "categories": {
+    "philosophy": "Philosophy",
+    "economics": "Economics",
+    "stateTheory": "State Theory",
+    "naturalLaw": "Natural Law",
+    "revisionistHistory": "Revisionist History",
+    "revisionistScience": "Revisionist Science",
+    "praxeology": "Praxeology",
+    "thymology": "Thymology",
+    "ethics": "Ethics",
+    "epistemology": "Epistemology",
+    "theology": "Theology",
+    "leftSocialistEconomics": "Left-Socialist Economics",
+    "mercantilistEconomics": "Mercantilist Economics",
+    "positiveEconomicTheories": "Positive Economic Theories",
+    "liberalEconomics": "Liberal Economics",
+    "austrianSolution": "Austrian Solution",
+    "contemporaryEconomicDynamics": "Contemporary Economic Dynamics",
+    "officialHistory": "Official History",
+    "alternativeAcademicHistoricalTheses": "Alternative Academic Historical Theses",
+    "whigHistory": "Whig History",
+    "legendaryHistory": "Legendary History",
+    "historicism": "Historicism",
+    "antiStateHistory": "Anti-State History",
+    "historyAsClassStruggle": "History as Class Struggle",
+    "thymologyHistory": "Thymology",
+    "religiousHistory": "Religious History",
+    "languageHistory": "Language History",
+    "anthropology": "Anthropology",
+    "gameTheory": "Game Theory",
+    "catallaxyCrusoeEconomics": "Catallaxis & Crusoe Economics",
+    "warTheory": "War Theory",
+    "praxeologicalEthics": "Praxeological Ethics",
+    "law": "Law",
+    "antipoliticsStateTheory": "Antipolitics (State Theory)",
+    "history": "History",
+    "anthropologyEthnology": "Anthropology/Ethnology",
+    "linguistics": "Linguistics",
+    "psychology": "Psychology",
+    "sociology": "Sociology",
+    "polilegalismPositiveLaw": "Polilegalism/Positive Law",
+    "stateLaw": "State Law",
+    "legalFoundationsOfLibertarianSociety": "Legal Foundations of Libertarian Society",
+    "contemporaryLaw": "Contemporary Law"
   },
   "common": {
     "view": "View",
     "remove": "Remove",
     "cancel": "Cancel",
     "close": "Close",
-    "generate": "Generate"
+    "generate": "Generate",
+    "apply": "Apply"
   },
   "profile": {
   "title": "Profile",
@@ -238,6 +287,8 @@
   "LockTheMessages": "Lock the messages",
   "HideTheProfile": "Hide the profile",
   "DeleteTheAccountBIP39Info": "You need your BIP-39 password to delete your account.",
+  "Surname": "Surname",
+  "Copied":"Copied",
   "0 bytes": "0 bytes",
   "0 hour": "0 hour",
   "0 minute": "0 minute",

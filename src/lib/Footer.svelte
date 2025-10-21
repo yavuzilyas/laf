@@ -1,47 +1,9 @@
 <script lang="ts">
-        import * as Tooltip from "$lib/components/ui/tooltip/index.js";
-      import logo from "$lib/assets/laf1.svg";
-    import { Button } from "$lib/components/ui/button";
-import { onMount } from 'svelte';
-  import lottie from 'lottie-web';
+  import * as Tooltip from "$lib/components/ui/tooltip/index.js";
+  import logo from "$lib/assets/laf1.svg";
+  import { Button } from "$lib/components/ui/button";
   import { t } from '$lib/stores/i18n.svelte.js';
-
-  let textContainer: HTMLDivElement;
-  let animText: any;
-
-  // Reactive olarak locale değişimini takip ediyoruz
-  $: language = t.currentLocale;
-
-  async function loadAnimation(lang: string) {
-    // Önce mevcut animasyonu destroy et
-    if (animText) animText.destroy();
-
-    try {
-      // JSON animasyon dosyasını locale bazlı yükle
-      const module = await import(`$lib/assets/text-lottie-${lang}.json`);
-      const textAnimData = module.default;
-
-      // Lottie animasyon başlat
-      animText = lottie.loadAnimation({
-        container: textContainer,
-        renderer: 'svg',
-        loop: true,
-        autoplay: true,
-        animationData: textAnimData
-      });
-    } catch (error) {
-      console.error(`Animation for locale '${lang}' could not be loaded:`, error);
-    }
-  }
-
-  onMount(() => {
-    // İlk yükleme
-    loadAnimation(language);
-
-    return () => {
-      if (animText) animText.destroy();
-    };
-  });
+  import LottieText from "$lib/components/LottieText.svelte";
 </script>
 
 <footer class="w-full text-secondary-foreground border-t-1 px-6">
@@ -54,7 +16,7 @@ import { onMount } from 'svelte';
               <Tooltip.Trigger>   
 <div class="flex flex-row justify-center items-center">
     <img class="w-10 h-full"src={logo} alt="LAF">
-<div bind:this={textContainer} class="w-34 h-full"></div>
+<LottieText />
 </div>              </Tooltip.Trigger>
             <Tooltip.Content>
               <p>{t('GoToHomePage')}</p>

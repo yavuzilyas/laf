@@ -14,15 +14,18 @@
   import { t } from '$lib/stores/i18n.svelte.ts';
 	import { playSound } from "$lib/stores/sound"; // 🔥 ekle
 
-export let items: { 
-    icon?: any; 
-    name?: string; 
-    href?: string; 
-    custom?: boolean; 
-    element?: () => any; 
+type DropdownItem = {
+    icon?: any;
+    name?: string;
+    href?: string;
+    custom?: boolean;
+    element?: () => any;
     customStyle?: string;
-    onClick?: () => void; // Yeni prop
-  }[] = [];
+    onClick?: () => void;
+    badge?: number;
+};
+
+export let items: DropdownItem[] = [];
   let svgControls = useAnimation();
 
 let list = {
@@ -118,28 +121,43 @@ function handleItemClick(item: any) {
         <Button  size="xs" variant="outline"
           onclick={() => handleItemClick(item)}
           class={cn(
-            "text-primary hover:text-primary w-full",
+            "text-primary hover:text-primary w-full flex items-center justify-between ",
             item?.customStyle
           )}
         >
-          <svelte:component this={item.icon} size={16} strokeWidth={2.25} />
-          <span class="text-secondary-foreground font-bold  hover:text-secondary-foreground">
-            {item.name}
-
+          <span class="flex items-center gap-2">
+                      {#if item.badge && item.badge > 0}
+            <span class="inline-flex font-sans  px-1.5 py-0.5 items-center justify-center rounded-full bg-primary text-muted text-[10px] font-bold ">
+              +{item.badge}
+            </span>
+            {:else}
+            <svelte:component this={item.icon} size={16} strokeWidth={2.25} />
+          {/if}
+            <span class="text-secondary-foreground font-bold  hover:text-secondary-foreground">
+              {item.name}
+            </span>
           </span>
+
         </Button>
       {:else}
         <Button size="xs" variant="outline"
           href={item.href ?? "/"}
           class={cn(
-            "text-primary hover:text-primary w-full",
+            "text-primary hover:text-primary w-full flex items-center justify-between gap-2",
             item?.customStyle
           )}
         >
-          <svelte:component this={item.icon} size={16} strokeWidth={2.25} />
-          <span class="text-secondary-foreground font-bold hover:text-secondary-foreground">
-            {item.name}
+          <span class="flex items-center gap-2">
+            <svelte:component this={item.icon} size={16} strokeWidth={2.25} />
+            <span class="text-secondary-foreground font-bold hover:text-secondary-foreground">
+              {item.name}
+            </span>
           </span>
+          {#if item.badge && item.badge > 0}
+            <span class="inline-flex min-w-[18px] h-[18px] items-center justify-center rounded-full bg-destructive text-destructive-foreground text-[10px] font-bold px-1">
+              +{item.badge}
+            </span>
+          {/if}
         </Button>
       {/if}
     </li>
