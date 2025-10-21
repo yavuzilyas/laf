@@ -2,6 +2,7 @@
 import { json } from '@sveltejs/kit';
 import { ObjectId } from 'mongodb';
 import { getCommentsCollection, getArticlesCollection } from '$db/mongo';
+import { notifyArticleComment, notifyCommentReply } from '$lib/server/notifications';
 
 export async function GET({ params }) {
   const comments = await getCommentsCollection();
@@ -52,6 +53,7 @@ export async function POST({ params, request, locals }) {
 
   const comments = await getCommentsCollection();
   const articles = await getArticlesCollection();
+  const article = await articles.findOne({ _id: new ObjectId(params.id) }, { projection: { authorId: 1, title: 1, slug: 1 } });
   
   const doc: any = {
     articleId: new ObjectId(params.id),
@@ -68,15 +70,41 @@ export async function POST({ params, request, locals }) {
   }
   
   const res = await comments.insertOne(doc);
-  
+
   // Update article comment count
   await articles.updateOne(
     { _id: new ObjectId(params.id) },
     { $inc: { 'stats.comments': 1 } }
   );
+
+  const commentId = res.insertedId;
+
+  // Bildirimler
+  try {
+    await notifyArticleComment({
+      articleId: params.id,
+      articleSlug: article?.slug ? String(article.slug) : undefined,
+      commenterId: user.id,
+      articleAuthorId: article?.authorId ?? null,
+      commentId,
+      articleTitle: article?.title ?? null
+    });
+
+    if (parentId) {
+      await notifyCommentReply({
+        parentCommentId: parentId,
+        replierId: user.id,
+        articleId: params.id,
+        articleSlug: article?.slug ? String(article.slug) : undefined,
+        commentId
+      });
+    }
+  } catch (error) {
+    console.error('Failed to dispatch comment notifications', error);
+  }
   
   return json({ 
-    id: res.insertedId.toString(), 
+    id: commentId.toString(), 
     ...doc, 
     createdAt: doc.createdAt.toISOString(),
     replies: []

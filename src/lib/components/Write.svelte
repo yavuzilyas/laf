@@ -17,6 +17,8 @@ import { onMount, onDestroy } from 'svelte';
   import * as Select from '$lib/components/ui/select';
     import * as Popover from '$lib/components/ui/popover';
         import * as Command from '$lib/components/ui/command';
+  import { CategoryTree } from '$lib/components/ui/category-tree';
+  import { categoryTree } from '$lib/data/categories';
 
 
   import { EdraEditor, EdraToolBar, EdraDragHandleExtended } from '$lib/components/edra/shadcn/index.js';
@@ -33,7 +35,6 @@ import { onMount, onDestroy } from 'svelte';
     Users,
     History,
     Languages,
-    Clock,
     CheckCircle,
     Info,
     User,
@@ -51,6 +52,7 @@ import { onMount, onDestroy } from 'svelte';
   let showCollaboratorDialog = $state(false);
   let showVersionDialog = $state(false);
   let showCategoryDialog = $state(false);
+  let showDraftsDialog = $state(false);
   let collaboratorEmail = $state('');
 
   const availableLanguages = [
@@ -58,29 +60,12 @@ import { onMount, onDestroy } from 'svelte';
     { value: 'en', label: 'English', flag: '🏴󠁧󠁢󠁥󠁮󠁧󠁿' }
   ];
 
-  const categories = [
-    'Teori', 'Tarih', 'Ekonomi', 'Felsefe',
-    'Teknoloji', 'Politika', 'Analiz', 'Görüş'
-  ];
-
-  // Simple category -> subcategory tree. Adjust as needed.
-  const categoriesTree: Record<string, string[]> = {
-    Teori: ['Genel', 'Alt 1', 'Alt 2'],
-    Tarih: ['Genel', 'Alt 1', 'Alt 2'],
-    Ekonomi: ['Genel', 'Alt 1', 'Alt 2'],
-    Felsefe: ['Genel', 'Alt 1', 'Alt 2'],
-    Teknoloji: ['Genel', 'Alt 1', 'Alt 2'],
-    Politika: ['Genel', 'Alt 1', 'Alt 2'],
-    Analiz: ['Genel', 'Alt 1', 'Alt 2'],
-    Görüş: ['Genel', 'Alt 1', 'Alt 2']
-  };
 
   const articleData = $derived(articleEditor.articleData);
   const activeLanguage = $derived(articleEditor.activeLanguage);
   const currentTranslation = $derived(articleEditor.currentTranslation);
   const availableLangs = $derived(articleEditor.availableLanguages);
-  const isAutosaving = $derived(articleEditor.isAutosaving);
-  const hasUnsavedChanges = $derived(articleEditor.hasUnsavedChanges);
+  
 
   function onEditorUpdate(language: string) {
     return () => {
@@ -117,10 +102,6 @@ import { onMount, onDestroy } from 'svelte';
     showCategoryDialog = false;
   }
 
-  async function loadDraft() {
-    await articleEditor.loadDraft();
-    await articleEditor.loadVersions();
-  }
 
   function addLanguage() {
     const newLang = availableLanguages.find(lang =>
@@ -137,35 +118,7 @@ import { onMount, onDestroy } from 'svelte';
     }
   }
 
-  async function addCollaborator() {
-    if (collaboratorEmail.trim()) {
-      try {
-        const response = await fetch('/api/users/find-by-email', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email: collaboratorEmail.trim() })
-        });
 
-        if (response.ok) {
-          const user = await response.json();
-          articleEditor.addCollaborator(user.id);
-          collaboratorEmail = '';
-          showCollaboratorDialog = false;
-        } else {
-          alert('Kullanıcı bulunamadı');
-        }
-      } catch (error) {
-        console.error('Error finding user:', error);
-      }
-    }
-  }
-
-  async function saveDraft() {
-    const success = await articleEditor.saveDraft();
-    if (success) {
-      console.log('Draft saved successfully');
-    }
-  }
 
   async function publishArticle() {
     try {
@@ -187,113 +140,21 @@ import { onMount, onDestroy } from 'svelte';
   onDestroy(() => {
     articleEditor.destroy();
   });
+    import { PlusIcon, FolderCheckIcon } from 'svelte-animate-icons';
+import {NotebookPenIcon} from 'svelte-animate-icons';
 </script>
     <div class="space-y-4">
-      <div class="flex items-end justify-between">
-        <div>
-          <h1 class="text-2xl font-bold flex items-center gap-2">
+      <div class="flex flex-col items-center justify-center gap-1">
+          <NotebookPenIcon animationState="loading" loop={true} duration={2500} size={48} class="text-primary" />
+          <h1 class="text-xl sm:text-2xl whitespace-nowrap font-bold flex items-center gap-2">
             {rt()('article.newArticle')}
-            {#if hasUnsavedChanges}
-              <div class="flex items-center text-xs text-muted-foreground">
-                <Clock class="w-3.5 h-3.5 mr-1 animate-pulse" />
-                {rt()('article.autosaving')}
-              </div>
-            {:else if isAutosaving}
-              <div class="flex items-center text-xs text-primary">
-                <Clock class="w-3.5 h-3.5 mr-1" />
-                {rt()('article.unsavedChanges')}
-              </div>
-            {:else}
-              <div class="flex items-center text-xs text-green-600">
-                <CheckCircle class="w-3.5 h-3.5 mr-1" />
-                {rt()('article.saved')}
-              </div>
-            {/if}
+
           </h1>
           <p class="text-muted-foreground">{rt()('article.shareThoughts')}</p>
-        </div>
-
-        <div class="flex items-center gap-2">
-          <Button variant="outline" onclick={loadDraft}>
-            <History class="w-4 h-4 mr-2" />
-            {rt()('article.loadDraft')}
-          </Button>
-          <Button variant="outline" onclick={() => showCollaboratorDialog = true}>
-            <Users class="w-4 h-4 mr-2" />
-            {rt()('article.collaborators')}
-          </Button>
-          <Button variant="outline" onclick={saveDraft} disabled={articleEditor.isSaving}>
-            <Save class="w-4 h-4 mr-2" />
-            {articleEditor.isSaving ? rt()('article.saving') : rt()('article.saveDraft')}
-          </Button>
-          <Button onclick={publishArticle} disabled={articleEditor.isSaving}>
-            <Send class="w-4 h-4 mr-2" />
-            {articleEditor.isSaving ? rt()('article.publishing') : rt()('article.publish')}
-          </Button>
-        </div>
       </div>
 
-      <div class="grid grid-cols-1 lg:grid-cols-8 gap-4">
-        <div class="lg:col-span-6">
-          <Tabs.Root value={activeLanguage}>
-            <div class="flex items-center justify-between mb-4">
-              <Tabs.List class="grid w-full h-min grid-cols-4">
-                {#each availableLangs as lang}
-                  {@const langInfo = availableLanguages.find(l => l.value === lang)}
-                  <Tabs.Trigger
-                    value={lang}
-                    onclick={() => articleEditor.setActiveLanguage(lang)}
-                    class="flex items-center gap-2"
-                  >
-                    <span>{langInfo?.flag}</span>
-                    <span>{langInfo?.label}</span>
-
-                  </Tabs.Trigger>
-                {/each}
-              </Tabs.List>
-
-            </div>
-
-            {#each availableLangs as lang}
-              <Tabs.Content value={lang} class="space-y-4">
-                {@const translation = articleData.translations[lang]}
-                <Input
-                  value={translation.title}
-                  placeholder={rt()('article.titlePlaceholder')}
-                  class="text-xl font-bold h-12"
-                  oninput={(e) => articleEditor.updateTranslation(lang, 'title', (e.target as HTMLInputElement).value)}
-                />
-                <Textarea
-                  value={translation.excerpt}
-                  placeholder={rt()('article.excerptPlaceholder')}
-                  class="resize-none"
-                  rows={3}
-                  maxlength={300}
-                  oninput={(e) => articleEditor.updateTranslation(lang, 'excerpt', (e.target as HTMLTextAreaElement).value)}
-                />
-                <div class="bg-background rounded-md border">
-                  {#if editors[lang] && !editors[lang].isDestroyed}
-                    <EdraToolBar
-                      class="bg-secondary/50 flex w-full items-center overflow-x-auto p-0.5"
-                      editor={editors[lang]}
-                    />
-                    <EdraDragHandleExtended editor={editors[lang]} />
-                  {/if}
-                  
-                  <ScrollArea orientation="vertical" class="h-[600px]">
-                    <EdraEditor
-                      bind:editor={editors[lang]}
-                      content={translation.content}
-                      class="py-7 p-10"
-                      onUpdate={onEditorUpdate(lang)}
-                    />
-                  </ScrollArea>
-                </div>
-              </Tabs.Content>
-            {/each}
-          </Tabs.Root>
-        </div>
-        <div class="lg:col-span-2 space-y-4">
+      <div class="grid grid-re grid-cols-1 lg:grid-cols-9 gap-4">
+        <div class="lg:col-span-2 space-y-4 sm:sticky md:top-12 sm:self-start md:max-h-[calc(100vh-8rem] overflow-x-hidden">
           <Card>
             <CardHeader>
               <CardTitle class="flex items-center gap-2">
@@ -350,7 +211,6 @@ import { onMount, onDestroy } from 'svelte';
                             if (res.ok) {
                               const { url } = await res.json();
                               articleEditor.updateMetadata('thumbnail', url);
-                              await articleEditor.saveDraft();
                             } else {
                               console.error('Upload failed:', await res.text());
                               alert('Thumbnail yüklenemedi');
@@ -398,19 +258,19 @@ import { onMount, onDestroy } from 'svelte';
     <Button
       variant="outline"
       role="combobox"
-      class="h-9 w-[240px] justify-between"
+      class="h-9 w-[240px] justify-between overflow-x-hidden"
     >
 
-        Select languages...
+        {t('searchLanguages')}
 
     </Button>
   </Popover.Trigger>
 
-  <Popover.Content class="w-[240px] p-0">
+  <Popover.Content class="w-[240px] p-0 overflow-x-hidden">
     <Command.Root>
-      <Command.Input placeholder="Search languages..." />
+      <Command.Input placeholder={t('searchLanguages')}/>
       <Command.List>
-        <Command.Empty>No languages found.</Command.Empty>
+        <Command.Empty>{t('noLanguagesFound')}</Command.Empty>
         <Command.Group>
           {#each availableLanguages as opt}
             <Command.Item
@@ -424,7 +284,7 @@ import { onMount, onDestroy } from 'svelte';
               }}
               class="flex items-center justify-between cursor-pointer hover:bg-accent px-2 py-1 rounded-sm"
             >
-              <div class="flex items-center gap-2">
+              <div class="flex items-center gap-2 overflow-x-hidden">
                 <span>{opt.flag}</span>
                 <span>{opt.label}</span>
               </div>
@@ -482,29 +342,22 @@ import { onMount, onDestroy } from 'svelte';
             <CardContent class="space-y-4">
               <div>
                 <Label class="text-sm font-medium">{rt()('article.category')}</Label>
-                <Select.Root value={articleData.category} onValueChange={(v) => articleEditor.updateMetadata('category', v)}>
-                  <Select.Trigger class="w-full h-10">
-                    {articleData.category || rt()('article.selectCategory')}
-                  </Select.Trigger>
-                  <Select.Content>
-                    {#each categories as category}
-                      <Select.Item value={category}>{category}</Select.Item>
-                    {/each}
-                  </Select.Content>
-                </Select.Root>
-              </div>
-              <div>
-                <Label class="text-sm font-medium">{rt()('article.subcategory')}</Label>
-                <Select.Root value={articleData.subcategory} onValueChange={(v) => articleEditor.updateMetadata('subcategory', v)}>
-                  <Select.Trigger class="w-full h-10">
-                    {articleData.subcategory || rt()('article.selectSubcategory')}
-                  </Select.Trigger>
-                  <Select.Content>
-                    {#each categories as category}
-                      <Select.Item value={category}>{category}</Select.Item>
-                    {/each}
-                  </Select.Content>
-                </Select.Root>
+                <Button
+                  variant="outline"
+                  class="w-full h-10 justify-start overflow-hidden"
+                  onclick={openCategoryDialog}
+                >
+                  {#if articleData.category}
+                    <span class="flex items-center gap-2">
+                      <span class="font-medium">{rt()(`categories.${articleData.category}`)}</span>
+                      {#if articleData.subcategory}
+                        <span class="text-muted-foreground">/ {rt()(`categories.${articleData.subcategory}`)}</span>
+                      {/if}
+                    </span>
+                  {:else}
+                    {rt()('article.selectCategory')}
+                  {/if}
+                </Button>
               </div>
 
               <div>
@@ -589,12 +442,77 @@ import { onMount, onDestroy } from 'svelte';
                       </div>
                     {/each}
                   </div>
+                  
                 </div>
               {/if}
+
             </CardContent>
           </Card>
+                                  <Button class="w-full" onclick={publishArticle} disabled={articleEditor.isSaving}>
+            <Send class="w-4 h-4" />
+            {articleEditor.isSaving ? rt()('article.publishing') : rt()('article.publish')}
+          </Button>
+        </div>
+        <div class="lg:col-span-7">
+          <Tabs.Root value={activeLanguage}>
+            <div class="flex items-center justify-between mb-4">
+              <Tabs.List class="grid w-full h-min grid-cols-4">
+                {#each availableLangs as lang}
+                  {@const langInfo = availableLanguages.find(l => l.value === lang)}
+                  <Tabs.Trigger
+                    value={lang}
+                    onclick={() => articleEditor.setActiveLanguage(lang)}
+                    class="flex items-center gap-2"
+                  >
+                    <span>{langInfo?.flag}</span>
+                    <span>{langInfo?.label}</span>
+
+                  </Tabs.Trigger>
+                {/each}
+              </Tabs.List>
+
+            </div>
+
+            {#each availableLangs as lang}
+              <Tabs.Content value={lang} class="space-y-4">
+                {@const translation = articleData.translations[lang]}
+                <Input
+                  value={translation.title}
+                  placeholder={rt()('article.titlePlaceholder')}
+                  class="text-xl font-bold h-12"
+                  oninput={(e) => articleEditor.updateTranslation(lang, 'title', (e.target as HTMLInputElement).value)}
+                />
+                <Textarea
+                  value={translation.excerpt}
+                  placeholder={rt()('article.excerptPlaceholder')}
+                  class="resize-none"
+                  rows={3}
+                  maxlength={300}
+                  oninput={(e) => articleEditor.updateTranslation(lang, 'excerpt', (e.target as HTMLTextAreaElement).value)}
+                />
+                <div class="bg-background rounded-md border">
+                  {#if editors[lang] && !editors[lang].isDestroyed}
+                    <EdraToolBar
+                      class="bg-secondary flex w-full items-center overflow-x-auto p-0.5 sticky top-8.5 sm:top-7 z-39 self-start max-h-[calc(100vh-4rem)] overflow-y-auto"
+                      editor={editors[lang]}
+                    />
+                  {/if}
+                  
+                  <ScrollArea orientation="vertical" class="min-h-[780px] sm:min-h-[1080px] lg:min-h-[1280px] h-fit">
+                    <EdraEditor
+                      bind:editor={editors[lang]}
+                      content={translation.content}
+                      class="py-7 p-10"
+                      onUpdate={onEditorUpdate(lang)}
+                    />
+                  </ScrollArea>
+                </div>
+              </Tabs.Content>
+            {/each}
+          </Tabs.Root>
         </div>
       </div>
+      
     </div>
 
     <Dialog.Root bind:open={showCollaboratorDialog}>
@@ -627,6 +545,53 @@ import { onMount, onDestroy } from 'svelte';
           </Button>
           <Button onclick={addCollaborator} disabled={!collaboratorEmail.trim()}>
             {rt()('article.addCollaborator')}
+          </Button>
+        </Dialog.Footer>
+      </Dialog.Content>
+    </Dialog.Root>
+
+    <Dialog.Root bind:open={showDraftsDialog}>
+      <Dialog.Content class="max-w-2xl max-h-[80vh]">
+        <Dialog.Header>
+          <Dialog.Title class="flex items-center gap-2">
+            <History class="w-5 h-5" />
+            {rt()('article.loadDraft')}
+          </Dialog.Title>
+          <Dialog.Description>
+            {rt()('article.versionDescription')}
+          </Dialog.Description>
+        </Dialog.Header>
+
+        <ScrollArea class="max-h-96">
+          <div class="space-y-2 py-4">
+            {#each articleEditor.drafts as d}
+              <div class="flex items-center justify-between p-3 border rounded-lg">
+                <div>
+                  <div class="font-medium">{d.title}</div>
+                  <div class="text-sm text-muted-foreground">
+                    {d.updatedAt ? new Date(d.updatedAt).toLocaleString() : ''}
+                  </div>
+                </div>
+                <div class="flex gap-2">
+                  <Button size="sm" onclick={() => openDraftById(d.id)}>
+                    {rt()('common.open')}
+                  </Button>
+                  <Button size="sm" variant="destructive" onclick={async () => { await articleEditor.deleteDraft(d.id); }}>
+                    {rt()('common.delete')}
+                  </Button>
+                </div>
+              </div>
+            {:else}
+              <div class="text-center py-8 text-muted-foreground">
+                {rt()('article.noVersions')}
+              </div>
+            {/each}
+          </div>
+        </ScrollArea>
+
+        <Dialog.Footer>
+          <Button variant="outline" onclick={() => showDraftsDialog = false}>
+            {rt()('common.close')}
           </Button>
         </Dialog.Footer>
       </Dialog.Content>
@@ -681,6 +646,37 @@ import { onMount, onDestroy } from 'svelte';
         <Dialog.Footer>
           <Button variant="outline" onclick={() => showVersionDialog = false}>
             {rt()('common.close')}
+          </Button>
+        </Dialog.Footer>
+      </Dialog.Content>
+    </Dialog.Root>
+
+    <Dialog.Root bind:open={showCategoryDialog}>
+      <Dialog.Content class="w-full sm:w-1/2 md:w-2/7 ">
+        <Dialog.Header>
+          <Dialog.Title class="flex items-center gap-2">
+            <PlusIcon animationState="loading" size={24} class="text-primary" />
+            {rt()('article.selectCategory')}
+          </Dialog.Title>
+          <Dialog.Description>
+            {rt()('article.categoryTags')}
+          </Dialog.Description>
+        </Dialog.Header>
+
+        <ScrollArea class="max-h-[400px] pr-4">
+          <CategoryTree
+            categories={categoryTree}
+            bind:selectedCategory={tempCategory}
+            bind:selectedSubcategory={tempSubcategory}
+          />
+        </ScrollArea>
+
+        <Dialog.Footer class="gap-2">
+          <Button variant="outline" onclick={() => showCategoryDialog = false}>
+            {rt()('common.cancel')}
+          </Button>
+          <Button onclick={applyCategorySelection}>
+            {rt()('common.apply')}
           </Button>
         </Dialog.Footer>
       </Dialog.Content>

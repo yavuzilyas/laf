@@ -11,9 +11,9 @@
 
   import { fly, crossfade } from "svelte/transition";
   import ScratchToReveal from "./ScratchToReveal.svelte";
-  import { User, LockKeyhole, RotateCcwKey, ShieldAlert, UserRoundPlus, KeyRound, LayoutDashboard } from "@lucide/svelte";
+  import { User, LockKeyhole, RotateCcwKey, ShieldAlert, UserRoundPlus, KeyRound, LayoutDashboard, Eye, EyeOff, Check, Copy } from "@lucide/svelte";
   import Loader from "@lucide/svelte/icons/loader";
-      import { t, i18n, dativeSuffix, locativeSuffix } from '$lib/stores/i18n.svelte.js';
+  import { t, i18n, dativeSuffix, locativeSuffix } from '$lib/stores/i18n.svelte.js';
 
   let {
     mode = "login",
@@ -67,6 +67,31 @@ import { wordlist } from '@scure/bip39/wordlists/english.js';
   let emailErrorKey = $state(0);
   let nicknameErrorExiting = $state(false);
   let emailErrorExiting = $state(false);
+  let showPassword = $state(false);
+  let passwordCopied = $state(false);
+  
+  function copyToClipboard(text: string) {
+    navigator.clipboard.writeText(text).then(() => {
+      passwordCopied = true;
+      showToast(t('auth.success.passwordCopied') || 'Password copied to clipboard!', 'success');
+      
+      setTimeout(() => {
+        passwordCopied = false;
+      }, 2000);
+    }).catch(err => {
+      console.error('Failed to copy:', err);
+      showToast(t('auth.errors.copyFailed') || 'Failed to copy to clipboard', 'error');
+    });
+  }
+  
+  function generateAndCopyPassword() {
+    const pw = generatePassword();
+    regPassword = pw;
+    const { score, msg } = computePasswordStrength(pw);
+    passwordStrength = score;
+    passwordFeedback = msg;
+    copyToClipboard(pw);
+  }
   // Client-side validators (top-level)
   function validateNicknameClient(value: string): string {
     const v = (value || "").trim();
@@ -106,7 +131,7 @@ import { wordlist } from '@scure/bip39/wordlists/english.js';
   }
 
   function meetsPasswordPolicy(pw: string): boolean {
-    return pw.length >= 8 && /[a-z]/.test(pw) && /[A-Z]/.test(pw) && /[0-9]/.test(pw) && /[^A-Za-z0-9]/.test(pw);
+    return pw.length >= 8 && /[a-z]/.test(pw) && /[A-Z]/.test(pw) && /[0-9]/.test(pw);
   }
 
   function generatePassword(): string {
@@ -128,6 +153,7 @@ import { wordlist } from '@scure/bip39/wordlists/english.js';
       showToastKey("auth.errors.usernameRequired", "error");
       return;
     }
+    scratchDone = false
     // Client validations
     nicknameError = validateNicknameClient(nickname);
     emailError = validateEmailClient(email);
@@ -424,7 +450,7 @@ async function validateEmail(value: string) {
   };
   const random12 = bip39.generateMnemonic(wordlist, 128); 
 
-    import { UserIcon, LockIcon, KeyRoundIcon, RotateCcwKeyIcon, UserPlusIcon, ShieldCheckIcon, BlocksIcon } from 'svelte-animate-icons';
+    import { CopyCheckIcon, UserIcon, LockIcon, KeyRoundIcon, RotateCcwKeyIcon, UserPlusIcon, ShieldCheckIcon, BlocksIcon } from 'svelte-animate-icons';
 </script>
 
 <form class={cn("flex flex-col gap-6", className)} bind:this={ref} onsubmit={mode === 'login' ? submitLogin : proceedRegisterStep1}>
@@ -435,7 +461,7 @@ async function validateEmail(value: string) {
       <!-- Normal login form -->
       <div use:motion class="flex flex-col items-center gap-2 text-center">
         {#if browser}
-          <UserIcon duration={3000}  animationState="loading" size={42} class="text-primary"  loop={true} />
+          <UserIcon triggers={{ hover: false }}  duration={3000}  animationState="loading" size={42} class="text-primary"  loop={true} />
         {:else}
           <User size={42} class="text-primary" />
         {/if}
@@ -477,7 +503,7 @@ async function validateEmail(value: string) {
       <!-- Mnemonic doğrulama formu -->
       <div use:motion class="flex flex-col items-center gap-4 text-center">
         {#if browser}
-          <KeyRoundIcon duration={3000}  animationState="loading" size={42} class="text-primary"  loop={true} />
+          <KeyRoundIcon triggers={{ hover: false }}  duration={3000}  animationState="loading" size={42} class="text-primary"  loop={true} />
         {:else}
           <KeyRound size={42} class="text-primary" />
         {/if}        
@@ -532,7 +558,7 @@ async function validateEmail(value: string) {
             <div class="flex flex-col items-center gap-1 text-center">
               
               {#if browser}
-          <UserPlusIcon duration={3000}  animationState="loading" size={42} class="text-primary"  loop={true} />
+          <UserPlusIcon triggers={{ hover: false }}  duration={3000}  animationState="loading" size={42} class="text-primary"  loop={true} />
         {:else}
           <UserRoundPlus size={42} class="text-primary" />
         {/if}
@@ -550,10 +576,49 @@ async function validateEmail(value: string) {
               bind:value={nickname} 
               disabled={loading} 
               oninput={(e) => {
-                const v = (e.target as HTMLInputElement)?.value || "";
+                // Prevent spaces and emojis
+                let v = (e.target as HTMLInputElement)?.value || "";
+                
+                // Remove spaces and emojis
+                v = v.replace(/[\s\p{Emoji}]/gu, '');
+                
+                // Update the input value
+                if (v !== nickname) {
+                  (e.target as HTMLInputElement).value = v;
+                }
+                
                 nickname = v;
                 nicknameError = validateNicknameClient(v);
                 if (!nicknameError) validateNickname(v);
+              }}
+              onkeydown={(e) => {
+                // Prevent space key
+                if (e.key === ' ' || e.key === 'Spacebar' || e.keyCode === 32) {
+                  e.preventDefault();
+                  return false;
+                }
+              }}
+              onpaste={(e) => {
+                // Handle paste to remove spaces and emojis
+                e.preventDefault();
+                const pastedText = e.clipboardData?.getData('text/plain') || '';
+                const cleanedText = pastedText.replace(/[\s\p{Emoji}]/gu, '');
+                
+                // Insert the cleaned text at cursor position
+                const target = e.target as HTMLInputElement;
+                const start = target.selectionStart || 0;
+                const end = target.selectionEnd || 0;
+                const newValue = target.value.substring(0, start) + cleanedText + target.value.substring(end);
+                
+                // Update the input value and cursor position
+                target.value = newValue;
+                const newCursorPos = start + cleanedText.length;
+                target.setSelectionRange(newCursorPos, newCursorPos);
+                
+                // Update the state
+                nickname = newValue;
+                nicknameError = validateNicknameClient(newValue);
+                if (!nicknameError) validateNickname(newValue);
               }}
               class="transition-colors duration-300 {nicknameError ? "border-red-500" : "border-normal"}"
             />
@@ -569,22 +634,92 @@ async function validateEmail(value: string) {
           <div class="grid gap-2">
             <Label for="regpass-{id}">{t('Password')}<p class="font-bold text-primary">*</p></Label>
             <div class="flex gap-2 items-center">
-              <Input id="regpass-{id}" placeholder="••••••••" type="password" required bind:value={regPassword} disabled={loading}
-                oninput={(e) => {
-                  const v = (e.target as HTMLInputElement)?.value || '';
-                  regPassword = v;
-                  const { score, msg } = computePasswordStrength(v);
-                  passwordStrength = score;
-                  passwordFeedback = msg;
-                }}
-              />
-              <Button type="button" variant="outline" onclick={() => {
-                const pw = generatePassword();
-                regPassword = pw;
-                const { score, msg } = computePasswordStrength(pw);
-                passwordStrength = score;
-                passwordFeedback = msg;
-              }}>{t('Generate')}</Button>
+              <div class="relative flex-1">
+                <Input 
+                  id="regpass-{id}" 
+                  placeholder="••••••••" 
+                  type={showPassword ? 'text' : 'password'} 
+                  required 
+                  bind:value={regPassword} 
+                  disabled={loading}
+                  oninput={(e) => {
+                    // Prevent spaces and emojis
+                    let v = (e.target as HTMLInputElement)?.value || '';
+                    
+                    // Remove spaces and emojis
+                    v = v.replace(/[\s\p{Emoji}]/gu, '');
+                    
+                    // Update the input value
+                    if (v !== regPassword) {
+                      (e.target as HTMLInputElement).value = v;
+                    }
+                    
+                    regPassword = v;
+                    const { score, msg } = computePasswordStrength(v);
+                    passwordStrength = score;
+                    passwordFeedback = msg;
+                  }}
+                  onkeydown={(e) => {
+                    // Prevent space key
+                    if (e.key === ' ' || e.key === 'Spacebar' || e.keyCode === 32) {
+                      e.preventDefault();
+                      return false;
+                    }
+                  }}
+                  onpaste={(e) => {
+                    // Handle paste to remove spaces and emojis
+                    e.preventDefault();
+                    const pastedText = e.clipboardData?.getData('text/plain') || '';
+                    const cleanedText = pastedText.replace(/[\s\p{Emoji}]/gu, '');
+                    
+                    // Insert the cleaned text at cursor position
+                    const target = e.target as HTMLInputElement;
+                    const start = target.selectionStart || 0;
+                    const end = target.selectionEnd || 0;
+                    const newValue = target.value.substring(0, start) + cleanedText + target.value.substring(end);
+                    
+                    // Update the input value and cursor position
+                    target.value = newValue;
+                    const newCursorPos = start + cleanedText.length;
+                    target.setSelectionRange(newCursorPos, newCursorPos);
+                    
+                    // Update the state
+                    regPassword = newValue;
+                    const { score, msg } = computePasswordStrength(newValue);
+                    passwordStrength = score;
+                    passwordFeedback = msg;
+                  }}
+                  class="pr-10"
+                />
+                <button 
+                  type="button" 
+                  class="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground rounded-full p-1.5 transition-colors hover:bg-accent/50 active:bg-accent/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                  onmousedown={(e) => e.preventDefault()}
+                  onclick={() => showPassword = !showPassword}
+                  aria-label={showPassword ? t('Hide password') : t('Show password')}
+                >
+                  {#if showPassword}
+                    <EyeOff class="h-4 w-4" />
+                  {:else}
+                    <Eye class="h-4 w-4" />
+                  {/if}
+                </button>
+              </div>
+              <Button 
+                type="button" 
+                variant="outline" 
+                onclick={generateAndCopyPassword}
+                disabled={loading}
+              >
+                {#if passwordCopied}
+                  <CopyCheckIcon triggers={{ hover: false }}  loop={true} autoplay class="h-4 w-4 text-green-500" />
+                                    {t('Generate')}
+
+                {:else}
+                  <Copy class="h-4 w-4" />
+                  {t('Generate')}
+                {/if}
+              </Button>
             </div>
             <div class="flex items-center gap-2">
               <div class="h-1.5 w-full rounded bg-secondary overflow-hidden">
@@ -608,7 +743,7 @@ async function validateEmail(value: string) {
       </div>
       <div class="grid gap-2">
             <Label for="surname-{id}">{t('Surname')}</Label>
-            <Input id="surname-{id}" placeholder="Soy isminiz" type="surname"  bind:value={surname} disabled={loading}
+            <Input id="surname-{id}" placeholder={t('Surname')} type="surname"  bind:value={surname} disabled={loading}
               oninput={(e) => { const v = (e.target as HTMLInputElement)?.value || ''; surname = v; surnameError = validateNameClient(v); }} />
             {#if surnameError}
               <p class="text-xs text-red-500">{surnameError}</p>
@@ -665,7 +800,7 @@ async function validateEmail(value: string) {
         <div use:motion >
         <div class="flex flex-col justify-center items-center gap-1">
 {#if browser}
-          <RotateCcwKeyIcon animationState="loading" size={42} class="text-primary"  loop={true} />
+          <RotateCcwKeyIcon triggers={{ hover: false }}  animationState="loading" size={42} class="text-primary"  loop={true} />
         {:else}
           <RotateCcwKey size={42} class="text-primary" />
         {/if}          <h1 class="text-base font-bold">{t('auth.register.mnemonicTitle')}</h1>
@@ -680,14 +815,14 @@ async function validateEmail(value: string) {
     >
     <div class="w-fit min-h-39 md:min-h-44 grid grid-cols-3 gap-2 my-2 bg-secondary  p-2 rounded-lg">
       {#each mnemonic as w, i}
-        <div class="font-bold select-none cursor-pointer text-sm rounded-md   drop-shadow-md bg-primary px-2 py-1.5 text-secondary">{i + 1}. {w}</div>
+        <div class="font-bold whitespace-nowrap select-none cursor-pointer text-sm rounded-md   drop-shadow-md bg-primary px-2 py-1.5 text-secondary">{i + 1}. {w}</div>
       {/each}
       </div>
     </ScratchToReveal>
 
                       <div class="flex flex-col gap-1 my-1.5 bg-secondary/50 rounded-xl px-4 py-2.5">
                         <div class="flex flex-row gap-1 ">{#if browser}
-          <LockIcon animationState="loading" size={14} class="text-primary"  loop={true} />
+          <LockIcon triggers={{ hover: false }}  animationState="loading" size={14} class="text-primary"  loop={true} />
         {:else}
           <LockKeyhole duration={3000}  size={14} strokeWidth={2.5} class="text-primary" />
         {/if}      
@@ -717,7 +852,7 @@ async function validateEmail(value: string) {
     <div class="gap-2" use:motion>
         <div class="flex flex-col items-center gap-2">
         {#if browser}
-          <BlocksIcon duration={3000} animationState="loading" size={42} class="text-primary"  loop={true} />
+          <BlocksIcon triggers={{ hover: false }}  duration={3000} animationState="loading" size={42} class="text-primary"  loop={true} />
         {:else}
           <LayoutDashboard size={42} class="text-primary" />
         {/if}              <h1 class="text-base font-bold text-center">{t('auth.register.verifyOrderTitle')}</h1>
@@ -732,7 +867,7 @@ async function validateEmail(value: string) {
                     in:receive={{ key: word }}
                     out:send={{ key: word }}
                     animate:flip={{ duration: 400 }}
-                    class="font-bold select-none cursor-pointer text-sm rounded-md   drop-shadow-md bg-primary px-2 py-1.5 text-secondary"
+                    class="font-bold  whitespace-nowrap select-none cursor-pointer text-sm rounded-md   drop-shadow-md bg-primary px-2 py-1.5 text-secondary"
                     onclick={() => {
                         // Kelimeyi seçimden çıkar (aşağı iner)
                         selection = selection.filter(w => w !== word);
@@ -751,7 +886,7 @@ async function validateEmail(value: string) {
                     in:receive={{ key: word }}
                     out:send={{ key: word }}
                     animate:flip={{ duration: 400 }}
-                    class="font-bold select-none cursor-pointer text-sm rounded-md   drop-shadow-md bg-primary px-2 py-1.5 text-secondary"
+                    class="font-bold  whitespace-nowrap select-none cursor-pointer text-sm rounded-md   drop-shadow-md bg-primary px-2 py-1.5 text-secondary"
                     onclick={() => {
                         // Kelimeyi seçime ekle (yukarı uçar)
                         selection = [...selection, word];

@@ -2,7 +2,7 @@
   import { cn } from "$lib/utils";
   import { Button } from "$lib/components/ui/button";
   import { Badge } from "$lib/components/ui/badge";
-  import { Calendar, Clock, User, Eye, MessageCircle, Heart } from "@lucide/svelte";
+  import { Calendar, Clock, User, Eye, MessageCircle, ThumbsUp, ThumbsDown } from "@lucide/svelte";
   import { t } from '$lib/stores/i18n.svelte.ts';
   import Lens from '$lib/components/Lens.svelte';
   
@@ -23,6 +23,7 @@
     views: number;
     comments: number;
     likes: number;
+    dislikes?: number;
     featured?: boolean;
     coverImage?: string;
   }
@@ -51,12 +52,26 @@
     if (text.length <= maxLength) return text;
     return text.slice(0, maxLength).trim() + '...';
   };
-    import { Motion, useMotionTemplate, useMotionValue } from "svelte-motion";
-  let mouseX = useMotionValue(0);
-  let mouseY = useMotionValue(0);
-  let background = useMotionTemplate`radial-gradient(200px circle at ${mouseX}px ${mouseY}px, rgba(51, 51, 51, 0.4), transparent 80%)`;
-</script>
 
+  const formatNumber = (num: number): string => {
+    if (num < 1000) return num.toString();
+    if (num < 10000) return (num / 1000).toFixed(1) + 'k';
+    if (num < 100000) return (num / 1000).toFixed(0) + 'k';
+    if (num < 1000000) return (num / 1000).toFixed(0) + 'k';
+    if (num < 10000000) return (num / 1000000).toFixed(1) + 'm';
+    return (num / 1000000).toFixed(0) + 'm';
+  };
+  import * as Tooltip from "$lib/components/ui/tooltip";
+  import { Motion, useMotionValue, useMotionTemplate } from "svelte-motion";
+  import { browser } from '$app/environment';
+
+  // Sadece client-side'da Motion fonksiyonlarını kullan
+  let mouseX = browser ? useMotionValue(0) : { set: () => {} };
+  let mouseY = browser ? useMotionValue(0) : { set: () => {} };
+  let background = browser && mouseX && mouseY ? useMotionTemplate`radial-gradient(200px circle at ${mouseX}px ${mouseY}px, rgba(51, 51, 51, 0.4), transparent 80%)` : '';
+
+
+</script>
 {#if variant === "featured"}
   <!-- Featured Article Card -->
   <article class={cn(
@@ -153,7 +168,7 @@
         <img 
           src={article.coverImage} 
           alt={article.title}
-          class="h-20 w-20 object-cover transition-transform duration-300 group-hover:scale-105"
+          class="h-32 w-full object-cover transition-transform duration-300 group-hover:scale-105"
         />
       </div>
     {/if}
@@ -163,7 +178,6 @@
         <Badge variant="secondary" class="text-xs">
           {article.category}
         </Badge>
-        <span>•</span>
         <time>{formatDate(article.publishedAt)}</time>
       </div>
       
@@ -175,7 +189,23 @@
         {truncateText(article.excerpt, 120)}
       </p>
       
-      <div class="flex items-center justify-between">
+      <div class="flex items-center gap-4">
+        <div class="flex items-center gap-2">
+          {#if article.author.avatar}
+            <img 
+              src={article.author.avatar} 
+              alt={article.author.name}
+              class="h-10 w-10 rounded-full object-cover"
+            />
+          {:else}
+            <div class="flex h-10 w-10 items-center justify-center rounded-full bg-muted">
+              <User class="h-4 w-5" />
+            </div>
+          {/if}
+          <div class="text-sm">
+            <p class="font-medium">{article.author.name}</p>
+          </div>
+        </div>
         <div class="flex items-center gap-3 text-xs text-muted-foreground">
           <div class="flex items-center gap-1">
             <Eye class="h-3 w-3" />
@@ -232,7 +262,7 @@
           <span>{article.views}</span>
         </div>
         <div class="flex items-center gap-1">
-          <Heart class="h-3 w-3" />
+          <ThumbsUp class="h-3 w-3" />
           <span>{article.likes}</span>
         </div>
       </div>
@@ -271,7 +301,7 @@
     className
   )} {...restProps}>
     {#if article.coverImage}
-      <div class="relative  p-4 pb-0 overflow-hidden">
+      <div class="relative p-3 sm:p-4 pb-0 overflow-hidden">
         <Lens>
         <a href={article.slug ? `/article/${article.slug}` : undefined}>
           <img 
@@ -285,8 +315,8 @@
       </div>
     {/if}
     
-    <div class="p-4 space-y-3">
-      <div class="flex items-center gap-4 text-sm text-muted-foreground">
+    <div class="p-3 sm:p-4 space-y-3">
+      <div class="flex items-center gap-2 sm:gap-4 text-xs sm:text-sm text-muted-foreground">
         <Badge variant="secondary">
           {article.category}
         </Badge>
@@ -303,10 +333,10 @@
       </div>
       
       <div>
-        <h2 class="text-base font-bold leading-tight tracking-tight group-hover:text-primary transition-colors">
+        <h2 class="text-sm sm:text-base font-bold leading-tight tracking-tight group-hover:text-primary transition-colors">
           <a href={article.slug ? `/article/${article.slug}` : undefined}>{article.title}</a>
         </h2>
-        <p class="mt-2 text-sm text-muted-foreground">
+        <p class="mt-2 text-xs sm:text-sm text-muted-foreground">
           {truncateText(article.excerpt, 150)}
         </p>
       </div>
@@ -325,24 +355,67 @@
               <User class="h-4 w-5" />
             </div>
           {/if}
-          <div class="text-sm">
+          <div class="text-xs sm:text-sm">
             <p class="font-medium">{article.author.name}</p>
           </div>
         </div>
         
-        <div class="flex items-center gap-4 text-sm text-muted-foreground">
-          <div class="flex items-center gap-1">
-            <Eye class="h-4 w-4" />
-            <span>{article.views}</span>
-          </div>
-          <div class="flex items-center gap-1">
-            <MessageCircle class="h-4 w-4" />
-            <span>{article.comments}</span>
-          </div>
-          <div class="flex items-center gap-1">
-            <Heart class="h-4 w-4" />
-            <span>{article.likes}</span>
-          </div>
+        <div class="flex items-center gap-2 sm:gap-4 text-xs sm:text-sm text-muted-foreground">
+          <Tooltip.Provider>
+            <Tooltip.Root>
+              <Tooltip.Trigger>
+                <div class="flex items-center gap-1">
+                  <Eye class="h-4 w-4" />
+                  <span>{formatNumber(article.views)}</span>
+                </div>
+              </Tooltip.Trigger>
+              <Tooltip.Content>
+                <p>{article.views.toLocaleString()} görüntüleme</p>
+              </Tooltip.Content>
+            </Tooltip.Root>
+          </Tooltip.Provider>
+
+          <Tooltip.Provider>
+            <Tooltip.Root>
+              <Tooltip.Trigger>
+                <div class="flex items-center gap-1">
+                  <MessageCircle class="h-4 w-4" />
+                  <span>{formatNumber(article.comments)}</span>
+                </div>
+              </Tooltip.Trigger>
+              <Tooltip.Content>
+                <p>{article.comments.toLocaleString()} yorum</p>
+              </Tooltip.Content>
+            </Tooltip.Root>
+          </Tooltip.Provider>
+
+          <Tooltip.Provider>
+            <Tooltip.Root>
+              <Tooltip.Trigger>
+                <div class="flex items-center gap-1">
+                  <ThumbsUp class="h-4 w-4" />
+                  <span>{formatNumber(article.likes)}</span>
+                </div>
+              </Tooltip.Trigger>
+              <Tooltip.Content>
+                <p>{article.likes.toLocaleString()} beğeni</p>
+              </Tooltip.Content>
+            </Tooltip.Root>
+          </Tooltip.Provider>
+
+          <Tooltip.Provider>
+            <Tooltip.Root>
+              <Tooltip.Trigger>
+                <div class="flex items-center gap-1">
+                  <ThumbsDown class="h-4 w-4" />
+                  <span>{formatNumber(article.dislikes || 0)}</span>
+                </div>
+              </Tooltip.Trigger>
+              <Tooltip.Content>
+                <p>{(article.dislikes || 0).toLocaleString()} beğenmeme</p>
+              </Tooltip.Content>
+            </Tooltip.Root>
+          </Tooltip.Provider>
         </div>
       </div>
     </div>

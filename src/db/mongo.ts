@@ -48,6 +48,11 @@ export const getLikesCollection = async () => {
     return db.collection("likes");
 };
 
+export const getNotificationsCollection = async () => {
+    const db = (await clientPromise).db("laf_app");
+    return db.collection("notifications");
+};
+
 // Yardımcı fonksiyonlar
 export const toObjectId = (id: string | ObjectId): ObjectId => {
     return typeof id === 'string' ? new ObjectId(id) : id;

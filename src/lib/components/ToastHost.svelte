@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { goto } from '$app/navigation';
 	import { toasts, type Toast, showToast } from "$lib/hooks/toast";
 	import { readAndClearPendingToast } from "$lib/hooks/toast";
 	import { t, tJoin } from '$lib/stores/i18n.svelte.js';
@@ -33,12 +34,19 @@
 		return () => unsub();
 	});
 	
+	function handleToastClick(item: { toast: Toast }) {
+        const link = item.toast.link;
+        if (!link) return;
+        goto(link);
+        removeToast(item.toast.id);
+    }
+    
 	function showNextToast() {
     if (toastQueue.length === 0) {
         isShowingToast = false;
         return;
     }
-    
+
     isShowingToast = true;
     const nextToast = toastQueue.shift()!;
     
@@ -154,9 +162,11 @@
 			<div
 			
 				use:motion
+				on:click={() => handleToastClick(item)}
 				class={cn(
 					"w-10/12 md:w-fit",
 					"rounded-xl px-4.5 py-2.5 mt-1 md:mt-2 text-sm font-bold flex items-center select-none justify-center gap-2",
+					item.toast.link ? 'cursor-pointer hover:bg-secondary/90 transition-colors' : '',
 					"bg-secondary/80 text-secondary-foreground backdrop-blur-md"
 				)}
 			>

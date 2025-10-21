@@ -1,7 +1,7 @@
 <script lang="ts">
   import favicon from '$lib/assets/favicon.svg';
   import "../app.css";
-  import ToastHost from "$lib/components/ToastHost.svelte";
+  import NotificationToastWrapper from '$lib/components/NotificationToastWrapper.svelte';
   import Preloader from "$lib/components/Preloader.svelte";
   import { onMount } from 'svelte';
   import { i18n } from '$lib/stores/i18n.svelte.js';
@@ -35,7 +35,7 @@
 </svelte:head>
 
 <Preloader />
-<ToastHost />
+<NotificationToastWrapper user={data.user} />
 
 <ModeWatcher />
 {@render children?.()}

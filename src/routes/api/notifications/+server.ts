@@ -1,0 +1,51 @@
+import { json } from '@sveltejs/kit';
+import type { RequestHandler } from './$types';
+import { ObjectId } from 'mongodb';
+import { getNotificationsCollection } from '$db/mongo';
+import { normalizeNotification } from '$lib/server/notifications';
+
+export const GET: RequestHandler = async ({ locals, url }) => {
+	const user = (locals as any)?.user;
+	if (!user) return json({ error: 'Unauthorized' }, { status: 401 });
+
+	const page = Number(url.searchParams.get('page') ?? '1');
+	const pageSize = Number(url.searchParams.get('pageSize') ?? '20');
+	const skip = (page - 1) * pageSize;
+
+	const notificationsCol = await getNotificationsCollection();
+	const userId = new ObjectId(user.id);
+	const cursor = notificationsCol
+		.find({ userId })
+		.sort({ createdAt: -1 })
+		.skip(skip)
+		.limit(pageSize);
+
+	const total = await notificationsCol.countDocuments({ userId });
+	const docs = await cursor.toArray();
+	const data = docs.map(normalizeNotification);
+
+	const unreadCount = await notificationsCol.countDocuments({ userId, read: { $ne: true } });
+
+	return json({ data, total, page, pageSize, unreadCount });
+};
+
+export const POST: RequestHandler = async ({ locals, request }) => {
+	const user = (locals as any)?.user;
+	if (!user) return json({ error: 'Unauthorized' }, { status: 401 });
+
+	const { ids } = await request.json();
+	if (!Array.isArray(ids) || ids.length === 0) return json({ success: false });
+
+	const notificationsCol = await getNotificationsCollection();
+	const userId = new ObjectId(user.id);
+	const objectIds = ids.filter(Boolean).map((id: string) => new ObjectId(id));
+	if (!objectIds.length) return json({ success: false });
+
+	await notificationsCol.updateMany(
+		{ userId, _id: { $in: objectIds } },
+		{ $set: { read: true, readAt: new Date() } }
+	);
+
+	const unreadCount = await notificationsCol.countDocuments({ userId, read: { $ne: true } });
+	return json({ success: true, unreadCount });
+};

@@ -106,7 +106,7 @@ function handleOpenChange(newOpen) {
 		{/snippet}
 	</Dialog.Trigger>
 	<Dialog.Content
-		class="overflow-hidden p-0 md:max-h-[500px] md:max-w-[700px] lg:max-w-[800px]"
+		class="overflow-hidden p-0 md:max-h-[500px] md:max-w-[550px] lg:max-w-[600px]"
 		trapFocus={false}
 	>
 		<Tabs.Root value="settings">

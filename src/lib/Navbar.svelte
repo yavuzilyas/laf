@@ -4,10 +4,22 @@
     import { Button } from "$lib/components/ui/button";
   import { showToast, persistToast } from "$lib/hooks/toast";
 import SettingsDialog from "$lib/components/settings-dialog.svelte";
+import NotificationDialog from "$lib/components/NotificationDialog.svelte";
+    import { HammerIcon, ShieldCheckIcon, BlocksIcon } from 'svelte-animate-icons';
+
     import {HandCoins, BadgeInfo, Construction, Cog, LogIn, UserCircleIcon, LayoutGridIcon, TrashIcon, BellIcon,LogOutIcon, LogInIcon, UserRound } from "@lucide/svelte";
   import logo from '$lib/assets/laf1.svg';
       import { t, tJoin, tMany, dativeSuffix } from '$lib/stores/i18n.svelte.ts';
   import { page } from "$app/stores";
+  import {
+    notifications as notificationsStore,
+    unreadCount as unreadCountStore,
+    fetchNotifications,
+    markNotificationsRead,
+    markAllNotificationsRead,
+    goToNotificationLink
+  } from '$lib/stores/notifications';
+  import type { NotificationRecord } from '$lib/types/notification';
   
   type MenuItem = {
     icon?: any;
@@ -16,24 +28,68 @@ import SettingsDialog from "$lib/components/settings-dialog.svelte";
     custom?: boolean;
     element?: () => any;
     customStyle?: string;
+    onClick?: () => void;
+    badge?: number;
   };
 
   // Reaktif menu array'i - dil değiştiğinde otomatik güncellenir
   let menu = $derived([
-    { isconstruction: "false", name: t('Articles'), href: "articles" },
-    { isconstruction: "true", name: t('Lexicon'), href: "lugath" },
+    { isconstruction: "false", name: t('Articles'), href: "/articles" },
+    { isconstruction: "true", name: t('Lexicon'), href: "/lugath" },
     // { isconstruction: "true", name: t('Bicorpus'), href: "bicorpus" },
     // { isconstruction: "true", name: t('Tacicat'), href: "tacicat" },
   ]);
 
   // Reaktif logged-in items - dil değiştiğinde otomatik güncellenir
+  let notificationsList = $state<NotificationRecord[]>([]);
+  let unreadTotal = $state(0);
+  let showNotificationsDialog = $state(false);
+
+  $effect(() => {
+    const unsubscribe = notificationsStore.subscribe((value) => {
+      notificationsList = value;
+    });
+    return () => unsubscribe();
+  });
+
+  $effect(() => {
+    const unsubscribe = unreadCountStore.subscribe((value) => {
+      unreadTotal = value;
+    });
+    return () => unsubscribe();
+  });
+
+  async function openNotificationsDialog() {
+    await fetchNotifications();
+    showNotificationsDialog = true;
+  }
+
+  async function handleNotificationSelect(event: CustomEvent<{ notification: NotificationRecord }>) {
+    const notification = event.detail.notification;
+    if (!notification) return;
+
+    if (!notification.read) {
+      await markNotificationsRead([notification.id]);
+    }
+
+    if (notification.link) {
+      goToNotificationLink(notification.link);
+    }
+
+    showNotificationsDialog = false;
+  }
+
+  async function handleMarkAllNotifications() {
+    await markAllNotificationsRead();
+  }
+
   const loggedInItems = $derived<MenuItem[]>([
-    { icon: UserRound, name: t('Account'), href: "profile" },
+    { icon: UserRound, name: t('Account'), href: "/profile" },
     { icon: Cog, name: t('Settings'), onClick: handleSettingsClick },
-    { icon: BellIcon, name: t('Notifications'), href: t('notifications')},
-    { icon: HandCoins, name: t('Donations'), href: t('donations') },
-    { icon: BadgeInfo, name: t('Help'), href: t('help') },
-    { icon: LogOutIcon, name: t('Logout'), href: 'logout', customStyle: "!text-red-500"},
+    { icon: BellIcon, name: t('Notifications'), onClick: openNotificationsDialog, badge: unreadTotal },
+    { icon: HandCoins, name: t('Donations'), href: t('/donations') },
+    { icon: BadgeInfo, name: t('Help'), href: t('/help') },
+    { icon: LogOutIcon, name: t('Logout'), href: '/logout', customStyle: "!text-red-500"},
   ]);
 // Ve fonksiyonu ekleyin:
 function handleSettingsClick() {
@@ -43,9 +99,9 @@ function handleSettingsClick() {
 }
   // Reaktif logged-out items - dil değiştiğinde otomatik güncellenir
   const baseLoggedOut = $derived<MenuItem[]>([
-    { icon: LogInIcon, name: t('Login'), href: "login" },
-    { icon: HandCoins, name: t('Donations'), href: "donations" },
-    { icon: BadgeInfo, name: t('Help'), href: "help" },
+    { icon: LogInIcon, name: t('Login'), href: "/login" },
+    { icon: HandCoins, name: t('Donations'), href: "/donations" },
+    { icon: BadgeInfo, name: t('Help'), href: "/help" },
   ]);
 
   // Locale-aware login path: /giris for tr, /login otherwise
@@ -61,8 +117,16 @@ function handleSettingsClick() {
     }
   });
 let openSettings = $state(false);
+import HammerLottie from "$lib/components/hammerIcon.svelte";
 </script>
 <SettingsDialog bind:open={openSettings} on:close={() => openSettings = false} />
+<NotificationDialog
+  bind:open={showNotificationsDialog}
+  notifications={notificationsList}
+  unreadCount={unreadTotal}
+  on:select={handleNotificationSelect}
+  on:markAll={handleMarkAllNotifications}
+/>
 
 <nav class="w-full sticky top-0 z-40 bg-background text-secondary-foreground border-b-1">
   <div class="max-w-7xl mx-auto  py-0 sm:py-1 px-4 sm:px-6 lg:px-8">
@@ -85,13 +149,13 @@ let openSettings = $state(false);
             <Tooltip.Provider>
   <Tooltip.Root>
     <Tooltip.Trigger>
-      <a href={item.href} class="text-secondary-foreground/75 group flex items-center gap-0.5 font-bold cursor-pointer">{item.name}<Construction size={16} strokeWidth={1.75} />
+      <a href={item.href} class="text-secondary-foreground/75 group flex items-center gap-0.5 font-bold cursor-pointer"><HammerLottie />{item.name}
       </a>
       </Tooltip.Trigger>
     <Tooltip.Content class="align-center text-center flex items-center gap-1.5">
-      <p class="text-secondary-foreground group flex items-center gap-0.5 font-bold cursor-pointer">
+        <p class="text-secondary-foreground group flex items-center gap-0.5 font-bold cursor-pointer">
         {item.name} 
-        <Construction size={16} strokeWidth={1.75} /> </p><span class="text-secondary-foreground font-medium"> {t('DevelopmentStage')}</span>
+        </p><span class="text-secondary-foreground font-medium"> {t('DevelopmentStage')}</span>
     </Tooltip.Content>
   </Tooltip.Root>
 </Tooltip.Provider>

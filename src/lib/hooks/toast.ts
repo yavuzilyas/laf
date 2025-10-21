@@ -11,6 +11,7 @@ export type Toast = {
     sep?: string;        // optional separator for keys (default: space)
     type: ToastType;
     duration?: number;
+    link?: string;
 };
 
 const { subscribe, update } = writable<Toast[]>([]);
@@ -19,9 +20,23 @@ let idCounter = 1;
 
 export const toasts = { subscribe };
 
-export function showToast(message: string, type: ToastType = 'info', duration = 3000): number {
+export function showToast(
+    message: string,
+    type: ToastType = 'info',
+    duration = 3000,
+    options?: { link?: string }
+): number {
+    // Check if the same message is already in the queue
+    let toastExists = false;
+    const unsubscribe = toasts.subscribe(list => {
+        toastExists = list.some(t => t.message === message && t.type === type && t.link === options?.link);
+    });
+    unsubscribe();
+    
+    if (toastExists) return -1; // Skip if same message is already showing
+    
     const id = idCounter++;
-    update((list) => [...list, { id, message, type, duration }]);
+    update((list) => [...list, { id, message, type, duration, link: options?.link }]);
     if (duration > 0) {
         setTimeout(() => dismissToast(id), duration);
     }
@@ -29,6 +44,15 @@ export function showToast(message: string, type: ToastType = 'info', duration = 
 }
 
 export function showToastKey(key: string, type: ToastType = 'info', duration = 3000): number {
+    // Check if the same key is already in the queue
+    let toastExists = false;
+    const unsubscribe = toasts.subscribe(list => {
+        toastExists = list.some(t => t.key === key && t.type === type);
+    });
+    unsubscribe();
+    
+    if (toastExists) return -1; // Skip if same key is already showing
+    
     const id = idCounter++;
     update((list) => [...list, { id, key, type, duration }]);
     if (duration > 0) setTimeout(() => dismissToast(id), duration);
@@ -36,6 +60,22 @@ export function showToastKey(key: string, type: ToastType = 'info', duration = 3
 }
 
 export function showToastKeys(keys: string[], type: ToastType = 'info', duration = 3000, sep = ' '): number {
+    const keysStr = keys.join(',');
+    
+    // Check if the same keys combination is already in the queue
+    let toastExists = false;
+    const unsubscribe = toasts.subscribe(list => {
+        toastExists = list.some(t => 
+            t.keys && 
+            t.keys.join(',') === keysStr && 
+            t.type === type && 
+            t.sep === sep
+        );
+    });
+    unsubscribe();
+    
+    if (toastExists) return -1; // Skip if same keys combination is already showing
+    
     const id = idCounter++;
     update((list) => [...list, { id, keys, sep, type, duration }]);
     if (duration > 0) setTimeout(() => dismissToast(id), duration);
