@@ -56,7 +56,7 @@
 	onclick={handleClick}
 >
 	<AlertDialog.Root bind:open={dialogOpen}>
-		<Button variant="default" onclick={(e) => { e.stopPropagation(); dialogOpen = true; }}>{t('editor.media.addMedia')}</Button>
+		<Button variant="ghost" onclick={(e) => { e.stopPropagation(); dialogOpen = true; }}>{t('editor.media.addMedia')}</Button>
 		<AlertDialog.Content>
 			<AlertDialog.Header>
 				<AlertDialog.Title>{t('editor.media.addImage')}</AlertDialog.Title>

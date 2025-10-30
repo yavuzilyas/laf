@@ -8,7 +8,14 @@ export const load: PageServerLoad = async ({ locals }) => {
   const user = (locals as any)?.user ?? null;
 
   const docs = await articlesCol
-    .find({ status: 'published' })
+    .find({
+      status: 'published',
+      deletedAt: { $exists: false },
+      $or: [
+        { hidden: { $ne: true } },  // Diğer kullanıcıların gizli makaleleri
+        { authorId: user ? new ObjectId(user.id) : null }  // Kullanıcının kendi gizli makaleleri
+      ]
+    })
     .sort({ publishedAt: -1 })
     .limit(30)
     .toArray();

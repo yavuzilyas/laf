@@ -490,21 +490,22 @@ import {NotebookPenIcon} from 'svelte-animate-icons';
                   maxlength={300}
                   oninput={(e) => articleEditor.updateTranslation(lang, 'excerpt', (e.target as HTMLTextAreaElement).value)}
                 />
-                <div class="bg-background rounded-md border">
+                <div class="bg-background  rounded-md border">
                   {#if editors[lang] && !editors[lang].isDestroyed}
                     <EdraToolBar
-                      class="bg-secondary flex w-full items-center overflow-x-auto p-0.5 sticky top-8.5 sm:top-7 z-39 self-start max-h-[calc(100vh-4rem)] overflow-y-auto"
+                      class="bg-background/44 backdrop-blur-sm border-b rounded-md rounded-b-none  flex w-full items-center overflow-x-auto p-0.5 sticky top-5 sm:top-7 z-1 self-start"
                       editor={editors[lang]}
                     />
                   {/if}
                   
-                  <ScrollArea orientation="vertical" class="min-h-[780px] sm:min-h-[1080px] lg:min-h-[1280px] h-fit">
+                  <ScrollArea orientation="vertical" class="z-0 min-h-[780px] sm:min-h-[1080px] lg:min-h-[1280px] h-fit">
                     <EdraEditor
                       bind:editor={editors[lang]}
                       content={translation.content}
                       class="py-7 p-10"
                       onUpdate={onEditorUpdate(lang)}
                     />
+                    <EdraDragHandleExtended />
                   </ScrollArea>
                 </div>
               </Tabs.Content>

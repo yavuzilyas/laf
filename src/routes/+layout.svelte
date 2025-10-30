@@ -14,7 +14,6 @@
   import { soundEnabled } from "$lib/stores/sound";
   import { browser } from '$app/environment';
 
-
   onMount(async () => {
     // Ses durumunu local storage'dan yükle
     if (browser) {

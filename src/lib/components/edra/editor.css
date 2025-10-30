@@ -13,6 +13,76 @@
 	content: attr(data-placeholder);
 }
 
+/* Drag handle styles */
+.drag-handle {
+  position: absolute;
+  left: -24px;
+  top: 0;
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: grab;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  z-index: 10;
+}
+
+.drag-handle:hover,
+.drag-handle[data-dragging="true"] {
+  opacity: 1;
+}
+
+.drag-handle svg {
+  pointer-events: none;
+}
+
+/* Show drag handle when hovering over the editor */
+.ProseMirror:hover .drag-handle:not(:hover) {
+  opacity: 0.5;
+}
+
+/* Adjust for nested elements */
+.ProseMirror > * > .drag-handle {
+  left: -28px;
+}
+
+/* Ensure proper positioning in lists */
+ul > li > .drag-handle,
+ol > li > .drag-handle {
+  left: -32px;
+}
+
+/* Hide drag handle for first level elements when not needed */
+.ProseMirror > :first-child > .drag-handle {
+  display: none;
+}
+
+/* Show drag handle when editor is focused */
+.ProseMirror-focused .drag-handle,
+.ProseMirror-selectednode .drag-handle {
+  opacity: 0.8;
+}
+
+/* Additional styles for the drag handle component */
+.drag-handle-component {
+  position: absolute;
+  left: -24px;
+  top: 0;
+  z-index: 10;
+}
+
+/* Ensure proper stacking context */
+.ProseMirror {
+  position: relative;
+}
+
+/* Hide drag handles in read-only mode */
+.ProseMirror[contenteditable="false"] .drag-handle {
+  display: none;
+}
+
 /* Heading Styles */
 .tiptap h1,
 .tiptap h2,

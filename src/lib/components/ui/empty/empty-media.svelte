@@ -6,6 +6,7 @@
 		variants: {
 			variant: {
 				default: "bg-transparent",
+				smicon: "bg-muted text-foreground flex size-15 shrink-0 items-center justify-center rounded-lg [&_svg:not([class*='size-'])]:size-10",
 				icon: "bg-muted text-foreground flex size-10 shrink-0 items-center justify-center rounded-lg [&_svg:not([class*='size-'])]:size-6",
 			},
 		},

@@ -24,14 +24,14 @@
     onValueChange={(val: string) => t.setLocale(val)}
     disabled={t.loading}
   >
-    <Select.Trigger size="sm" class="w-full md:w-32 text-xs font-bold">
+    <Select.Trigger size="sm" class="text-secondary-foreground  !bg-background/44 w-full md:w-32 text-xs font-bold">
       {triggerContent}
     </Select.Trigger>
-    <Select.Content   class="max-w-28.5 text-xs font-bold">
-      <Select.Group>
-        <Select.Label class="text-xs">{t('Languages')}</Select.Label>
+    <Select.Content class="!bg-background/44 -bottom-2 !backdrop-blur-sm text-xs font-bold">
+      <Select.Group >
+        <Select.Label class=" text-secondary-foreground  text-xs">{t('Languages')}</Select.Label>
         {#each t.availableLocales as locale}
-          <Select.Item class="text-xs" value={locale}>
+          <Select.Item class="text-secondary-foreground mt-1 !bg-background/44 text-xs" value={locale}>
             {localeNames[locale] || locale}
           </Select.Item>
         {/each}

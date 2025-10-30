@@ -3,8 +3,9 @@ import type { PageServerLoad } from './$types';
 import { error } from '@sveltejs/kit';
 import { getArticlesCollection, getUsersCollection } from '$db/mongo';
 import { ObjectId } from 'mongodb';
+import { redirect } from '@sveltejs/kit';
 
-export const load: PageServerLoad = async ({ params }) => {
+export const load: PageServerLoad = async ({ params, locals }) => {
   const { slug } = params;
   const articles = await getArticlesCollection();
 
@@ -16,7 +17,8 @@ export const load: PageServerLoad = async ({ params }) => {
   for (const lang of localesToTry) {
     const found = await articles.findOne({
       [`translations.${lang}.slug`]: slug,
-      status: 'published'
+      status: 'published',
+      deletedAt: { $exists: false }
     });
     if (found) {
       article = found;
@@ -27,6 +29,11 @@ export const load: PageServerLoad = async ({ params }) => {
 
   if (!article) {
     throw error(404, 'Article not found');
+  }
+
+  // Eğer makale gizlenmişse ve kullanıcı sahibi değilse erişim engelle
+  if (article.hidden && (!locals.user || String(article.authorId) !== String(locals.user.id))) {
+    throw redirect(303, '/403');
   }
 
   // Increment views

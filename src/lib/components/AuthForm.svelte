@@ -96,8 +96,7 @@ import { wordlist } from '@scure/bip39/wordlists/english.js';
   function validateNicknameClient(value: string): string {
     const v = (value || "").trim();
     if (v.length < 3 || v.length > 20) return t("auth.errors.usernameLength") || "3-20 karakter olmalı";
-    if (!/^[A-Za-z][A-Za-z0-9._-]*$/.test(v)) return t("auth.errors.usernameFormat") || "Harf ile başlamalı, sadece harf/rakam . _ - içerebilir";
-    if (/([A-Za-z0-9._-])\1{2,}/.test(v)) return t("auth.errors.usernameRepeats") || "Tekrarlı karakterler çok fazla";
+    if (v.length === 0) return t("auth.errors.usernameRequired") || "Kullanıcı adı gerekli";
     return "";
   }
 
@@ -576,43 +575,28 @@ async function validateEmail(value: string) {
               bind:value={nickname} 
               disabled={loading} 
               oninput={(e) => {
-                // Prevent spaces and emojis
-                let v = (e.target as HTMLInputElement)?.value || "";
-                
-                // Remove spaces and emojis
-                v = v.replace(/[\s\p{Emoji}]/gu, '');
-                
-                // Update the input value
-                if (v !== nickname) {
-                  (e.target as HTMLInputElement).value = v;
-                }
-                
+                let v = (e.target as HTMLInputElement)?.value || '';
                 nickname = v;
                 nicknameError = validateNicknameClient(v);
                 if (!nicknameError) validateNickname(v);
               }}
               onkeydown={(e) => {
-                // Prevent space key
-                if (e.key === ' ' || e.key === 'Spacebar' || e.keyCode === 32) {
-                  e.preventDefault();
-                  return false;
-                }
+                // No restrictions
               }}
               onpaste={(e) => {
-                // Handle paste to remove spaces and emojis
+                // Allow all text
                 e.preventDefault();
                 const pastedText = e.clipboardData?.getData('text/plain') || '';
-                const cleanedText = pastedText.replace(/[\s\p{Emoji}]/gu, '');
                 
-                // Insert the cleaned text at cursor position
+                // Insert the text at cursor position
                 const target = e.target as HTMLInputElement;
                 const start = target.selectionStart || 0;
                 const end = target.selectionEnd || 0;
-                const newValue = target.value.substring(0, start) + cleanedText + target.value.substring(end);
+                const newValue = target.value.substring(0, start) + pastedText + target.value.substring(end);
                 
                 // Update the input value and cursor position
                 target.value = newValue;
-                const newCursorPos = start + cleanedText.length;
+                const newCursorPos = start + pastedText.length;
                 target.setSelectionRange(newCursorPos, newCursorPos);
                 
                 // Update the state
@@ -643,44 +627,29 @@ async function validateEmail(value: string) {
                   bind:value={regPassword} 
                   disabled={loading}
                   oninput={(e) => {
-                    // Prevent spaces and emojis
                     let v = (e.target as HTMLInputElement)?.value || '';
-                    
-                    // Remove spaces and emojis
-                    v = v.replace(/[\s\p{Emoji}]/gu, '');
-                    
-                    // Update the input value
-                    if (v !== regPassword) {
-                      (e.target as HTMLInputElement).value = v;
-                    }
-                    
                     regPassword = v;
                     const { score, msg } = computePasswordStrength(v);
                     passwordStrength = score;
                     passwordFeedback = msg;
                   }}
                   onkeydown={(e) => {
-                    // Prevent space key
-                    if (e.key === ' ' || e.key === 'Spacebar' || e.keyCode === 32) {
-                      e.preventDefault();
-                      return false;
-                    }
+                    // No restrictions
                   }}
                   onpaste={(e) => {
-                    // Handle paste to remove spaces and emojis
+                    // Allow all text
                     e.preventDefault();
                     const pastedText = e.clipboardData?.getData('text/plain') || '';
-                    const cleanedText = pastedText.replace(/[\s\p{Emoji}]/gu, '');
                     
-                    // Insert the cleaned text at cursor position
+                    // Insert the text at cursor position
                     const target = e.target as HTMLInputElement;
                     const start = target.selectionStart || 0;
                     const end = target.selectionEnd || 0;
-                    const newValue = target.value.substring(0, start) + cleanedText + target.value.substring(end);
+                    const newValue = target.value.substring(0, start) + pastedText + target.value.substring(end);
                     
                     // Update the input value and cursor position
                     target.value = newValue;
-                    const newCursorPos = start + cleanedText.length;
+                    const newCursorPos = start + pastedText.length;
                     target.setSelectionRange(newCursorPos, newCursorPos);
                     
                     // Update the state

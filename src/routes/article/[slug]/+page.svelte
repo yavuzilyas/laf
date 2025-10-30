@@ -1,12 +1,14 @@
 <script lang="ts">
     import Navbar from "$lib/Navbar.svelte";
     import Footer from "$lib/Footer.svelte";
+    import * as Tooltip from "$lib/components/ui/tooltip";
+    import Lens from "$lib/components/Lens.svelte";
     import { Badge } from "$lib/components/ui/badge";
     import { Button } from "$lib/components/ui/button";
     import { Separator } from "$lib/components/ui/separator";
     import { t } from '$lib/stores/i18n.svelte.ts';
     import { EdraEditor, EdraToolBar } from '$lib/components/edra/shadcn/index.js';
-import type { Editor } from '@tiptap/core';
+    import type { Editor } from '@tiptap/core';
     import { 
         Calendar, 
         Clock, 
@@ -19,13 +21,21 @@ import type { Editor } from '@tiptap/core';
         Languages,
         ThumbsDown,
         ThumbsUp,
-        Hammer
+        Hammer,
+        Ellipsis,
+        Trash,
+
     } from "@lucide/svelte";  
     import { cn } from "$lib/utils";
     import { page } from "$app/stores";
     import { showToast, persistToast } from "$lib/hooks/toast";
-import * as Tooltip from "$lib/components/ui/tooltip";
-import Lens from "$lib/components/Lens.svelte";
+    import * as ContextMenu from "$lib/components/ui/context-menu";
+    import { ArrowLeftIcon, MessageSquareIcon, EllipsisIcon, BookMinusIcon, NotebookPenIcon, EyeOffIcon, BadgeAlertIcon } from 'svelte-animate-icons';
+    import { Motion, useMotionValue, useMotionTemplate } from "svelte-motion";
+    import { browser } from '$app/environment';
+    import * as AlertDialog from "$lib/components/ui/alert-dialog";
+        import * as DropdownMenu from "$lib/components/ui/dropdown-menu";
+    
     let { data } = $props();
     let likesCount = $state<number>(data.article?.stats?.likes ?? 0);
     let dislikesCount = $state<number>(data.article?.stats?.dislikes ?? 0);
@@ -43,10 +53,20 @@ import Lens from "$lib/components/Lens.svelte";
     
     // Comment system state
     let comments = $state<any[]>([]);
-    let newComment = $state('');
+    const emptyDoc = { type: 'doc', content: [{ type: 'paragraph' }] };
+    let newComment = $state<any>(emptyDoc); // Edra JSON
     let replyingTo = $state<string | null>(null);
-    let replyContent = $state('');
+    let replyContent = $state<any>(emptyDoc); // Edra JSON
     let loadingComments = $state(false);
+    let commentEditor = $state<Editor | null>(null);
+    let replyEditor = $state<Editor | null>(null);
+
+    // Alert Dialog states
+    let showDeleteDialog = $state(false);
+    let showHideDialog = $state(false);
+    let dialogType = $state<'article' | 'comment'>('article');
+    let selectedArticle = $state<any>(null);
+    let selectedComment = $state<any>(null);
 
 
     async function toggleReaction(type: 'like' | 'dislike') {
@@ -112,6 +132,53 @@ import Lens from "$lib/components/Lens.svelte";
             day: 'numeric'
         });
     };
+    
+    function isArticleOwner(): boolean {
+        const uid = $page.data.user?.id;
+        return Boolean(uid && (article?.authorId === uid || article?.author?.id === uid));
+    }
+
+    function onReportArticle() { showToast(t('Reported'), 'info'); }
+    function onEditArticle() { showToast(t('NotImplemented'), 'warning'); }
+    function onDeleteArticle() {
+        selectedArticle = article;
+        dialogType = 'article';
+        showDeleteDialog = true;
+    }
+    function onShowArticle() {
+        selectedArticle = article;
+        dialogType = 'article';
+        showHideDialog = true;
+    }
+
+    function onHideArticle() {
+        selectedArticle = article;
+        dialogType = 'article';
+        showHideDialog = true;
+    }
+
+    function isCommentOwner(a: any): boolean {
+        const uid = $page.data.user?.id;
+        return Boolean(uid && (a?.author?.id === uid || a?.userId === uid));
+    }
+    function reportComment(id: string) { showToast(t('Reported'), 'info'); }
+    function editComment(id: string) { showToast(t('NotImplemented'), 'warning'); }
+    function deleteComment(id: string) {
+        const comment = comments.find(c => c.id === id);
+        if (comment) {
+            selectedComment = comment;
+            dialogType = 'comment';
+            showDeleteDialog = true;
+        }
+    }
+    function hideComment(id: string) {
+        const comment = comments.find(c => c.id === id);
+        if (comment) {
+            selectedComment = comment;
+            dialogType = 'comment';
+            showHideDialog = true;
+        }
+    }
 
     const calculateReadTime = (content: string) => {
         const wordsPerMinute = 200;
@@ -141,6 +208,56 @@ import Lens from "$lib/components/Lens.svelte";
             loadingComments = false;
         }
     }
+
+    function isRichText(content: any): boolean {
+        if (!content) return false;
+        if (typeof content === 'string') {
+            try {
+                JSON.parse(content);
+                return true;
+            } catch {
+                return false;
+            }
+        }
+        return typeof content === 'object';
+    }
+
+    function extractPlainText(doc: any): string {
+        try {
+            const json = typeof doc === 'string' ? JSON.parse(doc) : doc;
+            const nodes = json?.content ?? [];
+            return nodes
+                .map((n: any) => {
+                    if (n.type === 'text') return n.text ?? '';
+                    if (Array.isArray(n.content)) {
+                        return n.content.map((c: any) => (c.type === 'text' ? c.text ?? '' : '')).join('');
+                    }
+                    return '';
+                })
+                .join('')
+                .trim();
+        } catch {
+            return '';
+        }
+    }
+
+    function isCommentEmpty(content: any): boolean {
+        if (!content) return true;
+        if (typeof content === 'string') return content.trim() === '';
+        return extractPlainText(content) === '';
+    }
+
+    function onCommentEditorUpdate() {
+        if (commentEditor) {
+            newComment = commentEditor.getJSON();
+        }
+    }
+
+    function onReplyEditorUpdate() {
+        if (replyEditor) {
+            replyContent = replyEditor.getJSON();
+        }
+    }
     
     async function postComment() {
         // Kullanıcı giriş kontrolü
@@ -149,7 +266,7 @@ import Lens from "$lib/components/Lens.svelte";
             return;
         }
 
-        if (!newComment.trim() || !article) return;
+        if (isCommentEmpty(newComment) || !article) return;
         try {
             const res = await fetch(`/api/articles/${article._id}/comments`, {
                 method: 'POST',
@@ -159,7 +276,8 @@ import Lens from "$lib/components/Lens.svelte";
             if (res.ok) {
                 const comment = await res.json();
                 comments = [comment, ...comments];
-                newComment = '';
+                newComment = emptyDoc;
+                if (commentEditor) commentEditor.commands.setContent('');
             } else if (res.status === 401) {
                 persistToast(t('LoginRequiredForComments'), 'error');
             }
@@ -169,20 +287,20 @@ import Lens from "$lib/components/Lens.svelte";
     }
     
     async function postReply(parentId: string) {
-        if (!replyContent.trim() || !article) return;
+        const content = replyContent;
+        if (isCommentEmpty(content) || !article) return;
         try {
             const res = await fetch(`/api/articles/${article._id}/comments`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ content: replyContent, parentId })
+                body: JSON.stringify({ content, parentId })
             });
             if (res.ok) {
-                const reply = await res.json();
-                const comment = comments.find(c => c.id === parentId);
-                if (comment) {
-                    comment.replies = [...(comment.replies || []), reply];
-                }
-                replyContent = '';
+                await res.json();
+                await loadComments();
+                replyContent = emptyDoc;
+                if (replyEditor) replyEditor.commands.setContent('');
+                replyEditor = null;
                 replyingTo = null;
             }
         } catch (e) {
@@ -213,6 +331,136 @@ import Lens from "$lib/components/Lens.svelte";
         }
     }
     
+    // Alert Dialog handlers
+    async function confirmDelete() {
+        if (dialogType === 'article' && selectedArticle) {
+            await deleteArticle(selectedArticle._id);
+        } else if (dialogType === 'comment' && selectedComment) {
+            await deleteCommentAPI(selectedComment.id);
+        }
+        resetDialogs();
+    }
+
+    async function confirmHide() {
+        if (dialogType === 'article' && selectedArticle) {
+            // Eğer gizlenmişse göster, gizlenmemişse gizle
+            const shouldHide = !selectedArticle.hidden;
+            await hideArticle(selectedArticle._id, shouldHide);
+        } else if (dialogType === 'comment' && selectedComment) {
+            // Eğer gizlenmişse göster, gizlenmemişse gizle
+            const shouldHide = !selectedComment.hidden;
+            await hideCommentAPI(selectedComment.id, shouldHide);
+        }
+        resetDialogs();
+    }
+
+    function resetDialogs() {
+        showDeleteDialog = false;
+        showHideDialog = false;
+        selectedArticle = null;
+        selectedComment = null;
+        dialogType = 'article';
+    }
+
+    async function deleteArticle(articleId: string) {
+        try {
+            const res = await fetch(`/api/articles/${articleId}`, {
+                method: 'DELETE',
+                headers: { 'Content-Type': 'application/json' }
+            });
+
+            if (res.ok) {
+                showToast(t('ArticleDeleted'), 'success');
+                // Redirect to articles page or home
+                window.location.href = '/articles';
+            } else if (res.status === 401) {
+                showToast(t('LoginRequired'), 'error');
+            } else if (res.status === 403) {
+                showToast(t('PermissionDenied'), 'error');
+            } else {
+                showToast(t('DeleteFailed'), 'error');
+            }
+        } catch (e) {
+            console.error('Failed to delete article:', e);
+            showToast(t('DeleteFailed'), 'error');
+        }
+    }
+
+    async function hideArticle(articleId: string, shouldHide: boolean = true) {
+        try {
+            const res = await fetch(`/api/articles/${articleId}/hide`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ hidden: shouldHide })
+            });
+
+            if (res.ok) {
+                const action = shouldHide ? 'gizlendi' : 'gösterildi';
+                showToast(t('ArticleHidden'), 'success');
+                // Update article state to reflect hidden status
+                if (article && article._id === articleId) {
+                    article.hidden = shouldHide;
+                }
+            } else if (res.status === 401) {
+                showToast(t('LoginRequired'), 'error');
+            } else if (res.status === 403) {
+                showToast(t('PermissionDenied'), 'error');
+            } else {
+                showToast(t('HideFailed'), 'error');
+            }
+        } catch (e) {
+            console.error('Failed to hide article:', e);
+            showToast(t('HideFailed'), 'error');
+        }
+    }
+
+    async function deleteCommentAPI(commentId: string) {
+        try {
+            const res = await fetch(`/api/comments/${commentId}`, {
+                method: 'DELETE',
+                headers: { 'Content-Type': 'application/json' }
+            });
+
+            if (res.ok) {
+                showToast(t('CommentDeleted'), 'success');
+                await loadComments(); // Refresh comments
+            } else if (res.status === 401) {
+                showToast(t('LoginRequired'), 'error');
+            } else if (res.status === 403) {
+                showToast(t('PermissionDenied'), 'error');
+            } else {
+                showToast(t('DeleteFailed'), 'error');
+            }
+        } catch (e) {
+            console.error('Failed to delete comment:', e);
+            showToast(t('DeleteFailed'), 'error');
+        }
+    }
+
+    async function hideCommentAPI(commentId: string, shouldHide: boolean = true) {
+        try {
+            const res = await fetch(`/api/comments/${commentId}/hide`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ hidden: shouldHide })
+            });
+
+            if (res.ok) {
+                showToast(t('CommentHidden'), 'success');
+                await loadComments(); // Refresh comments
+            } else if (res.status === 401) {
+                showToast(t('LoginRequired'), 'error');
+            } else if (res.status === 403) {
+                showToast(t('PermissionDenied'), 'error');
+            } else {
+                showToast(t('HideFailed'), 'error');
+            }
+        } catch (e) {
+            console.error('Failed to hide comment:', e);
+            showToast(t('HideFailed'), 'error');
+        }
+    }
+    
     function formatTimeAgo(dateString: string) {
         const date = new Date(dateString);
         const now = new Date();
@@ -240,9 +488,6 @@ import Lens from "$lib/components/Lens.svelte";
             loadComments();
         }
     });
-    import { MessageSquareIcon } from 'svelte-animate-icons';
-      import { Motion, useMotionValue, useMotionTemplate } from "svelte-motion";
-  import { browser } from '$app/environment';
 
   // Sadece client-side'da Motion fonksiyonlarını kullan
   let mouseX = browser ? useMotionValue(0) : { set: () => {} };
@@ -275,9 +520,7 @@ import Lens from "$lib/components/Lens.svelte";
   }}
   class="group relative h-fit w-full overflow-hidden rounded-xl bg-card"
 >
-  <div
-    class="absolute right-5 top-0 h-px w-80 bg-gradient-to-l from-transparent via-white/30 via-10% to-transparent"
-  />
+
   <Motion
     style={{
       background,
@@ -301,9 +544,11 @@ import Lens from "$lib/components/Lens.svelte";
         <!-- Article content -->
         <article class="container mx-auto px-4 py-6 max-w-5xl">
             <!-- Back button -->
+                         <!-- Article content -->
+
             <div class="mb-6 flex flex-row gap-2 justify-between items-center">
                 <Button variant="outline" size="xs" href="/articles">
-                    <ArrowLeft/>
+                    <ArrowLeftIcon triggers={{ hover: false }} animationState="loading" duration={2000}/>
                     Makalelere Dön
                 </Button>
                 <div class="flex flex-row items-center gap-2">
@@ -327,14 +572,52 @@ import Lens from "$lib/components/Lens.svelte";
             </div>
             <Separator />
             <!-- Article header -->
-            <header class="mt-6 mb-8">
-                <div class="mb-3 flex flex-row gap-3 items-center">
-                <h1 class="text-2xl font-bold leading-tight">
+            <header class="relative my-5">
+                <div class="absolute top-2 right-2">
+									<DropdownMenu.Root>
+										<DropdownMenu.Trigger >
+											<Button variant="outline" class="h-6 w-6 p-0">
+												<EllipsisIcon triggers={{ hover: false }} animationState="loading" duration={1400} loop={true} />
+											</Button>
+										</DropdownMenu.Trigger>
+										<DropdownMenu.Content align="end" class="w-48">
+											<DropdownMenu.Item onclick={onReportArticle} class="text-destructive">
+												<BadgeAlertIcon triggers={{ hover: false }}  animationState="loading"  duration={3000} loop={true}  class="mr-2 h-4 w-4" />
+												Bildir
+											</DropdownMenu.Item>
+											{#if isArticleOwner()}
+                                                <DropdownMenu.Separator />
+
+													<DropdownMenu.Item onclick={onEditArticle}>
+														<BookMinusIcon triggers={{ hover: false }}  animationState="loading" duration={3000}  loop={true}  class="mr-2 h-4 w-4" />
+														Kaldır
+													</DropdownMenu.Item>
+
+													<DropdownMenu.Item onclick={onDeleteArticle}>
+														<NotebookPenIcon triggers={{ hover: false }}  animationState="loading" duration={3000}  loop={true}  class="mr-2 h-4 w-4" />
+														Düzenle
+													</DropdownMenu.Item>
+                        {#if article.hidden}
+                            <DropdownMenu.Item onclick={onShowArticle}>														
+														<Eye class="mr-2 h-4 w-4" />
+Göster</DropdownMenu.Item>
+                        {:else}
+                            <DropdownMenu.Item onclick={onHideArticle}>														
+														<EyeOffIcon triggers={{ hover: false }}  class="mr-2 h-4 w-4" />
+ Gizle</DropdownMenu.Item>
+                        {/if}
+											{/if}
+										</DropdownMenu.Content>
+									</DropdownMenu.Root>
+                                                    
+								</div>
+                <div class="mb-3 flex flex-col sm:flex-row gap-3 items-center">
+                <h1 class="text-lg sm:text-xl md:text-2xl font-bold leading-tight">
                     {article.title}
                 </h1>
               <div class="flex items-center gap-1">
-                    <Badge variant="default">{article.category}</Badge>
-                    <Badge variant="secondary">{article.subcategory}</Badge>
+                    <Badge variant="default">{t(article.category)}</Badge>
+                    <Badge variant="secondary">{t(article.subcategory)}</Badge>
                 </div>
                 </div>
                 {#if article.thumbnail}
@@ -349,7 +632,7 @@ import Lens from "$lib/components/Lens.svelte";
                 {/if}
 
                 {#if article.excerpt}
-                    <p class="text-lg text-secondary-foreground mb-3">
+                    <p class="text-base sm:text-lg text-secondary-foreground mb-3">
                         {article.excerpt}
                     </p>
                 {/if}
@@ -476,20 +759,20 @@ import Lens from "$lib/components/Lens.svelte";
                         Paylaş
                     </Button>
 
-
             </header>
 <Separator />
 
-            <!-- Article content -->
-            <div class="mt-6 prose prose-lg max-w-none">
-                {#if typeof article.content === 'string'}
-                    {@html article.content}
-                {:else}
-                    <div class="rounded-md ">
-                        <EdraEditor content={article.content} editable={false} />
+
+                    <div class="mt-6 prose prose-lg max-w-none">
+                        {#if typeof article.content === 'string'}
+                            {@html article.content}
+                        {:else}
+                            <div class="rounded-md ">
+                                <EdraEditor content={article.content} editable={false} />
+                            </div>
+                        {/if}
                     </div>
-                {/if}
-            </div>
+
 
             <!-- Article tags -->
             {#if article.tags && article.tags.length > 0}
@@ -523,20 +806,26 @@ import Lens from "$lib/components/Lens.svelte";
             <!-- Comments Section -->
             <div class="mt-12 pt-8 border-t">
                 <div class="flex flex-col items-center justify-center mb-6 gap-1">
-                <MessageSquareIcon triggers={{ hover: false }} duration={2500} animationState="loading" class="text-primary" />
+                <MessageSquareIcon size={36} triggers={{ hover: false }} duration={2500} animationState="loading" class="text-primary" />
                 <h2 class="text-lg font-bold">{t('Comments')}</h2>
                 </div>
                 
                 <!-- Comment Form -->
                 <div class="mb-8">
-                    <textarea 
-                        bind:value={newComment}
-                        class="w-full p-4 border rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-primary"
-                        rows="4"
-                        placeholder="{t('WriteYourComment')}"
-                    ></textarea>
+                    <div class="mb-3 border p-2 rounded-lg">
+                        {#if commentEditor}
+                            <EdraToolBar editor={commentEditor} class=" overflow-y-auto h-min mb-2" />
+                        {/if}
+                        <EdraEditor
+                            bind:editor={commentEditor}
+                            content={newComment}
+                            class="min-h-[140px] "
+                            onUpdate={onCommentEditorUpdate}
+                            placeholder={t('WriteYourComment')}
+                        />
+                    </div>
                     <div class="flex justify-end mt-2">
-                        <Button onclick={postComment} disabled={!newComment.trim()}>Yorum Yap</Button>
+                        <Button onclick={postComment} disabled={isCommentEmpty(newComment)}>Yorum Yap</Button>
                     </div>
                 </div>
 
@@ -551,14 +840,16 @@ import Lens from "$lib/components/Lens.svelte";
                             <p class="text-muted-foreground">Henüz yorum yapılmamış. İlk yorumu siz yapın!</p>
                         </div>
                     {:else}
-                        {#each comments as comment}
+                        {#each comments as comment (comment.id)}
+                            <ContextMenu.Root>
+                            <ContextMenu.Trigger asChild>
                             <div class="border rounded-lg p-4" id={`comment-${comment.id}`}>
                                 <div class="flex items-start gap-3">
                                     <div class="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
                                         <User class="w-5 h-5" />
                                     </div>
                                     <div class="flex-1">
-                                        <div class="flex items-center gap-2 mb-1">
+                                        <div class="flex items-center gap-2 mb-2">
                                             <span class="font-medium">
                                                 {comment.author?.name && comment.author?.surname 
                                                     ? `${comment.author.name} ${comment.author.surname}`
@@ -566,7 +857,10 @@ import Lens from "$lib/components/Lens.svelte";
                                             </span>
                                             <span class="text-sm text-muted-foreground">{formatTimeAgo(comment.createdAt)}</span>
                                         </div>
-                                        <p class="text-sm mb-3">{comment.content}</p>
+                                        <Separator />
+                                        <div class="text-sm mb-2">
+                                                    <EdraEditor content={comment.content} editable={false} />
+                                        </div>
                                         <div class="flex items-center gap-4">
                                             <Button 
                                                 variant="ghost" 
@@ -590,7 +884,7 @@ import Lens from "$lib/components/Lens.svelte";
                                                 variant="ghost" 
                                                 size="sm" 
                                                 class="h-8 gap-1"
-                                                onclick={() => replyingTo = replyingTo === comment.id ? null : comment.id}
+                                                onclick={() => { replyingTo = replyingTo === comment.id ? null : comment.id; if (replyEditor) replyEditor.commands.setContent(''); replyContent = null; }}
                                             >
                                                 <MessageCircle class="w-3 h-3" />
                                                 <span class="text-xs">Yanıtla</span>
@@ -600,24 +894,32 @@ import Lens from "$lib/components/Lens.svelte";
                                         <!-- Reply form -->
                                         {#if replyingTo === comment.id}
                                             <div class="mt-4">
-                                                <textarea 
-                                                    bind:value={replyContent}
-                                                    class="w-full p-3 border rounded-lg resize-none text-sm focus:outline-none focus:ring-2 focus:ring-primary"
-                                                    rows="3"
-                                                    placeholder="Yanıtınızı yazın..."
-                                                ></textarea>
+                                                {#key replyingTo}
+                                                    <div class="mb-2 border p-2 rounded-lg">
+                                                        {#if replyEditor}
+                                                            <EdraToolBar editor={replyEditor} class="mb-1 overflow-y-auto text-sm" />
+                                                        {/if}
+                                                        <EdraEditor
+                                                            bind:editor={replyEditor}
+                                                            content={replyContent}
+                                                            class="min-h-[100px]  rounded-lg h-min text-sm"
+                                                            onUpdate={onReplyEditorUpdate}
+                                                            placeholder="Yanıtınızı yazın..."
+                                                        />
+                                                    </div>
+                                                {/key}
                                                 <div class="flex justify-end gap-2 mt-2">
-                                                    <Button 
-                                                        variant="ghost" 
+                                                    <Button
+                                                        variant="ghost"
                                                         size="sm"
-                                                        onclick={() => { replyingTo = null; replyContent = ''; }}
+                                                        onclick={() => { replyingTo = null; replyContent = null; if (replyEditor) replyEditor.commands.setContent(''); replyEditor = null; }}
                                                     >
                                                         İptal
                                                     </Button>
-                                                    <Button 
+                                                    <Button
                                                         size="sm"
                                                         onclick={() => postReply(comment.id)}
-                                                        disabled={!replyContent.trim()}
+                                                        disabled={isCommentEmpty(replyContent)}
                                                     >
                                                         Yanıtla
                                                     </Button>
@@ -628,7 +930,9 @@ import Lens from "$lib/components/Lens.svelte";
                                         <!-- Nested replies -->
                                         {#if comment.replies && comment.replies.length > 0}
                                             <div class="mt-4 ml-6 space-y-4 border-l-2 pl-4">
-                                                {#each comment.replies as reply}
+                                                {#each comment.replies as reply (reply.id)}
+                                                    <ContextMenu.Root>
+                                                    <ContextMenu.Trigger asChild>
                                                     <div class="flex items-start gap-3" id={`comment-${reply.id}`}>
                                                         <div class="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
                                                             <User class="w-4 h-4" />
@@ -642,7 +946,9 @@ import Lens from "$lib/components/Lens.svelte";
                                                                 </span>
                                                                 <span class="text-xs text-muted-foreground">{formatTimeAgo(reply.createdAt)}</span>
                                                             </div>
-                                                            <p class="text-sm mb-2">{reply.content}</p>
+                                                            <div class="text-sm mb-2">
+                                                                        <EdraEditor content={reply.content} editable={false} />
+                                                            </div>
                                                             <div class="flex items-center gap-3">
                                                                 <Button 
                                                                     variant="ghost" 
@@ -662,15 +968,150 @@ import Lens from "$lib/components/Lens.svelte";
                                                                     <ThumbsDown class="w-3 h-3" />
                                                                     <span class="text-xs">{formatNumber(reply.dislikes || 0)}</span>
                                                                 </Button>
+                                                                <Button
+                                                                    variant="ghost"
+                                                                    size="sm"
+                                                                    class="h-7 gap-1"
+                                                                    onclick={() => { replyingTo = replyingTo === reply.id ? null : reply.id; if (replyEditor) replyEditor.commands.setContent(''); replyContent = null; }}
+                                                                >
+                                                                    <MessageCircle class="w-3 h-3" />
+                                                                    <span class="text-xs">Yanıtla</span>
+                                                                </Button>
                                                             </div>
+                                                            {#if replyingTo === reply.id}
+                                                                <div class="mt-3 ml-4 border p-2 rounded-lg">
+                                                                    {#key replyingTo}
+                                                                        <div class="mb-2">
+                                                                            {#if replyEditor}
+                                                                                <EdraToolBar editor={replyEditor} class="mb-1 overflow-y-auto text-sm" />
+                                                                            {/if}
+                                                                            <EdraEditor
+                                                                                bind:editor={replyEditor}
+                                                                                content={replyContent}
+                                                                                class="min-h-[80px]  h-min rounded-lg  text-sm"
+                                                                                onUpdate={onReplyEditorUpdate}
+                                                                                placeholder="Yanıtınızı yazın..."
+                                                                            />
+                                                                        </div>
+                                                                    {/key}
+                                                                    <div class="flex justify-end gap-2 mt-2">
+                                                                        <Button
+                                                                            variant="ghost"
+                                                                            size="sm"
+                                                                            onclick={() => { replyingTo = null; replyContent = null; if (replyEditor) replyEditor.commands.setContent(''); replyEditor = null; }}
+                                                                        >
+                                                                            İptal
+                                                                        </Button>
+                                                                        <Button
+                                                                            size="sm"
+                                                                            onclick={() => postReply(reply.id)}
+                                                                            disabled={isCommentEmpty(replyContent)}
+                                                                        >
+                                                                            Yanıtla
+                                                                        </Button>
+                                                                    </div>
+                                                                </div>
+                                                            {/if}
+
+                                                            {#if reply.replies && reply.replies.length > 0}
+                                                                <div class="mt-3 ml-4 space-y-3 border-l pl-3">
+                                                                    {#each reply.replies as nested (nested.id)}
+                                                                        <ContextMenu.Root>
+                                                                        <ContextMenu.Trigger asChild>
+                                                                        <div class="flex items-start gap-3" id={`comment-${nested.id}`}>
+                                                                            <div class="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+                                                                                <User class="w-3 h-3" />
+                                                                            </div>
+                                                                            <div class="flex-1">
+                                                                                <div class="flex items-center gap-2 mb-1">
+                                                                                    <span class="font-medium text-xs">
+                                                                                        {nested.author?.name && nested.author?.surname 
+                                                                                            ? `${nested.author.name} ${nested.author.surname}`
+                                                                                            : nested.author?.nickname || 'Anonim'}
+                                                                                    </span>
+                                                                                    <span class="text-xs text-muted-foreground">{formatTimeAgo(nested.createdAt)}</span>
+                                                                                </div>
+                                                                                <div class="text-xs mb-2">
+                                                                                            <EdraEditor content={nested.content} editable={false} />
+                                                                                </div>
+                                                                                <div class="flex items-center gap-2">
+                                                                                    <Button
+                                                                                        variant="ghost"
+                                                                                        size="sm"
+                                                                                        class="h-6 gap-1"
+                                                                                        onclick={() => toggleCommentReaction(nested.id, 'like', true, reply.id)}
+                                                                                    >
+                                                                                        <ThumbsUp class="w-2 h-2" />
+                                                                                        <span class="text-xs">{formatNumber(nested.likes || 0)}</span>
+                                                                                    </Button>
+                                                                                    <Button
+                                                                                        variant="ghost"
+                                                                                        size="sm"
+                                                                                        class="h-6 gap-1"
+                                                                                        onclick={() => toggleCommentReaction(nested.id, 'dislike', true, reply.id)}
+                                                                                    >
+                                                                                        <ThumbsDown class="w-2 h-2" />
+                                                                                        <span class="text-xs">{formatNumber(nested.dislikes || 0)}</span>
+                                                                                    </Button>
+                                                                                </div>
+                                                                            </div>
+                                                                        </div>
+                                                                        </ContextMenu.Trigger>
+                                                                        <ContextMenu.Content class="w-56">
+                                                                            <ContextMenu.Item onclick={() => reportComment(nested.id)}>Bildir</ContextMenu.Item>
+                                                                            {#if isCommentOwner(nested)}
+                                                                                <ContextMenu.Separator />
+                                                                                <ContextMenu.Item onclick={() => editComment(nested.id)}>Düzenle</ContextMenu.Item>
+                                                                                <ContextMenu.Item onclick={() => deleteComment(nested.id)}>Sil</ContextMenu.Item>
+                                                                                {#if nested.hidden}
+                                                                                    <ContextMenu.Item onclick={() => hideComment(nested.id)}>Göster</ContextMenu.Item>
+                                                                                {:else}
+                                                                                    <ContextMenu.Item onclick={() => hideComment(nested.id)}>Gizle</ContextMenu.Item>
+                                                                                {/if}
+                                                                            {/if}
+                                                                        </ContextMenu.Content>
+                                                                        </ContextMenu.Root>
+                                                                    {/each}
+                                                                </div>
+                                                            {/if}
                                                         </div>
                                                     </div>
+                                                    </ContextMenu.Trigger>
+                                                    <ContextMenu.Content class="w-56">
+                                                        <ContextMenu.Item onclick={() => reportComment(reply.id)}>Bildir</ContextMenu.Item>
+                                                        {#if isCommentOwner(reply)}
+                                                            <ContextMenu.Separator />
+                                                            <ContextMenu.Item onclick={() => editComment(reply.id)}>Düzenle</ContextMenu.Item>
+                                                            <ContextMenu.Item onclick={() => deleteComment(reply.id)}>Sil</ContextMenu.Item>
+                                                            {#if reply.hidden}
+                                                                <ContextMenu.Item onclick={() => hideComment(reply.id)}>Göster</ContextMenu.Item>
+                                                            {:else}
+                                                                <ContextMenu.Item onclick={() => hideComment(reply.id)}>Gizle</ContextMenu.Item>
+                                                            {/if}
+                                                        {/if}
+                                                    </ContextMenu.Content>
+                                                    </ContextMenu.Root>
                                                 {/each}
                                             </div>
                                         {/if}
                                     </div>
                                 </div>
                             </div>
+                            </ContextMenu.Trigger>
+                            <ContextMenu.Content class="w-56">
+                                <ContextMenu.Item onclick={() => reportComment(comment.id)}>Bildir</ContextMenu.Item>
+                                {#if isCommentOwner(comment)}
+                                    <ContextMenu.Separator />
+                                    <ContextMenu.Item onclick={() => editComment(comment.id)}>Düzenle</ContextMenu.Item>
+                                    <ContextMenu.Item onclick={() => deleteComment(comment.id)}>Sil</ContextMenu.Item>
+                                    {#if comment.hidden}
+                                        <ContextMenu.Item onclick={() => hideComment(comment.id)}>Göster</ContextMenu.Item>
+                                    {:else}
+                                        <ContextMenu.Item onclick={() => hideComment(comment.id)}>Gizle</ContextMenu.Item>
+                                    {/if}
+                                {/if}
+                            </ContextMenu.Content>
+                            </ContextMenu.Root>
                         {/each}
                     {/if}
                 </div>
@@ -680,4 +1121,49 @@ import Lens from "$lib/components/Lens.svelte";
     {/if}
 </main>
 </div>
+
+<!-- Alert Dialogs -->
+<AlertDialog.Root bind:open={showDeleteDialog}>
+    <AlertDialog.Content>
+        <AlertDialog.Header>
+            <AlertDialog.Title>
+                {dialogType === 'article' ? 'Makaleyi Sil' : 'Yorumu Sil'}
+            </AlertDialog.Title>
+            <AlertDialog.Description>
+                {dialogType === 'article'
+                    ? 'Bu makaleyi silmek istediğinizden emin misiniz? Bu işlem geri alınamaz.'
+                    : 'Bu yorumu silmek istediğinizden emin misiniz? Bu işlem geri alınamaz.'}
+            </AlertDialog.Description>
+        </AlertDialog.Header>
+        <AlertDialog.Footer>
+            <AlertDialog.Cancel>İptal</AlertDialog.Cancel>
+            <AlertDialog.Action onclick={confirmDelete} class="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                Sil
+            </AlertDialog.Action>
+        </AlertDialog.Footer>
+    </AlertDialog.Content>
+</AlertDialog.Root>
+
+<AlertDialog.Root bind:open={showHideDialog}>
+    <AlertDialog.Content>
+        <AlertDialog.Header>
+            <AlertDialog.Title>
+                {selectedArticle?.hidden || selectedComment?.hidden ? 'Göster' : 'Gizle'}
+                {dialogType === 'article' ? ' Makaleyi' : ' Yorumu'}
+            </AlertDialog.Title>
+            <AlertDialog.Description>
+                {selectedArticle?.hidden || selectedComment?.hidden
+                    ? `Bu ${dialogType === 'article' ? 'makaleyi' : 'yorumu'} göstermek istediğinizden emin misiniz?`
+                    : `Bu ${dialogType === 'article' ? 'makaleyi' : 'yorumu'} gizlemek istediğinizden emin misiniz? ${dialogType === 'article' ? 'Makale' : 'Yorum'} diğer kullanıcılar tarafından görülemeyecek.`}
+            </AlertDialog.Description>
+        </AlertDialog.Header>
+        <AlertDialog.Footer>
+            <AlertDialog.Cancel>İptal</AlertDialog.Cancel>
+            <AlertDialog.Action onclick={confirmHide}>
+                {selectedArticle?.hidden || selectedComment?.hidden ? 'Göster' : 'Gizle'}
+            </AlertDialog.Action>
+        </AlertDialog.Footer>
+    </AlertDialog.Content>
+</AlertDialog.Root>
+
 <Footer />

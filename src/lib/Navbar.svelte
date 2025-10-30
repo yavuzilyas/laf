@@ -5,18 +5,21 @@
   import { showToast, persistToast } from "$lib/hooks/toast";
 import SettingsDialog from "$lib/components/settings-dialog.svelte";
 import NotificationDialog from "$lib/components/NotificationDialog.svelte";
-    import { HammerIcon, ShieldCheckIcon, BlocksIcon } from 'svelte-animate-icons';
 
-    import {HandCoins, BadgeInfo, Construction, Cog, LogIn, UserCircleIcon, LayoutGridIcon, TrashIcon, BellIcon,LogOutIcon, LogInIcon, UserRound } from "@lucide/svelte";
+    import {HandCoins, BadgeInfo, Cog, BellIcon,LogOutIcon, LogInIcon, UserRound } from "@lucide/svelte";
   import logo from '$lib/assets/laf1.svg';
       import { t, tJoin, tMany, dativeSuffix } from '$lib/stores/i18n.svelte.ts';
   import { page } from "$app/stores";
   import {
     notifications as notificationsStore,
     unreadCount as unreadCountStore,
+    blockedActorIds as blockedActorIdsStore,
     fetchNotifications,
     markNotificationsRead,
     markAllNotificationsRead,
+    deleteNotification,
+    blockUserNotifications,
+    unblockUserNotifications,
     goToNotificationLink
   } from '$lib/stores/notifications';
   import type { NotificationRecord } from '$lib/types/notification';
@@ -43,6 +46,7 @@ import NotificationDialog from "$lib/components/NotificationDialog.svelte";
   // Reaktif logged-in items - dil değiştiğinde otomatik güncellenir
   let notificationsList = $state<NotificationRecord[]>([]);
   let unreadTotal = $state(0);
+  let blockedIds = $state<string[]>([]);
   let showNotificationsDialog = $state(false);
 
   $effect(() => {
@@ -55,6 +59,13 @@ import NotificationDialog from "$lib/components/NotificationDialog.svelte";
   $effect(() => {
     const unsubscribe = unreadCountStore.subscribe((value) => {
       unreadTotal = value;
+    });
+    return () => unsubscribe();
+  });
+
+  $effect(() => {
+    const unsubscribe = blockedActorIdsStore.subscribe((value) => {
+      blockedIds = value;
     });
     return () => unsubscribe();
   });
@@ -77,6 +88,27 @@ import NotificationDialog from "$lib/components/NotificationDialog.svelte";
     }
 
     showNotificationsDialog = false;
+  }
+
+  async function handleNotificationDelete(event: CustomEvent<{ notification: NotificationRecord }>) {
+    const notification = event.detail.notification;
+    if (!notification) return;
+
+    await deleteNotification(notification.id);
+  }
+
+  async function handleNotificationBlock(event: CustomEvent<{ notification: NotificationRecord }>) {
+    const notification = event.detail.notification;
+    if (!notification || !notification.actor?.id) return;
+
+    await blockUserNotifications(notification.actor.id);
+  }
+
+  async function handleNotificationUnblock(event: CustomEvent<{ notification: NotificationRecord }>) {
+    const notification = event.detail.notification;
+    if (!notification || !notification.actor?.id) return;
+
+    await unblockUserNotifications(notification.actor.id);
   }
 
   async function handleMarkAllNotifications() {
@@ -124,12 +156,17 @@ import HammerLottie from "$lib/components/hammerIcon.svelte";
   bind:open={showNotificationsDialog}
   notifications={notificationsList}
   unreadCount={unreadTotal}
+  blockedActorIds={blockedIds}
   on:select={handleNotificationSelect}
   on:markAll={handleMarkAllNotifications}
+  on:delete={handleNotificationDelete}
+  on:block={handleNotificationBlock}
+  on:unblock={handleNotificationUnblock}
 />
 
-<nav class="w-full sticky top-0 z-40 bg-background text-secondary-foreground border-b-1">
-  <div class="max-w-7xl mx-auto  py-0 sm:py-1 px-4 sm:px-6 lg:px-8">
+<nav class="w-full fixed border-b top-0 z-45 text-secondary-foreground  rounded-xl">
+    <div class="absolute -z-1 inset-0 bg-background/44 backdrop-blur-sm"></div>
+  <div class="max-w-7xl mx-auto  py-0 sm:pt-1 sm:pb-1.5 px-4 sm:px-6 lg:px-8">
     <div class="flex items-center justify-between">
       <Tooltip.Provider>
  <Tooltip.Root>
@@ -149,7 +186,7 @@ import HammerLottie from "$lib/components/hammerIcon.svelte";
             <Tooltip.Provider>
   <Tooltip.Root>
     <Tooltip.Trigger>
-      <a href={item.href} class="text-secondary-foreground/75 group flex items-center gap-0.5 font-bold cursor-pointer"><HammerLottie />{item.name}
+      <a href={item.href} class="text-shadow-xs text-shadow-background/44 text-secondary-foreground/75 group flex items-center gap-0.5 font-bold cursor-pointer"><HammerLottie />{item.name}
       </a>
       </Tooltip.Trigger>
     <Tooltip.Content class="align-center text-center flex items-center gap-1.5">
@@ -163,7 +200,7 @@ import HammerLottie from "$lib/components/hammerIcon.svelte";
             <Tooltip.Provider>
   <Tooltip.Root>
     <Tooltip.Trigger>
-<a href={item.href} class="group flex items-center font-bold cursor-pointer">
+<a href={item.href} class="group text-shadow-xs text-shadow-background/44 flex items-center font-bold cursor-pointer">
   {item.name} 
 </a>
 </Tooltip.Trigger>
@@ -184,3 +221,5 @@ import HammerLottie from "$lib/components/hammerIcon.svelte";
     </div>
   </div>
 </nav> 
+
+<div class="relative h-8.5 sm:h-7"></div>    

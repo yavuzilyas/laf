@@ -6,7 +6,7 @@
 	import { cn } from '$lib/utils.js';
 
 	interface Props {
-		editor: Editor;
+		editor: Editor | undefined | null;
 		command: EdraToolBarCommands;
 	}
 

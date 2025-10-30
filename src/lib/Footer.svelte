@@ -25,7 +25,7 @@
         </Tooltip.Provider>
           </div>
 
-          <p class="font-semibold italic  sm:max-w-full text-[0.7rem] sm:text-sm text-hard-primary">{t('FooterQuote-1')}<br>{t('FooterQuote-2')}</p>
+          <p class="font-semibold sm:max-w-full text-[0.7rem] sm:text-sm text-hard-primary">{t('FooterQuote-1')}<br>{t('FooterQuote-2')}</p>
         </div>
   </div>
 </footer>

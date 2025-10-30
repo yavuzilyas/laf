@@ -4,21 +4,54 @@ import { ObjectId } from 'mongodb';
 import { getCommentsCollection, getArticlesCollection } from '$db/mongo';
 import { notifyArticleComment, notifyCommentReply } from '$lib/server/notifications';
 
-export async function GET({ params }) {
+export async function GET({ params, locals }) {
   const comments = await getCommentsCollection();
-  const list = await comments
-    .find({ articleId: new ObjectId(params.id), parentId: { $exists: false } })
-    .sort({ createdAt: -1 } as any)
-    .toArray();
-  
-  // Get replies for each comment
-  const normalized = await Promise.all(list.map(async (c: any) => {
+  const user = (locals as any)?.user;
+
+  async function loadReplies(parentId: string): Promise<any[]> {
     const replies = await comments
-      .find({ parentId: c._id })
+      .find({
+        parentId: new ObjectId(parentId),
+        deletedAt: { $exists: false },
+        $or: [
+          { hidden: { $ne: true } },  // Diğer kullanıcıların gizli yorumları
+          { userId: user ? new ObjectId(user.id) : null }  // Kullanıcının kendi yorumları
+        ]
+      })
       .sort({ createdAt: 1 } as any)
       .toArray();
-    
-    return {
+
+    const nested = await Promise.all(
+      replies.map(async (r: any) => ({
+        id: r._id.toString(),
+        userId: r.userId?.toString?.() || r.userId,
+        content: r.content,
+        createdAt: r.createdAt?.toISOString?.() || r.createdAt,
+        author: r.author || null,
+        likes: r.likes || 0,
+        dislikes: r.dislikes || 0,
+        replies: await loadReplies(r._id.toString())
+      }))
+    );
+
+    return nested;
+  }
+
+  const list = await comments
+    .find({
+      articleId: new ObjectId(params.id),
+      parentId: { $exists: false },
+      deletedAt: { $exists: false },
+      $or: [
+        { hidden: { $ne: true } },  // Diğer kullanıcıların gizli yorumları
+        { userId: user ? new ObjectId(user.id) : null }  // Kullanıcının kendi yorumları
+      ]
+    })
+    .sort({ createdAt: -1 } as any)
+    .toArray();
+
+  const normalized = await Promise.all(
+    list.map(async (c: any) => ({
       id: c._id.toString(),
       userId: c.userId?.toString?.() || c.userId,
       content: c.content,
@@ -26,18 +59,10 @@ export async function GET({ params }) {
       author: c.author || null,
       likes: c.likes || 0,
       dislikes: c.dislikes || 0,
-      replies: replies.map((r: any) => ({
-        id: r._id.toString(),
-        userId: r.userId?.toString?.() || r.userId,
-        content: r.content,
-        createdAt: r.createdAt?.toISOString?.() || r.createdAt,
-        author: r.author || null,
-        likes: r.likes || 0,
-        dislikes: r.dislikes || 0
-      }))
-    };
-  }));
-  
+      replies: await loadReplies(c._id.toString())
+    }))
+  );
+
   return json(normalized);
 }
 
@@ -46,10 +71,10 @@ export async function POST({ params, request, locals }) {
   if (!user) return json({ error: 'Unauthorized' }, { status: 401 });
 
   const body = await request.json();
-  const content = (body?.content || '').toString().trim();
+  const content = body?.content;
   const parentId = body?.parentId;
   
-  if (!content) return json({ error: 'Empty' }, { status: 400 });
+  if (content === undefined || content === null) return json({ error: 'Empty' }, { status: 400 });
 
   const comments = await getCommentsCollection();
   const articles = await getArticlesCollection();

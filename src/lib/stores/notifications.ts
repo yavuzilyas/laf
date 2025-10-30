@@ -1,11 +1,12 @@
 import { browser } from '$app/environment';
 import { goto } from '$app/navigation';
-import { derived, writable } from 'svelte/store';
+import { derived, writable, type Writable } from 'svelte/store';
 import { showToast } from '$lib/hooks/toast';
 import type { NotificationRecord } from '$lib/types/notification';
 
-const notificationsStore = writable<NotificationRecord[]>([]);
-const unreadCountStore = writable(0);
+const notificationsStore: Writable<NotificationRecord[]> = writable<NotificationRecord[]>([]);
+const unreadCountStore: Writable<number> = writable(0);
+const blockedActorIdsStore: Writable<string[]> = writable<string[]>([]);
 
 let watcherStarted = false;
 let isInitialLoad = true;
@@ -16,7 +17,8 @@ export const notifications = {
 	subscribe: notificationsStore.subscribe
 };
 
-export const unreadCount = derived(unreadCountStore, ($value) => $value);
+export const unreadCount = derived(unreadCountStore, ($value: number) => $value);
+export const blockedActorIds = derived(blockedActorIdsStore, ($value: string[]) => $value);
 
 export async function fetchNotifications(): Promise<void> {
 	if (!browser) return;
@@ -34,9 +36,11 @@ export async function fetchNotifications(): Promise<void> {
 		const payload = await res.json();
 		const items: NotificationRecord[] = payload?.data ?? [];
 		const unread = payload?.unreadCount ?? 0;
+		const blocked: string[] = Array.isArray(payload?.blockedActorIds) ? payload.blockedActorIds : [];
 
 		notificationsStore.set(items);
 		unreadCountStore.set(unread);
+		blockedActorIdsStore.set(blocked);
 
 		const nextIds = new Set(items.map((i) => i.id));
 
@@ -77,8 +81,8 @@ export async function markNotificationsRead(ids: string[]): Promise<void> {
 		const unread = payload?.unreadCount ?? 0;
 		unreadCountStore.set(unread);
 
-		notificationsStore.update((items) =>
-			items.map((item) =>
+		notificationsStore.update((items: NotificationRecord[]) =>
+			items.map((item: NotificationRecord) =>
 				ids.includes(item.id)
 					? { ...item, read: true, readAt: item.readAt ?? new Date().toISOString() }
 					: item
@@ -90,9 +94,118 @@ export async function markNotificationsRead(ids: string[]): Promise<void> {
 }
 
 export async function markAllNotificationsRead(): Promise<void> {
-	const current = getCurrentNotifications();
-	const unreadIds = current.filter((item) => !item.read).map((item) => item.id);
-	await markNotificationsRead(unreadIds);
+	if (!browser) return;
+
+	try {
+		const res = await fetch('/api/notifications', {
+			method: 'PUT',
+			headers: { 'Content-Type': 'application/json' },
+			credentials: 'include',
+			body: JSON.stringify({ action: 'markAllRead' })
+		});
+
+		if (!res.ok) {
+			console.error('Failed to mark all notifications as read', res.status);
+			return;
+		}
+
+		const payload = await res.json();
+		const unread = payload?.unreadCount ?? 0;
+		unreadCountStore.set(unread);
+
+		// Update local store
+		notificationsStore.update((items: NotificationRecord[]) =>
+			items.map((item: NotificationRecord) => ({ ...item, read: true, readAt: new Date().toISOString() }))
+		);
+	} catch (error) {
+		console.error('Failed to mark all notifications as read', error);
+	}
+}
+
+export async function deleteNotification(notificationId: string): Promise<void> {
+	if (!browser || !notificationId) return;
+
+	try {
+		const res = await fetch('/api/notifications', {
+			method: 'PUT',
+			headers: { 'Content-Type': 'application/json' },
+			credentials: 'include',
+			body: JSON.stringify({ action: 'delete', notificationId })
+		});
+
+		if (!res.ok) {
+			console.error('Failed to delete notification', res.status);
+			return;
+		}
+
+		const payload = await res.json();
+		const unread = payload?.unreadCount ?? 0;
+		unreadCountStore.set(unread);
+
+		// Update local store
+		notificationsStore.update((items: NotificationRecord[]) =>
+			items.filter((item: NotificationRecord) => item.id !== notificationId)
+		);
+	} catch (error) {
+		console.error('Failed to delete notification', error);
+	}
+}
+
+export async function blockUserNotifications(actorId: string): Promise<void> {
+	if (!browser || !actorId) return;
+
+	try {
+		const res = await fetch('/api/notifications', {
+			method: 'PUT',
+			headers: { 'Content-Type': 'application/json' },
+			credentials: 'include',
+			body: JSON.stringify({ action: 'blockUser', actorId })
+		});
+
+		if (!res.ok) {
+			console.error('Failed to block user notifications', res.status);
+			return;
+		}
+
+		const payload = await res.json();
+		const unread = payload?.unreadCount ?? 0;
+		unreadCountStore.set(unread);
+
+		// Update local store - remove all notifications from this user
+		notificationsStore.update((items: NotificationRecord[]) =>
+			items.filter((item: NotificationRecord) => item.actor?.id !== actorId)
+		);
+
+		blockedActorIdsStore.update((ids: string[]) => (ids.includes(actorId) ? ids : ids.concat(actorId)));
+	} catch (error) {
+		console.error('Failed to block user notifications', error);
+	}
+}
+
+export async function unblockUserNotifications(actorId: string): Promise<void> {
+	if (!browser || !actorId) return;
+
+	try {
+		const res = await fetch('/api/notifications', {
+			method: 'PUT',
+			headers: { 'Content-Type': 'application/json' },
+			credentials: 'include',
+			body: JSON.stringify({ action: 'unblockUser', actorId })
+		});
+
+		if (!res.ok) {
+			console.error('Failed to unblock user notifications', res.status);
+			return;
+		}
+
+		const payload = await res.json();
+		const unread = payload?.unreadCount ?? 0;
+		unreadCountStore.set(unread);
+
+		blockedActorIdsStore.update((ids: string[]) => ids.filter((id) => id !== actorId));
+	} catch (error) {
+		console.error('Failed to unblock user notifications', error);
+	}
 }
 
 export function startNotificationsWatcher(): void {

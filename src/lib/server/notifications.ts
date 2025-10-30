@@ -9,6 +9,14 @@ export interface NotificationActor {
 	name?: string | null;
 }
 
+async function isActorBlocked(userId: ObjectId | string, actorId: ObjectId | string | null | undefined): Promise<boolean> {
+  if (!actorId) return false;
+  const notifications = await getNotificationsCollection();
+  const blockedCol = notifications.db.collection('blockedUsers');
+  const doc = await blockedCol.findOne({ userId: toObjectId(userId), blockedActorIds: typeof actorId === 'string' ? actorId : actorId.toHexString() });
+  return !!doc;
+}
+
 async function getUserName(userId: ObjectId | string): Promise<string | null> {
   const users = await getUsersCollection();
   const doc = await users.findOne({ _id: toObjectId(userId) }, { projection: { nickname: 1, name: 1, surname: 1 } });
@@ -59,6 +67,7 @@ export async function notifyArticleComment(params: { articleId: string | ObjectI
   if (!articleAuthorId) return;
   const targetId = toObjectId(articleAuthorId);
   if (targetId.equals(toObjectId(commenterId))) return;
+  if (await isActorBlocked(targetId, commenterId)) return;
   const articleIdStr = toIdString(articleId);
   const commentIdStr = toIdString(commentId);
   if (!articleIdStr || !commentIdStr) return;
@@ -90,6 +99,7 @@ export async function notifyCommentReply(params: { parentCommentId: string | Obj
   const parent = await comments.findOne({ _id: toObjectId(parentCommentId) }, { projection: { userId: 1 } });
   if (!parent?.userId) return;
   if (toObjectId(parent.userId).equals(toObjectId(replierId))) return;
+  if (await isActorBlocked(parent.userId, replierId)) return;
   const articleIdStr = toIdString(articleId);
   const commentIdStr = toIdString(commentId);
   const parentIdStr = toIdString(parentCommentId);
@@ -125,27 +135,67 @@ export async function notifyArticleLike(params: { articleId: string | ObjectId; 
   );
   if (!article?.authorId) return;
   if (toObjectId(article.authorId).equals(toObjectId(likerId))) return;
+  if (await isActorBlocked(article.authorId, likerId)) return;
   const articleIdStr = toIdString(articleId);
   if (!articleIdStr) return;
   const articleSlugValue = articleSlug ?? slugFromArticleDoc(article) ?? articleIdStr;
-  const actorName = await getUserName(likerId);
-  const title = actorName ? `${actorName} makaleni beğendi` : `Bir kullanıcı makaleni beğendi`;
-  const message = article?.title ? `${article.title} makalene yeni bir beğeni geldi.` : `Makalene yeni bir beğeni geldi.`;
-  await createNotification({
-    userId: article.authorId,
+  const notifications = await getNotificationsCollection();
+  const userId = toObjectId(article.authorId);
+  const likerIdStr = toObjectId(likerId).toHexString();
+
+  // Find existing like notification for this article
+  const existing = await notifications.findOne({
+    userId,
     type: 'like',
-    title,
-    message,
-    link: `/article/${articleSlugValue}`,
-    actor: {
-      id: toObjectId(likerId).toHexString(),
-      name: actorName,
-    },
-    meta: {
-      articleId: articleIdStr,
-      articleSlug: articleSlugValue,
-    },
+    'meta.articleId': articleIdStr,
+    'meta.kind': 'article-like',
   });
+
+  let likerIds: string[] = [];
+  if (existing?.meta?.likerIds && Array.isArray(existing.meta.likerIds)) {
+    likerIds = existing.meta.likerIds as string[];
+  }
+  if (!likerIds.includes(likerIdStr)) likerIds.push(likerIdStr);
+
+  // Prepare title based on count
+  const count = likerIds.length;
+  const firstName = await getUserName(likerIds[0]);
+  let secondName: string | null = null;
+  if (count > 1) secondName = await getUserName(likerIds[1]);
+
+  let title: string;
+  if (count === 1) {
+    title = (firstName ?? 'Bir kullanıcı') + ' makaleni beğendi';
+  } else if (count === 2) {
+    title = `${firstName ?? 'Bir kullanıcı'} ve ${secondName ?? 'bir başkası'} makaleni beğendi`;
+  } else {
+    title = `${firstName ?? 'Bir kullanıcı'} ve diğer ${count - 1} kişi makaleni beğendi`;
+  }
+
+  const message = article?.title ? `${article.title} makalene beğeni var.` : `Makalene beğeni var.`;
+
+  await notifications.updateOne(
+    { userId, type: 'like', 'meta.articleId': articleIdStr, 'meta.kind': 'article-like' },
+    {
+      $set: {
+        title,
+        message,
+        link: `/article/${articleSlugValue}`,
+        actor: { id: likerIdStr, name: await getUserName(likerId) },
+        meta: {
+          kind: 'article-like',
+          articleId: articleIdStr,
+          articleSlug: articleSlugValue,
+          likerIds,
+          count,
+        },
+        read: false,
+        createdAt: new Date(),
+        readAt: null,
+      },
+    },
+    { upsert: true }
+  );
 }
 
 export async function notifyCommentLike(params: { commentId: string | ObjectId; likerId: string | ObjectId; articleId: string | ObjectId; articleSlug?: string | null }) {
@@ -154,28 +204,66 @@ export async function notifyCommentLike(params: { commentId: string | ObjectId; 
   const comment = await comments.findOne({ _id: toObjectId(commentId) }, { projection: { userId: 1 } });
   if (!comment?.userId) return;
   if (toObjectId(comment.userId).equals(toObjectId(likerId))) return;
+  if (await isActorBlocked(comment.userId, likerId)) return;
   const commentIdStr = toIdString(commentId);
   const articleIdStr = toIdString(articleId);
   if (!commentIdStr || !articleIdStr) return;
   const articleSlugValue = articleSlug ?? (await resolveArticleSlug(articleId)) ?? articleIdStr;
-  const actorName = await getUserName(likerId);
-  const title = actorName ? `${actorName} yorumunu beğendi` : `Bir kullanıcı yorumunu beğendi`;
-  await createNotification({
-    userId: comment.userId,
+
+  const notifications = await getNotificationsCollection();
+  const userId = toObjectId(comment.userId);
+  const likerIdStr = toObjectId(likerId).toHexString();
+
+  const existing = await notifications.findOne({
+    userId,
     type: 'like',
-    title,
-    message: `Yorumuna yeni bir beğeni geldi.`,
-    link: `/article/${articleSlugValue}#comment-${commentIdStr}`,
-    actor: {
-      id: toObjectId(likerId).toHexString(),
-      name: actorName,
-    },
-    meta: {
-      commentId: commentIdStr,
-      articleId: articleIdStr,
-      articleSlug: articleSlugValue,
-    },
+    'meta.commentId': commentIdStr,
+    'meta.kind': 'comment-like',
   });
+
+  let likerIds: string[] = [];
+  if (existing?.meta?.likerIds && Array.isArray(existing.meta.likerIds)) {
+    likerIds = existing.meta.likerIds as string[];
+  }
+  if (!likerIds.includes(likerIdStr)) likerIds.push(likerIdStr);
+
+  const count = likerIds.length;
+  const firstName = await getUserName(likerIds[0]);
+  let secondName: string | null = null;
+  if (count > 1) secondName = await getUserName(likerIds[1]);
+
+  let title: string;
+  if (count === 1) {
+    title = (firstName ?? 'Bir kullanıcı') + ' yorumunu beğendi';
+  } else if (count === 2) {
+    title = `${firstName ?? 'Bir kullanıcı'} ve ${secondName ?? 'bir başkası'} yorumunu beğendi`;
+  } else {
+    title = `${firstName ?? 'Bir kullanıcı'} ve diğer ${count - 1} kişi yorumunu beğendi`;
+  }
+
+  await notifications.updateOne(
+    { userId, type: 'like', 'meta.commentId': commentIdStr, 'meta.kind': 'comment-like' },
+    {
+      $set: {
+        title,
+        message: `Yorumuna beğeni var.`,
+        link: `/article/${articleSlugValue}#comment-${commentIdStr}`,
+        actor: { id: likerIdStr, name: await getUserName(likerId) },
+        meta: {
+          kind: 'comment-like',
+          commentId: commentIdStr,
+          articleId: articleIdStr,
+          articleSlug: articleSlugValue,
+          likerIds,
+          count,
+        },
+        read: false,
+        createdAt: new Date(),
+        readAt: null,
+      },
+    },
+    { upsert: true }
+  );
 }
 
 export interface NotificationMeta {

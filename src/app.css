@@ -1,7 +1,6 @@
 @import "tailwindcss";
 
 @import "tw-animate-css";
-
 @custom-variant dark (&:is(.dark *));
 .theme-transition {
   transition-property: background-color, color, border-color, fill, stroke;

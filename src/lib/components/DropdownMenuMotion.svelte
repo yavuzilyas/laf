@@ -7,7 +7,6 @@
   import {UserRound }from "@lucide/svelte";
   import SunIcon from "@lucide/svelte/icons/sun";
   import MoonIcon from "@lucide/svelte/icons/moon";
- 
   import { toggleMode } from "mode-watcher";
   import { Button } from "$lib/components/ui/button/index.js";
   import LanguageSelector from "./LanguageSelector.svelte";
@@ -82,7 +81,7 @@ function handleItemClick(item: any) {
 </script>
 
 <!-- NAV'i relative yaptık: absolute olan ul buna göre hizalanır -->
-<nav class={cn("relative max-w-fit w-min mx-auto  z-50")}> 
+<nav class={cn("relative max-w-fit w-min mx-auto  z-50 ")}> 
   <Motion whileTap={{ scale: 0.97 }} let:motion>
     <button
       use:motion
@@ -91,7 +90,7 @@ function handleItemClick(item: any) {
     >
       <div style="transform-origin: 50% 55%;">
         <Motion animate={svgControls} let:motion>
-          <Menu class=" scale-110 cursor-pointer md:scale-100 text-primary"size={20} strokeWidth={2.25} />
+          <Menu class="cursor-pointer text-primary" size={18} />
         </Motion>
       </div>
     </button>
@@ -103,7 +102,7 @@ function handleItemClick(item: any) {
       <ul
   use:motion
   class={cn(
-    "absolute flex flex-col gap-1.5 right-0 top-full mt-4 sm:mt-3 z-[60] w-fit  px-3.5 py-2 bg-secondary/66 backdrop-blur-md rounded-xl origin-top-right shadow-lg",
+    "absolute flex flex-col gap-1.5 right-0 top-full mt-4 sm:mt-3 z-[60] w-fit  px-3.5 py-2 !bg-background/44  origin-top-right  border !backdrop-blur-sm rounded-xl  ",
     isOpen ? "pointer-events-auto" : "pointer-events-none"
   )}
 >
@@ -121,7 +120,7 @@ function handleItemClick(item: any) {
         <Button  size="xs" variant="outline"
           onclick={() => handleItemClick(item)}
           class={cn(
-            "text-primary hover:text-primary w-full flex items-center justify-between ",
+            "text-primary !bg-background/44 hover:text-primary w-full flex items-center justify-between ",
             item?.customStyle
           )}
         >
@@ -143,7 +142,7 @@ function handleItemClick(item: any) {
         <Button size="xs" variant="outline"
           href={item.href ?? "/"}
           class={cn(
-            "text-primary hover:text-primary w-full flex items-center justify-between gap-2",
+            "text-primary !bg-background/44 hover:text-primary w-full flex items-center justify-between gap-2",
             item?.customStyle
           )}
         >
@@ -173,7 +172,7 @@ function handleItemClick(item: any) {
 <div use:motion class="flex flex-row gap-1">
   <li>
 
-<Button size="xs" class="w-fit h-9 flex flex-row text-xs justify-center gap-2"onclick={toggleMode} variant="outline">
+<Button size="xs" class="w-fit !bg-background/44 h-9 flex flex-row text-xs justify-center gap-2"onclick={toggleMode} variant="outline">
   <SunIcon strokeWidth={2.25}
     class="h-[1.2rem] w-[1.2rem] rotate-0 scale-100 !transition-all text-primary dark:-rotate-90 dark:scale-0"
   />
@@ -185,7 +184,7 @@ function handleItemClick(item: any) {
   </li>
     <li >
 
-<Button size="xs" class="w-fit h-9 flex flex-row text-xs justify-center" onclick={toggle} variant="outline">
+<Button size="xs" class=" !bg-background/44 w-fit h-9 flex flex-row text-xs justify-center" onclick={toggle} variant="outline">
     <Volume2
     class="h-[1.2rem] w-[1.2rem] text-primary transition-all
            {$soundEnabled ? 'scale-100 opacity-100' : 'scale-0 opacity-0 absolute'}"
@@ -198,7 +197,7 @@ function handleItemClick(item: any) {
   </li>
       <li >
 
-<Button size="xs" class="w-fit h-9 flex flex-row text-xs justify-center" onclick={toggleFullscreen} variant="outline">
+<Button size="xs" class=" !bg-background/44 w-fit h-9 flex flex-row text-xs justify-center" onclick={toggleFullscreen} variant="outline">
     <Shrink
     class="h-[1.2rem] w-[1.2rem] text-primary transition-all
            {$isFullscreen ? 'scale-100 opacity-100' : 'scale-0 opacity-0 absolute'}"

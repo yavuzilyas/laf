@@ -1,5 +1,7 @@
 <script lang="ts">
 	import { onDestroy, onMount } from 'svelte';
+	import { nanoid } from 'nanoid';
+	import DragHandle from '../components/DragHandle.svelte';
 	import type { EdraEditorProps } from '../types.js';
 	import initEditor from '../editor.js';
 	import { focusEditor } from '../utils.js';
@@ -39,65 +41,108 @@
 	 * Bind the element to the editor
 	 */
 	let element = $state<HTMLElement>();
+	const editorId = `editor-${nanoid(8)}`;
+	
 	let {
 		editor = $bindable(),
 		editable = true,
 		content,
 		onUpdate,
 		autofocus = false,
-		class: className
-	}: EdraEditorProps = $props();
+		class: className,
+		id = editorId
+	}: EdraEditorProps & { id?: string } = $props();
 
 	onMount(() => {
-		editor = initEditor(
-			element,
-			content,
-			[
-				CodeBlockLowlight.configure({
-					lowlight
-				}).extend({
-					addNodeView() {
-						return SvelteNodeViewRenderer(CodeBlock);
-					}
-				}),
-				ImagePlaceholder(ImagePlaceholderComp),
-				ImageExtended(ImageExtendedComp),
-				VideoPlaceholder(VideoPlaceHolderComp),
-				VideoExtended(VideoExtendedComp),
-				AudioPlaceholder(AudioPlaceHolderComp),
-				AudioExtended(AudioExtendedComp),
-				IFramePlaceholder(IFramePlaceHolderComp),
-				IFrameExtended(IFrameExtendedComp),
-				slashcommand(SlashCommandList)
-			],
-			{
-				onUpdate,
-				onTransaction(props) {
-					editor = undefined;
-					editor = props.editor;
-				},
-				editable,
-				autofocus
+		// Clean up any existing editor with the same ID
+		if (editor && !editor.isDestroyed) {
+			try {
+				editor.destroy();
+			} catch (e) {
+				console.warn('Error cleaning up previous editor instance:', e);
 			}
-		);
+		}
+
+		try {
+			editor = initEditor(
+				element,
+				content,
+				[
+					CodeBlockLowlight.configure({
+						lowlight
+					}).extend({
+						addNodeView() {
+							return SvelteNodeViewRenderer(CodeBlock);
+						}
+					}),
+					ImagePlaceholder(ImagePlaceholderComp),
+					ImageExtended(ImageExtendedComp),
+					VideoPlaceholder(VideoPlaceHolderComp),
+					VideoExtended(VideoExtendedComp),
+					AudioPlaceholder(AudioPlaceHolderComp),
+					AudioExtended(AudioExtendedComp),
+					IFramePlaceholder(IFramePlaceHolderComp),
+					IFrameExtended(IFrameExtendedComp),
+					slashcommand(SlashCommandList)
+				],
+				{
+					onUpdate,
+					onTransaction(props) {
+						editor = undefined;
+						editor = props.editor;
+					},
+					editable,
+					autofocus,
+					editorProps: {
+						attributes: {
+							'data-editor-id': id,
+							class: `edra-editor ${id}`
+						}
+					}
+				}
+			);
+
+			// Store the editor instance in a weak map for cleanup
+			if (typeof window !== 'undefined') {
+				if (!window.__edraEditors) {
+					window.__edraEditors = new WeakMap();
+				}
+				window.__edraEditors.set(element, editor);
+			}
+		} catch (e) {
+			console.error('Error initializing editor:', e);
+		}
 	});
 
 	onDestroy(() => {
-		if (editor) editor.destroy();
+		if (editor && !editor.isDestroyed) {
+			try {
+				editor.destroy();
+			} catch (e) {
+				console.warn('Error destroying editor instance:', e);
+			}
+		}
+
+		// Clean up from window reference if it exists
+		if (typeof window !== 'undefined' && window.__edraEditors && element) {
+			window.__edraEditors.delete(element);
+		}
 	});
 </script>
 
 {#if editor && !editor.isDestroyed}
-	<Link {editor} />
-	<TableCol {editor} />
-	<TableRow {editor} />
+	<Link {editor} {id} />
+	<TableCol {editor} {id} />
+	<TableRow {editor} {id} />
+	<DragHandle {editor} {id} class="drag-handle-component" />
 {/if}
 <div
 	bind:this={element}
 	role="button"
 	tabindex="0"
-	onclick={(event) => focusEditor(editor, event)}
-	onkeydown={(event) => {
+	data-editor-instance={id}
+	on:click|stopPropagation={(event) => focusEditor(editor, event)}
+	on:keydown|stopPropagation={(event) => {
 		if (event.key === 'Enter' || event.key === ' ') {
 			focusEditor(editor, event);
 		}
