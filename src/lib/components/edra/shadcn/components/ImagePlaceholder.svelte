@@ -8,38 +8,65 @@
 	import * as AlertDialog from '$lib/components/ui/alert-dialog/index.js';
 	import Button from '$lib/components/ui/button/button.svelte';
     import { t } from '$lib/stores/i18n.svelte';
+	import { articleEditor } from '$lib/stores/article-editor.svelte.js';
 
 	let fileInput: HTMLInputElement;
 	let dialogOpen = $state(false);
 	let url = $state('');
+	let baseUploadsUrl = $state<string | null>(null);
 
 	function handleClick() {
 		dialogOpen = true;
 	}
 
+	async function uploadFile(file: File) {
+		const maxBytes = 4 * 1024 * 1024;
+		if (file.size > maxBytes) {
+			throw new Error(t('editor.media.fileTooLarge'));
+		}
+
+		const articleId = await articleEditor.ensureArticleId();
+		if (!articleId) {
+			throw new Error('Makale kimliği alınamadı');
+		}
+
+		const fd = new FormData();
+		fd.append('file', file);
+		fd.append('folder', 'photos');
+		fd.append('articleId', articleId);
+		fd.append('type', 'photos');
+
+		if (baseUploadsUrl) {
+			fd.append('previousUrl', baseUploadsUrl);
+		}
+
+		const res = await fetch('/api/upload', { method: 'POST', body: fd });
+		const data = await res.json();
+		if (!res.ok) {
+			throw new Error(data?.error || 'Upload failed');
+		}
+		return data.url as string;
+	}
+
 	function onFileChange(e: Event) {
-  const input = e.target as HTMLInputElement;
-  const file = input.files?.[0];
-  if (!file) return;
-  (async () => {
-    try {
-      const fd = new FormData();
-      fd.append('file', file);
-      fd.append('folder', 'image');
-      const res = await fetch('/api/upload', { method: 'POST', body: fd });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data?.error || 'Upload failed');
-      const urlFromServer = data.url as string;
-      if (!urlFromServer) throw new Error('No URL received');
-      editor.chain().focus().setImage({ src: urlFromServer }).run();
-      dialogOpen = false;
-    } catch (err) {
-      console.error('Image upload error', err);
-    } finally {
-      input.value = '';
-    }
-  })();
-}
+		const input = e.target as HTMLInputElement;
+		const file = input.files?.[0];
+		if (!file) return;
+		(async () => {
+			try {
+				const urlFromServer = await uploadFile(file);
+				if (!urlFromServer) throw new Error('No URL received');
+				editor.chain().focus().setImage({ src: urlFromServer }).run();
+				dialogOpen = false;
+				baseUploadsUrl = urlFromServer;
+			} catch (err) {
+				console.error('Image upload error', err);
+				alert(err instanceof Error ? err.message : 'Upload failed');
+			} finally {
+				input.value = '';
+			}
+		})();
+	}
 
 	function insertFromUrl() {
 		if (!url) return;
@@ -67,20 +94,22 @@
 					<input type="url" bind:value={url} placeholder="https://..." class="w-full border rounded px-3 py-2" />
 					<Button onclick={(e) => { e.stopPropagation(); insertFromUrl(); }} disabled={!url}>{t('editor.media.insertFromUrl')}</Button>
 				</div>
+
 				<div class="flex items-center gap-3">
+
 					<input
+					placeholder={t('editor.media.insertFromFile')}
 						type="file"
 						accept="image/*"
 						onclick={(e) => e.stopPropagation()}
 						onchange={onFileChange}
 						class="block w-full text-sm text-muted-foreground file:mr-3 file:rounded file:border file:bg-secondary file:px-3 file:py-2 file:text-foreground file:hover:bg-secondary/80"
 					/>
-					<span class="text-sm text-muted-foreground">{t('editor.common.or')}</span>
 				</div>
 			</div>
 			<AlertDialog.Footer>
 				<AlertDialog.Cancel>
-					<Button variant="ghost">{t('editor.common.close')}</Button>
+					<Button variant="ghost">{t('Close')}</Button>
 				</AlertDialog.Cancel>
 			</AlertDialog.Footer>
 		</AlertDialog.Content>

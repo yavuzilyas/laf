@@ -5,6 +5,7 @@
   import { Calendar, Clock, User, Eye, MessageCircle, ThumbsUp, ThumbsDown } from "@lucide/svelte";
   import { t } from '$lib/stores/i18n.svelte.ts';
   import Lens from '$lib/components/Lens.svelte';
+  import A from "$lib/components/ui/a.svelte";
   
   interface Article {
     id: string;
@@ -15,7 +16,9 @@
     author: {
       name: string;
       avatar?: string;
+      nickname?: string;
     };
+    authorId?: string;
     publishedAt: string;
     readTime: number;
     category: string;
@@ -129,21 +132,22 @@
       <div class="mt-6 flex items-center justify-between">
         <div class="flex items-center gap-3">
           <div class="flex items-center gap-2">
-            {#if article.author.avatar}
-              <img 
-                src={article.author.avatar} 
-                alt={article.author.name}
-                class="h-8 w-8 rounded-full object-cover"
-              />
-            {:else}
-              <div class="flex h-8 w-8 items-center justify-center rounded-full bg-muted">
-                <User class="h-4 w-4" />
+            <A href={`/${article.author.nickname || article.authorId}`} class="flex items-center gap-2 hover:opacity-80 transition-opacity">
+              {#if article.author.avatar}
+                <img 
+                  src={article.author.avatar} 
+                  alt={article.author.name}
+                  class="h-8 w-8 rounded-full object-cover"
+                />
+              {:else}
+                <div class="flex h-8 w-8 items-center justify-center rounded-full bg-muted">
+                  <User class="h-4 w-4" />
+                </div>
+              {/if}
+              <div class="text-sm">
+                <p class="font-medium">{article.author.name}</p>
               </div>
-            {/if}
-            <div class="text-sm">
-              <p class="font-medium">{article.author.name}</p>
-            </div>
-          </div>
+            </A>
           <div class="flex items-center gap-1 text-xs text-muted-foreground">
             <Clock class="h-3 w-3" />
             <span>{article.readTime} {t('articles.minRead')}</span>
@@ -191,21 +195,22 @@
       
       <div class="flex items-center gap-4">
         <div class="flex items-center gap-2">
-          {#if article.author.avatar}
-            <img 
-              src={article.author.avatar} 
-              alt={article.author.name}
-              class="h-10 w-10 rounded-full object-cover"
-            />
-          {:else}
-            <div class="flex h-10 w-10 items-center justify-center rounded-full bg-muted">
-              <User class="h-4 w-5" />
+          <A href={`/${article.author.nickname || article.authorId}`} class="flex items-center gap-2 hover:opacity-80 transition-opacity">
+            {#if article.author.avatar}
+              <img 
+                src={article.author.avatar} 
+                alt={article.author.name}
+                class="h-10 w-10 rounded-full object-cover"
+              />
+            {:else}
+              <div class="flex h-10 w-10 items-center justify-center rounded-full bg-muted">
+                <User class="h-4 w-5" />
+              </div>
+            {/if}
+            <div class="text-sm">
+              <p class="font-medium">{article.author.name}</p>
             </div>
-          {/if}
-          <div class="text-sm">
-            <p class="font-medium">{article.author.name}</p>
-          </div>
-        </div>
+          </A>
         <div class="flex items-center gap-3 text-xs text-muted-foreground">
           <div class="flex items-center gap-1">
             <Eye class="h-3 w-3" />
@@ -252,7 +257,9 @@
       <div class="flex items-center gap-2">
         <div class="flex items-center gap-1 text-xs text-muted-foreground">
           <User class="h-3 w-3" />
-          <span>{article.author.name}</span>
+          <A href={article.slug ? `/article/${article.slug}` : undefined} class="hover:text-foreground transition-colors">
+            {article.author.name}
+          </A>
         </div>
       </div>
       
@@ -303,13 +310,13 @@
     {#if article.coverImage}
       <div class="relative p-3 sm:p-4 pb-0 overflow-hidden">
         <Lens>
-        <a href={article.slug ? `/article/${article.slug}` : undefined}>
+        <A href={article.slug ? `/article/${article.slug}` : undefined}>
           <img 
             src={article.coverImage} 
             alt={article.title}
             class="aspect-[16/9] rounded-2xl w-full object-cover transition-transform duration-300 "
           />
-        </a>
+        </A>
         </Lens>
 
       </div>
@@ -318,15 +325,15 @@
     <div class="p-3 sm:p-4 space-y-3">
       <div class="flex items-center gap-2 sm:gap-4 text-xs sm:text-sm text-muted-foreground">
         <Badge variant="secondary">
-          {article.category}
+          {t(article.category)}
         </Badge>
 
-        <div class="flex items-center gap-1">
+        <div class="flex text-xs items-center gap-1">
           <Calendar class="h-3 w-3" />
           <time>{formatDate(article.publishedAt)}</time>
         </div>
 
-        <div class="flex items-center gap-1">
+        <div class="flex text-xs items-center gap-1">
           <Clock class="h-3 w-3" />
           <span>{article.readTime} {t('min')}</span>
         </div>
@@ -334,7 +341,7 @@
       
       <div>
         <h2 class="text-sm sm:text-base font-bold leading-tight tracking-tight group-hover:text-primary transition-colors">
-          <a href={article.slug ? `/article/${article.slug}` : undefined}>{article.title}</a>
+          <A href={article.slug ? `/article/${article.slug}` : undefined}>{article.title}</A>
         </h2>
         <p class="mt-2 text-xs sm:text-sm text-muted-foreground">
           {truncateText(article.excerpt, 150)}
@@ -344,21 +351,22 @@
       
       <div class="flex items-center justify-between">
         <div class="flex items-center gap-2">
-          {#if article.author.avatar}
-            <img 
-              src={article.author.avatar} 
-              alt={article.author.name}
-              class="h-10 w-10 rounded-full object-cover"
-            />
-          {:else}
-            <div class="flex h-10 w-10 items-center justify-center rounded-full bg-muted">
-              <User class="h-4 w-5" />
+          <A href={`/${article.author.nickname || article.authorId}`} class="flex items-center gap-2 hover:opacity-80 transition-opacity">
+            {#if article.author.avatar}
+              <img 
+                src={article.author.avatar} 
+                alt={article.author.name}
+                class="h-10 w-10 rounded-full object-cover"
+              />
+            {:else}
+              <div class="flex h-10 w-10 items-center justify-center rounded-full bg-muted">
+                <User class="h-4 w-5" />
+              </div>
+            {/if}
+            <div class="text-xs sm:text-sm">
+              <p class="font-medium">{article.author.name}</p>
             </div>
-          {/if}
-          <div class="text-xs sm:text-sm">
-            <p class="font-medium">{article.author.name}</p>
-          </div>
-        </div>
+          </A>
         
         <div class="flex items-center gap-2 sm:gap-4 text-xs sm:text-sm text-muted-foreground">
           <Tooltip.Provider>

@@ -2,66 +2,80 @@
   import { cn } from "$lib/utils";
   import { Button } from "$lib/components/ui/button";
   import { Popover, PopoverContent, PopoverTrigger } from "$lib/components/ui/popover";
-  import * as Select from "$lib/components/ui/select";
   import { Separator } from "$lib/components/ui/separator";
+  import { ScrollArea } from "$lib/components/ui/scroll-area";
+  import { Switch } from "$lib/components/ui/switch/index.js";
   import DateRangePicker from "$lib/components/DateRangePicker.svelte";
   import { t } from '$lib/stores/i18n.svelte.ts';
-  import { Filter, Calendar, Globe, BookOpen, Tag } from "@lucide/svelte";
+  import { Filter, Calendar, Globe, BookOpen, Users } from "@lucide/svelte";
+  import { CategoryTree } from '$lib/components/ui/category-tree';
+  import { categoryTree } from '$lib/data/categories';
 
   interface FilterOptions {
     languages: { label: string; value: string }[];
     categories: string[];
-    types: string[];
     dateRanges: { label: string; value: string }[];
   }
 
   interface ActiveFilters {
     language?: string;
     category?: string;
-    type?: string;
     dateRange?: string;
     customDateRange?: any; // For DateRangePicker value
+    nickname?: string;
+    onlyFollowing?: boolean;
   }
 
   let {
     options,
     activeFilters = {},
     onFiltersChange,
+    enableFollowingFilter = false,
     class: className,
     ...restProps
   }: {
     options: FilterOptions;
     activeFilters?: ActiveFilters;
     onFiltersChange?: (filters: ActiveFilters) => void;
+    enableFollowingFilter?: boolean;
     class?: string;
   } = $props();
 
-  // Varsayılan olarak tüm filtreler boş (hepsi seçili)
-  let filters = $state<ActiveFilters>({
+  const defaultFilters: ActiveFilters = {
     language: "",
     category: "",
-    type: "",
     dateRange: "",
-    customDateRange: undefined
+    customDateRange: undefined,
+    nickname: "",
+    onlyFollowing: false
+  };
+
+  // Default empty filters
+  let filters = $state<ActiveFilters>({
+    ...defaultFilters,
+    ...activeFilters
   });
+  
+  // Track selected category for the tree
+  let selectedCategory = $state('');
   let open = $state(false);
 
   const clearAllFilters = () => {
-    filters = {
-      language: "",
-      category: "",
-      type: "",
-      dateRange: "",
-      customDateRange: undefined
-    };
+    filters = { ...defaultFilters };
+    selectedCategory = '';
+  };
+  
+  const handleCategorySelect = (category: string) => {
+    selectedCategory = category;
+    filters = { ...filters, category };
   };
 
   const hasActiveFilters = $derived(
     filters.language || 
     filters.category || 
-    filters.type || 
     filters.dateRange ||
-    filters.customDateRange
+    filters.customDateRange ||
+    filters.nickname
   );
 
   const getActiveFilterCount = $derived(
@@ -77,7 +91,7 @@
 <Popover bind:open>
   <PopoverTrigger
     class={cn(
-      "relative h-9 w-9 p-0 inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-bold outline-none transition-all hover:scale-101 active:scale-97 focus-visible:ring-[3px] disabled:pointer-events-none disabled:opacity-50 border bg-background shadow-xs hover:bg-accent hover:text-accent-foreground",
+      "relative h-9 w-9 p-0 inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-xs font-bold outline-none transition-all hover:scale-101 active:scale-97 focus-visible:ring-[3px] disabled:pointer-events-none disabled:opacity-50 border shadow-xs hover:bg-accent hover:text-accent-foreground",
       hasActiveFilters && "border-primary text-primary",
       className
     )}
@@ -91,11 +105,12 @@
     {/if}
   </PopoverTrigger>
   
-  <PopoverContent class="w-80 p-4" align="start">
-    <div class="space-y-4">
+  <PopoverContent class="w-80 p-0" align="start">
+    <ScrollArea class="h-96 p-4">
+      <div class="space-y-4">
       <!-- Header -->
       <div class="flex items-center justify-between">
-        <h4 class="font-semibold text-sm flex items-center gap-2">
+        <h4 class="font-semibold text-xs flex items-center gap-2">
           <Filter class="h-4 w-4" />
           {t('articles.filters.title')}
         </h4>
@@ -126,71 +141,57 @@
         </div>
       </div>
 
-      <!-- Language Filter -->
-      <div class="space-y-2">
-        <label class="text-xs font-medium flex items-center gap-2">
-          <Globe class="h-3 w-3" />
-          {t('articles.filters.language')}
-        </label>
-        <Select.Root 
-          selected={{ value: filters.language, label: filters.language ? options.languages.find(l => l.value === filters.language)?.label : t('articles.filters.allLanguages') }}
-          onSelectedChange={(v) => { if (v) filters.language = v.value; }}
-        >
-          <Select.Trigger class="h-8 text-xs">
-            {filters.language ? options.languages.find(l => l.value === filters.language)?.label : t('articles.filters.allLanguages')}
-          </Select.Trigger>
-          <Select.Content>
-            <Select.Item value="">{t('articles.filters.allLanguages')}</Select.Item>
-            {#each options.languages as language}
-              <Select.Item value={language.value}>{language.label}</Select.Item>
-            {/each}
-          </Select.Content>
-        </Select.Root>
-      </div>
+
 
       <!-- Category Filter -->
-      <div class="space-y-2">
-        <label class="text-xs font-medium flex items-center gap-2">
-          <BookOpen class="h-3 w-3" />
+      <div class="space-y-2 overflow-hidden">
+        <div class="flex items-center gap-2 text-xs font-medium">
+          <BookOpen class="h-4 w-4" />
           {t('articles.filters.category')}
-        </label>
-        <Select.Root 
-          selected={{ value: filters.category, label: filters.category || t('articles.filters.allCategories') }}
-          onSelectedChange={(v) => { if (v) filters.category = v.value; }}
-        >
-          <Select.Trigger class="h-8 text-xs">
-            {filters.category || t('articles.filters.allCategories')}
-          </Select.Trigger>
-          <Select.Content>
-            <Select.Item value="">{t('articles.filters.allCategories')}</Select.Item>
-            {#each options.categories as category}
-              <Select.Item value={category}>{category}</Select.Item>
-            {/each}
-          </Select.Content>
-        </Select.Root>
+        </div>
+
+          <CategoryTree 
+            categories={categoryTree} 
+            selectedCategory={selectedCategory}
+            onSelect={handleCategorySelect}
+          />
+
+
       </div>
 
-      <!-- Type Filter -->
+      <!-- Nickname Filter -->
       <div class="space-y-2">
         <label class="text-xs font-medium flex items-center gap-2">
-          <Tag class="h-3 w-3" />
-          {t('articles.filters.type')}
+          <Users class="h-3 w-3" />
+          {t('articles.filters.nickname') ?? 'Yazar Kullanıcı Adı'}
         </label>
-        <Select.Root 
-          selected={{ value: filters.type, label: filters.type || t('articles.filters.allTypes') }}
-          onSelectedChange={(v) => { if (v) filters.type = v.value; }}
-        >
-          <Select.Trigger class="h-8 text-xs">
-            {filters.type || t('articles.filters.allTypes')}
-          </Select.Trigger>
-          <Select.Content>
-            <Select.Item value="">{t('articles.filters.allTypes')}</Select.Item>
-            {#each options.types as type}
-              <Select.Item value={type}>{type}</Select.Item>
-            {/each}
-          </Select.Content>
-        </Select.Root>
+        <input
+          type="text"
+          placeholder={t('articles.filters.nicknamePlaceholder') ?? 'Kullanıcı adı ara...'}
+          bind:value={filters.nickname}
+          class="w-full px-3 py-2 text-sm border rounded-md focus:outline-none focus:ring-2 focus:ring-primary/20"
+        />
       </div>
-    </div>
+
+      {#if enableFollowingFilter}
+        <Separator />
+        <div class="flex items-center justify-between rounded-md border px-3 py-2">
+          <div class="flex flex-col text-xs font-medium">
+            <span class="flex items-center gap-1">
+              <Users class="h-3.5 w-3.5" />
+              {t('articles.filters.following') ?? 'Takip ettiklerim'}
+            </span>
+            <span class="text-[11px] text-muted-foreground">
+              {t('articles.filters.followingHint') ?? 'Sadece takip ettiğin yazarları göster'}
+            </span>
+          </div>
+          <Switch
+            aria-label={t('articles.filters.following') ?? 'Takip ettiklerim'}
+            bind:checked={filters.onlyFollowing}
+          />
+        </div>
+      {/if}
+      </div>
+    </ScrollArea>
   </PopoverContent>
 </Popover>

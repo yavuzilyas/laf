@@ -6,7 +6,8 @@
     import { Badge } from "$lib/components/ui/badge";
     import { Button } from "$lib/components/ui/button";
     import { Separator } from "$lib/components/ui/separator";
-    import { t } from '$lib/stores/i18n.svelte.ts';
+    import { t, getCurrentLocale } from '$lib/stores/i18n.svelte';
+    import { onMount } from 'svelte';
     import { EdraEditor, EdraToolBar } from '$lib/components/edra/shadcn/index.js';
     import type { Editor } from '@tiptap/core';
     import { 
@@ -37,9 +38,62 @@
         import * as DropdownMenu from "$lib/components/ui/dropdown-menu";
     
     let { data } = $props();
-    let likesCount = $state<number>(data.article?.stats?.likes ?? 0);
-    let dislikesCount = $state<number>(data.article?.stats?.dislikes ?? 0);
+    let likesCount = $state<number>(Number(data.article?.stats?.likes) || 0);
+    let dislikesCount = $state<number>(Number(data.article?.stats?.dislikes) || 0);
     let reaction = $state<'like' | 'dislike' | null>(null);
+    
+    // Get current locale and set up reactive article content
+    let currentLocale = $state(getCurrentLocale());
+    
+    // Define article type with translations
+    interface ArticleTranslation {
+        title: string;
+        content: any;
+        excerpt: string;
+        slug: string;
+        language: string;
+    }
+
+    interface Article {
+        _id: string;
+        title: string;
+        content: any;
+        excerpt: string;
+        slug: string;
+        language: string;
+        translations: Record<string, ArticleTranslation>;
+        stats?: {
+            likes: number;
+            dislikes: number;
+            views: number;
+            comments: number;
+        };
+        author?: {
+            id: string;
+            name: string;
+            avatar?: string;
+        };
+        authorId?: string;
+        category: string;
+        subcategory?: string;
+        tags: string[];
+        publishedAt: string;
+        readTime?: number;
+        featured?: boolean;
+        coverImage?: string;
+    }
+
+       const article = $derived({
+        ...data.article,
+        ...(data.article?.translations?.[currentLocale] || {}),
+        translations: data.article?.translations || {}
+    } as Article);
+    
+    
+    // Update article content when locale changes
+    $effect(() => {
+        currentLocale = getCurrentLocale();
+    });
 
     // localStorage'dan beğenme durumunu yükle
     $effect(() => {
@@ -60,6 +114,7 @@
     let loadingComments = $state(false);
     let commentEditor = $state<Editor | null>(null);
     let replyEditor = $state<Editor | null>(null);
+    let userReactions = $state<Record<string, 'like' | 'dislike' | null>>({});
 
     // Alert Dialog states
     let showDeleteDialog = $state(false);
@@ -109,8 +164,8 @@
 
             // API'den gelen güncel sayıları kullan
             if (json.stats) {
-                likesCount = json.stats.likes;
-                dislikesCount = json.stats.dislikes;
+                likesCount = Number(json.stats.likes) || 0;
+                dislikesCount = Number(json.stats.dislikes) || 0;
             }
 
         } catch (e) {
@@ -118,10 +173,9 @@
         }
     }
 
-    let article = data?.article;
-
     if (!article) {
         // Handle article not found
+        console.error('Article not found');
     }
 
     const formatDate = (dateString: string) => {
@@ -139,7 +193,23 @@
     }
 
     function onReportArticle() { showToast(t('Reported'), 'info'); }
-    function onEditArticle() { showToast(t('NotImplemented'), 'warning'); }
+    function onEditArticle() {
+        if (!article?._id) {
+            return;
+        }
+
+        const params = new URLSearchParams({
+            articleId: article._id,
+            mode: 'edit'
+        });
+
+        const slug = article?.slug;
+        if (slug) {
+            params.set('slug', slug);
+        }
+
+        window.location.href = `/write?${params.toString()}`;
+    }
     function onDeleteArticle() {
         selectedArticle = article;
         dialogType = 'article';
@@ -201,6 +271,16 @@
             const res = await fetch(`/api/articles/${article._id}/comments`);
             if (res.ok) {
                 comments = await res.json();
+                // Initialize user reactions
+                if ($page.data.user?.id) {
+                    const reactionsRes = await fetch(`/api/comments/user-reactions?articleId=${article._id}`);
+                    if (reactionsRes.ok) {
+                        const data = await reactionsRes.json();
+                        userReactions = data.reactions || {};
+                    }
+                } else {
+                    userReactions = {};
+                }
             }
         } catch (e) {
             console.error('Failed to load comments:', e);
@@ -220,6 +300,17 @@
             }
         }
         return typeof content === 'object';
+    }
+
+    function findComment(commentList: any[], id: string): any | null {
+        for (const comment of commentList) {
+            if (comment.id === id) return comment;
+            if (comment.replies?.length) {
+                const found = findComment(comment.replies, id);
+                if (found) return found;
+            }
+        }
+        return null;
     }
 
     function extractPlainText(doc: any): string {
@@ -315,19 +406,53 @@
             return;
         }
 
+        // Optimistic UI update
+        const previousReaction = userReactions[commentId];
+        const comment = findComment(comments, commentId);
+        
+        // Update local state immediately
+        if (previousReaction === type) {
+            // Toggle off if clicking the same reaction
+            userReactions[commentId] = null;
+            if (comment) {
+                if (type === 'like') comment.likes = Math.max(0, (comment.likes || 0) - 1);
+                else if (type === 'dislike') comment.dislikes = Math.max(0, (comment.dislikes || 0) - 1);
+            }
+        } else {
+            // Update to new reaction
+            const previousReaction = userReactions[commentId];
+            userReactions[commentId] = type;
+            
+            if (comment) {
+                // Remove previous reaction count
+                if (previousReaction === 'like') comment.likes = Math.max(0, (comment.likes || 0) - 1);
+                else if (previousReaction === 'dislike') comment.dislikes = Math.max(0, (comment.dislikes || 0) - 1);
+                
+                // Add new reaction count
+                if (type === 'like') comment.likes = (comment.likes || 0) + 1;
+                else if (type === 'dislike') comment.dislikes = (comment.dislikes || 0) + 1;
+            }
+        }
+
         try {
             const res = await fetch(`/api/comments/${commentId}/react`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ action: type })
+                body: JSON.stringify({ action: previousReaction === type ? null : type })
             });
-            if (res.ok) {
+
+            if (!res.ok) {
+                // Revert on error
+                if (res.status === 401) {
+                    showToast(t('LoginRequiredForReactions'), 'error');
+                }
+                // Reload comments to sync with server
                 await loadComments();
-            } else if (res.status === 401) {
-                showToast(t('LoginRequiredForReactions'), 'error');
             }
         } catch (e) {
             console.error('Failed to react to comment:', e);
+            // Revert on error
+            await loadComments();
         }
     }
     
@@ -588,12 +713,12 @@
 											{#if isArticleOwner()}
                                                 <DropdownMenu.Separator />
 
-													<DropdownMenu.Item onclick={onEditArticle}>
+													<DropdownMenu.Item onclick={onDeleteArticle}>
 														<BookMinusIcon triggers={{ hover: false }}  animationState="loading" duration={3000}  loop={true}  class="mr-2 h-4 w-4" />
 														Kaldır
 													</DropdownMenu.Item>
 
-													<DropdownMenu.Item onclick={onDeleteArticle}>
+													<DropdownMenu.Item onclick={onEditArticle}>
 														<NotebookPenIcon triggers={{ hover: false }}  animationState="loading" duration={3000}  loop={true}  class="mr-2 h-4 w-4" />
 														Düzenle
 													</DropdownMenu.Item>
@@ -691,7 +816,7 @@ Göster</DropdownMenu.Item>
                                                 size="sm"
                                                 class={cn(
                                                     "h-8 gap-1 transition-all duration-200",
-                                                    reaction === 'like' && "bg-green-500/20 text-green-700 dark:bg-green-500/30 dark:text-green-300"
+                                                    reaction === 'like' && "bg-primary text-primary-foreground "
                                                 )}
                                                 onclick={() => toggleReaction('like')}
                                             >
@@ -699,7 +824,7 @@ Göster</DropdownMenu.Item>
                                                     "h-4 w-4 transition-all duration-200",
                                                     reaction === 'like' && "fill-current"
                                                 )} />
-                                                <span class="max-w-12 w-4">{formatNumber(likesCount)}</span>
+                                                <span class={cn("max-w-12 w-4", reaction === 'like' && "font-medium")}>{formatNumber(likesCount)}</span>
                                             </Button>
                                         </div>
                                     </Motion>
@@ -728,7 +853,7 @@ Göster</DropdownMenu.Item>
                                                     "h-4 w-4 transition-all duration-200",
                                                     reaction === 'dislike' && "fill-current"
                                                 )} />
-                                                <span class="max-w-12 w-4">{formatNumber(dislikesCount)}</span>
+                                                <span class={cn("max-w-12 w-4", reaction === 'dislike' && "font-medium")}>{formatNumber(dislikesCount)}</span>
                                             </Button>
                                         </div>
                                     </Motion>
@@ -863,22 +988,38 @@ Göster</DropdownMenu.Item>
                                         </div>
                                         <div class="flex items-center gap-4">
                                             <Button 
-                                                variant="ghost" 
-                                                size="sm" 
-                                                class="h-8 gap-1"
+                                                variant={userReactions[comment.id] === 'like' ? 'default' : 'ghost'}
+                                                size="sm"
+                                                class={cn(
+                                                    "h-8 gap-1 transition-all duration-200 text-xs",
+                                                    userReactions[comment.id] === 'like' && "bg-primary text-primary-foreground"
+                                                )}
                                                 onclick={() => toggleCommentReaction(comment.id, 'like', false)}
                                             >
-                                                <ThumbsUp class="w-3 h-3" />
-                                                <span class="text-xs">{formatNumber(comment.likes || 0)}</span>
+                                                <ThumbsUp class={cn(
+                                                    "h-3 w-3 transition-all duration-200",
+                                                    userReactions[comment.id] === 'like' && "fill-current"
+                                                )} />
+                                                <span class={cn("max-w-12 w-4", userReactions[comment.id] === 'like' && "font-medium")}>
+                                                    {formatNumber(comment.likes || 0)}
+                                                </span>
                                             </Button>
                                             <Button 
-                                                variant="ghost" 
-                                                size="sm" 
-                                                class="h-8 gap-1"
+                                                variant={userReactions[comment.id] === 'dislike' ? 'default' : 'ghost'}
+                                                size="sm"
+                                                class={cn(
+                                                    "h-8 gap-1 transition-all duration-200 text-xs",
+                                                    userReactions[comment.id] === 'dislike' && "bg-primary text-primary-foreground "
+                                                )}
                                                 onclick={() => toggleCommentReaction(comment.id, 'dislike', false)}
                                             >
-                                                <ThumbsDown class="w-3 h-3" />
-                                                <span class="text-xs">{formatNumber(comment.dislikes || 0)}</span>
+                                                <ThumbsDown class={cn(
+                                                    "h-3 w-3 transition-all duration-200",
+                                                    userReactions[comment.id] === 'dislike' && "fill-current"
+                                                )} />
+                                                <span class={cn("max-w-12 w-4", userReactions[comment.id] === 'dislike' && "font-medium")}>
+                                                    {formatNumber(comment.dislikes || 0)}
+                                                </span>
                                             </Button>
                                             <Button 
                                                 variant="ghost" 
@@ -950,24 +1091,40 @@ Göster</DropdownMenu.Item>
                                                                         <EdraEditor content={reply.content} editable={false} />
                                                             </div>
                                                             <div class="flex items-center gap-3">
-                                                                <Button 
-                                                                    variant="ghost" 
-                                                                    size="sm" 
-                                                                    class="h-7 gap-1"
-                                                                    onclick={() => toggleCommentReaction(reply.id, 'like', true, comment.id)}
-                                                                >
-                                                                    <ThumbsUp class="w-3 h-3" />
-                                                                    <span class="text-xs">{formatNumber(reply.likes || 0)}</span>
-                                                                </Button>
-                                                                <Button 
-                                                                    variant="ghost" 
-                                                                    size="sm" 
-                                                                    class="h-7 gap-1"
-                                                                    onclick={() => toggleCommentReaction(reply.id, 'dislike', true, comment.id)}
-                                                                >
-                                                                    <ThumbsDown class="w-3 h-3" />
-                                                                    <span class="text-xs">{formatNumber(reply.dislikes || 0)}</span>
-                                                                </Button>
+                                                                    <Button 
+                                                                        variant={userReactions[reply.id] === 'like' ? 'default' : 'ghost'}
+                                                                        size="sm"
+                                                                        class={cn(
+                                                                            "h-7 gap-1 transition-all duration-200 text-xs",
+                                                                            userReactions[reply.id] === 'like' && "bg-primary text-primary-foreground"
+                                                                        )}
+                                                                        onclick={() => toggleCommentReaction(reply.id, 'like', true, comment.id)}
+                                                                    >
+                                                                        <ThumbsUp class={cn(
+                                                                            "h-3 w-3 transition-all duration-200",
+                                                                            userReactions[reply.id] === 'like' && "fill-current"
+                                                                        )} />
+                                                                        <span class={cn("max-w-12 w-4", userReactions[reply.id] === 'like' && "font-medium")}>
+                                                                            {formatNumber(reply.likes || 0)}
+                                                                        </span>
+                                                                    </Button>
+                                                                    <Button 
+                                                                        variant={userReactions[reply.id] === 'dislike' ? 'default' : 'ghost'}
+                                                                        size="sm"
+                                                                        class={cn(
+                                                                            "h-7 gap-1 transition-all duration-200 text-xs",
+                                                                            userReactions[reply.id] === 'dislike' && "bg-primary text-primary-foreground "
+                                                                        )}
+                                                                        onclick={() => toggleCommentReaction(reply.id, 'dislike', true, comment.id)}
+                                                                    >
+                                                                        <ThumbsDown class={cn(
+                                                                            "h-3 w-3 transition-all duration-200",
+                                                                            userReactions[reply.id] === 'dislike' && "fill-current"
+                                                                        )} />
+                                                                        <span class={cn("max-w-12 w-4", userReactions[reply.id] === 'dislike' && "font-medium")}>
+                                                                            {formatNumber(reply.dislikes || 0)}
+                                                                        </span>
+                                                                    </Button>
                                                                 <Button
                                                                     variant="ghost"
                                                                     size="sm"
@@ -1035,23 +1192,39 @@ Göster</DropdownMenu.Item>
                                                                                             <EdraEditor content={nested.content} editable={false} />
                                                                                 </div>
                                                                                 <div class="flex items-center gap-2">
-                                                                                    <Button
-                                                                                        variant="ghost"
+                                                                                    <Button 
+                                                                                        variant={userReactions[nested.id] === 'like' ? 'default' : 'ghost'}
                                                                                         size="sm"
-                                                                                        class="h-6 gap-1"
+                                                                                        class={cn(
+                                                                                            "h-6 gap-1 transition-all duration-200 text-xs",
+                                                                                            userReactions[nested.id] === 'like' && "bg-primary text-primary-foreground"
+                                                                                        )}
                                                                                         onclick={() => toggleCommentReaction(nested.id, 'like', true, reply.id)}
                                                                                     >
-                                                                                        <ThumbsUp class="w-2 h-2" />
-                                                                                        <span class="text-xs">{formatNumber(nested.likes || 0)}</span>
+                                                                                        <ThumbsUp class={cn(
+                                                                                            "h-2.5 w-2.5 transition-all duration-200",
+                                                                                            userReactions[nested.id] === 'like' && "fill-current"
+                                                                                        )} />
+                                                                                        <span class={cn("max-w-12 w-4", userReactions[nested.id] === 'like' && "font-medium")}>
+                                                                                            {formatNumber(nested.likes || 0)}
+                                                                                        </span>
                                                                                     </Button>
-                                                                                    <Button
-                                                                                        variant="ghost"
+                                                                                    <Button 
+                                                                                        variant={userReactions[nested.id] === 'dislike' ? 'default' : 'ghost'}
                                                                                         size="sm"
-                                                                                        class="h-6 gap-1"
+                                                                                        class={cn(
+                                                                                            "h-6 gap-1 transition-all duration-200 text-xs",
+                                                                                            userReactions[nested.id] === 'dislike' && "bg-primary text-primary-foreground"
+                                                                                        )}
                                                                                         onclick={() => toggleCommentReaction(nested.id, 'dislike', true, reply.id)}
                                                                                     >
-                                                                                        <ThumbsDown class="w-2 h-2" />
-                                                                                        <span class="text-xs">{formatNumber(nested.dislikes || 0)}</span>
+                                                                                        <ThumbsDown class={cn(
+                                                                                            "h-2.5 w-2.5 transition-all duration-200",
+                                                                                            userReactions[nested.id] === 'dislike' && "fill-current"
+                                                                                        )} />
+                                                                                        <span class={cn("max-w-12 w-4", userReactions[nested.id] === 'dislike' && "font-medium")}>
+                                                                                            {formatNumber(nested.dislikes || 0)}
+                                                                                        </span>
                                                                                     </Button>
                                                                                 </div>
                                                                             </div>

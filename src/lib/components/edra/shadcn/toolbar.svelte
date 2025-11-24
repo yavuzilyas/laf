@@ -8,13 +8,11 @@
 	import QuickColors from './components/toolbar/QuickColors.svelte';
 	import SearchAndReplace from './components/toolbar/SearchAndReplace.svelte';
 	import ToolBarIcon from './components/ToolBarIcon.svelte';
-	import Logo from '$lib/assets/laf1.svg'
+	import LinkDialog from './components/toolbar/LinkDialog.svelte';
 	const { editor, class: className, excludedCommands, children }: EdraToolbarProps = $props();
 
 	const toolbarCommands = Object.keys(commands).filter((key) => !excludedCommands?.includes(key));
 </script>
-<img src={Logo} alt="Logo" class="w-12 h-12" />
-
 <div class={cn('edra-toolbar', className)}>
 	
 	{#if children}
@@ -28,7 +26,11 @@
 			{:else}
 				{@const commandGroup = commands[cmd]}
 				{#each commandGroup as command (command)}
-					<ToolBarIcon {editor} {command} />
+					{#if command.name === 'link'}
+						<LinkDialog editor={editor} />
+					{:else}
+						<ToolBarIcon {editor} {command} />
+					{/if}
 				{/each}
 			{/if}
 		{/each}

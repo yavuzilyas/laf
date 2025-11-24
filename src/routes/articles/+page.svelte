@@ -1,149 +1,97 @@
 <script lang="ts">
     import Navbar from "$lib/Navbar.svelte";
     import Footer from "$lib/Footer.svelte";
-    import ArticleHero from "$lib/components/ArticleHero.svelte";
     import ArticleList from "$lib/components/ArticleList.svelte";
     import ArticleFilterPopover from "$lib/components/ArticleFilterPopover.svelte";
     import ArticleSearch from "$lib/components/ArticleSearch.svelte";
     import { Button } from "$lib/components/ui/button";
-    import { Separator } from "$lib/components/ui/separator";
-    import { t } from '$lib/stores/i18n.svelte.ts';
-    import { PenLine, TrendingUp, Clock, Users, Grid, List } from "@lucide/svelte";
+    import { t, getCurrentLocale } from '$lib/stores/i18n.svelte';
+    import { Grid, List } from "@lucide/svelte";
 
-    // Mock data for testing
-    const mockArticles = [
-        {
-            id: '1',
-            slug: 'test-article-1',
-            title: 'Anarşizm ve Özgürlük Felsefesi',
-            excerpt: 'Anarşizmin temel prensipleri ve özgürlük kavramı üzerine detaylı bir inceleme.',
-            author: { name: 'Ahmet Yılmaz', avatar: null },
-            publishedAt: '2024-01-01T00:00:00Z',
-            readTime: 5,
-            category: 'Teori',
-            tags: ['anarşizm', 'özgürlük', 'felsefe'],
-            views: 100,
-            comments: 10,
-            likes: 25,
-            dislikes: 3,
-            featured: true,
-            coverImage: null,
-            language: 'tr'
-        },
-        {
-            id: '2',
-            slug: 'test-article-2',
-            title: 'Serbest Piyasa Ekonomisi',
-            excerpt: 'Liberteryen ekonomi teorisi ve serbest piyasa mekanizmaları hakkında kapsamlı analiz.',
-            author: { name: 'Mehmet Demir', avatar: null },
-            publishedAt: '2024-01-02T00:00:00Z',
-            readTime: 3,
-            category: 'Ekonomi',
-            tags: ['ekonomi', 'serbest piyasa', 'liberteryen'],
-            views: 50,
-            comments: 5,
-            likes: 15,
-            dislikes: 1,
-            featured: false,
-            coverImage: null,
-            language: 'tr'
-        },
-        {
-            id: '3',
-            slug: 'test-article-3',
-            title: 'Devletsiz Toplum Modelleri',
-            excerpt: 'Tarih boyunca var olmuş devletsiz toplum örnekleri ve modern uygulamaları.',
-            author: { name: 'Ayşe Kaya', avatar: null },
-            publishedAt: '2024-01-03T00:00:00Z',
-            readTime: 7,
-            category: 'Tarih',
-            tags: ['tarih', 'devletsiz toplum', 'anarşizm'],
-            views: 75,
-            comments: 8,
-            likes: 20,
-            dislikes: 2,
-            featured: false,
-            coverImage: null,
-            language: 'tr'
-        },
-        {
-            id: '4',
-            slug: 'test-article-4',
-            title: 'Freedom and Anarchism',
-            excerpt: 'An in-depth analysis of freedom concepts in anarchist philosophy.',
-            author: { name: 'John Smith', avatar: null },
-            publishedAt: '2024-01-04T00:00:00Z',
-            readTime: 6,
-            category: 'Teori',
-            tags: ['anarchism', 'freedom', 'philosophy'],
-            views: 120,
-            comments: 15,
-            likes: 30,
-            dislikes: 4,
-            featured: true,
-            coverImage: null,
-            language: 'en'
-        },
-        {
-            id: '5',
-            slug: 'test-article-5',
-            title: 'Teknoloji ve Özgürlük',
-            excerpt: 'Dijital çağda teknolojinin özgürlük ve mahremiyet üzerindeki etkileri.',
-            author: { name: 'Zeynep Arslan', avatar: null },
-            publishedAt: '2024-01-05T00:00:00Z',
-            readTime: 4,
-            category: 'Teknoloji',
-            tags: ['teknoloji', 'özgürlük', 'mahremiyet'],
-            views: 90,
-            comments: 12,
-            likes: 22,
-            dislikes: 1,
-            featured: false,
-            coverImage: null,
-            language: 'tr'
-        },
-        {
-            id: '6',
-            slug: 'test-article-6',
-            title: 'Politik Felsefe Temelleri',
-            excerpt: 'Liberteryen politik felsefenin temel kavramları ve ilkeleri.',
-            author: { name: 'Can Öztürk', avatar: null },
-            publishedAt: '2024-01-06T00:00:00Z',
-            readTime: 8,
-            category: 'Felsefe',
-            tags: ['felsefe', 'politika', 'liberteryen'],
-            views: 110,
-            comments: 18,
-            likes: 28,
-            dislikes: 5,
-            featured: false,
-            coverImage: null,
-            language: 'tr'
-        }
-    ];
+    import Loader from '$lib/components/load.svelte';
+    import {BookTextIcon, NotebookPenIcon} from 'svelte-animate-icons';
 
-    // Get data from server
+    let notebookPenIcon;
+
     let { data } = $props();
-    
-    // State variables
-    let allArticles = $state(data?.articles ?? mockArticles);
+
+    const serverArticles = data?.articles ?? [];
+    const categories = data?.categories ?? [];
+    const tags = data?.popularTags ?? [];
+    const currentUser = data?.user ?? null;
+    const followingUserIds = data?.followingUserIds ?? [];
+    const languageOptions = (data?.availableLanguages ?? []).map((lang: string) => ({
+        value: lang,
+        label: lang.toUpperCase()
+    }));
+
+    // Language-aware article list reacting to current locale
+    // Extract all unique languages from all articles and their translations
+    const allAvailableLanguages = $derived(
+        Array.from(
+            new Set(
+                serverArticles.flatMap(article => {
+                    const translations = article.translations || {};
+                    return [
+                        ...Object.keys(translations),
+                        article.language,
+                        article.defaultLanguage
+                    ].filter(Boolean);
+                })
+            )
+        ).map(lang => ({
+            value: lang,
+            label: lang.toUpperCase()
+        }))
+    );
+
+    const allArticles = $derived(
+        serverArticles.map((article) => {
+            const translations = article.translations || {};
+            const translationKeys = Object.keys(translations);
+            const currentLocale = getCurrentLocale();
+            const fallbackKey = translationKeys[0] || article.language || article.defaultLanguage || 'tr';
+            const displayLanguage = currentLocale && translations[currentLocale]
+                ? currentLocale
+                : fallbackKey;
+
+            const translation = translations[displayLanguage] || translations[fallbackKey] || {};
+
+            return {
+                ...article,
+                title: translation.title || article.title || 'Başlıksız',
+                excerpt: translation.excerpt || article.excerpt || '',
+                slug: translation.slug || article.slug,
+                language: displayLanguage,
+                translations
+            };
+        })
+    );
+
     let filteredArticles = $state([...allArticles]);
     let displayedArticles = $state([...allArticles]);
     let searchQuery = $state("");
-    let activeFilters = $state<any>({});
+    let activeFilters = $state<any>({
+        language: '',
+        category: '',
+        type: '',
+        dateRange: '',
+        customDateRange: undefined,
+        tags: [],
+        nickname: '',
+        onlyFollowing: false
+    });
     let loading = $state(false);
     let hasMore = $state(false);
     let layoutMode = $state("grid");
 
     const filterOptions = {
-        languages: [
-            { label: "Türkçe", value: "tr" },
-            { label: "English", value: "en" },
-            { label: "Deutsch", value: "de" },
-            { label: "Français", value: "fr" }
-        ],
-        categories: ["Teori", "Tarih", "Ekonomi", "Felsefe", "Teknoloji", "Politika"],
-        types: ["Makale", "Analiz", "Görüş", "Çeviri", "Röportaj", "İnceleme"],
+        languages: allAvailableLanguages.length
+            ? allAvailableLanguages
+            : languageOptions,
+        categories: categories.length
+            ? categories
+            : Array.from(new Set(allArticles.map(article => article.category).filter(Boolean))),
         dateRanges: [
             { label: "Son hafta", value: "week" },
             { label: "Son ay", value: "month" },
@@ -152,13 +100,33 @@
     };
 
     const searchSuggestions = [
-        { type: 'popular', value: 'anarşizm', count: 15 },
-        { type: 'popular', value: 'özgürlük', count: 12 },
-        { type: 'tag', value: 'ekonomi', count: 8 },
-        { type: 'category', value: 'Teori', count: 6 }
+        { type: 'popular' as const, value: 'anarşizm', count: 15 },
+        { type: 'popular' as const, value: 'özgürlük', count: 12 },
+        { type: 'tag' as const, value: 'ekonomi', count: 8 },
+        { type: 'category' as const, value: 'Teori', count: 6 }
     ];
 
-    const recentSearches = ["liberteryen", "devletsiz toplum", "serbest piyasa"];
+    // Recent searches from localStorage
+    let recentSearches = $state<string[]>([]);
+    
+    // Initialize recent searches from localStorage
+    if (typeof window !== 'undefined') {
+        const stored = localStorage.getItem('recentSearches');
+        recentSearches = stored ? JSON.parse(stored) : [];
+    }
+
+    // Add search to recent searches
+    const addToRecentSearches = (query: string) => {
+        if (!query.trim()) return;
+        
+        const trimmed = query.trim();
+        const updated = [trimmed, ...recentSearches.filter(s => s !== trimmed)].slice(0, 10);
+        recentSearches = updated;
+        
+        if (typeof window !== 'undefined') {
+            localStorage.setItem('recentSearches', JSON.stringify(updated));
+        }
+    };
 
     // Apply filters and search
     function applyFiltersAndSearch() {
@@ -170,34 +138,63 @@
             result = result.filter(article =>
                 article.title.toLowerCase().includes(query) ||
                 article.excerpt.toLowerCase().includes(query) ||
-                article.tags.some(tag => tag.toLowerCase().includes(query))
+                (article.tags || []).some(tag => tag.toLowerCase().includes(query))
             );
         }
 
-        // Apply category filter
-        if (activeFilters.category && activeFilters.category !== "") {
-            result = result.filter(article =>
-                article.category === activeFilters.category
+        // Apply category filter (case insensitive partial match)
+        if (activeFilters.category) {
+            const categoryLower = activeFilters.category.toLowerCase();
+            result = result.filter(article => 
+                article.category && article.category.toLowerCase().includes(categoryLower)
             );
         }
 
-        // Apply language filter
+        // Apply language filter - check both article.language and translations
         if (activeFilters.language && activeFilters.language !== "") {
-            result = result.filter(article =>
-                article.language === activeFilters.language
-            );
-        }
-
-        // Apply type filter
-        if (activeFilters.type && activeFilters.type !== "") {
-            // Type filtering can be added when article type field exists
+            result = result.filter(article => {
+                // Check if the article's main language matches
+                if (article.language === activeFilters.language) return true;
+                
+                // Check if the article has a translation in the selected language
+                const translations = article.translations || {};
+                return Object.keys(translations).includes(activeFilters.language);
+            });
         }
 
         // Apply tags filter
         if (activeFilters.tags && activeFilters.tags.length > 0) {
             result = result.filter(article =>
-                activeFilters.tags.some((tag: string) => article.tags.includes(tag))
+                activeFilters.tags.some((tag: string) => (article.tags || []).includes(tag))
             );
+        }
+
+        // Apply nickname filter (author username)
+        if (activeFilters.nickname && activeFilters.nickname.trim()) {
+            const nicknameLower = activeFilters.nickname.toLowerCase().trim();
+            result = result.filter(article => 
+                article.author && article.author.nickname && 
+                article.author.nickname.toLowerCase().includes(nicknameLower)
+            );
+        }
+
+        // Apply onlyFollowing filter
+        if (activeFilters.onlyFollowing && followingUserIds.length > 0) {
+            console.log('Following filter active:', {
+                activeFiltersOnlyFollowing: activeFilters.onlyFollowing,
+                followingUserIds,
+                followingLength: followingUserIds.length,
+                sampleArticleAuthorId: result[0]?.authorId
+            });
+            result = result.filter(article => {
+                const articleAuthorId = article.authorId?.toString?.() || article.authorId;
+                const isFollowed = articleAuthorId && followingUserIds.includes(articleAuthorId);
+                if (!isFollowed) {
+                    console.log('Not followed article:', article.title, 'authorId:', articleAuthorId);
+                }
+                return isFollowed;
+            });
+            console.log('Filtered result count:', result.length);
         }
 
         // Apply date range filter (supports CalendarDate, plain objects, ISO strings)
@@ -242,6 +239,7 @@
 
     const handleSearch = (query: string) => {
         searchQuery = query;
+        addToRecentSearches(query);
         applyFiltersAndSearch();
     };
 
@@ -250,6 +248,12 @@
         if (searchQuery !== undefined) {
             applyFiltersAndSearch();
         }
+    });
+
+    // Re-apply filters when article representations update with locale changes
+    $effect(() => {
+        allArticles;
+        applyFiltersAndSearch();
     });
 
     const handleFiltersChange = (filters: any) => {
@@ -261,9 +265,6 @@
         // Not implemented for mock data
         hasMore = false;
     };
-  import Loader from '$lib/components/load.svelte';
-  import {BookTextIcon, NotebookPenIcon} from 'svelte-animate-icons';
-  let notebookPenIcon;
 </script>
 
 {#if loading}
@@ -279,20 +280,19 @@
     <!-- Main Content -->
     <section class="container max-w-7xl mx-auto space-y-4 px-3 sm:px-6 py-6 sm:pt-10">
         <div class="space-y-8 flex flex-col items-center">
-            <!-- Page Header -->
             <div class="text-center space-y-3">
                 <div class="flex flex-col items-center gap-3">
-                        <BookTextIcon triggers={{ hover: false }} duration={2500} animationState="loading" size={48} class="text-primary" />
-                        <h1 class="text-xl font-bold tracking-tight md:text-4xl">
-                            {t('articles.allArticles')}
-                        </h1>
-                        <p class="text-sm  text-muted-foreground max-w-2xl">
-                            {t('articles.subtitle')}
-                        </p>
-                        <Button  onmouseenter={() => notebookPenIcon?.start()} onmouseleave={() => notebookPenIcon?.stop()} href="/write" size="sm" class="shrink-0">
-                            <NotebookPenIcon loop="true" triggers={{ custom: true }}  bind:this={notebookPenIcon} class="w-4 h-4" />
-                            {t('articles.writeArticle')}
-                        </Button>
+                    <BookTextIcon triggers={{ hover: false }} duration={2500} animationState="loading" size={48} class="text-primary" />
+                    <h1 class="text-xl font-bold tracking-tight md:text-4xl">
+                        {t('articles.allArticles')}
+                    </h1>
+                    <p class="text-sm  text-muted-foreground max-w-2xl">
+                        {t('articles.subtitle')}
+                    </p>
+                    <Button  onmouseenter={() => notebookPenIcon?.start()} onmouseleave={() => notebookPenIcon?.stop()} href="/write" size="sm" class="shrink-0">
+                        <NotebookPenIcon loop="true" triggers={{ custom: true }}  bind:this={notebookPenIcon} class="w-4 h-4" />
+                        {t('articles.writeArticle')}
+                    </Button>
                 </div>
             </div>
                 <div class="flex flex-col sm:flex-row items-center gap-3">
@@ -311,6 +311,7 @@
                             options={filterOptions}
                             activeFilters={activeFilters}
                             onFiltersChange={handleFiltersChange}
+                            enableFollowingFilter={!!currentUser}
                         />
 
                         <Button

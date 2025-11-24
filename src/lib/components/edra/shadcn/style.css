@@ -21,15 +21,14 @@
 
 /* Fix for popovers and menus in the editor */
 .edra-toolbar {
-  z-index: 40;
+  z-index: 35;
   contain: style layout;
-  overflow: visible !important;
   height: fit-content !important;
 }
 
 /* Fix for dropdown menus */
 [data-radix-popper-content-wrapper] {
-  z-index: 1000 !important;
+  z-index: 40 !important;
   position: fixed !important;
   transform: none !important;
   max-height: none !important;
@@ -40,7 +39,7 @@
 [data-radix-popper-content-wrapper] > * {
   position: static !important;
   transform: none !important;
-  z-index: 1000 !important;
+  z-index: 40 !important;
   margin: 0 !important;
   max-height: none !important;
   overflow: visible !important;
@@ -58,7 +57,7 @@
 
 /* Fix for command menu */
 [cmdk-root] {
-  z-index: 1001 !important;
+  z-index: 41 !important;
   position: fixed !important;
 }
 
@@ -70,7 +69,7 @@
 
 /* Fix for tooltip and popover z-index */
 [data-state="open"] {
-  z-index: 9999 !important;
+  z-index: 39 !important;
 }
 
 .tiptap a {
@@ -80,13 +79,13 @@
 
 /* Ensure dropdown menus are not clipped */
 [cmdk-root] {
-  z-index: 100 !important;
+  z-index: 45 !important;
 }
 
 /* Fix for command menu positioning */
 [cmdk-list] {
   position: relative !important;
-  z-index: 100 !important;
+  z-index: 45 !important;
   transform: none !important;
 }
 
@@ -95,12 +94,12 @@
 [data-side="bottom"],
 [data-side="left"],
 [data-side="right"] {
-  z-index: 100 !important;
+  z-index: 45 !important;
   position: relative;
 }
 
 /* Fix for nested popovers */
-[role="dialog"] {
-  z-index: 100 !important;
-  position: relative;
+[role="indialog"] {
+  z-index: 50 !important;
+
 }

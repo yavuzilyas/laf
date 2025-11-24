@@ -2,7 +2,7 @@
 	import { Button } from '$lib/components/ui/button/index.js';
 	import type { Editor } from '@tiptap/core';
 	import Search from '@lucide/svelte/icons/search';
-	import * as Popover from '$lib/components/ui/popover/index.js';
+	import * as DropdownMenu from '$lib/components/ui/dropdown-menu/index.js';
 	import { Input } from '$lib/components/ui/input/index.js';
 	import ArrowLeft from '@lucide/svelte/icons/arrow-left';
 	import ArrowRight from '@lucide/svelte/icons/arrow-right';
@@ -14,6 +14,7 @@
 	import { cn } from '$lib/utils.js';
 	import { slide } from 'svelte/transition';
 	import EdraToolTip from '../EdraToolTip.svelte';
+  import { t,tJoin } from '$lib/stores/i18n.svelte.js';
 
 	interface Props {
 		editor: Editor;
@@ -73,28 +74,30 @@
 	const replaceAll = () => editor.commands.replaceAll();
 </script>
 
-<Popover.Root
+<DropdownMenu.Root
 	bind:open
 	onOpenChange={(value) => {
 		if (value === false) {
-			clear();
-			updateSearchTerm();
+			editor.commands.setSearchTerm('');
+			editor.commands.setReplaceTerm('');
 		}
 	}}
 >
-	<Popover.Trigger>
-		<EdraToolTip tooltip="Search and Replace">
+	<DropdownMenu.Trigger>
+		<EdraToolTip tooltip={t('editor.toolbar.searchAndReplace.title')}>
 			<Button variant="ghost" size="icon" class="gap-0.5">
 				<Search />
 				<ChevronDown class="text-muted-foreground !size-2" />
 			</Button>
 		</EdraToolTip>
-	</Popover.Trigger>
-	<Popover.Content
-		class="flex w-fit items-center gap-1 p-2"
-		portalProps={{ disabled: true, to: undefined }}
+	</DropdownMenu.Trigger>
+	<DropdownMenu.Content
+		class="z-50 min-w-[20rem] overflow-hidden rounded-md border bg-popover p-4 text-popover-foreground shadow-md"
 	>
-		<Button
+		
+		<div class="flex size-full flex-col gap-1">
+			<div class="flex w-full items-center gap-1">
+				<Button
 			variant="ghost"
 			size="icon"
 			class={cn('transition-transform', showMore && 'bg-muted rotate-90')}
@@ -103,10 +106,8 @@
 		>
 			<ChevronRight />
 		</Button>
-		<div class="flex size-full flex-col gap-1">
-			<div class="flex w-full items-center gap-1">
 				<Input
-					placeholder="Search..."
+					placeholder={t('Search')}
 					bind:value={searchText}
 					oninput={() => updateSearchTerm()}
 					class="w-40"
@@ -114,7 +115,7 @@
 				<span class="text-muted-foreground text-sm"
 					>{searchCount > 0 ? searchIndex + 1 : 0}/{searchCount}
 				</span>
-				<EdraToolTip tooltip="Case Sensitive">
+				<EdraToolTip tooltip={t('editor.toolbar.searchAndReplace.caseSensitive')}>
 					<Button
 						variant="ghost"
 						size="icon"
@@ -127,13 +128,13 @@
 						<CaseSensitive />
 					</Button>
 				</EdraToolTip>
-				<EdraToolTip tooltip="Go to previous">
-					<Button variant="ghost" size="icon" onclick={previous} title="Previous">
+				<EdraToolTip tooltip={t('Previous')}>
+					<Button variant="ghost" size="icon" onclick={previous} title={t('Previous')}>
 						<ArrowLeft />
 					</Button>
 				</EdraToolTip>
-				<EdraToolTip tooltip="Go to next">
-					<Button variant="ghost" size="icon" onclick={next} title="Next">
+				<EdraToolTip tooltip={t('Next')}>
+					<Button variant="ghost" size="icon" onclick={next} title={t('Next')}>
 						<ArrowRight />
 					</Button>
 				</EdraToolTip>
@@ -141,17 +142,17 @@
 			{#if showMore}
 				<div transition:slide class="flex w-full items-center gap-1">
 					<Input
-						placeholder="Replace..."
+						placeholder={t('Replace')}
 						bind:value={replaceText}
 						oninput={() => updateSearchTerm()}
 						class="w-40"
 					/>
-					<EdraToolTip tooltip="Replace">
+					<EdraToolTip tooltip={t('Replace')}>
 						<Button variant="ghost" size="icon" onclick={replace}>
 							<Replace />
 						</Button>
 					</EdraToolTip>
-					<EdraToolTip tooltip="Replace All">
+					<EdraToolTip tooltip={tJoin(['Replace', 'all'])}>
 						<Button variant="ghost" size="icon" onclick={replaceAll}>
 							<ReplaceAll />
 						</Button>
@@ -159,5 +160,5 @@
 				</div>
 			{/if}
 		</div>
-	</Popover.Content>
-</Popover.Root>
+	</DropdownMenu.Content>
+</DropdownMenu.Root>

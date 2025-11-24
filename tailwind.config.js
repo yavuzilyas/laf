@@ -8,6 +8,8 @@ module.exports = {
         shimmer: "shimmer 8s infinite",
 		        "spin-around": "spin-around calc(var(--speed) * 2) infinite linear",
         magicslide: "magicslide var(--speed) ease-in-out infinite alternate",
+        "slideDown": "slideDown 0.3s ease-out forwards",
+        "fadeIn": "fadeIn 0.3s ease-out forwards",
       },
       keyframes: {
 		        spotlight: {
@@ -18,6 +20,24 @@ module.exports = {
           "100%": {
             opacity: 1,
             transform: "translate(-50%,-40%) scale(1)",
+          },
+        },
+        slideDown: {
+          "0%": {
+            opacity: 0,
+            transform: "translateY(-20px)",
+          },
+          "100%": {
+            opacity: 1,
+            transform: "translateY(0)",
+          },
+        },
+        fadeIn: {
+          "0%": {
+            opacity: 0,
+          },
+          "100%": {
+            opacity: 1,
           },
         },
 		"spin-around": {

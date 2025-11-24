@@ -1,12 +1,44 @@
 // src/routes/api/articles/[id]/comments/+server.ts
 import { json } from '@sveltejs/kit';
 import { ObjectId } from 'mongodb';
-import { getCommentsCollection, getArticlesCollection } from '$db/mongo';
+import { getCommentsCollection, getArticlesCollection, getUsersCollection } from '$db/mongo';
 import { notifyArticleComment, notifyCommentReply } from '$lib/server/notifications';
 
 export async function GET({ params, locals }) {
   const comments = await getCommentsCollection();
+  const users = await getUsersCollection();
   const user = (locals as any)?.user;
+  const viewerObjectId = user ? new ObjectId(user.id) : null;
+
+  let viewerBlockedIds = new Set<string>();
+  let blockedViewerIds = new Set<string>();
+
+  if (viewerObjectId) {
+    const viewerDoc = await users.findOne(
+      { _id: viewerObjectId },
+      { projection: { blocked: 1 } }
+    );
+
+    if (Array.isArray(viewerDoc?.blocked)) {
+      viewerBlockedIds = new Set(
+        viewerDoc.blocked
+          .map((entry: any) => entry?.blockedUserId)
+          .filter(Boolean)
+          .map((id: any) => id.toString())
+      );
+    }
+
+    const blockedByDocs = await users
+      .find({ 'blocked.blockedUserId': viewerObjectId }, { projection: { _id: 1 } })
+      .toArray();
+    blockedViewerIds = new Set(blockedByDocs.map((doc) => doc._id.toString()));
+  }
+
+  const shouldHideUser = (authorId: string | null | undefined) => {
+    if (!authorId || !user) return false;
+    if (authorId === user.id) return false;
+    return viewerBlockedIds.has(authorId) || blockedViewerIds.has(authorId);
+  };
 
   async function loadReplies(parentId: string): Promise<any[]> {
     const replies = await comments
@@ -22,7 +54,9 @@ export async function GET({ params, locals }) {
       .toArray();
 
     const nested = await Promise.all(
-      replies.map(async (r: any) => ({
+      replies
+        .filter((r: any) => !shouldHideUser(r.userId?.toString?.() || r.userId))
+        .map(async (r: any) => ({
         id: r._id.toString(),
         userId: r.userId?.toString?.() || r.userId,
         content: r.content,
@@ -51,7 +85,9 @@ export async function GET({ params, locals }) {
     .toArray();
 
   const normalized = await Promise.all(
-    list.map(async (c: any) => ({
+    list
+      .filter((c: any) => !shouldHideUser(c.userId?.toString?.() || c.userId))
+      .map(async (c: any) => ({
       id: c._id.toString(),
       userId: c.userId?.toString?.() || c.userId,
       content: c.content,

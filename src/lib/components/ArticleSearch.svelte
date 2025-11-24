@@ -3,7 +3,7 @@
   import { Input } from "$lib/components/ui/input";
   import { Button } from "$lib/components/ui/button";
   import { Badge } from "$lib/components/ui/badge";
-  import { t } from '$lib/stores/i18n.svelte.ts';
+  import { t } from '$lib/stores/i18n.svelte';
   import { Search, X, Clock, TrendingUp, Hash } from "@lucide/svelte";
 
   interface SearchSuggestion {
@@ -35,14 +35,14 @@
 
   let searchQuery = $state(value);
   let showDropdown = $state(false);
-  let inputRef: HTMLInputElement;
+  let inputRef: HTMLInputElement | undefined;
 
-  // Reactive search - her tuş vuruşunda otomatik arama
-  $effect(() => {
-    if (searchQuery !== undefined) {
-      onSearch?.(searchQuery.trim());
-    }
-  });
+  // Reactive search - her tuş vuruşunda otomatik arama (devre dışı)
+  // $effect(() => {
+  //   if (searchQuery !== undefined) {
+  //     onSearch?.(searchQuery.trim());
+  //   }
+  // });
 
   const handleSearch = (query?: string) => {
     const searchTerm = query || searchQuery;
@@ -111,18 +111,43 @@
 
   // Group suggestions by type
   const groupedSuggestions = $derived(() => {
-    const groups: Record<string, SearchSuggestion[]> = {};
-    suggestions.forEach(suggestion => {
-      if (!groups[suggestion.type]) {
-        groups[suggestion.type] = [];
-      }
+    const groups: Record<SearchSuggestion['type'], SearchSuggestion[]> = {
+      recent: [],
+      popular: [],
+      tag: [],
+      category: []
+    };
+    filteredSuggestions.forEach(suggestion => {
       groups[suggestion.type].push(suggestion);
     });
     return groups;
   });
+
+  // Filtered suggestions based on search query
+  const filteredSuggestions = $derived(() => {
+    if (!searchQuery.trim()) {
+      return suggestions;
+    }
+    const query = searchQuery.toLowerCase();
+    return suggestions.filter(suggestion => 
+      suggestion.value.toLowerCase().includes(query)
+    );
+  });
+
+  // Filtered recent searches based on search query
+  const filteredRecentSearches = $derived(() => {
+    const recentArray = Array.isArray(recentSearches) ? recentSearches : [];
+    if (!searchQuery.trim()) {
+      return recentArray;
+    }
+    const query = searchQuery.toLowerCase();
+    return recentArray.filter(search => 
+      search.toLowerCase().includes(query)
+    );
+  });
 </script>
 
-<div class={cn("relative", className)} {...restProps}>
+<div class={cn("relative w-full", className)} {...restProps}>
   <!-- Search Input -->
   <div class="relative">
     <Search class="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
@@ -133,8 +158,15 @@
       class="pl-10 pr-10 text-xs"
       onfocus={() => showSuggestions && (showDropdown = true)}
       onblur={() => setTimeout(() => showDropdown = false, 200)}
-      onkeydown={handleKeydown}
-      oninput={() => showSuggestions && (showDropdown = true)}
+      onkeydown={(e) => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          handleSearch();
+        } else if (e.key === 'Escape') {
+          showDropdown = false;
+          inputRef?.blur();
+        }
+      }}
     />
     {#if searchQuery}
       <Button
@@ -146,83 +178,83 @@
         <X class="h-4 w-4" />
       </Button>
     {/if}
+
+    <!-- Search Suggestions Dropdown -->
+    {#if showDropdown && showSuggestions && (filteredSuggestions.length > 0 || filteredRecentSearches.length > 0)}
+      <div class="absolute top-full z-50 mt-1 w-full rounded-md border bg-popover p-2 shadow-md">
+        <!-- Recent Searches -->
+        {#if filteredRecentSearches.length > 0}
+          <div class="mb-3">
+            <div class="flex items-center gap-2 px-2 py-1 text-xs font-medium text-muted-foreground">
+              <Clock class="h-3 w-3" />
+              {t('articles.search.recentSearches')}
+            </div>
+            <div class="space-y-1">
+              {#each filteredRecentSearches.slice(0, 5) as recent}
+                <button
+                  class="flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-xs hover:bg-accent hover:text-accent-foreground"
+                  onclick={() => handleSuggestionClick({ type: 'recent', value: recent })}
+                >
+                  <Clock class="h-3 w-3 text-muted-foreground" />
+                  {recent}
+                </button>
+              {/each}
+            </div>
+          </div>
+        {/if}
+
+        <!-- Filtered Suggestions -->
+        {#if filteredSuggestions.length > 0}
+          {#each Object.entries(groupedSuggestions) as [type, items]}
+            {#if items.length > 0}
+              <div class="mb-3">
+                <div class="flex items-center gap-2 px-2 py-1 text-xs font-medium text-muted-foreground">
+                  <svelte:component this={getSuggestionIcon(type)} class="h-3 w-3" />
+                  {getSuggestionLabel(type)}
+                </div>
+                <div class="space-y-1">
+                  {#each items.slice(0, 5) as suggestion}
+                    <button
+                      class="flex w-full items-center justify-between rounded-sm px-2 py-1.5 text-xs hover:bg-accent hover:text-accent-foreground"
+                      onclick={() => handleSuggestionClick(suggestion)}
+                    >
+                      <div class="flex items-center gap-2">
+                        <svelte:component this={getSuggestionIcon(suggestion.type)} class="h-3 w-3 text-muted-foreground" />
+                        <span>{suggestion.value}</span>
+                      </div>
+                      {#if suggestion.count}
+                        <Badge variant="secondary" class="text-xs">
+                          {suggestion.count}
+                        </Badge>
+                      {/if}
+                    </button>
+                  {/each}
+                </div>
+              </div>
+            {/if}
+          {/each}
+        {/if}
+      </div>
+    {/if}
   </div>
 
-  <!-- Search Suggestions Dropdown -->
-  {#if showDropdown && showSuggestions && (suggestions.length > 0 || recentSearches.length > 0)}
-    <div class="absolute top-full z-50 mt-1 w-full rounded-md border bg-popover p-2 shadow-md">
-      <!-- Recent Searches -->
-      {#if recentSearches.length > 0 && !searchQuery}
-        <div class="mb-3">
-          <div class="flex items-center gap-2 px-2 py-1 text-xs font-medium text-muted-foreground">
-            <Clock class="h-3 w-3" />
-            {t('articles.search.recentSearches')}
-          </div>
-          <div class="space-y-1">
-            {#each recentSearches.slice(0, 5) as recent}
-              <button
-                class="flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-xs hover:bg-accent hover:text-accent-foreground"
-                onclick={() => handleSuggestionClick({ type: 'recent', value: recent })}
-              >
-                <Clock class="h-3 w-3 text-muted-foreground" />
-                {recent}
-              </button>
-            {/each}
-          </div>
-        </div>
-      {/if}
+  <!-- No Results -->
+  {#if searchQuery && suggestions.length === 0}
+    <div class="px-2 py-3 text-center text-xs text-muted-foreground">
+      {t('articles.search.noSuggestions')}
+    </div>
+  {/if}
 
-      <!-- Filtered Suggestions -->
-      {#if searchQuery && suggestions.length > 0}
-        {#each Object.entries(groupedSuggestions) as [type, items]}
-          {#if items.length > 0}
-            <div class="mb-3">
-              <div class="flex items-center gap-2 px-2 py-1 text-xs font-medium text-muted-foreground">
-                <svelte:component this={getSuggestionIcon(type)} class="h-3 w-3" />
-                {getSuggestionLabel(type)}
-              </div>
-              <div class="space-y-1">
-                {#each items.slice(0, 5) as suggestion}
-                  <button
-                    class="flex w-full items-center justify-between rounded-sm px-2 py-1.5 text-xs hover:bg-accent hover:text-accent-foreground"
-                    onclick={() => handleSuggestionClick(suggestion)}
-                  >
-                    <div class="flex items-center gap-2">
-                      <svelte:component this={getSuggestionIcon(suggestion.type)} class="h-3 w-3 text-muted-foreground" />
-                      <span>{suggestion.value}</span>
-                    </div>
-                    {#if suggestion.count}
-                      <Badge variant="secondary" class="text-xs">
-                        {suggestion.count}
-                      </Badge>
-                    {/if}
-                  </button>
-                {/each}
-              </div>
-            </div>
-          {/if}
-        {/each}
-      {/if}
-
-      <!-- No Results -->
-      {#if searchQuery && suggestions.length === 0}
-        <div class="px-2 py-3 text-center text-xs text-muted-foreground">
-          {t('articles.search.noSuggestions')}
-        </div>
-      {/if}
-
-      <!-- Search Action -->
-      {#if searchQuery}
-        <div class="border-t pt-2 mt-2">
-          <button
-            class="flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-xs font-medium hover:bg-accent hover:text-accent-foreground"
-            onclick={() => handleSearch()}
-          >
-            <Search class="h-3 w-3" />
-            {t('articles.search.searchFor')} "{searchQuery}"
-          </button>
-        </div>
-      {/if}
+  <!-- Search Action -->
+  {#if searchQuery}
+    <div class="border-t pt-2 mt-2">
+      <button
+        class="flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-xs font-medium hover:bg-accent hover:text-accent-foreground"
+        onclick={() => handleSearch()}
+      >
+        <Search class="h-3 w-3" />
+        {t('articles.search.searchFor')} "{searchQuery}"
+      </button>
     </div>
   {/if}
 </div>

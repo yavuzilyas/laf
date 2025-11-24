@@ -1,13 +1,20 @@
 // src/routes/article/[slug]/+page.server.ts
 import type { PageServerLoad } from './$types';
-import { error } from '@sveltejs/kit';
+import { error, redirect } from '@sveltejs/kit';
 import { getArticlesCollection, getUsersCollection } from '$db/mongo';
 import { ObjectId } from 'mongodb';
-import { redirect } from '@sveltejs/kit';
+// Add these imports at the top of the file
+import { rm } from 'fs/promises';
+import { resolve } from 'path';
+
+// ... existing imports ...
 
 export const load: PageServerLoad = async ({ params, locals }) => {
   const { slug } = params;
   const articles = await getArticlesCollection();
+  const users = await getUsersCollection();
+  const viewer = (locals as any)?.user ?? null;
+  const viewerObjectId = viewer ? new ObjectId(viewer.id) : null;
 
   // Try finding by slug across known locales
   const localesToTry = ['en', 'tr', 'de', 'fr', 'es'];
@@ -36,6 +43,50 @@ export const load: PageServerLoad = async ({ params, locals }) => {
     throw redirect(303, '/403');
   }
 
+  // Load viewer block lists
+  let viewerBlockedIds = new Set<string>();
+  if (viewerObjectId) {
+    const viewerDoc = await users.findOne(
+      { _id: viewerObjectId },
+      { projection: { blocked: 1 } }
+    );
+
+    if (Array.isArray(viewerDoc?.blocked)) {
+      viewerBlockedIds = new Set(
+        viewerDoc.blocked
+          .map((entry: any) => entry?.blockedUserId)
+          .filter(Boolean)
+          .map((id: any) => id.toString())
+      );
+    }
+  }
+
+  const authorIdStr = article.authorId ? String(article.authorId) : null;
+  const viewerBlocksAuthor = viewer && authorIdStr ? viewerBlockedIds.has(authorIdStr) : false;
+
+  let authorDoc: any = null;
+  if (article.authorId) {
+    try {
+      authorDoc = await users.findOne({ _id: new ObjectId(article.authorId) });
+    } catch (err) {
+      console.error('Author lookup failed', err);
+    }
+  }
+
+  const authorBlocksViewer = Boolean(
+    viewerObjectId && authorDoc?.blocked?.some?.((entry: any) => {
+      try {
+        return entry?.blockedUserId && new ObjectId(entry.blockedUserId).equals(viewerObjectId);
+      } catch {
+        return false;
+      }
+    })
+  );
+
+  if (viewerBlocksAuthor || authorBlocksViewer) {
+    throw error(403, 'Blocked user content');
+  }
+
   // Increment views
   await articles.updateOne({ _id: article._id }, { $inc: { 'stats.views': 1 } });
 
@@ -53,23 +104,17 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 
   // Load author as plain serializable object
   let author: { id: string; nickname?: string; name?: string; surname?: string } | null = null;
-  try {
-    if (article.authorId) {
-      const users = await getUsersCollection();
-      const userDoc = await users.findOne({ _id: new ObjectId(article.authorId) });
-      if (userDoc) {
-        author = {
-          id: userDoc._id.toString(),
-          nickname: userDoc.nickname,
-          name: userDoc.name,
-          surname: userDoc.surname
-        };
-      } else {
-        author = { id: String(article.authorId) };
-      }
+  if (article.authorId) {
+    if (authorDoc) {
+      author = {
+        id: authorDoc._id.toString(),
+        nickname: authorDoc.nickname,
+        name: authorDoc.name,
+        surname: authorDoc.surname
+      };
+    } else {
+      author = { id: String(article.authorId) };
     }
-  } catch {
-    author = { id: String(article.authorId) };
   }
 
   return {

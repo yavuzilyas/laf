@@ -16,26 +16,28 @@
 	});
 </script>
 
+
 <MediaExtended bind:mediaRef {...rest}>
 	{@const node = rest.node}
 
 	{#if isEditable}
-		<Lens>
-			<img
+		<img
 				bind:this={mediaRef}
 				src={node.attrs.src}
 				alt={node.attrs.alt}
 				title={node.attrs.title}
 				class="m-0 object-cover"
 			/>
-		</Lens>
+
 	{:else}
+<Lens>	
 		<img
 			bind:this={mediaRef}
 			src={node.attrs.src}
 			alt={node.attrs.alt}
 			title={node.attrs.title}
-			class="m-0 object-cover"
+			class="m-0 w-full object-cover"
 		/>
+				</Lens>
 	{/if}
 </MediaExtended>

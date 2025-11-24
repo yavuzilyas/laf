@@ -73,8 +73,12 @@ export async function notifyArticleComment(params: { articleId: string | ObjectI
   if (!articleIdStr || !commentIdStr) return;
   const articleSlugValue = articleSlug ?? (await resolveArticleSlug(articleId)) ?? articleIdStr;
   const actorName = await getUserName(commenterId);
-  const title = actorName ? `${actorName} makalene yorum yaptı` : `Bir kullanıcı makalene yorum yaptı`;
-  const message = articleTitle ? `${articleTitle} makalene yeni bir yorum var.` : `Makalene yeni bir yorum geldi.`;
+  const title = actorName ? 
+    { key: 'notifications.messages.newComment', values: { user: actorName } } : 
+    { key: 'notifications.messages.newComment', values: { user: 'Bir kullanıcı' } };
+  const message = articleTitle ? 
+    { key: 'notifications.messages.newCommentWithTitle', values: { user: actorName || 'Bir kullanıcı', title: articleTitle } } : 
+    { key: 'notifications.messages.newCommentGeneric', values: { user: actorName || 'Bir kullanıcı' } };
   await createNotification({
     userId: targetId,
     type: 'comment',
@@ -106,12 +110,12 @@ export async function notifyCommentReply(params: { parentCommentId: string | Obj
   if (!articleIdStr || !commentIdStr || !parentIdStr) return;
   const articleSlugValue = articleSlug ?? (await resolveArticleSlug(articleId)) ?? articleIdStr;
   const actorName = await getUserName(replierId);
-  const title = actorName ? `${actorName} yorumuna yanıt verdi` : `Bir kullanıcı yorumuna yanıt verdi`;
+  const title = { key: 'notifications.messages.newReply' };
   await createNotification({
     userId: parent.userId,
     type: 'reply',
     title,
-    message: `Yeni bir yanıtın var.`,
+    message: { key: 'notifications.messages.newReplyMessage' },
     link: `/article/${articleSlugValue}#comment-${commentIdStr}`,
     actor: {
       id: toObjectId(replierId).toHexString(),
@@ -162,17 +166,26 @@ export async function notifyArticleLike(params: { articleId: string | ObjectId; 
   const firstName = await getUserName(likerIds[0]);
   let secondName: string | null = null;
   if (count > 1) secondName = await getUserName(likerIds[1]);
-
-  let title: string;
-  if (count === 1) {
-    title = (firstName ?? 'Bir kullanıcı') + ' makaleni beğendi';
-  } else if (count === 2) {
-    title = `${firstName ?? 'Bir kullanıcı'} ve ${secondName ?? 'bir başkası'} makaleni beğendi`;
-  } else {
-    title = `${firstName ?? 'Bir kullanıcı'} ve diğer ${count - 1} kişi makaleni beğendi`;
+  
+  // Get names for all likers
+  const likerNames: string[] = [];
+  for (const likerId of likerIds) {
+    const name = await getUserName(likerId);
+    if (name) likerNames.push(name);
   }
 
-  const message = article?.title ? `${article.title} makalene beğeni var.` : `Makalene beğeni var.`;
+  let title: { key: string; values?: Record<string, string | number | null | undefined> };
+  if (count === 1) {
+    title = { key: 'notifications.messages.articleLiked' };
+  } else if (count === 2) {
+    title = { key: 'notifications.messages.articleLikedTwo' };
+  } else {
+    title = { key: 'notifications.messages.articleLikedMany', values: { count: count - 1 } };
+  }
+
+  const message = article?.title 
+    ? { key: 'notifications.messages.articleLikedMessageWithTitle', values: { title: article.title } }
+    : { key: 'notifications.messages.articleLikedMessage' };
 
   await notifications.updateOne(
     { userId, type: 'like', 'meta.articleId': articleIdStr, 'meta.kind': 'article-like' },
@@ -187,6 +200,7 @@ export async function notifyArticleLike(params: { articleId: string | ObjectId; 
           articleId: articleIdStr,
           articleSlug: articleSlugValue,
           likerIds,
+          likerNames,
           count,
         },
         read: false,
@@ -231,14 +245,21 @@ export async function notifyCommentLike(params: { commentId: string | ObjectId; 
   const firstName = await getUserName(likerIds[0]);
   let secondName: string | null = null;
   if (count > 1) secondName = await getUserName(likerIds[1]);
+  
+  // Get names for all likers
+  const likerNames: string[] = [];
+  for (const likerId of likerIds) {
+    const name = await getUserName(likerId);
+    if (name) likerNames.push(name);
+  }
 
-  let title: string;
+  let title: { key: string; values?: Record<string, string | number | null | undefined> };
   if (count === 1) {
-    title = (firstName ?? 'Bir kullanıcı') + ' yorumunu beğendi';
+    title = { key: 'notifications.messages.commentLiked' };
   } else if (count === 2) {
-    title = `${firstName ?? 'Bir kullanıcı'} ve ${secondName ?? 'bir başkası'} yorumunu beğendi`;
+    title = { key: 'notifications.messages.commentLikedTwo' };
   } else {
-    title = `${firstName ?? 'Bir kullanıcı'} ve diğer ${count - 1} kişi yorumunu beğendi`;
+    title = { key: 'notifications.messages.commentLikedMany', values: { count: count - 1 } };
   }
 
   await notifications.updateOne(
@@ -246,7 +267,7 @@ export async function notifyCommentLike(params: { commentId: string | ObjectId; 
     {
       $set: {
         title,
-        message: `Yorumuna beğeni var.`,
+        message: { key: 'notifications.messages.commentLikedMessage' },
         link: `/article/${articleSlugValue}#comment-${commentIdStr}`,
         actor: { id: likerIdStr, name: await getUserName(likerId) },
         meta: {
@@ -255,6 +276,7 @@ export async function notifyCommentLike(params: { commentId: string | ObjectId; 
           articleId: articleIdStr,
           articleSlug: articleSlugValue,
           likerIds,
+          likerNames,
           count,
         },
         read: false,
@@ -270,11 +292,16 @@ export interface NotificationMeta {
 	[key: string]: any;
 }
 
+export interface TranslationObject {
+  key: string;
+  values?: Record<string, string | number | null | undefined>;
+}
+
 export interface CreateNotificationInput {
 	userId: string | ObjectId;
 	type: NotificationType;
-	title: string;
-	message: string;
+	title: string | TranslationObject;
+	message: string | TranslationObject;
 	link?: string | null;
 	actor?: NotificationActor | null;
 	meta?: NotificationMeta | null;
@@ -293,36 +320,98 @@ export interface NotificationRecord {
 	readAt?: string | null;
 }
 
-export async function createNotification(input: CreateNotificationInput): Promise<NotificationRecord> {
-	const notifications = await getNotificationsCollection();
-	const now = new Date();
+export async function notifyNewArticle(params: { 
+  articleId: string | ObjectId; 
+  articleSlug?: string | null; 
+  authorId: string | ObjectId;
+  articleTitle: string;
+  authorName: string;
+}) {
+  const { articleId, articleSlug, authorId, articleTitle, authorName } = params;
+  const users = await getUsersCollection();
+  const articleIdStr = toIdString(articleId);
+  if (!articleIdStr) return;
 
-	const doc = {
-		userId: toObjectId(input.userId),
-		type: input.type,
-		title: input.title,
-		message: input.message,
-		link: input.link ?? null,
-		actor: input.actor ?? null,
-		meta: input.meta ?? null,
-		read: false,
-		createdAt: now,
-		readAt: null as Date | null
-	};
+  // Get all followers of the author
+  const followers = await users.find(
+    { 'following.followingUserId': toObjectId(authorId) },
+    { projection: { _id: 1 } }
+  ).toArray();
 
-	const res = await notifications.insertOne(doc);
+  const articleSlugValue = articleSlug ?? (await resolveArticleSlug(articleId)) ?? articleIdStr;
+  
+  // Create notifications for each follower
+  const notificationPromises = followers.map(async (follower) => {
+    if (follower._id.equals(toObjectId(authorId))) return; // Don't notify self
+    
+    await createNotification({
+      userId: follower._id,
+      type: 'announcement',
+      title: { key: 'notifications.messages.newArticlePublished', values: { title: articleTitle } },
+      message: { key: 'notifications.messages.newArticlePublishedMessage', values: { title: articleTitle } },
+      link: `/article/${articleSlugValue}`,
+      actor: {
+        id: toObjectId(authorId).toHexString(),
+        name: authorName
+      },
+      meta: {
+        kind: 'new-article',
+        articleId: articleIdStr,
+        articleSlug: articleSlugValue
+      }
+    });
+  });
 
-	return {
-		id: res.insertedId.toString(),
-		type: doc.type,
-		title: doc.title,
-		message: doc.message,
-		link: doc.link,
-		actor: doc.actor,
-		meta: doc.meta,
-		read: doc.read,
-		createdAt: now.toISOString()
-	};
+  await Promise.all(notificationPromises);
+}
+
+export async function createNotification(input: CreateNotificationInput): Promise<NotificationRecord | null> {
+    const notifications = await getNotificationsCollection();
+    const now = new Date();
+    const today = new Date(now);
+    today.setHours(0, 0, 0, 0); // Start of today
+
+    // Check for existing similar notification today
+    const existing = await notifications.findOne({
+        userId: toObjectId(input.userId),
+        type: input.type,
+        createdAt: { $gte: today },
+        ...(input.meta?.articleId && { 'meta.articleId': input.meta.articleId }),
+        ...(input.meta?.commentId && { 'meta.commentId': input.meta.commentId }),
+        ...(input.actor?.id && { 'actor.id': input.actor.id })
+    });
+
+    // If a similar notification exists today, don't create a new one
+    if (existing) {
+        return null;
+    }
+
+    const doc = {
+        userId: toObjectId(input.userId),
+        type: input.type,
+        title: input.title,
+        message: input.message,
+        link: input.link ?? null,
+        actor: input.actor ?? null,
+        meta: input.meta ?? null,
+        read: false,
+        createdAt: now,
+        readAt: null as Date | null
+    };
+
+    const res = await notifications.insertOne(doc);
+
+    return {
+        id: res.insertedId.toString(),
+        type: doc.type,
+        title: doc.title,
+        message: doc.message,
+        link: doc.link,
+        actor: doc.actor,
+        meta: doc.meta,
+        read: doc.read,
+        createdAt: now.toISOString()
+    };
 }
 
 export function normalizeNotification(doc: any): NotificationRecord {

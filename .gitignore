@@ -1,3 +1,4 @@
+
 node_modules
 
 # Output
@@ -8,6 +9,8 @@ node_modules
 /.svelte-kit
 /build
 /static/uploads
+npm_output.log
+
 # OS
 .DS_Store
 Thumbs.db

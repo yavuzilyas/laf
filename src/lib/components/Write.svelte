@@ -1,6 +1,7 @@
   <script lang="ts">
 import { onMount, onDestroy } from 'svelte';
   import { goto } from '$app/navigation';
+  import { page } from '$app/stores';
   import { articleEditor } from '$lib/stores/article-editor.svelte.js';
   import { t } from '$lib/stores/i18n.svelte.js';
 
@@ -41,13 +42,16 @@ import { onMount, onDestroy } from 'svelte';
     UserPlus,
     LogIn  } from '@lucide/svelte';
 
-    let { user } = $props();
+    let { article, mode } = $props();
+    const user = $derived($page.data.user);
 
   const rt = () => t;
 
   let editors = $state<Record<string, any>>({});
   // Cache last known editor content per language to prevent effect loops
   let lastContentByLang = $state<Record<string, string>>({});
+  let hydratedContentByLang = $state<Record<string, string>>({});
+  let hydratedEditorByLang = $state<Record<string, any>>({});
   let newTag = $state('');
   let showCollaboratorDialog = $state(false);
   let showVersionDialog = $state(false);
@@ -67,6 +71,12 @@ import { onMount, onDestroy } from 'svelte';
   const availableLangs = $derived(articleEditor.availableLanguages);
   
 
+  function cacheEditorContent(language: string, serialized: string) {
+    lastContentByLang[language] = serialized;
+    hydratedContentByLang[language] = serialized;
+    hydratedEditorByLang[language] = editors[language];
+  }
+
   function onEditorUpdate(language: string) {
     return () => {
       if (editors[language]) {
@@ -75,7 +85,7 @@ import { onMount, onDestroy } from 'svelte';
         try {
           const serialized = JSON.stringify(content);
           if (lastContentByLang[language] !== serialized) {
-            lastContentByLang[language] = serialized;
+            cacheEditorContent(language, serialized);
             articleEditor.updateTranslation(language, 'content', content);
           }
         } catch (_) {
@@ -114,9 +124,64 @@ import { onMount, onDestroy } from 'svelte';
 
   function removeLanguage(language: string) {
     if (availableLangs.length > 1) {
+      delete lastContentByLang[language];
+      delete hydratedContentByLang[language];
+      delete hydratedEditorByLang[language];
       articleEditor.removeLanguage(language);
     }
   }
+
+  function normalizeEditorContent(content: unknown) {
+    if (content == null) return null;
+    if (typeof content === 'string') {
+      try {
+        return JSON.parse(content);
+      } catch {
+        return content;
+      }
+    }
+    return content;
+  }
+
+  function resetEditorCaches() {
+    lastContentByLang = {};
+    hydratedContentByLang = {};
+    hydratedEditorByLang = {};
+  }
+
+  $effect(() => {
+    for (const lang of availableLangs) {
+      const editorInstance = editors[lang];
+      const translation = articleData.translations[lang];
+
+      if (!editorInstance || editorInstance.isDestroyed || !translation) continue;
+
+      const normalized = normalizeEditorContent(translation.content);
+      if (!normalized) continue;
+
+      let targetSerialized: string;
+      try {
+        targetSerialized = JSON.stringify(normalized);
+      } catch {
+        continue;
+      }
+
+      const isNewInstance = hydratedEditorByLang[lang] !== editorInstance;
+
+      try {
+        if (!isNewInstance && hydratedContentByLang[lang] === targetSerialized) {
+          hydratedEditorByLang[lang] = editorInstance;
+          continue;
+        }
+
+        editorInstance.commands.setContent(normalized);
+        const serializedAfterSet = JSON.stringify(editorInstance.getJSON());
+        cacheEditorContent(lang, serializedAfterSet);
+      } catch {
+        cacheEditorContent(lang, targetSerialized);
+      }
+    }
+  });
 
 
 
@@ -132,6 +197,13 @@ import { onMount, onDestroy } from 'svelte';
   }
 
   onMount(async () => {
+    resetEditorCaches();
+    articleEditor.initialize();
+
+    if (mode === 'edit' && article) {
+      articleEditor.hydrate(article);
+    }
+
     if (user && user.id) {
       articleEditor.updateMetadata('authorId', user.id);
     }
@@ -143,9 +215,40 @@ import { onMount, onDestroy } from 'svelte';
     import { PlusIcon, FolderCheckIcon } from 'svelte-animate-icons';
 import {NotebookPenIcon} from 'svelte-animate-icons';
 </script>
+    <Dialog.Root bind:open={showCategoryDialog}>
+      <Dialog.Content class="w-full sm:w-1/2 md:w-2/7 ">
+        <Dialog.Header>
+          <Dialog.Title class="flex items-center gap-2">
+            <PlusIcon animationState="loading" size={24} class="text-primary" />
+            {rt()('article.selectCategory')}
+          </Dialog.Title>
+          <Dialog.Description>
+            {rt()('article.categoryTags')}
+          </Dialog.Description>
+        </Dialog.Header>
+
+        <ScrollArea class="max-h-[400px] pr-4">
+          <CategoryTree
+            categories={categoryTree}
+            bind:selectedCategory={tempCategory}
+            bind:selectedSubcategory={tempSubcategory}
+          />
+        </ScrollArea>
+
+        <Dialog.Footer class="gap-2">
+          <Button variant="outline" onclick={() => showCategoryDialog = false}>
+            {rt()('common.cancel')}
+          </Button>
+          <Button onclick={applyCategorySelection}>
+            {rt()('common.apply')}
+          </Button>
+        </Dialog.Footer>
+      </Dialog.Content>
+    </Dialog.Root>
+
     <div class="space-y-4">
       <div class="flex flex-col items-center justify-center gap-1">
-          <NotebookPenIcon animationState="loading" loop={true} duration={2500} size={48} class="text-primary" />
+          <NotebookPenIcon triggers={{ hover: false }} duration={2500} animationState="loading" size={48} class="text-primary" />
           <h1 class="text-xl sm:text-2xl whitespace-nowrap font-bold flex items-center gap-2">
             {rt()('article.newArticle')}
 
@@ -170,7 +273,25 @@ import {NotebookPenIcon} from 'svelte-animate-icons';
                     <img src={articleData.thumbnail} alt="thumbnail" class="w-full h-36 object-cover rounded-md border" />
                     <div class="flex gap-2">
                       <Button size="sm" variant="outline" onclick={() => window.open(articleData.thumbnail, '_blank')}>{rt()('common.view')}</Button>
-                      <Button size="sm" variant="destructive" onclick={() => articleEditor.updateMetadata('thumbnail', '')}>{rt()('common.remove')}</Button>
+                      <Button
+                        size="sm"
+                        variant="destructive"
+                        onclick={async () => {
+                          const previousUrl = articleData.thumbnail;
+                          if (previousUrl) {
+                            try {
+                              await fetch('/api/upload', {
+                                method: 'DELETE',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ url: previousUrl })
+                              });
+                            } catch (error) {
+                              console.error('Thumbnail delete error:', error);
+                            }
+                          }
+                          articleEditor.updateMetadata('thumbnail', '');
+                        }}
+                      >{rt()('common.remove')}</Button>
                     </div>
                   </div>
                 {:else}
@@ -206,6 +327,20 @@ import {NotebookPenIcon} from 'svelte-animate-icons';
                             const fd = new FormData();
                             fd.append('file', file);
                             fd.append('folder', 'thumbnails');
+
+                            try {
+                              const articleId = await articleEditor.ensureArticleId();
+                              if (articleId) {
+                                fd.append('articleId', articleId);
+                              }
+                            } catch (error) {
+                              console.error('Failed to ensure article ID before upload', error);
+                            }
+
+                            fd.append('type', 'thumbnail');
+                            if (articleData.thumbnail) {
+                              fd.append('previousUrl', articleData.thumbnail);
+                            }
 
                             const res = await fetch('/api/upload', { method: 'POST', body: fd });
                             if (res.ok) {
@@ -493,7 +628,7 @@ import {NotebookPenIcon} from 'svelte-animate-icons';
                 <div class="bg-background  rounded-md border">
                   {#if editors[lang] && !editors[lang].isDestroyed}
                     <EdraToolBar
-                      class="bg-background/44 backdrop-blur-sm border-b rounded-md rounded-b-none  flex w-full items-center overflow-x-auto p-0.5 sticky top-5 sm:top-7 z-1 self-start"
+                      class="bg-background/44 pb-1 sm:p-0.5 backdrop-blur-sm border-b rounded-md rounded-b-none  flex w-full items-center overflow-x-scroll sm:overflow-x-auto sm:p-0.5 sticky top-8 sm:top-7 z-1 self-start"
                       editor={editors[lang]}
                     />
                   {/if}
@@ -502,7 +637,7 @@ import {NotebookPenIcon} from 'svelte-animate-icons';
                     <EdraEditor
                       bind:editor={editors[lang]}
                       content={translation.content}
-                      class="py-7 p-10"
+                      class="py-2 p-3  md:py-7 sm:p-10"
                       onUpdate={onEditorUpdate(lang)}
                     />
                     <EdraDragHandleExtended />
@@ -652,33 +787,3 @@ import {NotebookPenIcon} from 'svelte-animate-icons';
       </Dialog.Content>
     </Dialog.Root>
 
-    <Dialog.Root bind:open={showCategoryDialog}>
-      <Dialog.Content class="w-full sm:w-1/2 md:w-2/7 ">
-        <Dialog.Header>
-          <Dialog.Title class="flex items-center gap-2">
-            <PlusIcon animationState="loading" size={24} class="text-primary" />
-            {rt()('article.selectCategory')}
-          </Dialog.Title>
-          <Dialog.Description>
-            {rt()('article.categoryTags')}
-          </Dialog.Description>
-        </Dialog.Header>
-
-        <ScrollArea class="max-h-[400px] pr-4">
-          <CategoryTree
-            categories={categoryTree}
-            bind:selectedCategory={tempCategory}
-            bind:selectedSubcategory={tempSubcategory}
-          />
-        </ScrollArea>
-
-        <Dialog.Footer class="gap-2">
-          <Button variant="outline" onclick={() => showCategoryDialog = false}>
-            {rt()('common.cancel')}
-          </Button>
-          <Button onclick={applyCategorySelection}>
-            {rt()('common.apply')}
-          </Button>
-        </Dialog.Footer>
-      </Dialog.Content>
-    </Dialog.Root>

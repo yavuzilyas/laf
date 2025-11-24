@@ -144,7 +144,9 @@
       "allLanguages": "Tüm diller",
       "allCategories": "Tüm kategoriler",
       "allTypes": "Tüm türler",
-      "allTime": "Tüm zamanlar"
+      "allTime": "Tüm zamanlar",
+      "following": "Takip ettiklerim",
+      "followingHint": "Sadece takip ettiğin yazarları göster"
     }
   },
   "article": {
@@ -186,6 +188,49 @@
     "noVersions": "Sürüm geçmişi mevcut değil",
     "loadDraft": "Taslağa Dön"
   },
+      "philosophy": "Felsefe",
+    "economics": "İktisat",
+    "stateTheory": "Devlet Teorisi",
+    "naturalLaw": "Doğal Hukuk",
+    "revisionistHistory": "Revizyonist Tarih",
+    "revisionistScience": "Revizyonist Bilim",
+    "praxeology": "Praksiyoloji",
+    "thymology": "Timoloji",
+    "ethics": "Ahlak",
+    "epistemology": "Epistemoloji",
+    "theology": "Teoloji",
+    "leftSocialistEconomics": "Sol-Sosyalist İktisat",
+    "mercantilistEconomics": "Merkantilist İktisat",
+    "positiveEconomicTheories": "Pozitif İktisat Teorileri",
+    "liberalEconomics": "Liberal İktisat",
+    "austrianSolution": "Avusturyacı Çözüm",
+    "contemporaryEconomicDynamics": "Günümüzün İktisadi Dinamikleri",
+    "officialHistory": "Resmi Tarih",
+    "alternativeAcademicHistoricalTheses": "Alternatif Akademik Tarih Tezleri",
+    "whigHistory": "Whig Tarih",
+    "legendaryHistory": "Menkıbevi Tarih",
+    "historicism": "Tarihselcilik",
+    "antiStateHistory": "Devlet Düşmanı Tarih",
+    "historyAsClassStruggle": "Sınıf Savaşı Olarak Tarih",
+    "thymologyHistory": "Timoloji",
+    "religiousHistory": "Din Tarihi",
+    "languageHistory": "Dil Tarihi",
+    "anthropology": "Antropoloji",
+    "gameTheory": "Oyun Teorisi",
+    "catallaxyCrusoeEconomics": "Katalaksi & Cruose İktisadı",
+    "warTheory": "Savaş Teorisi",
+    "praxeologicalEthics": "Praksiyolojik Ahlak",
+    "law": "Hukuk",
+    "antipoliticsStateTheory": "Antipolitika(Devlet Teorisi)",
+    "history": "Tarih",
+    "anthropologyEthnology": "Antropoloji/Etnoloji",
+    "linguistics": "Linguistik",
+    "psychology": "Psikoloji",
+    "sociology": "Sosyoloji",
+    "polilegalismPositiveLaw": "Polilegalizm/Pozitif Hukuk",
+    "stateLaw": "Devlet Hukuku",
+    "legalFoundationsOfLibertarianSociety": "Liberteryen Toplumun Legal Temelleri",
+    "contemporaryLaw": "Günümüz Hukuku",
   "categories": {
     "philosophy": "Felsefe",
     "economics": "İktisat",
@@ -242,6 +287,10 @@
       "Generate": "Oluştur",
 
   "profile": {
+"followsYou": "Seni takip ediyor",
+    "editProfile": "Profili Düzenle",
+    "saveChanges": "Değişiklikleri Kaydet",
+    "cancel": "İptal",
   "title": "Profil",
   "description": "Profilinizi görüntüleyin ve yönetin",
 
@@ -254,6 +303,15 @@
   "comments": "Yorumlar",
   "likes": "Beğeniler",
   "views": "Görüntülenme",
+  "changeAvatar": "Avatarı Değiştir",
+  "removeAvatar": "Avatarı Kaldır",
+  "avatarUploading": "Yükleniyor...",
+  "avatarSizeError": "Maksimum dosya boyutu 4MB olmalıdır.",
+  "avatarTypeError": "Sadece resim dosyaları yükleyebilirsiniz.",
+  "avatarUploadError": "Avatar yüklenirken bir hata oluştu.",
+  "editAvatar": "Avatarı Düzenle",
+  "avatarDescription": "Profil resminizi yükleyin veya değiştirin",
+  "avatarRequirements": "Maksimum dosya boyutu: 4MB. İzin verilen formatlar: JPG, PNG, GIF.",
   "myArticles": "Makalelerim",
   "articlesDescription": "Yazdığınız makaleler",
   "noArticles": "Henüz makale yazmadınız",
@@ -269,8 +327,247 @@
   "privacy": "Gizlilik",
   "privacyDescription": "Profilinizi ve aktivitelerinizi kimlerin görebileceğini kontrol edin",
   "language": "Dil",
-  "languageDescription": "Tercih ettiğiniz dili seçin"
+  "languageDescription": "Tercih ettiğiniz dili seçin",
+  "bannerAlt": "Profil banner'i",
+  "changeBanner": "Banner'ı Değiştir",
+  "changeBannerColor": "Banner Rengini Değiştir",
+  "removeBanner": "Banner'ı Kaldır",
+  "joined": "katıldı",
+  "follow": "Takip Et",
+  "unfollow": "Takibi Bırak",
+  "block": "Engelle",
+  "unblock": "Engeli Kaldır",
+  "followers": "Takipçi",
+  "following": "Takip Edilen"
 },
+"searchLanguages": "Dilleri ara",
+"editor": {
+  "media": {
+    "addMedia": "Medya Ekle",
+    "addImage": "Resim ekle",
+    "urlOrFile": "URL giriniz ya da dosya seçiniz",
+    "insertFromUrl": "URL'den aktar",
+    "insertFromFile": "Dosyadan aktar"
+  },
+  "toolbar": {
+    "headings": "Başlıklar",
+    "alignment": "Hizalama",
+    "fontSize": {
+      "title": "Yazı Boyutu",
+      "tiny": "Çok Küçük",
+      "smaller": "Daha Küçük",
+      "small": "Küçük",
+      "default": "Varsayılan",
+      "medium": "Orta",
+      "large": "Büyük",
+      "extraLarge": "Çok Büyük"
+    },
+    "alignments": {
+      "left": "Sola Hizala",
+      "center": "Ortala",
+      "right": "Sağa Hizala",
+      "justify": "İki Yana Yasla"
+    },
+    "link": {
+      "add": "Bağlantı Ekle",
+      "edit": "Bağlantıyı Düzenle",
+      "enterUrl": "Bağlantı URL'sini girin",
+      "urlPlaceholder": "https://ornek.com",
+      "openInNewTab": "Yeni sekmede aç"
+    },
+    "colors": {
+      "text": "Metin Renkleri",
+      "background": "Arkaplan Renkleri"
+    },
+    "searchAndReplace": {
+      "search": "Ara",
+      "replace": "Değiştir",
+      "caseSensitive": "Büyük/küçük harfe duyarlı",
+      "replaceAll": "Tümünü Değiştir"
+    },
+    "textFormatting": {
+      "bold": "Kalın",
+      "italic": "İtalik",
+      "underline": "Altı Çizili",
+      "strike": "Üstü Çizili",
+      "code": "Kod"
+    },
+    "lists": {
+      "bullet": "Madde İmi",
+      "ordered": "Numaralı Liste",
+      "task": "Görev Listesi"
+    },
+    "blocks": {
+      "blockquote": "Alıntı",
+      "codeBlock": "Kod Bloğu",
+      "horizontalRule": "Ayırıcı Çizgi"
+    },
+    "media": {
+      "image": "Resim",
+      "video": "Video",
+      "audio": "Ses",
+      "embed": "Göm"
+    },
+    "tables": {
+      "insertTable": "Tablo Ekle",
+      "addRowBefore": "Üste Satır Ekle",
+      "addRowAfter": "Alta Satır Ekle",
+      "deleteRow": "Satırı Sil",
+      "addColumnBefore": "Sola Sütun Ekle",
+      "addColumnAfter": "Sağa Sütun Ekle",
+      "deleteColumn": "Sütunu Sil",
+      "deleteTable": "Tabloyu Sil"
+    },
+    "misc": {
+      "undo": "Geri Al",
+      "redo": "Yinele",
+      "clearFormatting": "Biçimlendirmeyi Temizle",
+      "paragraph": "Paragraf",
+      "heading1": "Başlık 1",
+      "heading2": "Başlık 2",
+      "heading3": "Başlık 3",
+      "heading4": "Başlık 4",
+      "alignLeft": "Sola Hizala",
+      "alignCenter": "Ortala",
+      "alignRight": "Sağa Hizala",
+      "alignJustify": "İki Yana Yasla"
+    },
+    "alignment": "Hizalama",
+    "alignments": {
+      "left": "Sola Hizala",
+      "center": "Ortala",
+      "right": "Sağa Hizala",
+      "justify": "İki Yana Yasla"
+    },
+    "fontSize": {
+      "title": "Yazı Boyutu",
+      "tiny": "Çok Küçük",
+      "smaller": "Daha Küçük",
+      "small": "Küçük",
+      "default": "Varsayılan",
+      "medium": "Orta",
+      "large": "Büyük",
+      "extraLarge": "Çok Büyük"
+    },
+    "headings": "Başlıklar",
+    "alignment": "Hizalama",
+    "colors": {
+      "text": "Metin Renkleri",
+      "background": "Arkaplan Renkleri"
+    },
+    "searchAndReplace": {
+      "title": "Ara ve değiştir",
+      "search": "Ara",
+      "replace": "Değiştir",
+      "caseSensitive": "Büyük/küçük harfe duyarlı",
+      "replaceAll": "Tümünü Değiştir"
+    },
+    "link": {
+      "add": "Bağlantı Ekle",
+      "edit": "Bağlantıyı Düzenle",
+      "url": "URL",
+      "openInNewTab": "Yeni sekmede aç"
+    },
+    "textFormatting": {
+      "bold": "Kalın",
+      "italic": "İtalik",
+      "underline": "Altı Çizili",
+      "strike": "Üstü Çizili",
+      "code": "Kod"
+    },
+    "lists": {
+      "bullet": "Madde İmi",
+      "ordered": "Numaralı Liste",
+      "task": "Görev Listesi"
+    },
+    "blocks": {
+      "blockquote": "Alıntı",
+      "codeBlock": "Kod Bloğu",
+      "horizontalRule": "Ayırıcı Çizgi"
+    },
+    "media": {
+      "image": "Resim",
+      "video": "Video",
+      "audio": "Ses",
+      "embed": "Göm"
+    },
+    "tables": {
+      "insertTable": "Tablo Ekle",
+      "addRowBefore": "Üste Satır Ekle",
+      "addRowAfter": "Alta Satır Ekle",
+      "deleteRow": "Satırı Sil",
+      "addColumnBefore": "Sola Sütun Ekle",
+      "addColumnAfter": "Sağa Sütun Ekle",
+      "deleteColumn": "Sütunu Sil",
+      "deleteTable": "Tabloyu Sil"
+    },
+    "misc": {
+      "undo": "Geri Al",
+      "redo": "Yinele",
+      "clearFormatting": "Biçimlendirmeyi Temizle",
+      "paragraph": "Paragraf",
+      "heading1": "Başlık 1",
+      "heading2": "Başlık 2",
+      "heading3": "Başlık 3",
+      "heading4": "Başlık 4",
+      "alignLeft": "Sola Hizala",
+      "alignCenter": "Ortala",
+      "alignRight": "Sağa Hizala",
+      "alignJustify": "İki Yana Yasla"
+    }
+  }
+},
+  "notifications": {
+    "title": "Bildirimler",
+    "markAll": "Tümünü Okundu İşaretle",
+    "empty": "Henüz bildiriminiz yok",
+    "system": "Sistem",
+    "systemNotification": "Sistem Bildirimi",
+    "unknown": "Bilinmeyen",
+    "notification": "bildirim",
+    "notifications": "bildirim",
+    "moreNotifications": "{count} daha fazla bildirim...",
+    "justNow": "az önce",
+    "minutesAgo": "{count} dakika önce",
+    "hoursAgo": "{count} saat önce",
+    "types": {
+      "like": "beğeni",
+      "comment": "yorum",
+      "reply": "yanıt",
+      "follow": "takip",
+      "announcement": "duyuru",
+      "mention": "bahsetme",
+      "system": "sistem"
+    },
+    "messages": {
+      "newComment": "{user} makalenize yorum yaptı",
+      "newCommentWithTitle": "{user}, \"{title}\" makalenize yorum yaptı",
+      "newCommentGeneric": "{user} makalenize yorum yaptı",
+      "newReply": "{user} yorumunuza yanıt verdi",
+      "newReplyGeneric": "{user} yorumunuza yanıt verdi",
+      "articleLiked": "{user} makalenizi beğendi",
+      "articleLikedWithTitle": "{user} \"{title}\" makalenizi beğendi",
+      "articleLikedGeneric": "{user} makalenizi beğendi",
+      "articleLikedTwo": "{user1} ve {user2} makalenizi beğendi",
+      "articleLikedMany": "{user1} ve diğer {count} kişi makalenizi beğendi",
+      "commentLiked": "{user} yorumunuzu beğendi",
+      "commentLikedTwo": "{user1} ve {user2} yorumunuzu beğendi",
+      "commentLikedMany": "{user1} ve diğer {count} kişi yorumunuzu beğendi",
+      "newFollower": "{user} sizi takip etmeye başladı",
+      "mentionedYou": "{user} bir yorumda sizden bahsetti",
+      "newArticlePublished": "{user} yeni bir makale yayınladı: {title}",
+      "newArticlePublishedMessage": "{user} \"{title}\" başlıklı yeni makalesini okuyabilirsiniz.",
+      "welcomeMessage": "Laf'a hoş geldiniz! İlk makalenizi yazmaya başlayın.",
+      "loginDetected": "Hesabınıza giriş yapıldı. Eğer siz değilseniz lütfen şifrenizi değiştirin.",
+      "passwordChanged": "Şifreniz başarıyla değiştirildi",
+      "newReplyMessage": "Yeni bir yanıtın var.",
+      "articleLikedMessage": "Makalene beğeni var.",
+      "articleLikedMessageWithTitle": "\"{title}\" makalene beğeni var.",
+      "commentLikedMessage": "Yorumuna beğeni var.",
+      "unknownUser": "Bir kullanıcı"
+    }
+  },
+
   "notLoggedIn": "Giriş Yapılmadı",
   "loginRequired": "Sayfayı görüntüleyebilmek için lütfen giriş yapın veya kayıt olun.",
   "aProblem": "Bir problem mi yaşıyorsunuz?",
@@ -4519,5 +4816,45 @@
   "yes": "evet",
   "yesterday": "dün",
   "zinc": "Çinko",
-  "zombie": "zombi"
+  "zombie": "zombi",
+  "Moderation": "Moderasyon",
+  "moderation": {
+    "title": "Moderasyon Paneli",
+    "description": "Raporlanan içerikleri ve kullanıcıları yönetin",
+    "overview": "Genel Bakış",
+    "articles": "Makaleler",
+    "comments": "Yorumlar",
+    "users": "Kullanıcılar",
+    "reportedArticles": "Raporlanan Makaleler",
+    "reportedComments": "Raporlanan Yorumlar",
+    "reportedUsers": "Raporlanan Kullanıcılar",
+    "hiddenArticles": "Gizli Makaleler",
+    "hiddenComments": "Gizli Yorumlar",
+    "totalReports": "Toplam Rapor",
+    "awaitingReview": "İnceleme bekliyor",
+    "currentlyHidden": "Şu anda gizli",
+    "allTime": "Tüm zamanlar",
+    "articlesDescription": "Raporlanan makaleleri görüntüleyin ve yönetin",
+    "commentsDescription": "Raporlanan yorumları görüntüleyin ve yönetin",
+    "usersDescription": "Raporlanan kullanıcıları görüntüleyin ve yönetin",
+    "loading": "Yükleniyor...",
+    "noReportedArticles": "Raporlanan makale yok",
+    "noReportedComments": "Raporlanan yorum yok",
+    "noReportedUsers": "Raporlanan kullanıcı yok",
+    "title": "Başlık",
+    "author": "Yazar",
+    "reports": "Raporlar",
+    "status": "Durum",
+    "created": "Oluşturulma",
+    "actions": "İşlemler",
+    "hidden": "Gizli",
+    "visible": "Görünür",
+    "content": "İçerik",
+    "user": "Kullanıcı",
+    "email": "E-posta",
+    "untitled": "Başlıksız",
+    "unknown": "Bilinmeyen",
+    "actionSuccess": "İşlem başarılı",
+    "actionFailed": "İşlem başarısız"
+  }
 }

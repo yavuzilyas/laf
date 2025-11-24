@@ -12,7 +12,13 @@ export const handle: Handle = async ({ event, resolve }) => {
       const users = await getUsersCollection();
       const user = await users.findOne({ _id: new ObjectId(session) });
       if (user) {
-        event.locals.user = { id: user._id.toString(), email: user.email, nickname: user.nickname } as any;
+        event.locals.user = {
+          id: user._id.toString(),
+          email: user.email,
+          nickname: user.nickname,
+          avatar: user.avatar ?? null,
+          role: user.role ?? 'user' // 'user', 'moderator', 'admin'
+        } as any;
       }
     } catch (err) {
       console.error("Error loading user from session:", err);

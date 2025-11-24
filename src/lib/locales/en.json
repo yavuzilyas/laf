@@ -192,6 +192,49 @@
     "noVersions": "No version history available",
     "loadDraft": "Load Draft"
   },
+  "philosophy": "Philosophy",
+    "economics": "Economics",
+    "stateTheory": "State Theory",
+    "naturalLaw": "Natural Law",
+    "revisionistHistory": "Revisionist History",
+    "revisionistScience": "Revisionist Science",
+    "praxeology": "Praxeology",
+    "thymology": "Thymology",
+    "ethics": "Ethics",
+    "epistemology": "Epistemology",
+    "theology": "Theology",
+    "leftSocialistEconomics": "Left-Socialist Economics",
+    "mercantilistEconomics": "Mercantilist Economics",
+    "positiveEconomicTheories": "Positive Economic Theories",
+    "liberalEconomics": "Liberal Economics",
+    "austrianSolution": "Austrian Solution",
+    "contemporaryEconomicDynamics": "Contemporary Economic Dynamics",
+    "officialHistory": "Official History",
+    "alternativeAcademicHistoricalTheses": "Alternative Academic Historical Theses",
+    "whigHistory": "Whig History",
+    "legendaryHistory": "Legendary History",
+    "historicism": "Historicism",
+    "antiStateHistory": "Anti-State History",
+    "historyAsClassStruggle": "History as Class Struggle",
+    "thymologyHistory": "Thymology",
+    "religiousHistory": "Religious History",
+    "languageHistory": "Language History",
+    "anthropology": "Anthropology",
+    "gameTheory": "Game Theory",
+    "catallaxyCrusoeEconomics": "Catallaxis & Crusoe Economics",
+    "warTheory": "War Theory",
+    "praxeologicalEthics": "Praxeological Ethics",
+    "law": "Law",
+    "antipoliticsStateTheory": "Antipolitics (State Theory)",
+    "history": "History",
+    "anthropologyEthnology": "Anthropology/Ethnology",
+    "linguistics": "Linguistics",
+    "psychology": "Psychology",
+    "sociology": "Sociology",
+    "polilegalismPositiveLaw": "Polilegalism/Positive Law",
+    "stateLaw": "State Law",
+    "legalFoundationsOfLibertarianSociety": "Legal Foundations of Libertarian Society",
+    "contemporaryLaw": "Contemporary Law",
   "categories": {
     "philosophy": "Philosophy",
     "economics": "Economics",
@@ -246,6 +289,10 @@
     "apply": "Apply"
   },
   "profile": {
+"followsYou": "Follows you",
+    "editProfile": "Edit Profile",
+    "saveChanges": "Save Changes",
+    "cancel": "Cancel",
   "title": "Profile",
   "description": "View and manage your profile",
 
@@ -258,6 +305,12 @@
   "comments": "Comments",
   "likes": "Likes",
   "views": "Views",
+  "changeAvatar": "Change Avatar",
+  "removeAvatar": "Remove Avatar",
+  "avatarUploading": "Uploading...",
+  "avatarSizeError": "Maximum file size is 4MB.",
+  "avatarTypeError": "Only image files are allowed.",
+  "avatarUploadError": "Failed to upload avatar.",
   "myArticles": "My Articles",
   "articlesDescription": "Articles you have written",
   "noArticles": "You haven't written any articles yet",
@@ -273,8 +326,245 @@
   "privacy": "Privacy",
   "privacyDescription": "Control who can see your profile and activity",
   "language": "Language",
-  "languageDescription": "Choose your preferred language"
+  "languageDescription": "Choose your preferred language",
+  "bannerAlt": "Profile banner",
+  "changeBanner": "Change Banner",
+  "changeBannerColor": "Change Banner Color",
+  "removeBanner": "Remove Banner",
+  "joined": "joined",
+  "follow": "Follow",
+  "unfollow": "Unfollow",
+  "block": "Block",
+  "unblock": "Unblock",
+  "followers": "Followers",
+  "following": "Following"
 },
+"editor": {
+  "media": {
+    "addMedia": "Add Media",
+    "addImage": "Add Image",
+    "urlOrFile": "Enter URL or select file",
+    "insertFromUrl": "Insert from URL",
+    "insertFromFile": "Insert from File"
+  },
+  "toolbar": {
+    "headings": "Headings",
+    "alignment": "Alignment",
+    "fontSize": {
+      "title": "Font Size",
+      "tiny": "Tiny",
+      "smaller": "Smaller",
+      "small": "Small",
+      "default": "Default",
+      "medium": "Medium",
+      "large": "Large",
+      "extraLarge": "Extra Large"
+    },
+    "alignments": {
+      "left": "Align Left",
+      "center": "Ortala",
+      "right": "Sağa Hizala",
+      "justify": "İki Yana Yasla"
+    },
+    "link": {
+      "add": "Bağlantı Ekle",
+      "edit": "Bağlantıyı Düzenle",
+      "enterUrl": "Bağlantı URL'sini girin",
+      "urlPlaceholder": "https://ornek.com",
+      "openInNewTab": "Yeni sekmede aç"
+    },
+    "colors": {
+      "text": "Metin Renkleri",
+      "background": "Arkaplan Renkleri"
+    },
+    "searchAndReplace": {
+      "search": "Ara",
+      "replace": "Değiştir",
+      "caseSensitive": "Büyük/küçük harfe duyarlı",
+      "replaceAll": "Tümünü Değiştir"
+    },
+    "textFormatting": {
+      "bold": "Kalın",
+      "italic": "İtalik",
+      "underline": "Altı Çizili",
+      "strike": "Üstü Çizili",
+      "code": "Kod"
+    },
+    "lists": {
+      "bullet": "Madde İmi",
+      "ordered": "Numaralı Liste",
+      "task": "Görev Listesi"
+    },
+    "blocks": {
+      "blockquote": "Alıntı",
+      "codeBlock": "Kod Bloğu",
+      "horizontalRule": "Ayırıcı Çizgi"
+    },
+    "media": {
+      "image": "Resim",
+      "video": "Video",
+      "audio": "Ses",
+      "embed": "Göm"
+    },
+    "tables": {
+      "insertTable": "Tablo Ekle",
+      "addRowBefore": "Üste Satır Ekle",
+      "addRowAfter": "Alta Satır Ekle",
+      "deleteRow": "Satırı Sil",
+      "addColumnBefore": "Sola Sütun Ekle",
+      "addColumnAfter": "Sağa Sütun Ekle",
+      "deleteColumn": "Sütunu Sil",
+      "deleteTable": "Tabloyu Sil"
+    },
+    "misc": {
+      "undo": "Geri Al",
+      "redo": "Yinele",
+      "clearFormatting": "Biçimlendirmeyi Temizle",
+      "paragraph": "Paragraf",
+      "heading1": "Başlık 1",
+      "heading2": "Başlık 2",
+      "heading3": "Başlık 3",
+      "heading4": "Başlık 4",
+      "alignLeft": "Sola Hizala",
+      "alignCenter": "Ortala",
+      "alignRight": "Sağa Hizala",
+      "alignJustify": "İki Yana Yasla"
+    },
+    "alignment": "Hizalama",
+    "alignments": {
+      "left": "Sola Hizala",
+      "center": "Ortala",
+      "right": "Sağa Hizala",
+      "justify": "İki Yana Yasla"
+    },
+    "fontSize": {
+      "title": "Font Size",
+      "tiny": "Tiny",
+      "smaller": "Smaller",
+      "small": "Small",
+      "default": "Default",
+      "medium": "Medium",
+      "large": "Large",
+      "extraLarge": "Extra Large"
+    },
+    "headings": "Headings",
+    "alignment": "Alignment",
+    "colors": {
+      "text": "Text Colours",
+      "background": "Background Colours"
+    },
+    "searchAndReplace": {
+      "title": "Find and Replace",
+      "search": "Search",
+      "replace": "Replace",
+      "caseSensitive": "Cape Sensitive",
+      "replaceAll": "Replace All"
+    },
+    "link": {
+      "add": "Add Link",
+      "edit": "Edit Link",
+      "url": "URL",
+      "openInNewTab": "Open in new tab"
+    },
+    "textFormatting": {
+      "bold": "Kalın",
+      "italic": "İtalik",
+      "underline": "Altı Çizili",
+      "strike": "Üstü Çizili",
+      "code": "Kod"
+    },
+    "lists": {
+      "bullet": "Madde İmi",
+      "ordered": "Numaralı Liste",
+      "task": "Görev Listesi"
+    },
+    "blocks": {
+      "blockquote": "Alıntı",
+      "codeBlock": "Kod Bloğu",
+      "horizontalRule": "Ayırıcı Çizgi"
+    },
+    "media": {
+      "image": "Resim",
+      "video": "Video",
+      "audio": "Ses",
+      "embed": "Göm"
+    },
+    "tables": {
+      "insertTable": "Tablo Ekle",
+      "addRowBefore": "Üste Satır Ekle",
+      "addRowAfter": "Alta Satır Ekle",
+      "deleteRow": "Satırı Sil",
+      "addColumnBefore": "Sola Sütun Ekle",
+      "addColumnAfter": "Sağa Sütun Ekle",
+      "deleteColumn": "Sütunu Sil",
+      "deleteTable": "Tabloyu Sil"
+    },
+    "misc": {
+      "undo": "Geri Al",
+      "redo": "Yinele",
+      "clearFormatting": "Biçimlendirmeyi Temizle",
+      "paragraph": "Paragraf",
+      "heading1": "Başlık 1",
+      "heading2": "Başlık 2",
+      "heading3": "Başlık 3",
+      "heading4": "Başlık 4",
+      "alignLeft": "Sola Hizala",
+      "alignCenter": "Ortala",
+      "alignRight": "Sağa Hizala",
+      "alignJustify": "İki Yana Yasla"
+    }
+  }
+},
+  "notifications": {
+    "title": "Notifications",
+    "markAll": "Mark All as Read",
+    "empty": "You have no notifications yet",
+    "system": "System",
+    "systemNotification": "System Notification",
+    "unknown": "Unknown",
+    "notification": "notification",
+    "notifications": "notifications",
+    "moreNotifications": "{count} more notifications...",
+    "justNow": "just now",
+    "minutesAgo": "{count} minutes ago",
+    "hoursAgo": "{count} hours ago",
+    "types": {
+      "like": "like",
+      "comment": "comment",
+      "reply": "reply",
+      "follow": "follow",
+      "announcement": "announcement",
+      "mention": "mention",
+      "system": "system"
+    },
+    "messages": {
+      "newComment": "{user} commented on your article",
+      "newCommentWithTitle": "{user} commented on your article \"{title}\"",
+      "newCommentGeneric": "{user} commented on your article",
+      "newReply": "{user} replied to your comment",
+      "newReplyGeneric": "{user} replied to your comment",
+      "articleLiked": "{user} liked your article",
+      "articleLikedWithTitle": "{user} liked your article \"{title}\"",
+      "articleLikedGeneric": "{user} liked your article",
+      "articleLikedTwo": "{user1} and {user2} liked your article",
+      "articleLikedMany": "{user1} and {count} others liked your article",
+      "commentLiked": "{user} liked your comment",
+      "commentLikedTwo": "{user1} and {user2} liked your comment",
+      "commentLikedMany": "{user1} and {count} others liked your comment",
+      "newFollower": "{user} started following you",
+      "mentionedYou": "{user} mentioned you in a comment",
+      "newArticlePublished": "{user} published a new article: {title}",
+      "newArticlePublishedMessage": "You can read {user}'s new article \"{title}\".",
+      "welcomeMessage": "Welcome to Laf! Start writing your first article.",
+      "loginDetected": "Your account was logged in. If it wasn't you, please change your password.",
+      "passwordChanged": "Your password has been successfully changed",
+      "newReplyMessage": "You have a new reply.",
+      "articleLikedMessage": "Your article has likes.",
+      "articleLikedMessageWithTitle": "Your article \"{title}\" has likes.",
+      "commentLikedMessage": "Your comment has likes.",
+      "unknownUser": "A user"
+    }
+  },
   "notLoggedIn": "Not Logged In",
   "loginRequired": "Please login or sign up to view the page.",
   "aProblem": "Are you having a problem?",
@@ -4292,5 +4582,45 @@
   "yes": "yes",
   "yesterday": "yesterday",
   "zebra": "zebra",
-  "zinc": "zinc"
+  "zinc": "zinc",
+  "Moderation": "Moderation",
+  "moderation": {
+    "title": "Moderation Panel",
+    "description": "Manage reported content and users",
+    "overview": "Overview",
+    "articles": "Articles",
+    "comments": "Comments",
+    "users": "Users",
+    "reportedArticles": "Reported Articles",
+    "reportedComments": "Reported Comments",
+    "reportedUsers": "Reported Users",
+    "hiddenArticles": "Hidden Articles",
+    "hiddenComments": "Hidden Comments",
+    "totalReports": "Total Reports",
+    "awaitingReview": "Awaiting review",
+    "currentlyHidden": "Currently hidden",
+    "allTime": "All time",
+    "articlesDescription": "View and manage reported articles",
+    "commentsDescription": "View and manage reported comments",
+    "usersDescription": "View and manage reported users",
+    "loading": "Loading...",
+    "noReportedArticles": "No reported articles",
+    "noReportedComments": "No reported comments",
+    "noReportedUsers": "No reported users",
+    "title": "Title",
+    "author": "Author",
+    "reports": "Reports",
+    "status": "Status",
+    "created": "Created",
+    "actions": "Actions",
+    "hidden": "Hidden",
+    "visible": "Visible",
+    "content": "Content",
+    "user": "User",
+    "email": "Email",
+    "untitled": "Untitled",
+    "unknown": "Unknown",
+    "actionSuccess": "Action successful",
+    "actionFailed": "Action failed"
+  }
 }

@@ -5,10 +5,11 @@
   import { showToast, persistToast } from "$lib/hooks/toast";
 import SettingsDialog from "$lib/components/settings-dialog.svelte";
 import NotificationDialog from "$lib/components/NotificationDialog.svelte";
+import A from "$lib/components/ui/a.svelte";
 
-    import {HandCoins, BadgeInfo, Cog, BellIcon,LogOutIcon, LogInIcon, UserRound } from "@lucide/svelte";
+    import {HandCoins, BadgeInfo, Cog, BellIcon,LogOutIcon, LogInIcon, UserRound, Shield } from "@lucide/svelte";
   import logo from '$lib/assets/laf1.svg';
-      import { t, tJoin, tMany, dativeSuffix } from '$lib/stores/i18n.svelte.ts';
+      import { t, tJoin, tMany, dativeSuffix } from '$lib/stores/i18n.svelte.js';
   import { page } from "$app/stores";
   import {
     notifications as notificationsStore,
@@ -33,6 +34,7 @@ import NotificationDialog from "$lib/components/NotificationDialog.svelte";
     customStyle?: string;
     onClick?: () => void;
     badge?: number;
+    image?: string;
   };
 
   // Reaktif menu array'i - dil değiştiğinde otomatik güncellenir
@@ -115,20 +117,45 @@ import NotificationDialog from "$lib/components/NotificationDialog.svelte";
     await markAllNotificationsRead();
   }
 
-  const loggedInItems = $derived<MenuItem[]>([
-    { icon: UserRound, name: t('Account'), href: "/profile" },
-    { icon: Cog, name: t('Settings'), onClick: handleSettingsClick },
-    { icon: BellIcon, name: t('Notifications'), onClick: openNotificationsDialog, badge: unreadTotal },
-    { icon: HandCoins, name: t('Donations'), href: t('/donations') },
-    { icon: BadgeInfo, name: t('Help'), href: t('/help') },
-    { icon: LogOutIcon, name: t('Logout'), href: '/logout', customStyle: "!text-red-500"},
-  ]);
-// Ve fonksiyonu ekleyin:
-function handleSettingsClick() {
+  let openSettings = $state(false);
+  // Ve fonksiyonu ekleyin:
+  function handleSettingsClick() {
     console.log('Settings clicked, current state:', openSettings);
     openSettings = true;
     console.log('Settings state after:', openSettings);
-}
+  }
+
+    type LayoutData = {
+      user?: {
+        id: string;
+        email?: string;
+        nickname?: string;
+        avatar?: string | null;
+        role?: string;
+      } | null;
+    };
+
+    let { data }: { data?: LayoutData } = $props();
+    const currentUser = $derived(data?.user ?? $page.data.user);
+    const accountImage = $derived(
+      currentUser && typeof currentUser.avatar === 'string' && currentUser.avatar.trim().length > 0
+        ? currentUser.avatar
+        : undefined
+    );
+    const accountHref = $derived(currentUser?.nickname ? `/${currentUser.nickname}` : '/profile');
+
+  const isModerator = $derived(currentUser?.role === 'moderator' || currentUser?.role === 'admin');
+  
+  const loggedInItems = $derived<MenuItem[]>([
+    { icon: accountImage ? undefined : UserRound, image: accountImage, name: t('Account'), href: accountHref },
+    { icon: Cog, name: t('Settings'), onClick: handleSettingsClick },
+    { icon: BellIcon, name: t('Notifications'), onClick: openNotificationsDialog, badge: unreadTotal },
+    ...(isModerator ? [{ icon: Shield, name: t('Moderation'), href: "/moderation" }] : []),
+    { icon: HandCoins, name: t('Donations'), href: "/donations" },
+    { icon: BadgeInfo, name: t('Help'), href: "/help" },
+    { icon: LogOutIcon, name: t('Logout'), href: '/logout', customStyle: "!text-red-500"},
+  ]);
+
   // Reaktif logged-out items - dil değiştiğinde otomatik güncellenir
   const baseLoggedOut = $derived<MenuItem[]>([
     { icon: LogInIcon, name: t('Login'), href: "/login" },
@@ -137,18 +164,18 @@ function handleSettingsClick() {
   ]);
 
   // Locale-aware login path: /giris for tr, /login otherwise
-  const loginPath = $derived(t.currentLocale === 'tr' ? '/giris' : '/login');
+  const currentLocale = $derived((t as any).currentLocale || 'tr');
+  const loginPath = $derived(currentLocale === 'tr' ? '/giris' : '/login');
   const loginHref = $derived(`${loginPath}?redirectTo=${encodeURIComponent($page.url.pathname + $page.url.search)}`);
 
   let items = $state<MenuItem[]>(baseLoggedOut);
   $effect(() => {
-    if ($page.data.user) {
+    if (currentUser) {
       items = loggedInItems;
     } else {
       items = baseLoggedOut.map((it) => ({ ...it, href: loginHref }));
     }
   });
-let openSettings = $state(false);
 import HammerLottie from "$lib/components/hammerIcon.svelte";
 </script>
 <SettingsDialog bind:open={openSettings} on:close={() => openSettings = false} />
@@ -171,7 +198,7 @@ import HammerLottie from "$lib/components/hammerIcon.svelte";
       <Tooltip.Provider>
  <Tooltip.Root>
   <Tooltip.Trigger>   
-    <a href="/" ><img class="max-h-4.5 fill-primary" src="{logo}" alt="LAF" /></a>
+    <A href="/" ><img class="max-h-4.5 fill-primary" src="{logo}" alt="LAF" /></A>
   </Tooltip.Trigger>
   <Tooltip.Content>
    <p>{t('GoToHomePage')}</p>
@@ -186,8 +213,8 @@ import HammerLottie from "$lib/components/hammerIcon.svelte";
             <Tooltip.Provider>
   <Tooltip.Root>
     <Tooltip.Trigger>
-      <a href={item.href} class="text-shadow-xs text-shadow-background/44 text-secondary-foreground/75 group flex items-center gap-0.5 font-bold cursor-pointer"><HammerLottie />{item.name}
-      </a>
+      <A href={item.href} class="text-shadow-xs text-shadow-background/44 text-secondary-foreground/75 group flex items-center gap-0.5 font-bold cursor-pointer"><HammerLottie />{item.name}
+      </A>
       </Tooltip.Trigger>
     <Tooltip.Content class="align-center text-center flex items-center gap-1.5">
         <p class="text-secondary-foreground group flex items-center gap-0.5 font-bold cursor-pointer">
@@ -200,12 +227,12 @@ import HammerLottie from "$lib/components/hammerIcon.svelte";
             <Tooltip.Provider>
   <Tooltip.Root>
     <Tooltip.Trigger>
-<a href={item.href} class="group text-shadow-xs text-shadow-background/44 flex items-center font-bold cursor-pointer">
+<A href={item.href} class="group text-shadow-xs text-shadow-background/44 flex items-center font-bold cursor-pointer">
   {item.name} 
-</a>
+</A>
 </Tooltip.Trigger>
     <Tooltip.Content>
-      <p>{#if t.currentLocale === 'tr'}<span class="font-bold text-secondary-foreground">{dativeSuffix(item.name)}</span> {t('goto')}{:else}{t('goto')} <span class="font-bold text-secondary-foreground">{item.name}</span>{/if}</p> 
+      <p>{#if currentLocale === 'tr'}<span class="font-bold text-secondary-foreground">{dativeSuffix(item.name)}</span> {t('goto')}{:else}{t('goto')} <span class="font-bold text-secondary-foreground">{item.name}</span>{/if}</p> 
 <!-- son harfine göre ek alır -->
     </Tooltip.Content>
   </Tooltip.Root>

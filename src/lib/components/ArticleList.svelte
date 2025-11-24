@@ -46,7 +46,7 @@
     onLoadMore?: () => void;
     class?: string;
   } = $props();
-
+import { BookXIcon } from 'svelte-animate-icons';
   // Use the layout prop directly instead of internal state
 </script>
 
@@ -74,8 +74,8 @@
   {:else if articles.length === 0}
     <!-- Empty State -->
     <div class="flex flex-col items-center justify-center py-12 text-center">
-      <div class="rounded-full bg-muted p-4">
-        <Grid class="h-8 w-8 text-muted-foreground" />
+      <div class="rounded-full bg-muted pt-3.5 pb-3 px-4">
+                        <BookXIcon triggers={{ hover: false }} duration={2500} animationState="loading" size={28} class="text-primary" />
       </div>
       <h3 class="mt-4 text-lg font-semibold">{t('articles.noArticles')}</h3>
       <p class="mt-2 text-sm text-muted-foreground">

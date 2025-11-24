@@ -20,7 +20,10 @@ export const POST: RequestHandler = async ({ request, locals }) => {
             'website', 
             'birthDate', 
             'interests',
-            'socialLinks'
+            'socialLinks',
+            'avatar',
+            'bannerColor',
+            'bannerImage'
         ];
 
         const updateData: any = {};

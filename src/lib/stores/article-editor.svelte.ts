@@ -29,8 +29,7 @@ class ArticleEditorStore {
   private _versions = $state<ArticleVersion[]>([]);
 
   constructor() {
-    // Initialize with current locale
-    this.initializeLanguage();
+    this.initialize();
   }
 
   get articleData() {
@@ -71,21 +70,75 @@ class ArticleEditorStore {
     };
   }
 
-  private initializeLanguage() {
+  initialize(initialData?: (Partial<ArticleData> & { availableLanguages?: string[]; translations?: Record<string, ArticleTranslation> })) {
     const currentLocale = getCurrentLocale();
-    this._activeLanguage = currentLocale;
-    this._availableLanguages = [currentLocale];
-    this._articleData.defaultLanguage = currentLocale;
 
-    // Initialize translation for current language
-    if (!this._articleData.translations[currentLocale]) {
-      this._articleData.translations[currentLocale] = {
-        title: '',
-        excerpt: '',
-        content: null,
-        language: currentLocale
+    const merged: ArticleData & { availableLanguages?: string[] } = {
+      category: '',
+      subcategory: '',
+      tags: [],
+      status: 'draft',
+      collaborators: [],
+      authorId: '',
+      version: 1,
+      defaultLanguage: currentLocale,
+      thumbnail: '',
+      translations: {} as Record<string, ArticleTranslation>,
+      ...initialData
+    };
+
+    merged.translations = initialData?.translations ? { ...initialData.translations } : {} as Record<string, ArticleTranslation>;
+
+    merged.tags = Array.isArray(merged.tags) ? merged.tags : [];
+    merged.collaborators = Array.isArray(merged.collaborators) ? merged.collaborators : [];
+    merged.authorId = merged.authorId ?? '';
+    merged.version = merged.version ?? 1;
+    merged.defaultLanguage = merged.defaultLanguage ?? currentLocale;
+
+    let languages = initialData?.availableLanguages?.length
+      ? [...new Set(initialData.availableLanguages)]
+      : Object.keys(merged.translations);
+
+    if (!languages.includes(merged.defaultLanguage)) {
+      languages = [merged.defaultLanguage, ...languages];
+    }
+
+    if (languages.length === 0) {
+      languages = [merged.defaultLanguage];
+    }
+
+    const translations: Record<string, ArticleTranslation> = {};
+    for (const lang of languages) {
+      const source = merged.translations[lang] ?? {};
+      translations[lang] = {
+        title: source?.title ?? '',
+        excerpt: source?.excerpt ?? '',
+        content: source?.content ?? null,
+        language: source?.language || lang,
+        slug: source?.slug ?? ''
       };
     }
+
+    merged.translations = translations;
+    this._articleData = merged;
+
+    this._availableLanguages = Object.keys(translations);
+    this._activeLanguage = this._availableLanguages.includes(merged.defaultLanguage)
+      ? merged.defaultLanguage
+      : this._availableLanguages[0];
+    this._articleData.defaultLanguage = this._activeLanguage;
+
+    this._versions = [];
+    this._collaborationStates = {};
+    this._isLoading = false;
+    this._isSaving = false;
+
+    delete (this._articleData as any).availableLanguages;
+  }
+
+  hydrate(article: Partial<ArticleData> & { availableLanguages?: string[]; translations?: Record<string, ArticleTranslation> }) {
+    if (!article) return;
+    this.initialize(article);
   }
 
   setActiveLanguage(language: string) {
@@ -113,7 +166,8 @@ class ArticleEditorStore {
         title: '',
         excerpt: '',
         content: null,
-        language: language
+        language: language,
+        slug: ''
       };
 
       this.markAsChanged();
@@ -139,7 +193,8 @@ class ArticleEditorStore {
         title: '',
         excerpt: '',
         content: null,
-        language: language
+        language: language,
+        slug: ''
       };
     }
 
@@ -178,6 +233,27 @@ class ArticleEditorStore {
   removeCollaborator(userId: string) {
     this._articleData.collaborators = this._articleData.collaborators.filter(id => id !== userId);
     this.markAsChanged();
+  }
+
+  async ensureArticleId() {
+    if (this._articleData.id) {
+      return this._articleData.id;
+    }
+
+    const originalStatus = this._articleData.status;
+    const saved = await this.saveDraft();
+
+    this._articleData.status = originalStatus;
+
+    if (!saved || !this._articleData.id) {
+      throw new Error('Unable to establish article identifier');
+    }
+
+    return this._articleData.id;
+  }
+
+  get articleId() {
+    return this._articleData.id;
   }
 
   private markAsChanged() {
@@ -236,10 +312,13 @@ class ArticleEditorStore {
     if (!browser) return false;
 
     // Validation
-    const primaryLang = getCurrentLocale();
-    const primaryTranslation = this._articleData.translations[primaryLang];
+    const defaultLang = this._articleData.defaultLanguage || getCurrentLocale();
+    const primaryTranslation =
+      this._articleData.translations[defaultLang] ||
+      this._articleData.translations[this._activeLanguage] ||
+      this._articleData.translations[getCurrentLocale()];
 
-    if (!primaryTranslation?.title.trim() || !primaryTranslation?.content) {
+    if (!primaryTranslation || !primaryTranslation.title?.trim() || !primaryTranslation.content) {
       throw new Error('Title and content are required for the primary language');
     }
 

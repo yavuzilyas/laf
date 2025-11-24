@@ -22,6 +22,7 @@ type DropdownItem = {
     customStyle?: string;
     onClick?: () => void;
     badge?: number;
+    image?: string;
 };
 
 export let items: DropdownItem[] = [];
@@ -129,7 +130,9 @@ function handleItemClick(item: any) {
             <span class="inline-flex font-sans  px-1.5 py-0.5 items-center justify-center rounded-full bg-primary text-muted text-[10px] font-bold ">
               +{item.badge}
             </span>
-            {:else}
+            {:else if item.image}
+            <img src={item.image} alt={item.name ?? ''} class="h-5 w-5 rounded-full object-cover" />
+            {:else if item.icon}
             <svelte:component this={item.icon} size={16} strokeWidth={2.25} />
           {/if}
             <span class="text-secondary-foreground font-bold  hover:text-secondary-foreground">
@@ -147,7 +150,11 @@ function handleItemClick(item: any) {
           )}
         >
           <span class="flex items-center gap-2">
-            <svelte:component this={item.icon} size={16} strokeWidth={2.25} />
+            {#if item.image}
+              <img src={item.image} alt={item.name ?? ''} class="h-5 w-5 rounded-full object-cover" />
+            {:else if item.icon}
+              <svelte:component this={item.icon} size={16} strokeWidth={2.25} />
+            {/if}
             <span class="text-secondary-foreground font-bold hover:text-secondary-foreground">
               {item.name}
             </span>

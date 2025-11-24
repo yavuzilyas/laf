@@ -147,5 +147,5 @@
 			focusEditor(editor, event);
 		}
 	}}
-	class={cn('edra-editor h-full w-full cursor-auto *:outline-none', className)}
+	class={cn('edra-editor selection:bg-primary selection:text-primary-foreground h-full w-full cursor-auto *:outline-none', className)}
 ></div>

@@ -1,4 +1,4 @@
-export type NotificationType = 'announcement' | 'comment' | 'reply' | 'like';
+export type NotificationType = 'announcement' | 'comment' | 'reply' | 'like' | 'follow';
 
 export interface NotificationActor {
 	id: string;
@@ -10,11 +10,16 @@ export interface NotificationMeta {
 	[key: string]: any;
 }
 
+export interface TranslationObject {
+	key: string;
+	values?: Record<string, string | number | null | undefined>;
+}
+
 export interface NotificationRecord {
 	id: string;
 	type: NotificationType;
-	title: string;
-	message: string;
+	title: string | TranslationObject;
+	message: string | TranslationObject;
 	link: string | null;
 	actor: NotificationActor | null;
 	meta: NotificationMeta | null;
@@ -26,8 +31,8 @@ export interface NotificationRecord {
 export interface CreateNotificationInput {
 	userId: string;
 	type: NotificationType;
-	title: string;
-	message: string;
+	title: string | TranslationObject;
+	message: string | TranslationObject;
 	link?: string | null;
 	actor?: NotificationActor | null;
 	meta?: NotificationMeta | null;

@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { Button, buttonVariants } from '$lib/components/ui/button/index.js';
-	import * as Popover from '$lib/components/ui/popover/index.js';
+	import * as DropdownMenu from '$lib/components/ui/dropdown-menu/index.js';
 	import type { Editor } from '@tiptap/core';
 	import ChevronDown from '@lucide/svelte/icons/chevron-down';
 	import { cn } from '$lib/utils.js';
@@ -29,8 +29,8 @@
 	const currentHighlight = $derived.by(() => editor.getAttributes('highlight').color);
 </script>
 
-<Popover.Root>
-	<Popover.Trigger>
+<DropdownMenu.Root>
+	<DropdownMenu.Trigger>
 		<EdraToolTip tooltip="Quick Colors">
 			<div
 				class={buttonVariants({
@@ -44,8 +44,8 @@
 				<ChevronDown class="text-muted-foreground !size-2" />
 			</div>
 		</EdraToolTip>
-	</Popover.Trigger>
-	<Popover.Content class="size-fit shadow-lg" portalProps={{ disabled: true, to: undefined }}>
+	</DropdownMenu.Trigger>
+	<DropdownMenu.Content class="z-50 min-w-[8rem] overflow-hidden rounded-md border bg-popover p-1 text-popover-foreground shadow-md">
 		<div class="text-muted-foreground my-2 text-xs">Text Colors</div>
 		<div class="grid grid-cols-5 gap-2">
 			{#each colors as color (color)}
@@ -93,5 +93,5 @@
 				>
 			{/each}
 		</div>
-	</Popover.Content>
-</Popover.Root>
+	</DropdownMenu.Content>
+</DropdownMenu.Root>

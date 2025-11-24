@@ -185,7 +185,8 @@ class I18nStore {
   private interpolate(template: string, values?: InterpolationValues): string {
     if (!values) return template;
 
-    return template.replace(/\{\{(\w+)\}\}/g, (match, key) => {
+    // Support both {key} and {{key}} formats
+    return template.replace(/\{\{?(\w+)\}?\}/g, (match, key) => {
       return values[key]?.toString() ?? match;
     });
   }

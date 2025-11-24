@@ -7,6 +7,7 @@
 	import ChevronDown from '@lucide/svelte/icons/chevron-down';
 	import { buttonVariants } from '$lib/components/ui/button/index.js';
 	import { cn } from '$lib/utils.js';
+	import { t } from '$lib/stores/i18n.svelte.js';
 
 	interface Props {
 		editor: Editor;
@@ -28,7 +29,7 @@
 
 <DropdownMenu.Root>
 	<DropdownMenu.Trigger>
-		<EdraToolTip tooltip="Alignment">
+		<EdraToolTip tooltip={t('editor.toolbar.alignment')}>
 			<div
 				class={buttonVariants({
 					variant: 'ghost',
@@ -42,12 +43,12 @@
 			</div>
 		</EdraToolTip>
 	</DropdownMenu.Trigger>
-	<DropdownMenu.Content portalProps={{ disabled: true, to: undefined }}>
+	<DropdownMenu.Content class="z-50 min-w-[8rem] overflow-hidden rounded-md border bg-popover p-1 text-popover-foreground shadow-md">
 		{#each alignments as alignment (alignment)}
 			{@const Icon = alignment.icon}
 			<DropdownMenu.Item onclick={() => alignment.onClick?.(editor)}>
-				<Icon />
-				<span>{alignment.tooltip}</span>
+				<Icon class="mr-2 h-4 w-4" />
+				<span>{t(`editor.toolbar.alignments.${alignment.name.toLowerCase()}`)}</span>
 				<DropdownMenu.Shortcut>
 					{alignment.shortCut}
 				</DropdownMenu.Shortcut>
