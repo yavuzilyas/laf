@@ -12,6 +12,10 @@ export const handle: Handle = async ({ event, resolve }) => {
       const users = await getUsersCollection();
       const user = await users.findOne({ _id: new ObjectId(session) });
       if (user) {
+        if (user.banned || user.status === 'banned') {
+          event.cookies.delete('session', { path: '/' });
+          return new Response('Hesabınız banlandı', { status: 403 });
+        }
         event.locals.user = {
           id: user._id.toString(),
           email: user.email,

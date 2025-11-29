@@ -135,7 +135,7 @@ import A from "$lib/components/ui/a.svelte";
       } | null;
     };
 
-    let { data }: { data?: LayoutData } = $props();
+    let { data } = $props();
     const currentUser = $derived(data?.user ?? $page.data.user);
     const accountImage = $derived(
       currentUser && typeof currentUser.avatar === 'string' && currentUser.avatar.trim().length > 0

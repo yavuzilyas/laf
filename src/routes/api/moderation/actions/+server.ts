@@ -3,6 +3,13 @@ import { json } from '@sveltejs/kit';
 import { ObjectId } from 'mongodb';
 import { getArticlesCollection, getCommentsCollection, getUsersCollection } from '$db/mongo';
 
+const resolveRole = (user?: { role?: string; type?: string }) => user?.role ?? user?.type ?? 'user';
+const getRoleRank = (role?: string | null) => {
+  if (role === 'admin') return 3;
+  if (role === 'moderator') return 2;
+  return 1;
+};
+
 export async function POST({ request, locals }) {
   const user = (locals as any)?.user;
   
@@ -15,6 +22,10 @@ export async function POST({ request, locals }) {
 
   if (!action || !type || !id) {
     return json({ error: 'Missing required fields' }, { status: 400 });
+  }
+
+  if (!ObjectId.isValid(user.id) || !ObjectId.isValid(id)) {
+    return json({ error: 'Invalid identifier supplied' }, { status: 400 });
   }
 
   const moderatorId = new ObjectId(user.id);
@@ -151,7 +162,27 @@ export async function POST({ request, locals }) {
 
     } else if (type === 'user') {
       const users = await getUsersCollection();
-      
+
+      const [moderatorDoc, targetUser] = await Promise.all([
+        users.findOne({ _id: moderatorId }),
+        users.findOne({ _id: targetId })
+      ]);
+
+      if (!moderatorDoc || !targetUser) {
+        return json({ error: 'User not found' }, { status: 404 });
+      }
+
+      if (moderatorId.equals(targetId)) {
+        return json({ error: 'Cannot perform moderation on yourself' }, { status: 403 });
+      }
+
+      const moderatorRank = getRoleRank(resolveRole(moderatorDoc));
+      const targetRank = getRoleRank(resolveRole(targetUser));
+
+      if (targetRank >= moderatorRank) {
+        return json({ error: 'Cannot perform action on user with same or higher rank' }, { status: 403 });
+      }
+
       if (action === 'ban') {
         await users.updateOne(
           { _id: targetId },

@@ -317,6 +317,14 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 		avatar: profileAvatar,
 		bannerColor: profileBannerColor,
 		bannerImage: profileBannerImage,
+		moderationAction: profileUser.moderationAction
+			? {
+				...profileUser.moderationAction,
+				moderatorId: profileUser.moderationAction.moderatorId
+					? toSerializableId(profileUser.moderationAction.moderatorId)
+					: undefined
+			}
+			: undefined,
 		followers: sanitizeRelationEntries(profileUser.followers, 'followerUserId', 'followedAt'),
 		following: sanitizeRelationEntries(profileUser.following, 'followingUserId', 'followedAt'),
 		blocked: sanitizeRelationEntries(profileUser.blocked, 'blockedUserId', 'blockedAt'),
@@ -355,5 +363,4 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 		key: requestedNickname
 	};
 };
-
 

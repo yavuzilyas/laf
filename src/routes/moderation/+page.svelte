@@ -8,24 +8,25 @@
   import { Badge } from '$lib/components/ui/badge';
   import { Separator } from '$lib/components/ui/separator';
   import { ScrollArea } from '$lib/components/ui/scroll-area';
-  import { 
-    Shield, 
-    FileText, 
-    MessageSquare, 
-    Users, 
-    Eye, 
-    EyeOff, 
-    Trash2, 
-    X,
-    AlertTriangle,
-    CheckCircle2
-  } from '@lucide/svelte';
+  import * as AlertDialog from '$lib/components/ui/alert-dialog/index.js';
   import { t } from '$lib/stores/i18n.svelte.js';
   import { showToast } from '$lib/hooks/toast';
+  // @ts-ignore - SvelteKit internal module
   import { page } from '$app/stores';
-  import { goto } from '$app/navigation';
+  // @ts-ignore - SvelteKit internal module
+  import { goto, invalidateAll } from '$app/navigation';
 
   let { data } = $props();
+  let tableData = $state(data.tableData ?? []);
+
+  $effect(() => {
+    tableData = data.tableData ?? [];
+  });
+
+  let currentUser = data.currentUser;
+  let showDeleteDialog = $state(false);
+  let pendingDeleteUserId = $state<string | null>(null);
+  let deleteDialogResolver: (() => void) | null = null;
   
   let stats = $state({
     reportedArticles: 0,
@@ -67,6 +68,11 @@
     }
   }
 
+  async function refreshModerationData() {
+    await Promise.all([fetchStats(), fetchReports()]);
+    await invalidateAll();
+  }
+
   async function performAction(action: string, type: string, id: string, reason?: string) {
     try {
       const response = await fetch('/api/moderation/actions', {
@@ -77,7 +83,7 @@
 
       if (response.ok) {
         showToast(t('moderation.actionSuccess'), 'success');
-        await Promise.all([fetchStats(), fetchReports()]);
+        await refreshModerationData();
       } else {
         const error = await response.json();
         showToast(error.error || t('moderation.actionFailed'), 'error');
@@ -85,6 +91,274 @@
     } catch (error) {
       console.error('Action failed:', error);
       showToast(t('moderation.actionFailed'), 'error');
+    }
+  }
+
+  async function banUser(userId: string) {
+    if (!currentUser?.id || currentUser.id === 'unknown') {
+      showToast('Kullanıcı bilgisi alınamadı', 'error');
+      return;
+    }
+
+    try {
+      const response = await fetch('/api/moderation/ban', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          userId, 
+          reason: 'Moderator action', 
+          moderatorId: currentUser.id 
+        })
+      });
+
+      if (response.ok) {
+        showToast('Kullanıcı yasaklandı', 'success');
+        await refreshModerationData();
+      } else {
+        showToast('Yasaklama başarısız', 'error');
+      }
+    } catch (error) {
+      showToast('Yasaklama hatası', 'error');
+    }
+  }
+
+  async function unbanUser(userId: string) {
+    if (!currentUser?.id || currentUser.id === 'unknown') {
+      showToast('Kullanıcı bilgisi alınamadı', 'error');
+      return;
+    }
+
+    try {
+      const response = await fetch('/api/moderation/ban', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          userId, 
+          reason: 'Moderator action', 
+          moderatorId: currentUser.id 
+        })
+      });
+
+      if (response.ok) {
+        showToast('Yasaklama kaldırıldı', 'success');
+        await refreshModerationData();
+      } else {
+        showToast('İşlem başarısız', 'error');
+      }
+    } catch (error) {
+      showToast('İşlem hatası', 'error');
+    }
+  }
+
+  async function hideUser(userId: string) {
+    if (!currentUser?.id || currentUser.id === 'unknown') {
+      showToast('Kullanıcı bilgisi alınamadı', 'error');
+      return;
+    }
+
+    try {
+      const response = await fetch('/api/moderation/hide', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          userId, 
+          reason: 'Moderator action', 
+          moderatorId: currentUser.id 
+        })
+      });
+
+      if (response.ok) {
+        showToast('Kullanıcı gizlendi', 'success');
+        await refreshModerationData();
+      } else {
+        showToast('Gizleme başarısız', 'error');
+      }
+    } catch (error) {
+      showToast('Gizleme hatası', 'error');
+    }
+  }
+
+  async function unhideUser(userId: string) {
+    if (!currentUser?.id || currentUser.id === 'unknown') {
+      showToast('Kullanıcı bilgisi alınamadı', 'error');
+      return;
+    }
+
+    try {
+      const response = await fetch('/api/moderation/hide', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          userId, 
+          reason: 'Moderator action', 
+          moderatorId: currentUser.id 
+        })
+      });
+
+      if (response.ok) {
+        showToast('Görünürlük geri açıldı', 'success');
+        await refreshModerationData();
+      } else {
+        showToast('İşlem başarısız', 'error');
+      }
+    } catch (error) {
+      showToast('İşlem hatası', 'error');
+    }
+  }
+
+  function openDeleteDialog(userId: string, resolver: () => void) {
+    pendingDeleteUserId = userId;
+    deleteDialogResolver = resolver;
+    showDeleteDialog = true;
+  }
+
+  function handleDeleteDialogCancel() {
+    pendingDeleteUserId = null;
+    showDeleteDialog = false;
+    deleteDialogResolver?.();
+    deleteDialogResolver = null;
+  }
+
+  function handleDeleteDialogOpenChange(open: boolean) {
+    showDeleteDialog = open;
+    if (!open && pendingDeleteUserId) {
+      handleDeleteDialogCancel();
+    }
+  }
+
+  async function handleDeleteDialogConfirm() {
+    const userId = pendingDeleteUserId;
+    const resolver = deleteDialogResolver;
+    pendingDeleteUserId = null;
+    deleteDialogResolver = null;
+    showDeleteDialog = false;
+
+    if (userId) {
+      await performDelete(userId);
+    }
+
+    resolver?.();
+  }
+
+  async function performDelete(userId: string) {
+    if (!currentUser?.id || currentUser.id === 'unknown') {
+      showToast('Kullanıcı bilgisi alınamadı', 'error');
+      return;
+    }
+
+    try {
+      const response = await fetch('/api/moderation/delete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          userId, 
+          reason: 'Moderator action', 
+          moderatorId: currentUser.id 
+        })
+      });
+
+      if (response.ok) {
+        showToast('Hesap silme işlemi başlatıldı', 'success');
+        await refreshModerationData();
+      } else {
+        showToast('Silme başarısız', 'error');
+      }
+    } catch (error) {
+      showToast('Silme hatası', 'error');
+    }
+  }
+
+  async function deleteUser(userId: string, options?: { skipConfirm?: boolean }) {
+    if (!options?.skipConfirm) {
+      return new Promise<void>((resolve) => openDeleteDialog(userId, resolve));
+    }
+
+    await performDelete(userId);
+  }
+
+  async function undoDeleteUser(userId: string) {
+    if (!currentUser?.id || currentUser.id === 'unknown') {
+      showToast('Kullanıcı bilgisi alınamadı', 'error');
+      return;
+    }
+
+    try {
+      const response = await fetch('/api/moderation/delete', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          userId, 
+          reason: 'Moderator action', 
+          moderatorId: currentUser.id 
+        })
+      });
+
+      if (response.ok) {
+        showToast('Hesap silme işlemi iptal edildi', 'success');
+        await refreshModerationData();
+      } else {
+        showToast('İşlem başarısız', 'error');
+      }
+    } catch (error) {
+      showToast('İşlem hatası', 'error');
+    }
+  }
+
+  async function promoteToModerator(userId: string) {
+    if (currentUser?.role !== 'admin') {
+      showToast('Bu işlem için admin yetkisi gerekiyor', 'error');
+      return;
+    }
+
+    try {
+      const response = await fetch('/api/moderation/role', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId,
+          action: 'promote',
+          moderatorId: currentUser.id
+        })
+      });
+
+      if (response.ok) {
+        showToast('Kullanıcı moderatör yapıldı', 'success');
+        await refreshModerationData();
+      } else {
+        const error = await response.json();
+        showToast(error.error ?? 'İşlem başarısız', 'error');
+      }
+    } catch (error) {
+      showToast('İşlem hatası', 'error');
+    }
+  }
+
+  async function demoteToUser(userId: string) {
+    if (currentUser?.role !== 'admin') {
+      showToast('Bu işlem için admin yetkisi gerekiyor', 'error');
+      return;
+    }
+
+    try {
+      const response = await fetch('/api/moderation/role', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId,
+          action: 'demote',
+          moderatorId: currentUser.id
+        })
+      });
+
+      if (response.ok) {
+        showToast('Kullanıcının moderatörlüğü kaldırıldı', 'success');
+        await refreshModerationData();
+      } else {
+        const error = await response.json();
+        showToast(error.error ?? 'İşlem başarısız', 'error');
+      }
+    } catch (error) {
+      showToast('İşlem hatası', 'error');
     }
   }
 
@@ -109,381 +383,62 @@
   $effect(() => {
     loadData();
   });
+
+
+	import SectionCards from "$lib/components/section-cards.svelte";
+	import ChartAreaInteractive from "$lib/components/chart-area-interactive.svelte";
+	import DataTable from "$lib/components/data-table.svelte";
 </script>
 
 <svelte:head>
-  <title>{t('moderation.title')} - LAF</title>
+  <title>{t('Moderation')} - LAF</title>
 </svelte:head>
+<Navbar />
+		<div class=" flex flex-1 flex-col items-center ">
+			<div class="@container/main w-7xl flex flex-1 flex-col gap-2">
+				<div class="flex flex-col gap-4 py-4 md:gap-6 md:py-6">
+          <div class="w-full flex justify-center items-center">
+          <h1 class="text-2xl font-bold">{t('ModerationAndAnalysis')}</h1>
+          </div>
+					<SectionCards />
+					<div class="px-4 lg:px-6">
+						<ChartAreaInteractive />
+					</div>
+					<DataTable
+            data={tableData}
+            {banUser}
+            {unbanUser}
+            {hideUser}
+            {unhideUser}
+            {deleteUser}
+            {undoDeleteUser}
+            {currentUser}
+            {promoteToModerator}
+            {demoteToUser}
+          />
 
-<Navbar {data} />
-
-<main class="container max-w-7xl mx-auto px-4 py-8">
-  <div class="mb-8">
-    <div class="flex items-center gap-3 mb-2">
-      <Shield class="h-8 w-8 text-primary" />
-      <h1 class="text-3xl font-bold">{t('moderation.title')}</h1>
-    </div>
-    <p class="text-muted-foreground">{t('moderation.description')}</p>
-  </div>
-
-  <Tabs bind:value={activeTab} class="w-full">
-    <TabsList class="grid w-full grid-cols-4">
-      <TabsTrigger value="overview">{t('moderation.overview')}</TabsTrigger>
-      <TabsTrigger value="articles">{t('moderation.articles')} ({reports.articles.length})</TabsTrigger>
-      <TabsTrigger value="comments">{t('moderation.comments')} ({reports.comments.length})</TabsTrigger>
-      <TabsTrigger value="users">{t('moderation.users')} ({reports.users.length})</TabsTrigger>
-    </TabsList>
-
-    <TabsContent value="overview" class="space-y-4">
-      <div class="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        <Card>
-          <CardHeader class="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle class="text-sm font-medium">{t('moderation.reportedArticles')}</CardTitle>
-            <FileText class="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div class="text-2xl font-bold">{stats.reportedArticles}</div>
-            <p class="text-xs text-muted-foreground">{t('moderation.awaitingReview')}</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader class="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle class="text-sm font-medium">{t('moderation.reportedComments')}</CardTitle>
-            <MessageSquare class="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div class="text-2xl font-bold">{stats.reportedComments}</div>
-            <p class="text-xs text-muted-foreground">{t('moderation.awaitingReview')}</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader class="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle class="text-sm font-medium">{t('moderation.reportedUsers')}</CardTitle>
-            <Users class="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div class="text-2xl font-bold">{stats.reportedUsers}</div>
-            <p class="text-xs text-muted-foreground">{t('moderation.awaitingReview')}</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader class="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle class="text-sm font-medium">{t('moderation.hiddenArticles')}</CardTitle>
-            <EyeOff class="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div class="text-2xl font-bold">{stats.hiddenArticles}</div>
-            <p class="text-xs text-muted-foreground">{t('moderation.currentlyHidden')}</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader class="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle class="text-sm font-medium">{t('moderation.hiddenComments')}</CardTitle>
-            <EyeOff class="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div class="text-2xl font-bold">{stats.hiddenComments}</div>
-            <p class="text-xs text-muted-foreground">{t('moderation.currentlyHidden')}</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader class="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle class="text-sm font-medium">{t('moderation.totalReports')}</CardTitle>
-            <AlertTriangle class="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div class="text-2xl font-bold">{stats.totalReports}</div>
-            <p class="text-xs text-muted-foreground">{t('moderation.allTime')}</p>
-          </CardContent>
-        </Card>
-      </div>
-    </TabsContent>
-
-    <TabsContent value="articles" class="space-y-4">
-      <Card>
-        <CardHeader>
-          <CardTitle>{t('moderation.reportedArticles')}</CardTitle>
-          <CardDescription>{t('moderation.articlesDescription')}</CardDescription>
-        </CardHeader>
-        <CardContent>
-          {#if loading}
-            <div class="text-center py-8">{t('moderation.loading')}</div>
-          {:else if reports.articles.length === 0}
-            <div class="text-center py-8 text-muted-foreground">
-              <CheckCircle2 class="h-12 w-12 mx-auto mb-4 opacity-50" />
-              <p>{t('moderation.noReportedArticles')}</p>
-            </div>
-          {:else}
-            <ScrollArea class="h-[600px]">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>{t('moderation.title')}</TableHead>
-                    <TableHead>{t('moderation.author')}</TableHead>
-                    <TableHead>{t('moderation.reports')}</TableHead>
-                    <TableHead>{t('moderation.status')}</TableHead>
-                    <TableHead>{t('moderation.created')}</TableHead>
-                    <TableHead class="text-right">{t('moderation.actions')}</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {#each reports.articles as article}
-                    <TableRow>
-                      <TableCell class="font-medium">
-                        <a 
-                          href={article.slug ? `/article/${article.slug}` : '#'}
-                          class="hover:underline"
-                        >
-                          {article.title || t('moderation.untitled')}
-                        </a>
-                      </TableCell>
-                      <TableCell>
-                        <a 
-                          href={article.authorNickname ? `/${article.authorNickname}` : '#'}
-                          class="hover:underline"
-                        >
-                          {article.authorNickname || t('moderation.unknown')}
-                        </a>
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant="destructive">{article.reportCount}</Badge>
-                      </TableCell>
-                      <TableCell>
-                        {#if article.hidden}
-                          <Badge variant="secondary">{t('moderation.hidden')}</Badge>
-                        {:else}
-                          <Badge variant="outline">{t('moderation.visible')}</Badge>
-                        {/if}
-                      </TableCell>
-                      <TableCell class="text-sm text-muted-foreground">
-                        {formatDate(article.createdAt)}
-                      </TableCell>
-                      <TableCell class="text-right">
-                        <div class="flex gap-2 justify-end">
-                          {#if article.hidden}
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onclick={() => performAction('unhide', 'article', article.id)}
-                            >
-                              <Eye class="h-4 w-4" />
-                            </Button>
-                          {:else}
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onclick={() => performAction('hide', 'article', article.id)}
-                            >
-                              <EyeOff class="h-4 w-4" />
-                            </Button>
-                          {/if}
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onclick={() => performAction('clearReports', 'article', article.id)}
-                          >
-                            <X class="h-4 w-4" />
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="destructive"
-                            onclick={() => performAction('delete', 'article', article.id)}
-                          >
-                            <Trash2 class="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  {/each}
-                </TableBody>
-              </Table>
-            </ScrollArea>
-          {/if}
-        </CardContent>
-      </Card>
-    </TabsContent>
-
-    <TabsContent value="comments" class="space-y-4">
-      <Card>
-        <CardHeader>
-          <CardTitle>{t('moderation.reportedComments')}</CardTitle>
-          <CardDescription>{t('moderation.commentsDescription')}</CardDescription>
-        </CardHeader>
-        <CardContent>
-          {#if loading}
-            <div class="text-center py-8">{t('moderation.loading')}</div>
-          {:else if reports.comments.length === 0}
-            <div class="text-center py-8 text-muted-foreground">
-              <CheckCircle2 class="h-12 w-12 mx-auto mb-4 opacity-50" />
-              <p>{t('moderation.noReportedComments')}</p>
-            </div>
-          {:else}
-            <ScrollArea class="h-[600px]">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>{t('moderation.content')}</TableHead>
-                    <TableHead>{t('moderation.author')}</TableHead>
-                    <TableHead>{t('moderation.reports')}</TableHead>
-                    <TableHead>{t('moderation.status')}</TableHead>
-                    <TableHead>{t('moderation.created')}</TableHead>
-                    <TableHead class="text-right">{t('moderation.actions')}</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {#each reports.comments as comment}
-                    <TableRow>
-                      <TableCell class="max-w-md">
-                        <div class="truncate" title={comment.content}>
-                          {comment.content}
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <a 
-                          href={comment.authorNickname ? `/${comment.authorNickname}` : '#'}
-                          class="hover:underline"
-                        >
-                          {comment.authorNickname || t('moderation.unknown')}
-                        </a>
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant="destructive">{comment.reportCount}</Badge>
-                      </TableCell>
-                      <TableCell>
-                        {#if comment.hidden}
-                          <Badge variant="secondary">{t('moderation.hidden')}</Badge>
-                        {:else}
-                          <Badge variant="outline">{t('moderation.visible')}</Badge>
-                        {/if}
-                      </TableCell>
-                      <TableCell class="text-sm text-muted-foreground">
-                        {formatDate(comment.createdAt)}
-                      </TableCell>
-                      <TableCell class="text-right">
-                        <div class="flex gap-2 justify-end">
-                          {#if comment.hidden}
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onclick={() => performAction('unhide', 'comment', comment.id)}
-                            >
-                              <Eye class="h-4 w-4" />
-                            </Button>
-                          {:else}
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onclick={() => performAction('hide', 'comment', comment.id)}
-                            >
-                              <EyeOff class="h-4 w-4" />
-                            </Button>
-                          {/if}
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onclick={() => performAction('clearReports', 'comment', comment.id)}
-                          >
-                            <X class="h-4 w-4" />
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="destructive"
-                            onclick={() => performAction('delete', 'comment', comment.id)}
-                          >
-                            <Trash2 class="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  {/each}
-                </TableBody>
-              </Table>
-            </ScrollArea>
-          {/if}
-        </CardContent>
-      </Card>
-    </TabsContent>
-
-    <TabsContent value="users" class="space-y-4">
-      <Card>
-        <CardHeader>
-          <CardTitle>{t('moderation.reportedUsers')}</CardTitle>
-          <CardDescription>{t('moderation.usersDescription')}</CardDescription>
-        </CardHeader>
-        <CardContent>
-          {#if loading}
-            <div class="text-center py-8">{t('moderation.loading')}</div>
-          {:else if reports.users.length === 0}
-            <div class="text-center py-8 text-muted-foreground">
-              <CheckCircle2 class="h-12 w-12 mx-auto mb-4 opacity-50" />
-              <p>{t('moderation.noReportedUsers')}</p>
-            </div>
-          {:else}
-            <ScrollArea class="h-[600px]">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>{t('moderation.user')}</TableHead>
-                    <TableHead>{t('moderation.email')}</TableHead>
-                    <TableHead>{t('moderation.reports')}</TableHead>
-                    <TableHead>{t('moderation.created')}</TableHead>
-                    <TableHead class="text-right">{t('moderation.actions')}</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {#each reports.users as user}
-                    <TableRow>
-                      <TableCell class="font-medium">
-                        <a 
-                          href={user.nickname ? `/${user.nickname}` : '#'}
-                          class="hover:underline"
-                        >
-                          {user.nickname || t('moderation.unknown')}
-                        </a>
-                      </TableCell>
-                      <TableCell class="text-sm text-muted-foreground">
-                        {user.email || '-'}
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant="destructive">{user.reportCount}</Badge>
-                      </TableCell>
-                      <TableCell class="text-sm text-muted-foreground">
-                        {formatDate(user.createdAt)}
-                      </TableCell>
-                      <TableCell class="text-right">
-                        <div class="flex gap-2 justify-end">
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onclick={() => performAction('clearReports', 'user', user.id)}
-                          >
-                            <X class="h-4 w-4" />
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="destructive"
-                            onclick={() => performAction('ban', 'user', user.id)}
-                          >
-                            <Shield class="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  {/each}
-                </TableBody>
-              </Table>
-            </ScrollArea>
-          {/if}
-        </CardContent>
-      </Card>
-    </TabsContent>
-  </Tabs>
-</main>
+				<AlertDialog.Root bind:open={showDeleteDialog} onOpenChange={handleDeleteDialogOpenChange}>
+					<AlertDialog.Content>
+						<AlertDialog.Header>
+							<AlertDialog.Title>
+								{t('AreYouSure') ?? 'Silme işlemini onaylayın'}
+							</AlertDialog.Title>
+							<AlertDialog.Description>
+								{t('DeleteAccountConfirm') ?? 'Bu hesabı silmek istediğinizden emin misiniz? Hesap hemen gizlenecek ve 48 saat sonra tamamen silinecektir.'}
+							</AlertDialog.Description>
+						</AlertDialog.Header>
+						<AlertDialog.Footer>
+							<AlertDialog.Cancel onclick={handleDeleteDialogCancel}>
+								{t('Cancel') ?? 'İptal'}
+							</AlertDialog.Cancel>
+							<AlertDialog.Action class="bg-destructive text-destructive-foreground hover:bg-destructive/90" onclick={handleDeleteDialogConfirm}>
+								{t('ConfirmDelete') ?? 'Sil'}
+							</AlertDialog.Action>
+						</AlertDialog.Footer>
+					</AlertDialog.Content>
+				</AlertDialog.Root>
+			</div>
+		</div>
+	</div>
 
 <Footer />
-

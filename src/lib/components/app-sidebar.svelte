@@ -20,6 +20,7 @@
 	import NavUser from "./nav-user.svelte";
 	import * as Sidebar from "$lib/components/ui/sidebar/index.js";
 	import type { ComponentProps } from "svelte";
+  import { t } from '$lib/stores/i18n.svelte.js';
 
 	const data = {
 		user: {
@@ -137,7 +138,7 @@
 			},
 		],
 	};
-
+	import logo from "$lib/assets/laf1.svg";
 	let { ...restProps }: ComponentProps<typeof Sidebar.Root> = $props();
 </script>
 
@@ -147,9 +148,9 @@
 			<Sidebar.MenuItem>
 				<Sidebar.MenuButton class="data-[slot=sidebar-menu-button]:!p-1.5">
 					{#snippet child({ props })}
-						<a href="##" {...props}>
-							<InnerShadowTopIcon class="!size-5" />
-							<span class="text-base font-semibold">Acme Inc.</span>
+						<a href="/" {...props}>
+							<img src={logo} alt="LAF" class="h-4.5 w-auto" />
+							{t('Moderation')}
 						</a>
 					{/snippet}
 				</Sidebar.MenuButton>
