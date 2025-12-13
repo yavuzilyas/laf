@@ -4,9 +4,12 @@
   import { Label } from "$lib/components/ui/label";
   import { ShieldAlert, X } from "@lucide/svelte";
   import { showToast } from "$lib/hooks/toast";
-      import { t, tJoin, tMany } from '$lib/stores/i18n.svelte.js';
-import { cn } from "$lib/utils.js";
+  import { t, tJoin, tMany } from '$lib/stores/i18n.svelte.js';
+  import { cn } from "$lib/utils.js";
+  import { onMount } from 'svelte';
+  
   let { openVerif = false, onVerified = () => {}, onCancel = () => {} } = $props();
+  let mnemonicInput: HTMLInputElement;
 
   let loading = $state(false);
   let mnemonicIndex = $state<number | null>(null);
@@ -102,8 +105,14 @@ import { cn } from "$lib/utils.js";
   }
 
   $effect(() => {
-    if (openVerif && !mnemonicIndex && !loading) {
-      getMnemonicQuestion();
+    if (openVerif) {
+      if (!mnemonicIndex && !loading) {
+        getMnemonicQuestion();
+      }
+      // Focus input when dialog opens
+      if (mnemonicInput) {
+        setTimeout(() => mnemonicInput.focus(), 100);
+      }
     }
   });
 
@@ -134,23 +143,26 @@ import { cn } from "$lib/utils.js";
             <p class="z-60 text-sm font-medium text-primary bg-primary/10 p-2 rounded-md">
               {t("auth.login.mnemonicQuestionP1")} {mnemonicIndex + 1}{t("auth.login.mnemonicQuestionP2")}
             </p>
-            <Input
-              id="mnemonic-answer"
-              type="text"
-              placeholder={t('EnterMnemonic')}
-              bind:value={mnemonicAnswer}
-              disabled={loading}
-              autofocus
-            />
-          </div>
+            <form on:submit|preventDefault={verifyMnemonic}>
+              <Input
+                id="mnemonic-answer"
+                type="text"
+                placeholder={t('EnterMnemonic')}
+                bind:value={mnemonicAnswer}
+                bind:this={mnemonicInput}
+                disabled={loading}
+                on:keydown={(e) => e.key === 'Enter' && verifyMnemonic()}
+              />
+            </form>
+          
 
           {#if attemptCount > 0}
-            <div class="z-60  bg-yellow-500/20 border border-yellow-500/50 rounded-md p-2">
-              <p class="z-60 text-xs text-yellow-500 text-center">
+            <div class="z-60  bg-red-500/20 border border-red-500/75 rounded-md p-1.5">
+              <p class="z-60 text-xs text-red-500 text-center">
                 {remainingAttempts} {t('attemptsLeft')}
               </p>
             </div>
-          {/if}
+          {/if}</div>
         {:else if loading}
           <div class="z-60 flex justify-center py-4">
             <div class="z-60 h-6 w-6 animate-spin rounded-full border-2 border-primary border-r-transparent"></div>

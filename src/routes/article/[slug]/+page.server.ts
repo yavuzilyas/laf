@@ -22,12 +22,30 @@ export const load: PageServerLoad = async ({ params, locals }) => {
   let matchedLang: string | null = null;
 
   for (const lang of localesToTry) {
-    const found = await articles.findOne({
+    const query: any = {
       [`translations.${lang}.slug`]: slug,
-      status: 'published',
-      deletedAt: { $exists: false }
-    });
+      deletedAt: { $exists: false },
+      $or: [
+        { status: 'published' },
+        { 
+          status: 'draft',
+          authorId: viewerObjectId || { $exists: false }
+        },
+        { 
+          status: 'pending',
+          authorId: viewerObjectId || { $exists: false }
+        }
+      ]
+    };
+    
+    const found = await articles.findOne(query);
     if (found) {
+      // If article is draft/pending and user is not the author, skip to next language
+      if ((found.status === 'draft' || found.status === 'pending') && 
+          (!viewerObjectId || !found.authorId || !found.authorId.equals(viewerObjectId))) {
+        continue;
+      }
+      
       article = found;
       matchedLang = lang;
       break;

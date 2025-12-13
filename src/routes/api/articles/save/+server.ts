@@ -113,6 +113,34 @@ async function cleanupUnusedMedia(existing: any, updated: any, articleId: string
         const articles = await getArticlesCollection();
         const drafts = await getDraftsCollection();
         const versions = await getVersionsCollection();
+        const users = await getUsersCollection();
+
+        // Get user's role
+        const userData = await users.findOne({ _id: new ObjectId(user.id) });
+        const userRole = userData?.role || 'user';
+        const isPrivileged = userRole === 'admin' || userRole === 'moderator';
+
+        // Check article limit for non-privileged users
+        if (data.status === 'published' && !isPrivileged) {
+            // Count user's published articles today
+            const startOfDay = new Date();
+            startOfDay.setHours(0, 0, 0, 0);
+            
+            const publishedToday = await articles.countDocuments({
+                'authorId': new ObjectId(user.id),
+                'status': 'published',
+                'createdAt': { $gte: startOfDay }
+            });
+
+            if (publishedToday >= 2) {
+                return json({ 
+                    error: 'Günlük makale yayınlama limitinize ulaştınız. Günde en fazla 2 makale yayınlayabilirsiniz.' 
+                }, { status: 403 });
+            }
+
+            // Set status to pending for non-privileged users
+            data.status = 'pending';
+        }
 
         // defaultLanguage yoksa mevcut çevirilerden ilkini ata
         if (!data.defaultLanguage) {
@@ -143,7 +171,19 @@ async function cleanupUnusedMedia(existing: any, updated: any, articleId: string
             ...data,
             authorId: new ObjectId(user.id),
             updatedAt: new Date(),
-            stats: data.stats || { views: 0, likes: 0, comments: 0 }
+            stats: data.stats || { views: 0, likes: 0, comments: 0 },
+            // Store the original status for reference
+            originalStatus: data.status,
+            // Store reviewer info if status was changed to pending
+            ...(data.status === 'pending' && !isPrivileged && {
+                pendingReview: {
+                    requestedAt: new Date(),
+                    status: 'pending',
+                    reviewerId: null,
+                    reviewedAt: null,
+                    comment: null
+                }
+            })
         };
 
         let result;
@@ -195,8 +235,8 @@ async function cleanupUnusedMedia(existing: any, updated: any, articleId: string
 
             await cleanupUnusedMedia(existingArticle, articleData, articleId.toString());
             
-            // Send notifications to followers if this is a new publication
-            if (!existingId) {
+            // Send notifications to followers if this is a new published article
+            if (!existingId && articleData.originalStatus === 'published') {
               const users = await getUsersCollection();
               const author = await users.findOne(
                 { _id: new ObjectId(user.id) },

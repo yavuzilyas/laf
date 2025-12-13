@@ -192,25 +192,25 @@
 </script>
 
 <Dialog.Root bind:open>
-  <Dialog.Content class="w-15/16 sm:w-2/3 md:w-1/2 min-h-[33vh] max-h-[80vh] flex flex-col">
-    <Dialog.Header >
-        <Dialog.Title class="flex flex-col items-center justify-between gap-3">
-          {t('notifications.title') || 'Bildirimler'}
-
-                    <Button 
-            variant="outline" 
-            size="xs" 
-            onclick={handleMarkAll} 
-            disabled={unreadCount === 0}
-          >
-            {t('notifications.markAll')}
-          </Button>
-        </Dialog.Title>
+  <Dialog.Content class="w-15/16 sm:w-2/3 md:w-1/2 h-[70vh] max-h-[80vh] flex flex-col overflow-hidden">
+    <Dialog.Header class="flex-shrink-0">
+      <Dialog.Title class="flex items-center justify-between">
+        <span>{t('notifications.title') || 'Bildirimler'}</span>
+        <Button 
+          variant="outline" 
+          size="xs" 
+          on:click={handleMarkAll} 
+          disabled={unreadCount === 0}
+        >
+          {t('notifications.markAll')}
+        </Button>
+      </Dialog.Title>
     </Dialog.Header>
 
-    <ScrollArea orientation="vertical" class="flex-1">
-      {#if notifications.length > 0}
-        <div class="space-y-2">
+    <div class="flex-1 overflow-hidden">
+      <ScrollArea orientation="vertical" class="h-full w-full">
+        {#if notifications.length > 0}
+          <div class="p-2 space-y-2">
           {#each sortedGroups as [key, group]}
             <div class="rounded-lg border">
 
@@ -299,5 +299,6 @@
         </div>
       {/if}
     </ScrollArea>
+  </div>
   </Dialog.Content>
 </Dialog.Root>

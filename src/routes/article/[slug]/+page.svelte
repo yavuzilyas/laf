@@ -34,6 +34,7 @@
     import { ArrowLeftIcon, MessageSquareIcon, EllipsisIcon, BookMinusIcon, NotebookPenIcon, EyeOffIcon, BadgeAlertIcon } from 'svelte-animate-icons';
     import { Motion, useMotionValue, useMotionTemplate } from "svelte-motion";
     import { browser } from '$app/environment';
+    import ReportDrawer from "$lib/components/ReportDrawer.svelte";
     import * as AlertDialog from "$lib/components/ui/alert-dialog";
         import * as DropdownMenu from "$lib/components/ui/dropdown-menu";
     
@@ -41,7 +42,7 @@
     let likesCount = $state<number>(Number(data.article?.stats?.likes) || 0);
     let dislikesCount = $state<number>(Number(data.article?.stats?.dislikes) || 0);
     let reaction = $state<'like' | 'dislike' | null>(null);
-    
+    let showReportDrawer = $state(false);
     // Get current locale and set up reactive article content
     let currentLocale = $state(getCurrentLocale());
     
@@ -192,7 +193,7 @@
         return Boolean(uid && (article?.authorId === uid || article?.author?.id === uid));
     }
 
-    function onReportArticle() { showToast(t('Reported'), 'info'); }
+
     function onEditArticle() {
         if (!article?._id) {
             return;
@@ -706,7 +707,7 @@
 											</Button>
 										</DropdownMenu.Trigger>
 										<DropdownMenu.Content align="end" class="w-48">
-											<DropdownMenu.Item onclick={onReportArticle} class="text-destructive">
+											<DropdownMenu.Item onclick={() => showReportDrawer = true} class="text-destructive">
 												<BadgeAlertIcon triggers={{ hover: false }}  animationState="loading"  duration={3000} loop={true}  class="mr-2 h-4 w-4" />
 												Bildir
 											</DropdownMenu.Item>
@@ -1338,5 +1339,10 @@ Göster</DropdownMenu.Item>
         </AlertDialog.Footer>
     </AlertDialog.Content>
 </AlertDialog.Root>
-
+ <ReportDrawer
+	bind:open={showReportDrawer}
+	reportType="article"
+	targetId={data.article?._id}
+	targetTitle={data.article?.title}
+/>
 <Footer />

@@ -8,7 +8,7 @@ import NotificationDialog from "$lib/components/NotificationDialog.svelte";
 import A from "$lib/components/ui/a.svelte";
 
     import {HandCoins, BadgeInfo, Cog, BellIcon,LogOutIcon, LogInIcon, UserRound, Shield } from "@lucide/svelte";
-  import logo from '$lib/assets/laf1.svg';
+  import logo from '$lib/assets/hatlaf.svg';
       import { t, tJoin, tMany, dativeSuffix } from '$lib/stores/i18n.svelte.js';
   import { page } from "$app/stores";
   import {
@@ -198,7 +198,7 @@ import HammerLottie from "$lib/components/hammerIcon.svelte";
       <Tooltip.Provider>
  <Tooltip.Root>
   <Tooltip.Trigger>   
-    <A href="/" ><img class="max-h-4.5 fill-primary" src="{logo}" alt="LAF" /></A>
+    <A href="/" ><img class="max-h-6.5 fill-primary" src="{logo}" alt="LAF" /></A>
   </Tooltip.Trigger>
   <Tooltip.Content>
    <p>{t('GoToHomePage')}</p>

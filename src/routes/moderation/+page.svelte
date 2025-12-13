@@ -18,9 +18,14 @@
 
   let { data } = $props();
   let tableData = $state(data.tableData ?? []);
+  let selectedUsers = $state<Set<string>>(new Set());
+  let showBulkActions = $state(false);
 
   $effect(() => {
     tableData = data.tableData ?? [];
+    // Reset selection when table data changes
+    selectedUsers = new Set();
+    showBulkActions = false;
   });
 
   let currentUser = data.currentUser;
@@ -94,7 +99,91 @@
     }
   }
 
-  async function banUser(userId: string) {
+  // Bulk actions
+  function toggleUserSelection(userId: string) {
+    const newSelection = new Set(selectedUsers);
+    if (newSelection.has(userId)) {
+      newSelection.delete(userId);
+    } else {
+      newSelection.add(userId);
+    }
+    selectedUsers = newSelection;
+    showBulkActions = newSelection.size > 0;
+  }
+
+  function selectAllUsers() {
+    if (selectedUsers.size === tableData.length) {
+      selectedUsers = new Set();
+    } else {
+      selectedUsers = new Set(tableData.map((user: any) => user.id));
+    }
+    showBulkActions = selectedUsers.size > 0;
+  }
+
+  async function banSelectedUsers() {
+    if (!currentUser?.id || currentUser.id === 'unknown') {
+      showToast('Yetkiniz yok', 'error');
+      return;
+    }
+
+    try {
+      const promises = Array.from(selectedUsers).map(userId => 
+        banUser(userId, { skipToast: true })
+      );
+      
+      await Promise.all(promises);
+      showToast(`${selectedUsers.size} kullanıcı yasaklandı`, 'success');
+      selectedUsers = new Set();
+      showBulkActions = false;
+      await refreshModerationData();
+    } catch (error) {
+      showToast('Toplu işlem sırasında hata oluştu', 'error');
+    }
+  }
+
+  async function unbanSelectedUsers() {
+    if (!currentUser?.id || currentUser.id === 'unknown') {
+      showToast('Yetkiniz yok', 'error');
+      return;
+    }
+
+    try {
+      const promises = Array.from(selectedUsers).map(userId => 
+        unbanUser(userId, { skipToast: true })
+      );
+      
+      await Promise.all(promises);
+      showToast(`${selectedUsers.size} kullanıcının yasağı kaldırıldı`, 'success');
+      selectedUsers = new Set();
+      showBulkActions = false;
+      await refreshModerationData();
+    } catch (error) {
+      showToast('Toplu işlem sırasında hata oluştu', 'error');
+    }
+  }
+
+  async function deleteSelectedUsers() {
+    if (!currentUser?.id || currentUser.id === 'unknown') {
+      showToast('Yetkiniz yok', 'error');
+      return;
+    }
+
+    try {
+      const promises = Array.from(selectedUsers).map(userId => 
+        deleteUser(userId, { skipConfirm: true, skipToast: true })
+      );
+      
+      await Promise.all(promises);
+      showToast(`${selectedUsers.size} kullanıcı silindi`, 'success');
+      selectedUsers = new Set();
+      showBulkActions = false;
+      await refreshModerationData();
+    } catch (error) {
+      showToast('Toplu silme işlemi sırasında hata oluştu', 'error');
+    }
+  }
+
+  async function banUser(userId: string, options: { skipToast?: boolean } = {}) {
     if (!currentUser?.id || currentUser.id === 'unknown') {
       showToast('Kullanıcı bilgisi alınamadı', 'error');
       return;
@@ -395,16 +484,70 @@
 </svelte:head>
 <Navbar />
 		<div class=" flex flex-1 flex-col items-center ">
-			<div class="@container/main w-7xl flex flex-1 flex-col gap-2">
-				<div class="flex flex-col gap-4 py-4 md:gap-6 md:py-6">
-          <div class="w-full flex justify-center items-center">
-          <h1 class="text-2xl font-bold">{t('ModerationAndAnalysis')}</h1>
+			<div class="@container/main w-full max-w-7xl flex-1 px-2 sm:px-4">
+			<div class="flex flex-col gap-3 py-3 sm:gap-4 sm:py-4 md:gap-5 md:py-5">
+          <div class="w-full flex justify-center items-center px-2">
+            <h1 class="text-xl font-bold sm:text-2xl">{t('ModerationAndAnalysis')}</h1>
           </div>
-					<SectionCards />
-					<div class="px-4 lg:px-6">
-						<ChartAreaInteractive />
-					</div>
-					<DataTable
+          <div class="overflow-hidden">
+            <SectionCards />
+          </div>
+          <div class="px-1 sm:px-2 lg:px-4">
+            <ChartAreaInteractive />
+          </div>
+          
+          {#if showBulkActions}
+            <div class="bg-muted/50 p-3 rounded-lg mb-4 flex items-center justify-between flex-wrap gap-2">
+              <div class="text-sm font-medium">
+                {selectedUsers.size} öğe seçildi
+              </div>
+              <div class="flex flex-wrap gap-2">
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  on:click={() => {
+                    banSelectedUsers();
+                  }}
+                >
+                  <BanIcon class="h-4 w-4 mr-2" />
+                  Yasakla
+                </Button>
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  on:click={() => {
+                    unbanSelectedUsers();
+                  }}
+                >
+                  <CheckCircleIcon class="h-4 w-4 mr-2" />
+                  Yasak Kaldır
+                </Button>
+                <Button 
+                  variant="destructive" 
+                  size="sm"
+                  on:click={() => {
+                    deleteSelectedUsers();
+                  }}
+                >
+                  <Trash2Icon class="h-4 w-4 mr-2" />
+                  Seçileni Sil
+                </Button>
+                <Button 
+                  variant="ghost" 
+                  size="sm"
+                  on:click={() => {
+                    selectedUsers = new Set();
+                    showBulkActions = false;
+                  }}
+                >
+                  <XCircleIcon class="h-4 w-4 mr-2" />
+                  İptal
+                </Button>
+              </div>
+            </div>
+          {/if}
+          
+          <DataTable
             data={tableData}
             {banUser}
             {unbanUser}
@@ -415,27 +558,37 @@
             {currentUser}
             {promoteToModerator}
             {demoteToUser}
+            selectedUsers={selectedUsers}
+            onToggleUserSelection={toggleUserSelection}
+            onSelectAllUsers={selectAllUsers}
+            showCheckboxes={true}
           />
 
 				<AlertDialog.Root bind:open={showDeleteDialog} onOpenChange={handleDeleteDialogOpenChange}>
-					<AlertDialog.Content>
-						<AlertDialog.Header>
-							<AlertDialog.Title>
-								{t('AreYouSure') ?? 'Silme işlemini onaylayın'}
-							</AlertDialog.Title>
-							<AlertDialog.Description>
-								{t('DeleteAccountConfirm') ?? 'Bu hesabı silmek istediğinizden emin misiniz? Hesap hemen gizlenecek ve 48 saat sonra tamamen silinecektir.'}
-							</AlertDialog.Description>
-						</AlertDialog.Header>
-						<AlertDialog.Footer>
-							<AlertDialog.Cancel onclick={handleDeleteDialogCancel}>
-								{t('Cancel') ?? 'İptal'}
-							</AlertDialog.Cancel>
-							<AlertDialog.Action class="bg-destructive text-destructive-foreground hover:bg-destructive/90" onclick={handleDeleteDialogConfirm}>
-								{t('ConfirmDelete') ?? 'Sil'}
-							</AlertDialog.Action>
-						</AlertDialog.Footer>
-					</AlertDialog.Content>
+					<AlertDialog.Content class="w-[calc(100%-2rem)] sm:w-full max-w-md mx-auto">
+				<AlertDialog.Header>
+					<AlertDialog.Title class="text-lg sm:text-xl">
+						{t('AreYouSure') ?? 'Silme işlemini onaylayın'}
+					</AlertDialog.Title>
+					<AlertDialog.Description class="text-sm sm:text-base">
+						{t('DeleteAccountConfirm') ?? 'Bu hesabı silmek istediğinizden emin misiniz? Hesap hemen gizlenecek ve 48 saat sonra tamamen silinecektir.'}
+					</AlertDialog.Description>
+				</AlertDialog.Header>
+				<AlertDialog.Footer class="flex flex-col sm:flex-row gap-2 sm:justify-end">
+					<AlertDialog.Cancel 
+            class="w-full sm:w-auto" 
+            onclick={handleDeleteDialogCancel}
+          >
+						{t('Cancel') ?? 'İptal'}
+					</AlertDialog.Cancel>
+					<AlertDialog.Action 
+            class="w-full sm:w-auto bg-destructive text-destructive-foreground hover:bg-destructive/90" 
+            onclick={handleDeleteDialogConfirm}
+          >
+						{t('ConfirmDelete') ?? 'Sil'}
+					</AlertDialog.Action>
+				</AlertDialog.Footer>
+			</AlertDialog.Content>
 				</AlertDialog.Root>
 			</div>
 		</div>

@@ -9,6 +9,9 @@
   import { Badge } from "$lib/components/ui/badge";
   import { ScrollArea } from "$lib/components/ui/scroll-area";
   import { t } from '$lib/stores/i18n.svelte';
+  import * as DropdownMenu from "$lib/components/ui/dropdown-menu";
+  import { MoreVertical, Flag } from "@lucide/svelte";
+  import ReportDrawer from "$lib/components/ReportDrawer.svelte";
     import * as Dialog from '$lib/components/ui/dialog/index.js';
   import * as Popover from "$lib/components/ui/popover/index.js";
   import {
@@ -334,6 +337,7 @@
   } = $props();
 
   let showEditForm = $state(false);
+  let showReportDrawer = $state(false);
   let cardRef: HTMLDivElement;
 
   // Watch for isEditing changes to handle animation timing
@@ -562,7 +566,7 @@
             {#if profileData?.bio}
               <p class="text-sm text-foreground">{profileData.bio}</p>
             {/if}
-            <div class="flex flex-wrap gap-2.5 sm:gap-4 text-xs sm:text-sm text-muted-foreground">
+            <div class="flex flex-wrap items-center gap-2.5 sm:gap-4 text-xs sm:text-sm text-muted-foreground">
               {#if profileData?.location}
                 <div class="flex items-center gap-1">
                   <MapPin class="h-4 w-4" />
@@ -614,6 +618,25 @@
               {/if}
                   </div>
             </div>
+            
+            {#if !isOwnProfile}
+              <div class="absolute top-2 right-2">
+                <DropdownMenu.Root>
+                  <DropdownMenu.Trigger asChild>
+                    <Button variant="ghost" size="icon" class="h-8 w-8">
+                      <MoreVertical class="h-4 w-4" />
+                      <span class="sr-only">More options</span>
+                    </Button>
+                  </DropdownMenu.Trigger>
+                  <DropdownMenu.Content>
+                    <DropdownMenu.Item onclick={() => showReportDrawer = true}>
+                      <Flag class="h-4 w-4" />
+                      <span>{t('report.reportProfile')}</span>
+                    </DropdownMenu.Item>
+                  </DropdownMenu.Content>
+                </DropdownMenu.Root>
+              </div>
+            {/if}
 
             <!-- {#if (profileData?.interests ?? []).length > 0}
               <div class="mt-4 flex flex-wrap gap-2">
@@ -704,12 +727,22 @@
       onchange={onBannerUpload}
     />
   </CardContent>
-</Card>
+  </Card>
 
-<!-- Avatar Edit Dialog -->
-<Dialog.Root bind:open={showAvatarDialog} onOpenChange={closeAvatarDialog}>
+  <!-- Report Drawer -->
+  {#if !isOwnProfile}
+    <ReportDrawer 
+      bind:open={showReportDrawer} 
+      reportType="profile"
+      targetId={profileUser?.id}
+      targetTitle={profileUser?.nickname}
+    />
+  {/if}
+
+  <!-- Avatar Edit Dialog -->
+  <Dialog.Root bind:open={showAvatarDialog} onOpenChange={closeAvatarDialog}>
     <Dialog.Content class="w-15/16  sm:w-1/2 md:w-2/7 ">
-        <Dialog.Header>
+      <Dialog.Header>
             <Dialog.Title>{t('profile.editAvatar')}</Dialog.Title>
             <Dialog.Description>
                 {t('profile.avatarDescription')}

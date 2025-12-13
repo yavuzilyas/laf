@@ -26,6 +26,8 @@
 	import { Label } from "$lib/components/ui/label/index.js";
 	import { Badge } from "$lib/components/ui/badge/index.js";
 	import { Input } from "$lib/components/ui/input/index.js";
+	import * as AlertDialog from "$lib/components/ui/alert-dialog/index.js";
+	import { Textarea } from "$lib/components/ui/textarea/index.js";
 	import {
 		FlexRender,
 		renderComponent,
@@ -75,8 +77,30 @@
 		role?: string;
 	};
 
+	type PendingArticleRow = {
+		id: string;
+		title: string;
+		author: string;
+		authorNickname?: string | null;
+		authorName?: string | null;
+		authorId?: string | null;
+		authorRole?: string | null;
+		category: string;
+		status: string;
+		submittedAt: string | null;
+		language: string;
+		tags?: string[];
+		slug?: string | null;
+		hidden?: boolean;
+		deletedAt?: string | null;
+		createdAt?: string | null;
+		updatedAt?: string | null;
+		pendingStatus?: string | null;
+	};
+
 	let {
 		data,
+		pendingArticlesInitial = [],
 		banUser,
 		unbanUser,
 		hideUser,
@@ -88,6 +112,7 @@
 		demoteToUser,
 	}: {
 		data: Schema[];
+		pendingArticlesInitial?: PendingArticleRow[];
 		banUser: (id: string) => void | Promise<void>;
 		unbanUser: (id: string) => void | Promise<void>;
 		hideUser: (id: string) => void | Promise<void>;
@@ -104,11 +129,51 @@
 	let rowSelection = $state<RowSelectionState>({});
 	let columnVisibility = $state<VisibilityState>({});
 	let globalFilter = $state<string>("");
+	let pendingArticles = $state<PendingArticleRow[]>(pendingArticlesInitial ?? []);
+	let loadingPending = $state(false);
+	let pendingInitialized = $state((pendingArticlesInitial?.length ?? 0) > 0);
+	let selectedArticles = $state<Set<string>>(new Set());
+	let showArticleBulkActions = $state(false);
+	let pendingPagination = $state<PaginationState>({ pageIndex: 0, pageSize: 10 });
+	let pendingSorting = $state<SortingState>([]);
+	let pendingColumnFilters = $state<ColumnFiltersState>([]);
+	let pendingRowSelection = $state<RowSelectionState>({});
+	let pendingColumnVisibility = $state<VisibilityState>({});
+	let pendingGlobalFilter = $state<string>("");
+	type PendingBulkAction = "approve" | "reject";
+	const pendingBulkActionOptions: { value: PendingBulkAction; label: string }[] = [
+		{ value: "approve", label: t('moderation.bulkApprove') ?? t('common.approve') },
+		{ value: "reject", label: t('moderation.bulkReject') ?? t('common.reject') },
+	];
+	let selectedPendingBulkAction = $state<PendingBulkAction>("approve");
+	let pendingBulkProcessing = $state(false);
+	let showRejectDialog = $state(false);
+	let pendingRejectArticle = $state<PendingArticleRow | null>(null);
+	let rejectReason = $state("");
+	let articlesStatusFilter = $state<"all" | "pending" | "published" | "rejected" | "draft">("all");
+	const articleStatusOptions = [
+		{ value: "all", label: t('moderation.allStatuses') ?? t('common.all') ?? "Tümü" },
+		{ value: "pending", label: t('moderation.pending') ?? t('dataTable.pending') ?? "Beklemede" },
+		{ value: "published", label: t('moderation.published') ?? t('common.published') ?? "Yayında" },
+		{ value: "rejected", label: t('moderation.rejected') ?? t('common.rejected') ?? "Reddedildi" },
+		{ value: "draft", label: t('moderation.draft') ?? t('common.draft') ?? "Taslak" },
+	];
 	const protectedRoles = new Set(["admin", "moderator"]);
 	const DELETION_GRACE_PERIOD_MS = 48 * 60 * 60 * 1000;
 	const normalizeRole = (role?: string | null) => role?.toLowerCase?.() ?? "user";
 	const isProtectedRole = (role?: string) => protectedRoles.has(normalizeRole(role));
 	const currentRole = $derived(normalizeRole(currentUser?.role));
+	const getRoleRank = (role?: string | null) => {
+		const normalized = normalizeRole(role);
+		if (normalized === "admin") {
+			return 3;
+		}
+		if (normalized === "moderator") {
+			return 2;
+		}
+		return 1;
+	};
+	const currentRoleRank = $derived(getRoleRank(currentRole));
 	const canModifyRole = (role?: string, rowId?: string) => {
 		const targetRole = normalizeRole(role);
 		if (rowId && currentUser?.id && rowId === currentUser.id) {
@@ -122,8 +187,65 @@
 		}
 		return currentRole === "admin" || currentRole === "moderator";
 	};
+
 	const canPromoteRole = (role?: string) => currentRole === "admin" && normalizeRole(role) === "user";
 	const canDemoteRole = (role?: string) => currentRole === "admin" && normalizeRole(role) === "moderator";
+	const canModerateAuthor = (role?: string | null) => currentRoleRank > getRoleRank(role);
+
+	async function requeueArticle(articleId: string) {
+		try {
+			const response = await fetch(`/api/articles/${articleId}/review`, {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ action: 'requeue' })
+			});
+
+			if (response.ok) {
+				toast.success(t('moderation.articleRequeued') ?? 'Makale yeniden incelemeye alındı');
+				await fetchPendingArticles(true);
+			} else {
+				const error = await response.json();
+				toast.error(error.error || (t('moderation.requeueFailed') ?? 'Beklemeye alma başarısız'));
+			}
+		} catch (error) {
+			console.error('Failed to requeue article:', error);
+			toast.error(t('moderation.requeueFailed') ?? 'Beklemeye alma başarısız');
+		}
+	}
+
+	async function performArticleModerationAction(action: 'hide' | 'unhide' | 'delete', articleId: string, reason?: string) {
+		try {
+			const response = await fetch('/api/moderation/actions', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({
+					action,
+					type: 'article',
+					id: articleId,
+					reason: reason ?? (action === 'delete' ? t('moderation.deleteReasonDefault') ?? 'Moderasyon tarafından silindi' : undefined)
+				})
+			});
+
+			if (response.ok) {
+				let message: string;
+				if (action === 'delete') {
+					message = t('moderation.articleDeleted') ?? 'Makale silindi';
+				} else if (action === 'hide') {
+					message = t('moderation.articleHidden') ?? 'Makale gizlendi';
+				} else {
+					message = t('moderation.articleUnhidden') ?? 'Makale görünür yapıldı';
+				}
+				toast.success(message);
+				await fetchPendingArticles(true);
+			} else {
+				const error = await response.json();
+				toast.error(error.error || (t('moderation.actionFailed')));
+			}
+		} catch (error) {
+			console.error('Article moderation action failed:', error);
+			toast.error(t('moderation.actionFailed'));
+		}
+	}
 
 	const getDeletionDeadline = (timestamp?: string | null) => {
 		if (!timestamp) return null;
@@ -146,6 +268,19 @@
 		const diffMinutes = Math.max(1, Math.floor(diffMs / (1000 * 60)));
 		return t('dataTable.deletionMinutes', { count: diffMinutes });
 	};
+	const formatDateTime = (value?: string | null) => {
+		if (!value) return t('dataTable.unknown');
+		const date = new Date(value);
+		if (Number.isNaN(date.getTime())) return t('dataTable.unknown');
+		return date.toLocaleDateString('tr-TR', {
+			year: 'numeric',
+			month: 'short',
+			day: 'numeric',
+			hour: '2-digit',
+			minute: '2-digit',
+		});
+	};
+
 	type BulkAction = "ban" | "unban" | "hide" | "unhide" | "delete" | "undoDelete";
 	const bulkActionOptions: { value: BulkAction; label: string }[] = [
 		{ value: "ban", label: t('dataTable.bulkBan') },
@@ -241,7 +376,7 @@
 			cell: ({ row }) => {
 				if (!row.original) return t('dataTable.unknown');
 				const user = row.original;
-				return user.email || user.header?.includes('@') ? user.header : t('dataTable.unknown');
+				return user.email || t('dataTable.unknown');
 			},
 		},
 		{
@@ -348,6 +483,105 @@
 		},
 	});
 
+	const pendingColumns: ColumnDef<PendingArticleRow>[] = [
+		{
+			id: "pending-drag",
+			header: () => null,
+			cell: () => renderSnippet(DragHandle),
+			enableHiding: false,
+			enableSorting: false,
+		},
+		{
+			accessorKey: "title",
+			header: t('moderation.articleTitle') ?? t('dataTable.pendingTitle'),
+			cell: ({ row }) => renderSnippet(PendingArticleTitle, { row }),
+		},
+		{
+			accessorKey: "author",
+			header: t('moderation.author') ?? t('dataTable.pendingAuthor'),
+			cell: ({ row }) => row.original?.author || t('dataTable.unknown'),
+		},
+		{
+			accessorKey: "category",
+			header: t('moderation.category'),
+		},
+		{
+			accessorKey: "language",
+			header: t('moderation.language') ?? 'Dil',
+			cell: ({ row }) => row.original?.language?.toUpperCase?.() ?? t('dataTable.unknown'),
+		},
+		{
+			accessorKey: "submittedAt",
+			header: t('moderation.submitted'),
+			cell: ({ row }) => formatDateTime(row.original?.submittedAt),
+		},
+		{
+			accessorKey: "status",
+			header: t('dataTable.status'),
+			cell: ({ row }) => renderSnippet(PendingArticleStatus, { row }),
+		},
+		{
+			id: "actions",
+			cell: ({ row }) => renderSnippet(PendingArticleActions, { row }),
+			enableHiding: false,
+		},
+	];
+
+	const pendingTable = createSvelteTable({
+		get data() {
+			return pendingArticles;
+		},
+		columns: pendingColumns,
+		state: {
+			get pagination() {
+				return pendingPagination;
+			},
+			get sorting() {
+				return pendingSorting;
+			},
+			get columnVisibility() {
+				return pendingColumnVisibility;
+			},
+			get rowSelection() {
+				return pendingRowSelection;
+			},
+			get columnFilters() {
+				return pendingColumnFilters;
+			},
+			get globalFilter() {
+				return pendingGlobalFilter;
+			},
+		},
+		getRowId: (row) => row.id?.toString?.() ?? crypto.randomUUID(),
+		enableRowSelection: false,
+		getCoreRowModel: getCoreRowModel(),
+		getPaginationRowModel: getPaginationRowModel(),
+		getSortedRowModel: getSortedRowModel(),
+		getFacetedRowModel: getFacetedRowModel(),
+		getFacetedUniqueValues: getFacetedUniqueValues(),
+		getFilteredRowModel: getFilteredRowModel(),
+		onPaginationChange: (updater) => {
+			pendingPagination = typeof updater === "function" ? updater(pendingPagination) : updater;
+		},
+		onSortingChange: (updater) => {
+			pendingSorting = typeof updater === "function" ? updater(pendingSorting) : updater;
+		},
+		onColumnFiltersChange: (updater) => {
+			pendingColumnFilters = typeof updater === "function" ? updater(pendingColumnFilters) : updater;
+		},
+		onGlobalFilterChange: (updater) => {
+			pendingGlobalFilter = typeof updater === "function" ? updater(pendingGlobalFilter) : updater;
+		},
+		onColumnVisibilityChange: (updater) => {
+			pendingColumnVisibility =
+				typeof updater === "function" ? updater(pendingColumnVisibility) : updater;
+		},
+		onRowSelectionChange: (updater) => {
+			pendingRowSelection =
+				typeof updater === "function" ? updater(pendingRowSelection) : updater;
+		},
+	});
+
 let views = [
 		{
 			id: "kullanicilar",
@@ -358,12 +592,158 @@ let views = [
 			id: "raporlar",
 			label: t('dataTable.reports'),
 			badge: 3,
+		},
+		{
+			id: "pending-articles",
+			label: t('moderation.articles') ?? t('dataTable.pendingArticles'),
+			badge: 0,
 		}
 
 		
 	];
 
-	let view = $state("kullanicilar");
+	let view = $state(views[0].id);
+
+	const defaultRejectReason = t('moderation.defaultRejectReason') ?? 'İçerik yönergelere uygun değil';
+	let lastArticlesFilter = $state<string>(articlesStatusFilter);
+
+	async function fetchPendingArticles(force = false) {
+		if (loadingPending) return;
+		const filter = articlesStatusFilter;
+		if (!force && pendingInitialized && lastArticlesFilter === filter) {
+			return;
+		}
+		loadingPending = true;
+		try {
+			const query = filter === 'all' ? '' : `?status=${filter}`;
+			const response = await fetch(`/api/moderation/articles${query}`);
+			if (response.ok) {
+				const result = await response.json();
+				pendingArticles =
+					result.articles?.map((article) => ({
+						id: article.id ?? crypto.randomUUID(),
+						title:
+							article.title ||
+							article.translations?.[article.defaultLanguage ?? ""]?.title ||
+							t('dataTable.unknown'),
+						author:
+							article.authorNickname ||
+							article.authorName ||
+							article.authorId ||
+							t('dataTable.unknown'),
+						authorNickname: article.authorNickname ?? null,
+						authorName: article.authorName ?? null,
+						authorId: article.authorId ?? null,
+						authorRole: article.authorRole ?? null,
+						category: article.category || t('dataTable.unknown'),
+						status: article.status || 'pending',
+						submittedAt: article.createdAt ?? null,
+						createdAt: article.createdAt ?? null,
+						updatedAt: article.updatedAt ?? null,
+						language: article.defaultLanguage || '-',
+						tags: article.tags || [],
+						slug: article.slug || article.translations?.[article.defaultLanguage ?? ""]?.slug || null,
+						hidden: article.hidden ?? false,
+						deletedAt: article.deletedAt ?? null,
+					})) ?? [];
+				// Update the badge count
+				const pendingTab = views.find(v => v.id === 'pending-articles');
+				if (pendingTab) {
+					pendingTab.badge = pendingArticles.filter((article) => article.status === 'pending').length;
+				}
+				lastArticlesFilter = filter;
+				pendingInitialized = true;
+			}
+		} catch (error) {
+			console.error('Failed to fetch pending articles:', error);
+			toast.error(t('dataTable.fetchPendingError'));
+		} finally {
+			loadingPending = false;
+		}
+	}
+
+	$effect(() => {
+		const currentView = view;
+		const statusFilter = articlesStatusFilter;
+		if (currentView === 'pending-articles') {
+			void fetchPendingArticles();
+		}
+	});
+
+	function handleTabChange(event: CustomEvent<{ value: string }>) {
+		const nextView = event.detail?.value;
+		if (nextView === 'pending-articles') {
+			void fetchPendingArticles(true);
+		}
+	}
+
+	function openRejectDialog(article: PendingArticleRow) {
+		pendingRejectArticle = article;
+		rejectReason = "";
+		showRejectDialog = true;
+	}
+
+	function handleRejectDialogOpenChange(open: boolean) {
+		showRejectDialog = open;
+		if (!open) {
+			pendingRejectArticle = null;
+			rejectReason = "";
+		}
+	}
+
+	function confirmRejectDialog() {
+		if (!pendingRejectArticle) return;
+		const targetArticleId = pendingRejectArticle.id;
+		const reasonText = rejectReason.trim() || defaultRejectReason;
+		showRejectDialog = false;
+		requestMnemonicVerification(() => rejectArticle(targetArticleId, reasonText));
+	}
+
+	async function approveArticle(articleId: string) {
+		try {
+			const response = await fetch(`/api/articles/${articleId}/review`, {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ action: 'approve' })
+			});
+
+			if (response.ok) {
+				toast.success(t('moderation.articleApproved'));
+				await fetchPendingArticles(true);
+			} else {
+				const error = await response.json();
+				toast.error(error.error || t('moderation.approveFailed'));
+			}
+		} catch (error) {
+			console.error('Failed to approve article:', error);
+			toast.error(t('moderation.approveFailed'));
+		}
+	}
+
+	async function rejectArticle(articleId: string, reason?: string) {
+		try {
+			const response = await fetch(`/api/articles/${articleId}/review`, {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ 
+					action: 'reject',
+					reason: reason?.trim() || defaultRejectReason
+				})
+			});
+
+			if (response.ok) {
+				toast.success(t('moderation.articleRejected'));
+				await fetchPendingArticles(true);
+			} else {
+				const error = await response.json();
+				toast.error(error.error || t('moderation.rejectFailed'));
+			}
+		} catch (error) {
+			console.error('Failed to reject article:', error);
+			toast.error(t('moderation.rejectFailed'));
+		}
+	}
+
 	let viewLabel = $derived(views.find((v) => view === v.id)?.label ?? t('dataTable.selectView'));
 	const getActionableRows = () =>
 		table
@@ -415,21 +795,12 @@ let views = [
 	}
 </script>
 
-<Tabs.Root value="kullanicilar" class="w-full flex-col justify-start gap-6">
+<Tabs.Root bind:value={view} class="w-full flex-col justify-start gap-6" on:change={handleTabChange}>
 	<div class="flex items-center justify-between px-4 lg:px-6">
 		<Label for="view-selector" class="sr-only">{t('dataTable.view')}</Label>
-		<Select.Root type="single" bind:value={view}>
-			<Select.Trigger class="@4xl/main:hidden flex w-fit" size="sm" id="view-selector">
-				{viewLabel}
-			</Select.Trigger>
-			<Select.Content>
-				{#each views as view (view.id)}
-					<Select.Item value={view.id}>{view.label}</Select.Item>
-				{/each}
-			</Select.Content>
-		</Select.Root>
+
 		<Tabs.List
-			class="**:data-[slot=badge]:bg-muted-foreground/30 **:data-[slot=badge]:size-5 **:data-[slot=badge]:rounded-full **:data-[slot=badge]:px-1 @4xl/main:flex hidden"
+			class="**:data-[slot=badge]:bg-muted-foreground/30 **:data-[slot=badge]:size-5 **:data-[slot=badge]:rounded-full **:data-[slot=badge]:px-1 flex"
 		>
 			{#each views as view (view.id)}
 				<Tabs.Trigger value={view.id}>
@@ -442,14 +813,182 @@ let views = [
 		</Tabs.List>
 		
 	</div>
-	<Tabs.Content value="kullanicilar" class="relative flex flex-col gap-4 overflow-auto px-4 lg:px-6">
-		<div class="overflow-hidden rounded-lg border">
-		<div class="flex items-center justify-between gap-4 p-4">
+	<Tabs.Content value="pending-articles" class="relative flex flex-col gap-4 overflow-auto px-2 sm:px-4 lg:px-6">
+		<div class="overflow-x-auto rounded-lg border">
+			<div class="flex flex-col gap-3 p-2 sm:flex-row sm:items-center sm:justify-between sm:p-4">
+				<Input
+					placeholder={t('dataTable.search')}
+					class="h-9 w-full sm:max-w-sm text-sm sm:text-base"
+					value={pendingTable.getState().globalFilter ?? ''}
+					oninput={(e) => pendingTable.setGlobalFilter(e.currentTarget.value)}
+				/>
+				<div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3">
+					<Select.Root type="single" bind:value={articlesStatusFilter}>
+						<Select.Trigger size="sm" class="w-full min-w-[10rem] justify-between ">
+							{articleStatusOptions.find((option) => option.value === articlesStatusFilter)?.label}
+						</Select.Trigger>
+						<Select.Content>
+							{#each articleStatusOptions as option (option.value)}
+								<Select.Item value={option.value}>{option.label}</Select.Item>
+							{/each}
+						</Select.Content>
+					</Select.Root>
+					<DropdownMenu.Root>
+						<DropdownMenu.Trigger>
+							{#snippet child({ props })}
+								<Button variant="outline" size="sm" {...props}>
+								<LayoutColumnsIcon />
+								<span class="hidden lg:inline">{t('dataTable.customizeColumns')}</span>
+								<span class="lg:hidden">{t('dataTable.columns')}</span>
+								<ChevronDownIcon />
+							</Button>
+							{/snippet}
+						</DropdownMenu.Trigger>
+						<DropdownMenu.Content align="end" class="w-56">
+							{#each pendingTable
+								.getAllColumns()
+								.filter((col) => typeof col.accessorFn !== "undefined" && col.getCanHide()) as column (column.id)}
+								<DropdownMenu.CheckboxItem
+									class="capitalize"
+									checked={column.getIsVisible()}
+									onCheckedChange={(value) => column.toggleVisibility(!!value)}
+								>
+									{column.id}
+								</DropdownMenu.CheckboxItem>
+							{/each}
+						</DropdownMenu.Content>
+					</DropdownMenu.Root>
+				</div>
+			</div>
+			{#if loadingPending}
+				<div class="flex items-center justify-center p-8">
+					<div class="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
+					<span class="ml-2">{t('common.loading')}</span>
+				</div>
+			{:else}
+				<DragDropProvider
+					modifiers={[
+						// @ts-expect-error @dnd-kit/abstract types are botched atm
+						RestrictToVerticalAxis,
+					]}
+					onDragEnd={(e) => (pendingArticles = move(pendingArticles, e))}
+				>
+					<Table.Root>
+						<Table.Header class="bg-muted sticky top-0 z-10">
+							{#each pendingTable.getHeaderGroups() as headerGroup (headerGroup.id)}
+								<Table.Row>
+									{#each headerGroup.headers as header (header.id)}
+										<Table.Head colspan={header.colSpan}>
+											{#if !header.isPlaceholder}
+												<FlexRender
+													content={header.column.columnDef.header}
+													context={header.getContext()}
+												/>
+											{/if}
+										</Table.Head>
+									{/each}
+								</Table.Row>
+							{/each}
+						</Table.Header>
+						<Table.Body class="**:data-[slot=table-cell]:first:w-8">
+							{#if pendingTable.getRowModel().rows?.length}
+								{#each pendingTable.getRowModel().rows as row, index (row.id)}
+									{@render PendingDraggableRow({ row, index })}
+								{/each}
+							{:else}
+								<Table.Row>
+									<Table.Cell colspan={pendingColumns.length} class="h-24 text-center">
+										{t('moderation.noPendingArticles')}
+									</Table.Cell>
+								</Table.Row>
+							{/if}
+						</Table.Body>
+					</Table.Root>
+				</DragDropProvider>
+			{/if}
+		</div>
+		<div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 px-2 sm:px-4 py-2">
+			<div class="text-muted-foreground text-xs sm:text-sm">
+				{t('dataTable.rowsSelected', { selected: pendingTable.getFilteredSelectedRowModel().rows.length, total: pendingTable.getFilteredRowModel().rows.length })}
+			</div>
+			<div class="flex w-full items-center justify-between gap-2 sm:gap-4 lg:w-fit">
+				<div class="hidden items-center gap-2 lg:flex">
+					<Label for="pending-rows-per-page" class="text-sm font-medium">{t('dataTable.rowsPerPage')}</Label>
+					<Select.Root
+						type="single"
+						bind:value={
+							() => `${pendingTable.getState().pagination.pageSize}`,
+							(v) => pendingTable.setPageSize(Number(v))
+						}
+					>
+						<Select.Trigger size="sm" class="w-20" id="pending-rows-per-page">
+							{pendingTable.getState().pagination.pageSize}
+						</Select.Trigger>
+						<Select.Content side="top">
+							{#each [10, 20, 30, 40, 50] as pageSize (pageSize)}
+								<Select.Item value={pageSize.toString()}>
+									{pageSize}
+								</Select.Item>
+							{/each}
+						</Select.Content>
+					</Select.Root>
+				</div>
+				<div class="flex w-fit items-center justify-center text-sm font-medium">
+					{t('dataTable.pageOf', { current: pendingTable.getState().pagination.pageIndex + 1, total: pendingTable.getPageCount() || 1 })}
+				</div>
+				<div class="ms-auto flex items-center gap-2 lg:ms-0">
+					<Button
+						variant="outline"
+						class="h-8 w-8 p-0 min-w-[2rem] lg:flex"
+						onclick={() => pendingTable.setPageIndex(0)}
+						disabled={!pendingTable.getCanPreviousPage()}
+					>
+						<span class="sr-only">{t('dataTable.firstPage')}</span>
+						<ChevronsLeftIcon />
+					</Button>
+					<Button
+						variant="outline"
+						class="size-8"
+						size="icon"
+						onclick={() => pendingTable.previousPage()}
+						disabled={!pendingTable.getCanPreviousPage()}
+					>
+						<span class="sr-only">{t('dataTable.previousPage')}</span>
+						<ChevronLeftIcon />
+					</Button>
+					<Button
+						variant="outline"
+						class="size-8"
+						size="icon"
+						onclick={() => pendingTable.nextPage()}
+						disabled={!pendingTable.getCanNextPage()}
+					>
+						<span class="sr-only">{t('dataTable.nextPage')}</span>
+						<ChevronRightIcon />
+					</Button>
+					<Button
+						variant="outline"
+						class="hidden size-8 lg:flex"
+						size="icon"
+						onclick={() => pendingTable.setPageIndex(pendingTable.getPageCount() - 1)}
+						disabled={!pendingTable.getCanNextPage()}
+					>
+						<span class="sr-only">{t('dataTable.lastPage')}</span>
+						<ChevronsRightIcon />
+					</Button>
+				</div>
+			</div>
+		</div>
+	</Tabs.Content>
+
+  <Tabs.Content value="kullanicilar" class="relative flex flex-col gap-4 overflow-auto px-2 sm:px-4 lg:px-6">
+		<div class="overflow-x-auto rounded-lg border">
+		<div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-2 sm:p-4">
 			<Input
 				placeholder={t('dataTable.search')}
-				class="max-w-sm flex-1"
-				value={globalFilter ?? ""}
-				oninput={(e) => globalFilter = e.currentTarget.value}
+				class="h-9 w-full sm:max-w-sm text-sm sm:text-base"
+				value={table.getState().globalFilter ?? ''}
+				oninput={(e) => table.setGlobalFilter(e.currentTarget.value)}
 			/>
 			<div class="flex items-center gap-2">
 				<DropdownMenu.Root>
@@ -524,6 +1063,7 @@ let views = [
 												content={header.column.columnDef.header}
 												context={header.getContext()}
 											/>
+											
 										{/if}
 									</Table.Head>
 								{/each}
@@ -546,11 +1086,11 @@ let views = [
 				</Table.Root>
 			</DragDropProvider>
 		</div>
-		<div class="flex items-center justify-between px-4">
-			<div class="text-muted-foreground hidden flex-1 text-sm lg:flex">
+		<div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 px-2 sm:px-4 py-2">
+			<div class="text-muted-foreground text-xs sm:text-sm">
 				{t('dataTable.rowsSelected', { selected: table.getFilteredSelectedRowModel().rows.length, total: table.getFilteredRowModel().rows.length })}
 			</div>
-			<div class="flex w-full items-center gap-8 lg:w-fit">
+			<div class="flex w-full items-center justify-between gap-2 sm:gap-4 lg:w-fit">
 				<div class="hidden items-center gap-2 lg:flex">
 					<Label for="rows-per-page" class="text-sm font-medium">{t('dataTable.rowsPerPage')}</Label>
 					<Select.Root
@@ -578,7 +1118,7 @@ let views = [
 				<div class="ms-auto flex items-center gap-2 lg:ms-0">
 					<Button
 						variant="outline"
-						class="hidden h-8 w-8 p-0 lg:flex"
+						class="h-8 w-8 p-0 min-w-[2rem] lg:flex"
 						onclick={() => table.setPageIndex(0)}
 						disabled={!table.getCanPreviousPage()}
 					>
@@ -635,6 +1175,36 @@ let views = [
 	onVerified={handleMnemonicVerified}
 	onCancel={handleMnemonicCancel}
 />
+
+<AlertDialog.Root bind:open={showRejectDialog} onOpenChange={handleRejectDialogOpenChange}>
+	<AlertDialog.Content class="w-[calc(100%-2rem)] max-w-lg">
+		<AlertDialog.Header>
+			<AlertDialog.Title>
+				{t('moderation.rejectReasonTitle') ?? 'Red mesajı gönder'}
+			</AlertDialog.Title>
+			<AlertDialog.Description>
+				{t('moderation.rejectReasonDescription') ?? 'Bu mesaj yazara bildirim olarak gönderilecektir.'}
+			</AlertDialog.Description>
+		</AlertDialog.Header>
+		<div class="space-y-2 py-2">
+			<Label for="reject-reason">{t('moderation.rejectReasonLabel') ?? 'Mesaj'}</Label>
+			<Textarea
+				id="reject-reason"
+				rows={4}
+				bind:value={rejectReason}
+				placeholder={t('moderation.rejectReasonPlaceholder') ?? 'Neden reddettiğinizi açıklayın...'}
+			/>
+		</div>
+		<AlertDialog.Footer class="flex flex-col gap-2 sm:flex-row sm:justify-end">
+			<AlertDialog.Cancel class="w-full sm:w-auto">
+				{t('moderation.cancelReject') ?? t('common.cancel')}
+			</AlertDialog.Cancel>
+			<AlertDialog.Action class="w-full sm:w-auto bg-destructive text-destructive-foreground hover:bg-destructive/90" onclick={confirmRejectDialog}>
+				{t('moderation.sendRejection') ?? 'Reddet ve bildir'}
+			</AlertDialog.Action>
+		</AlertDialog.Footer>
+	</AlertDialog.Content>
+</AlertDialog.Root>
 
 {#snippet DataTableLimit({ row }: { row: Row<Schema> })}
 	{#if row.original}
@@ -737,47 +1307,47 @@ let views = [
 			<DropdownMenu.Content align="end" class="w-56">
 				{#if row.original.status === "silinecek"}
 					<DropdownMenu.Item onclick={() => requestMnemonicVerification(() => undoDeleteUser(rowId))}>
-						<RotateCcwIcon class="mr-2 h-4 w-4" />
+						<RotateCcwIcon class=" h-4 w-4" />
 						{t('dataTable.undoDelete')}
 					</DropdownMenu.Item>
 				{:else}
 					{#if !row.original.banned}
 						<DropdownMenu.Item onclick={() => requestMnemonicVerification(() => banUser(rowId))}>
-							<BanIcon class="mr-2 h-4 w-4" />
+							<BanIcon class=" h-4 w-4" />
 							{t('dataTable.banUser')}
 						</DropdownMenu.Item>
 					{:else}
 						<DropdownMenu.Item onclick={() => requestMnemonicVerification(() => unbanUser(rowId))}>
-							<CheckCircleIcon class="mr-2 h-4 w-4" />
+							<CheckCircleIcon class=" h-4 w-4" />
 							{t('dataTable.unbanUser')}
 						</DropdownMenu.Item>
 					{/if}
 					{#if !row.original.hidden}
 						<DropdownMenu.Item onclick={() => requestMnemonicVerification(() => hideUser(rowId))}>
-							<EyeOffIcon class="mr-2 h-4 w-4" />
+							<EyeOffIcon class=" h-4 w-4" />
 							{t('dataTable.hideUser')}
 						</DropdownMenu.Item>
 					{:else}
 						<DropdownMenu.Item onclick={() => requestMnemonicVerification(() => unhideUser(rowId))}>
-							<EyeIcon class="mr-2 h-4 w-4" />
+							<EyeIcon class=" h-4 w-4" />
 							{t('dataTable.unhideUser')}
 						</DropdownMenu.Item>
 					{/if}
 					{#if canPromoteRole(rowRole)}
 						<DropdownMenu.Item onclick={() => requestMnemonicVerification(() => promoteToModerator(rowId))}>
-							<UserPlusIcon class="mr-2 h-4 w-4" />
+							<UserPlusIcon class=" h-4 w-4" />
 							{t('dataTable.promoteToModerator')}
 						</DropdownMenu.Item>
 					{/if}
 					{#if canDemoteRole(rowRole)}
 						<DropdownMenu.Item onclick={() => requestMnemonicVerification(() => demoteToUser(rowId))}>
-							<UserMinusIcon class="mr-2 h-4 w-4" />
+							<UserMinusIcon class=" h-4 w-4" />
 							{t('dataTable.demoteFromModerator')}
 						</DropdownMenu.Item>
 					{/if}
 					<DropdownMenu.Separator />
 					<DropdownMenu.Item variant="destructive" onclick={() => requestMnemonicVerification(() => deleteUser(rowId))}>
-						<Trash2Icon class="mr-2 h-4 w-4" />
+						<Trash2Icon class=" h-4 w-4" />
 						{t('dataTable.deleteAccount')}
 					</DropdownMenu.Item>
 				{/if}
@@ -794,6 +1364,29 @@ let views = [
 
 	<Table.Row
 		data-state={row.getIsSelected() && "selected"}
+		data-dragging={isDragging.current}
+		class="relative z-0 data-[dragging=true]:z-10 data-[dragging=true]:opacity-80"
+		{@attach ref}
+	>
+		{#each row.getVisibleCells() as cell (cell.id)}
+			<Table.Cell>
+				<FlexRender
+					attach={handleRef}
+					content={cell.column.columnDef.cell}
+					context={cell.getContext()}
+				/>
+			</Table.Cell>
+		{/each}
+	</Table.Row>
+{/snippet}
+
+{#snippet PendingDraggableRow({ row, index }: { row: Row<PendingArticleRow>; index: number })}
+	{@const { ref, isDragging, handleRef } = useSortable({
+		id: row.original?.id ?? row.id ?? crypto.randomUUID(),
+		index: () => index,
+	})}
+
+	<Table.Row
 		data-dragging={isDragging.current}
 		class="relative z-0 data-[dragging=true]:z-10 data-[dragging=true]:opacity-80"
 		{@attach ref}
@@ -827,4 +1420,95 @@ let views = [
 		<TimerIcon class="mr-1 h-3 w-3" />
 		{countdownLabel}
 	</Badge>
+{/snippet}
+
+{#snippet PendingArticleTitle({ row }: { row: Row<PendingArticleRow> })}
+	{@const article = row.original}
+	<div class="flex flex-col gap-1">
+		<a				target="_blank"
+				rel="noreferrer"
+				href={`/article/${article.slug}`} class="text-sm font-semibold text-foreground">
+			{article?.title ?? t('dataTable.unknown')}
+	</a>
+
+	</div>
+{/snippet}
+
+{#snippet PendingArticleStatus({ row }: { row: Row<PendingArticleRow> })}
+	{@const article = row.original}
+	<Badge variant="outline" class="px-2 py-1 capitalize">
+		{article?.status ?? t('dataTable.unknown')}
+	</Badge>
+{/snippet}
+
+{#snippet PendingArticleActions({ row }: { row: Row<PendingArticleRow> })}
+	{@const article = row.original}
+	{@const canModerate = canModerateAuthor(article?.authorRole)}
+	{@const canReview =
+		article?.status !== 'published' &&
+		article?.status !== 'rejected'}
+	{#if article && canModerate}
+		<DropdownMenu.Root>
+			<DropdownMenu.Trigger class="data-[state=open]:bg-muted text-muted-foreground flex size-8">
+				{#snippet child({ props })}
+					<Button variant="ghost" size="icon" {...props}>
+						<DotsVerticalIcon />
+						<span class="sr-only">{t('dataTable.openMenu')}</span>
+					</Button>
+				{/snippet}
+			</DropdownMenu.Trigger>
+			<DropdownMenu.Content align="end" class="w-56">
+				<DropdownMenu.Label>{t('moderation.reviewActions') ?? 'İnceleme İşlemleri'}</DropdownMenu.Label>
+				<DropdownMenu.Separator />
+				{#if canReview}
+					<DropdownMenu.Item onclick={() => requestMnemonicVerification(() => approveArticle(article.id))}>
+						<CircleCheckFilledIcon class=" h-4 w-4" />
+						{t('common.approve')}
+					</DropdownMenu.Item>
+					<DropdownMenu.Item onclick={() => openRejectDialog(article)}>
+						<CircleXIcon class=" h-4 w-4" />
+						{t('common.reject')}
+					</DropdownMenu.Item>
+				{/if}
+				<DropdownMenu.Item onclick={() => requestMnemonicVerification(() => requeueArticle(article.id))}>
+					<RotateCcwIcon class=" h-4 w-4" />
+					{t('moderation.returnToPending') ?? 'Beklemeye al'}
+				</DropdownMenu.Item>
+				<DropdownMenu.Separator />
+				{#if article.hidden}
+					<DropdownMenu.Item onclick={() => requestMnemonicVerification(() => performArticleModerationAction('unhide', article.id))}>
+						<EyeIcon class=" h-4 w-4" />
+						{t('moderation.unhideArticle') ?? 'Göster'}
+					</DropdownMenu.Item>
+				{:else}
+					<DropdownMenu.Item onclick={() => requestMnemonicVerification(() => performArticleModerationAction('hide', article.id))}>
+						<EyeOffIcon class=" h-4 w-4" />
+						{t('moderation.hideArticle') ?? 'Gizle'}
+					</DropdownMenu.Item>
+				{/if}
+				<DropdownMenu.Item class="text-destructive focus:text-destructive" onclick={() =>
+					requestMnemonicVerification(() =>
+						performArticleModerationAction('delete', article.id, defaultRejectReason)
+					)
+				}>
+					<Trash2Icon class=" h-4 w-4" />
+					{t('moderation.deleteArticle') ?? 'Sil'}
+				</DropdownMenu.Item>
+			</DropdownMenu.Content>
+		</DropdownMenu.Root>
+	{:else}
+		— 
+	{/if}
+{/snippet}
+
+{#snippet PendingDragHandle()}
+	<Button
+		variant="ghost"
+		size="icon"
+		class="text-muted-foreground size-7 hover:bg-transparent cursor-grab"
+		disabled
+	>
+		<GripVerticalIcon class="text-muted-foreground size-3" />
+		<span class="sr-only">{t('dataTable.dragToReorder')}</span>
+	</Button>
 {/snippet}

@@ -1,7 +1,7 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import { Loader } from "@lucide/svelte";
-  import logo from "$lib/assets/laf1.svg";
+  import logo from "$lib/assets/hatlaf.svg";
   import { fade } from 'svelte/transition';
   import lottie from 'lottie-web';
   import animationData from '$lib/assets/Negative-mask-effect-1.json'; // kendi Lottie JSON'unun yolu
@@ -60,14 +60,14 @@
       class="flex flex-col items-center justify-center absolute transition-opacity duration-500"
       style="opacity: {spinnerVisible ? 1 : 0};"
     >
-      <img src={logo} alt="LAF" class="h-10 mb-5 w-auto" />
-      <Loader size="32" class="text-primary animate-spin" />
+      <img src={logo} alt="LAF" class="h-12 mb-3 w-auto" />
+      <Loader size="28" class="text-primary animate-spin" />
     </div>
 
     <!-- 2️⃣ Lottie (opacity ile gösteriliyor) -->
     <div
       bind:this={lottieContainer}
-      class="w-3/4 h-auto z-1000 sm:h-1/4 sm:w-1/4 transition-opacity duration-500"
+      class="w-1/2 h-auto z-1000 sm:w-1/5 transition-opacity duration-500"
       style="opacity: {showLottie ? 1 : 0};"
     ></div>
   </div>
@@ -80,14 +80,14 @@
       class="flex flex-col items-center justify-center absolute transition-opacity duration-500"
       style="opacity: {spinnerVisible ? 1 : 0};"
     >
-      <img src={logo} alt="LAF" class="h-20 w-20" />
-      <Loader size="32" class="text-primary animate-spin" />
+      <img src={logo} alt="LAF" class="h-12 mb-3 " />
+      <Loader size="28" class="text-primary animate-spin" />
     </div>
 
     <!-- 2️⃣ Lottie (opacity ile gösteriliyor) -->
     <div
       bind:this={lottieContainer1}
-      class="w-3/4 h-auto sm:h-1/4 sm:w-1/4 transition-opacity duration-500"
+      class="w-1/2 h-auto sm:w-1/5 transition-opacity duration-500"
       style="opacity: {showLottie ? 1 : 0};"
     ></div>
   </div>

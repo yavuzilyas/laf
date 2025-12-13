@@ -1,9 +1,10 @@
 import { json } from '@sveltejs/kit';
 import { getArticlesCollection } from '$db/mongo';
 
-export async function GET({ url }) {
+export async function GET({ url, locals }) {
   try {
     const articles = await getArticlesCollection();
+    const user = (locals as any)?.user;
 
     // Query parameters
     const page = parseInt(url.searchParams.get('page') || '1');
@@ -12,11 +13,29 @@ export async function GET({ url }) {
     const category = url.searchParams.get('category');
     const language = url.searchParams.get('language');
     const tags = url.searchParams.get('tags');
+    const showAll = url.searchParams.get('showAll') === 'true';
 
-    // Build query
+    // Build base query
     const query: any = {
-      published: true,
-      'deletedAt': { $exists: false }
+      'deletedAt': { $exists: false },
+      $or: [
+        // Show published articles to everyone
+        { status: 'published' },
+        // Show pending articles only to their authors
+        ...(user ? [
+          { 
+            status: 'pending',
+            authorId: new ObjectId(user.id)
+          }
+        ] : []),
+        // Show drafts only in showAll mode to their authors
+        ...(showAll && user ? [
+          { 
+            status: 'draft',
+            authorId: new ObjectId(user.id)
+          }
+        ] : [])
+      ]
     };
 
     // Search filter
@@ -62,6 +81,7 @@ export async function GET({ url }) {
       excerpt: article.excerpt,
       content: article.content,
       author: {
+        id: article.authorId?.toString(),
         name: article.author?.name || 'Anonim',
         avatar: article.author?.avatar
       },
@@ -76,7 +96,9 @@ export async function GET({ url }) {
       dislikes: article.stats?.dislikes || 0,
       featured: article.featured || false,
       coverImage: article.thumbnail,
-      language: article.language || 'tr'
+      language: article.language || 'tr',
+      status: article.status || 'published',
+      isOwner: user && article.authorId?.toString() === user.id
     }));
 
     return json({

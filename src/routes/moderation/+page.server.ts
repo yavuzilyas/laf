@@ -1,6 +1,6 @@
 import type { PageServerLoad } from './$types';
 import { error } from '@sveltejs/kit';
-import { getUsersCollection } from '$db/mongo';
+import { getUsersCollection, getArticlesCollection } from '$db/mongo';
 
 const formatDate = (value?: Date | string) => {
   if (!value) return '-';
@@ -19,6 +19,13 @@ export const load: PageServerLoad = async ({ locals }) => {
   if (!currentUser || (currentUser.role !== 'moderator' && currentUser.role !== 'admin')) {
     throw error(403, 'Yetkisiz erişim');
   }
+
+  // Get pending articles count
+  const articlesCollection = await getArticlesCollection();
+  const pendingArticlesCount = await articlesCollection.countDocuments({ 
+    status: 'pending',
+    deletedAt: { $exists: false }
+  });
 
   // Debug: log current user structure
   console.log('Current user:', JSON.stringify(currentUser, null, 2));
@@ -60,6 +67,7 @@ export const load: PageServerLoad = async ({ locals }) => {
 
   return {
     tableData,
+    pendingArticlesCount,
     currentUser: {
       id: currentUser._id?.toString() || currentUser.id || 'unknown',
       role: currentUser.role || 'user',
