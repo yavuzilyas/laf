@@ -10,6 +10,7 @@
     import { onMount } from 'svelte';
     import { EdraEditor, EdraToolBar } from '$lib/components/edra/shadcn/index.js';
     import type { Editor } from '@tiptap/core';
+    import ProfileCard from "$lib/components/ProfileCard.svelte";
     import { 
         Calendar, 
         Clock, 
@@ -44,8 +45,576 @@
     let reaction = $state<'like' | 'dislike' | null>(null);
     let showReportDrawer = $state(false);
     // Get current locale and set up reactive article content
+
     let currentLocale = $state(getCurrentLocale());
     
+    let profileUser = data.profileUser;
+    const currentUserId = data.currentUser?.id;
+    const profileNicknameSlug = $derived(() => {
+        const value = profileUser?.nickname || profileUser?.id || 'user';
+        return value
+            .toString()
+            .trim()
+            .toLowerCase()
+            .replace(/[^a-z0-9-_]/g, '-')
+            .replace(/-+/g, '-')
+            .replace(/^-|-$/g, '') || 'user';
+    });
+    const profileUserId = $derived(profileUser?._id || profileUser?.id);
+    const serverArticles = data.articles ?? [];
+    let stats = data.stats;
+    let isOwnProfile = data.isOwnProfile;
+    let isFollowingMe = data.isFollowingMe ?? false;
+    let followersList = $state(data.followersList ?? []);
+    let followingList = $state(data.followingList ?? []);
+    
+    // Track URL changes and reload when nickname changes
+    onMount(() => {
+        let previousNickname = $page.params.nickname;
+        
+        return afterNavigate(({ to }) => {
+            const newNickname = to?.params.nickname;
+            if (newNickname && newNickname !== previousNickname) {
+                previousNickname = newNickname;
+                // Force a full page reload to ensure all data is refreshed
+                window.location.href = to.url.href;
+            }
+        });
+    });
+    let viewerBlocksProfile = data.viewerBlocksProfile ?? false;
+
+    // Reactive articles based on current locale (using $derived rune)
+    const articles = $derived(
+        serverArticles.map((article) => {
+            const translations = article.translations || {};
+            const translationKeys = Object.keys(translations);
+            const currentLocale = getCurrentLocale();
+            const fallbackKey = translationKeys[0] || article.language || article.defaultLanguage || 'tr';
+            const displayLanguage = currentLocale && translations[currentLocale]
+                ? currentLocale
+                : fallbackKey;
+
+            const translation = translations[displayLanguage] || translations[fallbackKey] || {};
+
+            return {
+                ...article,
+                title: translation.title || article.title || 'Başlıksız',
+                excerpt: translation.excerpt || article.excerpt || '',
+                slug: translation.slug || article.slug,
+                language: displayLanguage,
+                translations
+            };
+        })
+    );
+
+    const availableLanguages = Array.from(new Set(serverArticles.flatMap((article) => article.availableLanguages || [])));
+    const categoryOptions = Array.from(new Set(serverArticles.map((article) => article.category).filter(Boolean)));
+    const tagOptions = Array.from(new Set(serverArticles.flatMap((article) => article.tags || [])));
+
+    let filteredArticles = $state([...articles]);
+    let displayedArticles = $state([...articles]);
+    let searchQuery = $state('');
+    let activeFilters = $state<any>({
+        language: '',
+        category: '',
+        type: '',
+        customDateRange: undefined,
+        tags: []
+    });
+    let loadingArticles = $state(false);
+    let hasMore = $state(false);
+
+    // Profile editing state (only for own profile)
+    let isEditing = $state(false);
+    let isSaving = $state(false);
+
+    const DEFAULT_BANNER_COLOR = '#fac800';
+
+    // Avatar upload state
+    let avatarUploading = $state(false);
+    const avatarInputId = `profile-avatar-input-${Math.random().toString(36).substr(2, 9)}`;
+
+    // Banner upload state
+    let bannerUploading = $state(false);
+    const bannerInputId = `profile-banner-input-${Math.random().toString(36).substr(2, 9)}`;
+
+    // Follow/block state
+    let isFollowing = $state(false);
+    let isBlocked = $state(viewerBlocksProfile);
+    let isBlockedChanging = $state(false);
+    let followersCount = $state(
+        Array.isArray(profileUser?.followers)
+            ? profileUser.followers.length
+            : profileUser?.followersCount ?? 0
+    );
+    let followingCount = $state(
+        Array.isArray(profileUser?.following)
+            ? profileUser.following.length
+            : profileUser?.followingCount ?? 0
+    );
+
+    const triggerAvatarFileDialog = () => {
+        if (typeof document === "undefined") return;
+        const input = document.getElementById(avatarInputId) as HTMLInputElement | null;
+        input?.click();
+    };
+
+    const handleAvatarUpload = async (event: Event) => {
+        const input = event.target as HTMLInputElement;
+        const file = input.files?.[0];
+        if (!file) return;
+
+        const maxBytes = 4 * 1024 * 1024;
+        if (file.size > maxBytes) {
+            alert(t('profile.avatarSizeError'));
+            input.value = "";
+            return;
+        }
+
+        if (!file.type.startsWith('image/')) {
+            alert(t('profile.avatarTypeError'));
+            input.value = "";
+            return;
+        }
+
+        avatarUploading = true;
+
+        try {
+            const formData = new FormData();
+            formData.append('file', file);
+            formData.append('folder', 'avatars');
+            if (profileData.avatar) {
+                formData.append('previousUrl', profileData.avatar);
+            }
+
+            const response = await fetch('/api/upload', {
+                method: 'POST',
+                body: formData
+            });
+
+            if (!response.ok) {
+                throw new Error(await response.text());
+            }
+
+            const result = await response.json();
+            const newAvatarUrl = result.url;
+            profileData.avatar = newAvatarUrl;
+
+            const saved = await persistProfileUpdate({ avatar: newAvatarUrl });
+            if (!saved) {
+                profileData.avatar = previous;
+                throw new Error('Failed to persist avatar');
+            }
+
+            profileUser = { ...profileUser, avatar: newAvatarUrl };
+        } catch (error) {
+            console.error('Avatar upload error:', error);
+            profileData.avatar = previous;
+            profileUser = { ...profileUser, avatar: previous };
+            alert(t('profile.avatarUploadError'));
+        } finally {
+            avatarUploading = false;
+            input.value = "";
+        }
+    };
+
+    const handleAvatarRemove = async () => {
+        if (!profileData.avatar) return;
+
+        const previous = profileData.avatar;
+        profileData.avatar = "";
+
+        try {
+            const response = await fetch('/api/upload', {
+                method: 'DELETE',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ url: previous })
+            });
+
+            if (!response.ok) {
+                throw new Error(await response.text());
+            }
+
+            const saved = await persistProfileUpdate({ avatar: '' });
+            if (!saved) {
+                throw new Error('Failed to persist avatar removal');
+            }
+
+            profileUser = { ...profileUser, avatar: '' };
+        } catch (error) {
+            console.error('Avatar remove error:', error);
+            profileData.avatar = previous;
+            profileUser = { ...profileUser, avatar: previous };
+        }
+    };
+
+    // Profile form data
+    let profileData = $state({
+        name: profileUser?.name || "",
+        surname: profileUser?.surname || "",
+        nickname: profileUser?.nickname || "",
+        bio: profileUser?.bio || "",
+        location: profileUser?.location || "",
+        website: profileUser?.website || "",
+        interests: profileUser?.interests || [],
+        avatar: profileUser?.avatar || "",
+        bannerColor: profileUser?.bannerColor || DEFAULT_BANNER_COLOR,
+        bannerImage: profileUser?.bannerImage || "",
+        socialLinks: profileUser?.socialLinks || {
+            twitter: "",
+            github: "",
+            linkedin: ""
+        }
+    });
+
+    const persistProfileUpdate = async (fields: Record<string, unknown>) => {
+        try {
+            const response = await fetch('/api/profile/update', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(fields)
+            });
+
+            if (!response.ok) {
+                throw new Error(await response.text());
+            }
+
+            return true;
+        } catch (error) {
+            console.error('Profile partial update error:', error);
+            return false;
+        }
+    };
+
+    const handleSaveProfile = async () => {
+        isSaving = true;
+        try {
+            const response = await fetch('/api/profile/update', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(profileData)
+            });
+
+            if (response.ok) {
+                isEditing = false;
+                profileUser = { ...profileUser, ...profileData };
+            } else {
+                console.error('Failed to update profile');
+            }
+        } catch (error) {
+            console.error('Error updating profile:', error);
+        } finally {
+            isSaving = false;
+        }
+    };
+
+    const handleCancelEdit = () => {
+        profileData = {
+            name: profileUser?.name || "",
+            surname: profileUser?.surname || "",
+            nickname: profileUser?.nickname || "",
+            bio: profileUser?.bio || "",
+            location: profileUser?.location || "",
+            website: profileUser?.website || "",
+            interests: profileUser?.interests || [],
+            avatar: profileUser?.avatar || "",
+            bannerColor: profileUser?.bannerColor || DEFAULT_BANNER_COLOR,
+            bannerImage: profileUser?.bannerImage || "",
+            socialLinks: profileUser?.socialLinks || {
+                twitter: "",
+                github: "",
+                linkedin: ""
+            }
+        };
+        isEditing = false;
+    };
+
+    const handleBannerColorChange = (color: string) => {
+        profileData.bannerColor = color || DEFAULT_BANNER_COLOR;
+    };
+
+    const triggerBannerFileDialog = () => {
+        if (typeof document === "undefined") return;
+        const input = document.getElementById(bannerInputId) as HTMLInputElement | null;
+        input?.click();
+    };
+
+    const handleBannerUpload = async (event: Event) => {
+        const input = event.target as HTMLInputElement;
+        const file = input.files?.[0];
+        if (!file) return;
+
+        const previousBanner = profileData.bannerImage;
+        const maxBytes = 4 * 1024 * 1024;
+        if (file.size > maxBytes) {
+            alert(t('profile.bannerSizeError') ?? 'Banner en fazla 4MB olmalı.');
+            input.value = "";
+            return;
+        }
+
+        if (!file.type.startsWith('image/')) {
+            alert(t('profile.bannerTypeError') ?? 'Sadece görsel yükleyebilirsiniz.');
+            input.value = "";
+            return;
+        }
+
+        bannerUploading = true;
+
+        try {
+            const formData = new FormData();
+            formData.append('file', file);
+            formData.append('folder', 'banners');
+            if (profileData.bannerImage) {
+                formData.append('previousUrl', profileData.bannerImage);
+            }
+
+            const response = await fetch('/api/upload', {
+                method: 'POST',
+                body: formData
+            });
+
+            if (!response.ok) {
+                throw new Error(await response.text());
+            }
+
+            const result = await response.json();
+            const newBannerUrl = result.url;
+            profileData.bannerImage = newBannerUrl;
+
+            const saved = await persistProfileUpdate({ bannerImage: newBannerUrl });
+            if (!saved) {
+                profileData.bannerImage = previousBanner;
+                throw new Error('Failed to persist banner image');
+            }
+
+            profileUser = { ...profileUser, bannerImage: newBannerUrl };
+        } catch (error) {
+            console.error('Banner upload error:', error);
+            profileData.bannerImage = previousBanner;
+            profileUser = { ...profileUser, bannerImage: previousBanner };
+            alert(t('profile.bannerUploadError') ?? 'Banner yüklenirken bir sorun oluştu.');
+        } finally {
+            bannerUploading = false;
+            input.value = "";
+        }
+    };
+
+    const handleBannerRemove = async () => {
+        if (!profileData.bannerImage) return;
+
+        const previous = profileData.bannerImage;
+        profileData.bannerImage = "";
+
+        try {
+            const response = await fetch('/api/upload', {
+                method: 'DELETE',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ url: previous })
+            });
+
+            if (!response.ok) {
+                throw new Error(await response.text());
+            }
+
+            const saved = await persistProfileUpdate({ bannerImage: '' });
+            if (!saved) {
+                throw new Error('Failed to persist banner removal');
+            }
+
+            profileUser = { ...profileUser, bannerImage: '' };
+        } catch (error) {
+            console.error('Banner remove error:', error);
+            profileData.bannerImage = previous;
+            profileUser = { ...profileUser, bannerImage: previous };
+        }
+    };
+
+    const startEditing = () => {
+        isEditing = true;
+    };
+
+
+    const addInterest = (interest: string) => {
+        if (interest.trim() && !profileData.interests.includes(interest.trim())) {
+            profileData.interests = [...profileData.interests, interest.trim()];
+        }
+    };
+
+    const removeInterest = (interest: string) => {
+        profileData.interests = profileData.interests.filter(i => i !== interest);
+    };
+
+    let newInterest = $state("");
+
+    const navigateToArticle = (slug: string) => {
+        goto(`/article/${slug}`);
+    };
+
+    // Follow/block handlers
+    const loadFollowStatus = async (targetId?: string | null) => {
+        const targetUserId = targetId ?? profileUserId;
+        if (!targetUserId || isOwnProfile) return;
+        try {
+            const response = await fetch(`/api/users/${targetUserId}/follow`);
+            if (!response.ok) {
+                if (response.status !== 401) {
+                    const errorMessage = await response.text().catch(() => response.statusText);
+                    console.error('Load follow status error:', errorMessage);
+                }
+                return;
+            }
+
+            const data = await response.json();
+            isFollowing = !!data.following;
+            followersCount = typeof data.followersCount === 'number' ? data.followersCount : followersCount;
+            followingCount = typeof data.followingCount === 'number' ? data.followingCount : followingCount;
+        } catch (error) {
+            console.error('Load follow status error:', error);
+        }
+    };
+
+    const loadBlockStatus = async (targetId?: string | null) => {
+        const targetUserId = targetId ?? profileUserId;
+        if (!targetUserId || isOwnProfile) return;
+
+        // Eğer zaten server'dan gelen veri varsa ve API çağrısı yapılmıyorsa, kullan
+        if (viewerBlocksProfile !== undefined && !isBlockedChanging) {
+            isBlocked = viewerBlocksProfile;
+            return;
+        }
+
+        try {
+            const response = await fetch(`/api/users/${targetUserId}/block`);
+            if (!response.ok) {
+                if (response.status !== 401) {
+                    const errorMessage = await response.text().catch(() => response.statusText);
+                    console.error('Load block status error:', errorMessage);
+                }
+                return;
+            }
+
+            const data = await response.json();
+            // Sadece state değişmiyorsa güncelle (manuel değişimi koru)
+            if (!isBlockedChanging) {
+                isBlocked = !!data.blocked;
+            }
+        } catch (error) {
+            console.error('Load block status error:', error);
+        }
+    };
+
+    const handleFollowUser = async () => {
+        const targetUserId = profileUserId;
+        if (!targetUserId) return;
+        try {
+            const response = await fetch(`/api/users/${targetUserId}/follow`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' }
+            });
+            if (!response.ok) {
+                const errorMessage = await response.text().catch(() => response.statusText);
+                console.error('Follow error:', errorMessage);
+                return;
+            }
+
+            await loadFollowStatus(targetUserId);
+        } catch (error) {
+            console.error('Follow error:', error);
+        }
+    };
+
+    const handleUnfollowUser = async () => {
+        const targetUserId = profileUserId;
+        if (!targetUserId) return;
+        try {
+            const response = await fetch(`/api/users/${targetUserId}/follow`, {
+                method: 'DELETE',
+                headers: { 'Content-Type': 'application/json' }
+            });
+            if (!response.ok) {
+                const errorMessage = await response.text().catch(() => response.statusText);
+                console.error('Unfollow error:', errorMessage);
+                return;
+            }
+
+            await loadFollowStatus(targetUserId);
+        } catch (error) {
+            console.error('Unfollow error:', error);
+        }
+    };
+
+    const handleBlockUser = async () => {
+        const targetUserId = profileUserId;
+        if (!targetUserId) return;
+        
+        // Anında state'i güncelle
+        isBlocked = true;
+        isBlockedChanging = true;
+        
+        try {
+            const response = await fetch(`/api/users/${targetUserId}/block`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' }
+            });
+            if (!response.ok) {
+                const errorMessage = await response.text().catch(() => response.statusText);
+                console.error('Block error:', errorMessage);
+                // Hata durumunda state'i geri al
+                isBlocked = false;
+                isBlockedChanging = false;
+                return;
+            }
+
+            // Başarılı olduğunda viewerBlocksProfile'u güncelle
+            viewerBlocksProfile = true;
+            await loadBlockStatus(targetUserId);
+            await loadFollowStatus(targetUserId);
+        } catch (error) {
+            console.error('Block error:', error);
+            // Hata durumunda state'i geri al
+            isBlocked = false;
+        } finally {
+            isBlockedChanging = false;
+        }
+    };
+
+    const handleUnblockUser = async () => {
+        const targetUserId = profileUserId;
+        if (!targetUserId) return;
+        
+        // Anında state'i güncelle
+        isBlocked = false;
+        isBlockedChanging = true;
+        
+        try {
+            const response = await fetch(`/api/users/${targetUserId}/block`, {
+                method: 'DELETE',
+                headers: { 'Content-Type': 'application/json' }
+            });
+            if (!response.ok) {
+                const errorMessage = await response.text().catch(() => response.statusText);
+                console.error('Unblock error:', errorMessage);
+                // Hata durumunda state'i geri al
+                isBlocked = true;
+                isBlockedChanging = false;
+                return;
+            }
+
+            // Başarılı olduğunda viewerBlocksProfile'u güncelle
+            viewerBlocksProfile = false;
+            await loadBlockStatus(targetUserId);
+        } catch (error) {
+            console.error('Unblock error:', error);
+            // Hata durumunda state'i geri al
+            isBlocked = true;
+        } finally {
+            isBlockedChanging = false;
+        }
+    };
+
+    // Load follow/block status on component mount
+    loadFollowStatus(profileUserId);
+    loadBlockStatus(profileUserId);
     // Define article type with translations
     interface ArticleTranslation {
         title: string;
@@ -737,14 +1306,29 @@ Göster</DropdownMenu.Item>
 									</DropdownMenu.Root>
                                                     
 								</div>
-                <div class="mb-3 flex flex-col sm:flex-row gap-3 items-center">
-                <h1 class="text-lg sm:text-xl md:text-2xl font-bold leading-tight">
-                    {article.title}
-                </h1>
-              <div class="flex items-center gap-1">
-                    <Badge variant="default">{t(article.category)}</Badge>
-                    <Badge variant="secondary">{t(article.subcategory)}</Badge>
-                </div>
+                <div class="mb-3 flex flex-col gap-3">
+                    <div class="flex flex-col sm:flex-row gap-3 items-center">
+                        <h1 class="text-lg sm:text-xl md:text-2xl font-bold leading-tight">
+                            {article.title}
+                        </h1>
+                        {#if article.status === 'pending'}
+                            <Badge variant="warning">{t('articles.status.pending')}</Badge>
+                        {:else if article.status === 'draft'}
+                            <Badge variant="outline">{t('articles.status.draft')}</Badge>
+                        {/if}
+                        <div class="flex items-center gap-1">
+                            <Badge variant="default">{t(article.category)}</Badge>
+                            <Badge variant="secondary">{t(article.subcategory)}</Badge>
+                        </div>
+                    </div>
+                    {#if article.status === 'pending'}
+                        <div class="text-sm text-yellow-600 dark:text-yellow-400 flex items-center gap-1">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                                <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
+                            </svg>
+                            {t('articles.pendingApproval')}
+                        </div>
+                    {/if}
                 </div>
                 {#if article.thumbnail}
                     <div class="mb-3 rounded-lg overflow-hidden">
@@ -766,7 +1350,7 @@ Göster</DropdownMenu.Item>
                 <!-- Article meta -->
                 <div class="flex flex-wrap items-center gap-6 text-sm text-muted-foreground mb-3">
                     <!-- Author -->
-                    <div class="flex items-center gap-2">
+                    <a href="/{article.author.nickname}" class="flex items-center gap-2 hover:opacity-80 transition-opacity">
                         <div class="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
                             <User class="w-4 h-4" />
                         </div>
@@ -775,7 +1359,7 @@ Göster</DropdownMenu.Item>
                                 ? `${article.author.name} ${article.author.surname}`
                                 : article.author.nickname}
                         </span>
-                    </div>
+                    </a>
 
                     <!-- Published date -->
                     <div class="flex items-center gap-1">
@@ -886,7 +1470,7 @@ Göster</DropdownMenu.Item>
                     </Button>
 
             </header>
-<Separator />
+
 
 
                     <div class="mt-6 prose prose-lg max-w-none">
@@ -902,7 +1486,7 @@ Göster</DropdownMenu.Item>
 
             <!-- Article tags -->
             {#if article.tags && article.tags.length > 0}
-                <div class="mt-12 pt-8 border-t">
+                <div class="my-8 pt-8">
                     <h3 class="text-sm font-medium text-muted-foreground mb-3">Etiketler</h3>
                     <div class="flex flex-wrap gap-2">
                         {#each article.tags as tag}
@@ -911,26 +1495,50 @@ Göster</DropdownMenu.Item>
                     </div>
                 </div>
             {/if}
+            <Separator class="my-10"/>
+            <ProfileCard
+                profileData={profileData}
+                profileUser={profileUser}
+                isOwnProfile={isOwnProfile}
+                showProfileLink={true}
+                isEditing={isEditing}
+                isSaving={isSaving}
+                avatarUploading={avatarUploading}
+                bannerUploading={bannerUploading}
+                avatarInputId={avatarInputId}
+                bannerInputId={bannerInputId}
+                joinDate={stats.joinDate}
+                formatDate={formatDate}
+                onToggleEdit={startEditing}
+                onCancelEdit={handleCancelEdit}
+                onSaveProfile={handleSaveProfile}
+                onTriggerAvatarFile={triggerAvatarFileDialog}
+                onAvatarUpload={handleAvatarUpload}
+                onAvatarRemove={handleAvatarRemove}
+                onInterestAdd={addInterest}
+                onInterestRemove={removeInterest}
+                onBannerColorChange={handleBannerColorChange}
+                onTriggerBannerFile={triggerBannerFileDialog}
+                onBannerUpload={handleBannerUpload}
+                onBannerRemove={handleBannerRemove}
+                onFollowUser={handleFollowUser}
+                onUnfollowUser={handleUnfollowUser}
+                onBlockUser={handleBlockUser}
+                onUnblockUser={handleUnblockUser}
+                isFollowing={isFollowing}
+                isBlocked={isBlocked}
+                followersCount={followersCount}
+                followingCount={followingCount}
+                isFollowingMe={isFollowingMe}
+                followersList={followersList}
+                followingList={followingList}
+                currentUserId={currentUserId}
+            />
 
-            <!-- Author info -->
-            <div class="mt-12 pt-8 border-t">
-                <div class="flex items-center gap-4">
-                    <div class="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center">
-                        <User class="w-8 h-8" />
-                    </div>
-                    <div>
-                        <h3 class="font-semibold">
-                            {article.author.name && article.author.surname 
-                                ? `${article.author.name} ${article.author.surname}`
-                                : article.author.nickname}
-                        </h3>
-                        <p class="text-sm text-muted-foreground">@{article.author.nickname}</p>
-                    </div>
-                </div>
-            </div>
+            <Separator class="my-10"/>
 
             <!-- Comments Section -->
-            <div class="mt-12 pt-8 border-t">
+            <div class="mt-12 ">
                 <div class="flex flex-col items-center justify-center mb-6 gap-1">
                 <MessageSquareIcon size={36} triggers={{ hover: false }} duration={2500} animationState="loading" class="text-primary" />
                 <h2 class="text-lg font-bold">{t('Comments')}</h2>
@@ -983,10 +1591,12 @@ Göster</DropdownMenu.Item>
                                             </span>
                                             <span class="text-sm text-muted-foreground">{formatTimeAgo(comment.createdAt)}</span>
                                         </div>
-                                        <Separator />
+                                        <Separator class="mb-4"/>
                                         <div class="text-sm mb-2">
                                                     <EdraEditor content={comment.content} editable={false} />
                                         </div>
+                                                                                <Separator class="my-4"/>
+
                                         <div class="flex items-center gap-4">
                                             <Button 
                                                 variant={userReactions[comment.id] === 'like' ? 'default' : 'ghost'}

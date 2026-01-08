@@ -69,7 +69,7 @@ export const GET: RequestHandler = async ({ locals }) => {
     const commentIds = [];
     
     Object.values(reportsByTarget).forEach((reportGroup: any) => {
-      if (reportGroup.type === 'user') {
+      if (reportGroup.type === 'profile') {
         userIds.push(new ObjectId(reportGroup.targetId));
       } else if (reportGroup.type === 'article') {
         articleIds.push(new ObjectId(reportGroup.targetId));
@@ -107,12 +107,12 @@ export const GET: RequestHandler = async ({ locals }) => {
       let reporterData = reports[0]?.reporterData || {};
       
       // Get target data based on type
-      if (type === 'user') {
+      if (type === 'profile') {
         const user = usersMap.get(targetId);
         if (user) {
           targetData = {
             id: user._id,
-            type: 'user',
+            type: 'profile',
             nickname: user.nickname || 'Kullanıcı',
             email: user.email,
             status: user.status,
@@ -157,7 +157,7 @@ export const GET: RequestHandler = async ({ locals }) => {
         };
         
         // Set default values for missing fields
-        if (type === 'user') {
+        if (type === 'profile') {
           targetData.nickname = targetData.nickname || 'Silinmiş Kullanıcı';
         } else if (type === 'article') {
           targetData.title = targetData.title || 'Silinmiş Makale';
@@ -194,7 +194,7 @@ export const GET: RequestHandler = async ({ locals }) => {
 
     // Group by type for the response
     const result = {
-      users: processedReports.filter((r: any) => r.type === 'user'),
+      users: processedReports.filter((r: any) => r.type === 'profile'),
       articles: processedReports.filter((r: any) => r.type === 'article'),
       comments: processedReports.filter((r: any) => r.type === 'comment'),
       all: processedReports

@@ -6,13 +6,15 @@
   import { t } from '$lib/stores/i18n.svelte.ts';
   import Lens from '$lib/components/Lens.svelte';
   import A from "$lib/components/ui/a.svelte";
-  
+    import { ScrollArea } from "$lib/components/ui/scroll-area";
+
   interface Article {
     id: string;
     slug?: string;
     title: string;
     excerpt: string;
     content?: string;
+    status?: 'published' | 'pending' | 'draft';
     author: {
       name: string;
       avatar?: string;
@@ -46,7 +48,7 @@
     const date = new Date(dateString);
     return date.toLocaleDateString(t.currentLocale, {
       year: 'numeric',
-      month: 'long',
+      month: 'short',
       day: 'numeric'
     });
   };
@@ -112,9 +114,18 @@
         </div>
         
         <div>
-          <h2 class="text-2xl font-bold leading-tight tracking-tight group-hover:text-primary transition-colors">
-            {article.title}
-          </h2>
+          <div class="flex flex-wrap items-center gap-2">
+            <h2 class="text-2xl font-bold leading-tight tracking-tight group-hover:text-primary transition-colors">
+              {article.title}
+            </h2>
+            {#if article.status === 'pending'}
+              <Badge variant="warning">{t('articles.status.pending')}</Badge>
+            {:else if article.status === 'draft'}
+              <Badge variant="outline">{t('articles.status.draft')}</Badge>
+            {:else if article.status === 'published'}
+              <Badge variant="default">No flaws</Badge>
+            {/if}
+          </div>
           <p class="mt-2 text-muted-foreground leading-relaxed">
             {truncateText(article.excerpt, 200)}
           </p>
@@ -185,9 +196,18 @@
         <time>{formatDate(article.publishedAt)}</time>
       </div>
       
-      <h3 class="font-semibold leading-tight group-hover:text-primary transition-colors">
-        {truncateText(article.title, 80)}
-      </h3>
+      <div class="flex flex-wrap items-center gap-2">
+        <h3 class="font-semibold leading-tight group-hover:text-primary transition-colors">
+          {truncateText(article.title, 80)}
+        </h3>
+        {#if article.status === 'pending'}
+          <Badge variant="warning">{t('articles.status.pending')}</Badge>
+        {:else if article.status === 'draft'}
+          <Badge variant="outline">{t('articles.status.draft')}</Badge>
+        {:else if article.status === 'published'}
+          <Badge variant="default">No flaws</Badge>
+        {/if}
+      </div>
       
       <p class="text-sm text-muted-foreground">
         {truncateText(article.excerpt, 120)}
@@ -245,9 +265,18 @@
       <span>{article.readTime} {t('articles.minRead')}</span>
     </div>
     
-    <h3 class="font-semibold leading-tight group-hover:text-primary transition-colors">
-      {article.title}
-    </h3>
+    <div class="flex flex-wrap items-center gap-2">
+      <h3 class="font-semibold leading-tight group-hover:text-primary transition-colors">
+        {article.title}
+      </h3>
+      {#if article.status === 'pending'}
+        <Badge variant="warning">{t('articles.status.pending')}</Badge>
+      {:else if article.status === 'draft'}
+        <Badge variant="outline">{t('articles.status.draft')}</Badge>
+      {:else if article.status === 'published'}
+        <Badge variant="default">No flaws</Badge>
+      {/if}
+    </div>
     
     <p class="text-sm text-muted-foreground">
       {truncateText(article.excerpt, 150)}
@@ -324,9 +353,16 @@
     
     <div class="p-3 sm:p-4 space-y-3">
       <div class="flex items-center gap-2 sm:gap-4 text-xs sm:text-sm text-muted-foreground">
+        <ScrollArea orientation="horizontal" class="pb-1.5 max-w-1/2">
+          <div class="flex flex-row gap-1">
         <Badge variant="secondary">
           {t(article.category)}
         </Badge>
+                  {#if article.status === 'pending'}
+            <Badge variant="warning">{t('articles.status.pending')}</Badge>
+          {/if}
+      </div>
+      </ScrollArea>
 
         <div class="flex text-xs items-center gap-1">
           <Calendar class="h-3 w-3" />
@@ -340,9 +376,12 @@
       </div>
       
       <div>
-        <h2 class="text-sm sm:text-base font-bold leading-tight tracking-tight group-hover:text-primary transition-colors">
-          <A href={article.slug ? `/article/${article.slug}` : undefined}>{article.title}</A>
-        </h2>
+        <div class="flex flex-wrap items-center gap-2">
+          <h2 class="text-sm sm:text-base font-bold leading-tight tracking-tight group-hover:text-primary transition-colors">
+            <A href={article.slug ? `/article/${article.slug}` : undefined}>{article.title}</A>
+          </h2>
+
+        </div>
         <p class="mt-2 text-xs sm:text-sm text-muted-foreground">
           {truncateText(article.excerpt, 150)}
         </p>
@@ -356,10 +395,10 @@
               <img 
                 src={article.author.avatar} 
                 alt={article.author.name}
-                class="h-10 w-10 rounded-full object-cover"
+                class="h-8 w-8 rounded-full object-cover"
               />
             {:else}
-              <div class="flex h-10 w-10 items-center justify-center rounded-full bg-muted">
+              <div class="flex h-8 w-8 items-center justify-center rounded-full bg-muted">
                 <User class="h-4 w-5" />
               </div>
             {/if}

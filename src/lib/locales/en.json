@@ -150,6 +150,14 @@
       "allTime": "All time"
     }
   },
+  "aProblem": "Having trouble?",
+  "404Title": "Page Not Found",
+  "404Description": "The page you are looking for might have been removed, had its name changed, or is temporarily unavailable.",
+  "500Title": "Internal Server Error",
+  "500Description": "Oops! Something went wrong on our end. Please try again later or contact support if the problem persists.",
+  "Go Back": "Go Back",
+  "Try Again": "Try Again",
+  "reportToHelpUs": "Report an issue",
   "t": {
     "Theme": "Theme"
   },

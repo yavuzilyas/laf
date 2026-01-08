@@ -12,9 +12,11 @@
     excerpt: string;
     content?: string;
     author: {
+      id?: string;
       name: string;
       avatar?: string;
     };
+    authorId?: string;
     publishedAt: string;
     readTime: number;
     category: string;
@@ -24,6 +26,7 @@
     likes: number;
     featured?: boolean;
     coverImage?: string;
+    status?: 'published' | 'pending' | 'draft';
   }
 
   let {

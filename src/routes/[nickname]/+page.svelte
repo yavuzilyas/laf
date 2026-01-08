@@ -19,7 +19,9 @@
         Grid,
         List,
         Loader2,
-        XCircle
+        XCircle,
+        Shield,
+        AlertCircle
     } from "@lucide/svelte";
     import { afterNavigate } from '$app/navigation';
     import { page } from '$app/stores';
@@ -32,7 +34,9 @@
 
     let { data } = $props();
     let profileUser = data.profileUser;
-    const currentUserId = data.currentUser?.id;
+    const currentUser = data.currentUser;
+    const currentUserId = currentUser?.id;
+    const isModeratorOrAdmin = currentUser?.role === 'moderator' || currentUser?.role === 'admin';
     const profileNicknameSlug = $derived(() => {
         const value = profileUser?.nickname || profileUser?.id || 'user';
         return value

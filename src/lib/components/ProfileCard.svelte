@@ -263,77 +263,40 @@
   let {
     profileData,
     profileUser,
-    isOwnProfile,
-    isEditing,
-    isSaving,
-    avatarUploading,
-    bannerUploading,
-    avatarInputId,
-    bannerInputId,
+    isOwnProfile = false,
+    isEditing = false,
+    isSaving = false,
+    avatarUploading = false,
+    bannerUploading = false,
+    avatarInputId = 'avatar-upload',
+    bannerInputId = 'banner-upload',
     joinDate,
-    formatDate,
-    onToggleEdit,
-    onCancelEdit,
-    onSaveProfile,
-    onTriggerAvatarFile,
-    onAvatarUpload,
-    onAvatarRemove,
-    onInterestAdd,
-    onInterestRemove,
-    onBannerColorChange,
-    onTriggerBannerFile,
-    onBannerUpload,
-    onBannerRemove,
-    onFollowUser,
-    onUnfollowUser,
-    onBlockUser,
-    onUnblockUser,
-    isFollowing,
-    isBlocked,
-    followersCount,
-    followingCount,
-    isFollowingMe,
-    followersList,
-    followingList,
-    currentUserId
-  }: {
-    profileData: ProfileData;
-    profileUser: any;
-    isOwnProfile: boolean;
-    isEditing: boolean;
-    isSaving: boolean;
-    avatarUploading: boolean;
-    bannerUploading: boolean;
-    avatarInputId: string;
-    bannerInputId: string;
-    joinDate: string;
-    formatDate: (date: string) => string;
-    onToggleEdit: () => void;
-    onCancelEdit: () => void;
-    onSaveProfile: () => void;
-    onTriggerAvatarFile: () => void;
-    onAvatarUpload: (event: Event) => void;
-    onAvatarRemove: () => void;
-    onInterestAdd: (interest: string) => void;
-    onInterestRemove: (interest: string) => void;
-    onBannerColorChange: (color: string) => void;
-    onTriggerBannerFile: () => void;
-    onBannerUpload: (event: Event) => void;
-    onBannerRemove: () => void;
-    onFollowUser: () => void;
-    onUnfollowUser: () => void;
-    onBlockUser: () => void;
-    onUnblockUser: () => void;
-    isFollowing: boolean;
-    isBlocked: boolean;
-    followersCount: number;
-    followingCount: number;
-    isFollowingMe: boolean;
-    openFollowersDialog: () => void;
-    openFollowingDialog: () => void;
-    followersList: any[];
-    followingList: any[];
-    currentUserId: string;
+    formatDate = (date) => new Date(date).toLocaleDateString(),
+    onToggleEdit = () => {},
+    onCancelEdit = () => {},
+    onSaveProfile = () => {},
+    onTriggerAvatarFile = () => {},
+    onAvatarUpload = () => {},
+    onAvatarRemove = () => {},
+    onInterestAdd = () => {},
+    onInterestRemove = () => {},
+    onBannerColorChange = () => {},
+    onTriggerBannerFile = () => {},
+    onBannerUpload = () => {},
+    onBannerRemove = () => {},
+    onFollowUser = () => {},
+    onUnfollowUser = () => {},
+    onBlockUser = () => {},
+    onUnblockUser = () => {},
+    isFollowing = false,
+    isBlocked = false,
+    followersCount = 0,
+    followingCount = 0,
+    isFollowingMe = false,
+    followersList = [],
+    followingList = [],
+    currentUserId = '',
+    showProfileLink = false, // New prop to control link visibility
   } = $props();
 
   let showEditForm = $state(false);
@@ -482,11 +445,21 @@
 
       <div class="flex-1 -mt-10 sm:-mt-3 space-y-4 pt-8 md:pt-4 transition-all duration-1200 ease-in-out flex flex-col">
         <div>
-          <h1 class="text-xl sm:text-2xl font-bold leading-tight">
-            {profileData?.name && profileData?.surname
-              ? `${profileData.name} ${profileData.surname}`
-              : profileUser?.nickname}
-          </h1>
+          <div class="flex items-center gap-1">
+            <h1 class="text-lg font-bold text-foreground">
+              {profileData?.name || profileData?.nickname}
+            </h1>
+            {#if showProfileLink && profileData?.nickname}
+              <a 
+                href={`/${profileData.nickname}`}
+                class="text-muted-foreground hover:text-primary transition-colors ml-1"
+                aria-label={t('profile.viewProfile')}
+                title={t('profile.viewProfile')}
+              >
+                <ExternalLink class="h-3 w-3" />
+              </a>
+            {/if}
+          </div>
           <p class="text-muted-foreground">@{profileUser?.nickname}</p>
         </div>
 
@@ -734,7 +707,7 @@
     <ReportDrawer 
       bind:open={showReportDrawer} 
       reportType="profile"
-      targetId={profileUser?.id}
+       targetId={profileUser?._id || profileUser?.id}
       targetTitle={profileUser?.nickname}
     />
   {/if}

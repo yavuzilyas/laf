@@ -1,14 +1,20 @@
 <script lang="ts">
-
     import { Button } from "$lib/components/ui/button";
     import { t } from '$lib/stores/i18n.svelte.js';
     import { 
         House,
         UserRoundSearch
     } from "@lucide/svelte";
-      import * as Empty from "$lib/components/ui/empty/index.js";
-  import { GlobeLockIcon} from 'svelte-animate-icons';
-  import { browser } from '$app/environment';
+    import * as Empty from "$lib/components/ui/empty/index.js";
+    import { GlobeLockIcon } from 'svelte-animate-icons';
+    import { browser } from '$app/environment';
+    import ReportDrawer from './ReportDrawer.svelte';
+    
+    let showReportDrawer = $state(false);
+    
+    function openReportDrawer() {
+        showReportDrawer = true;
+    }
 </script>
 
 <Empty.Root>
@@ -28,7 +34,15 @@
       <Button size="sm" href="/"><House/> {t('Homepage')}</Button>
       <Button size="sm" variant="outline" href="/profile"><UserRoundSearch/> {t('SeeItsProfile')}</Button>
     </div>
-    <p class="text-xs text-muted-foreground">{t('aProblem')}<Button size="xs" variant="link">{t('reportToHelpUs')}</Button></p>
+    <p class="text-xs text-muted-foreground">{t('aProblem')} <Button size="xs" variant="link" on:click={openReportDrawer}>{t('reportToHelpUs')}</Button></p>
+    {#if browser}
+      <ReportDrawer 
+        bind:open={showReportDrawer}
+        reportType="error"
+        targetId="403"
+        targetTitle={`${t('403Title')} (${window.location.href})`}
+      />
+    {/if}
   </Empty.Content>
 
 </Empty.Root>

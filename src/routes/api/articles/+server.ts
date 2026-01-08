@@ -1,15 +1,20 @@
 import { json } from '@sveltejs/kit';
 import { getArticlesCollection } from '$db/mongo';
+import { ObjectId } from 'mongodb';
 
 export async function GET({ url, locals }) {
+  console.log('Articles API called with params:', Object.fromEntries(url.searchParams.entries()));
+  
   try {
     const articles = await getArticlesCollection();
     const user = (locals as any)?.user;
 
     // Query parameters
     const page = parseInt(url.searchParams.get('page') || '1');
-    const limit = parseInt(url.searchParams.get('limit') || '12');
+    const limit = parseInt(url.searchParams.get('limit') || '5'); // Default to 5 for suggestions
     const search = url.searchParams.get('search') || '';
+    
+    console.log('Searching for:', { search, page, limit });
     const category = url.searchParams.get('category');
     const language = url.searchParams.get('language');
     const tags = url.searchParams.get('tags');
@@ -38,9 +43,28 @@ export async function GET({ url, locals }) {
       ]
     };
 
-    // Search filter
+    // Enhanced search filter for title, excerpt, content, and tags
     if (search) {
-      query.$text = { $search: search };
+      const searchRegex = new RegExp(search, 'i');
+      const searchConditions = [
+        { 'translations.tr.title': { $regex: searchRegex } },
+        { 'translations.tr.excerpt': { $regex: searchRegex } },
+        { 'translations.tr.content': { $regex: searchRegex } },
+        { 'translations.en.title': { $regex: searchRegex } },
+        { 'translations.en.excerpt': { $regex: searchRegex } },
+        { 'translations.en.content': { $regex: searchRegex } },
+        { 'tags': { $regex: searchRegex } }
+      ];
+
+      if (!query.$or) {
+        query.$or = searchConditions;
+      } else {
+        query.$and = [
+          { $or: query.$or },
+          { $or: searchConditions }
+        ];
+        delete query.$or;
+      }
     }
 
     // Category filter
@@ -65,19 +89,35 @@ export async function GET({ url, locals }) {
     // Get total count
     const total = await articles.countDocuments(query);
 
-    // Get articles with pagination
-    const articleDocs = await articles
-      .find(query)
+    // Log the query for debugging
+    console.log('MongoDB Query:', JSON.stringify(query, null, 2));
+    
+    // Handle field selection
+    const fields = url.searchParams.get('fields')?.split(',').reduce((acc, field) => {
+      acc[field.trim()] = 1;
+      return acc;
+    }, {} as Record<string, number>);
+
+    // Get articles with pagination and field selection
+    let queryBuilder = articles.find(query);
+    
+    if (fields) {
+      queryBuilder = queryBuilder.project(fields);
+    }
+    
+    const articleDocs = await queryBuilder
       .sort({ publishedAt: -1 })
       .skip(skip)
       .limit(limit)
       .toArray();
+      
+    console.log('Found articles:', articleDocs.length);
 
     // Format articles for frontend
     const formattedArticles = articleDocs.map(article => ({
       id: article._id.toString(),
-      slug: article.slug,
-      title: article.title,
+      slug: article.slug || `article-${article._id.toString()}`,
+      title: article.title || 'No Title',
       excerpt: article.excerpt,
       content: article.content,
       author: {
@@ -101,15 +141,15 @@ export async function GET({ url, locals }) {
       isOwner: user && article.authorId?.toString() === user.id
     }));
 
-    return json({
+    const result = {
       articles: formattedArticles,
-      pagination: {
-        currentPage: page,
-        totalPages: Math.ceil(total / limit),
-        totalArticles: total,
-        hasMore: page * limit < total
-      }
-    });
+      total,
+      page,
+      totalPages: Math.ceil(total / limit)
+    };
+    
+    console.log('Returning result:', JSON.stringify(result, null, 2));
+    return json(result);
 
   } catch (error) {
     console.error('Articles API error:', error);

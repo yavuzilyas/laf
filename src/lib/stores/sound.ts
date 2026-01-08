@@ -46,7 +46,7 @@ export const sounds: SoundFiles = {
     wav: "/sounds/alert_error-01.wav"
   },
   swift:{
-    wav: "/sounds/focus_change_large.m4a"
+    wav: "/sounds/focus_change_large.wav"
   },
   refresh:{
     wav: "/sounds/ui_refresh-feed.wav"

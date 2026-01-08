@@ -11,6 +11,7 @@
   import * as AlertDialog from '$lib/components/ui/alert-dialog/index.js';
   import { t } from '$lib/stores/i18n.svelte.js';
   import { showToast } from '$lib/hooks/toast';
+  import MnemonicVerificationPopup from '$lib/components/MnemonicVerificationPopup.svelte';
   // @ts-ignore - SvelteKit internal module
   import { page } from '$app/stores';
   // @ts-ignore - SvelteKit internal module
@@ -32,6 +33,36 @@
   let showDeleteDialog = $state(false);
   let pendingDeleteUserId = $state<string | null>(null);
   let deleteDialogResolver: (() => void) | null = null;
+  
+  // Mnemonic verification state
+  let showMnemonicVerification = $state(false);
+  let pendingAction = $state<() => Promise<void>>();
+  let verificationToken = $state<string | null>(null);
+  
+  // Handle mnemonic verification
+  function requestMnemonicVerification(action: () => Promise<void>) {
+    pendingAction = action;
+    showMnemonicVerification = true;
+  }
+  
+  async function handleMnemonicVerified(token: string) {
+    showMnemonicVerification = false;
+    verificationToken = token;
+    if (pendingAction) {
+      try {
+        await pendingAction();
+      } catch (error) {
+        console.error("Action failed after verification:", error);
+        showToast("İşlem sırasında bir hata oluştu", "error");
+      }
+      pendingAction = null;
+    }
+  }
+  
+  function handleMnemonicCancel() {
+    showMnemonicVerification = false;
+    pendingAction = null;
+  }
   
   let stats = $state({
     reportedArticles: 0,
@@ -335,25 +366,38 @@
       return;
     }
 
-    try {
-      const response = await fetch('/api/moderation/delete', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          userId, 
-          reason: 'Moderator action', 
-          moderatorId: currentUser.id 
-        })
-      });
+    const executeDelete = async () => {
+      try {
+        const response = await fetch('/api/moderation/delete', {
+          method: 'POST',
+          headers: { 
+            'Content-Type': 'application/json',
+            ...(verificationToken ? { 'X-Verification-Token': verificationToken } : {})
+          },
+          body: JSON.stringify({ 
+            userId, 
+            reason: 'Moderator action', 
+            moderatorId: currentUser.id 
+          })
+        });
 
-      if (response.ok) {
-        showToast('Hesap silme işlemi başlatıldı', 'success');
-        await refreshModerationData();
-      } else {
-        showToast('Silme başarısız', 'error');
+        if (response.ok) {
+          showToast('Hesap silme işlemi başlatıldı', 'success');
+          await refreshModerationData();
+        } else {
+          const errorData = await response.json().catch(() => ({}));
+          showToast(errorData.message || 'Silme başarısız', 'error');
+        }
+      } catch (error) {
+        console.error('Delete error:', error);
+        showToast('Silme hatası', 'error');
       }
-    } catch (error) {
-      showToast('Silme hatası', 'error');
+    };
+
+    if (verificationToken) {
+      await executeDelete();
+    } else {
+      requestMnemonicVerification(executeDelete);
     }
   }
 
@@ -482,6 +526,13 @@
 <svelte:head>
   <title>{t('Moderation')} - LAF</title>
 </svelte:head>
+
+<!-- Add Mnemonic Verification Popup -->
+<MnemonicVerificationPopup
+  bind:openVerif={showMnemonicVerification}
+  onVerified={handleMnemonicVerified}
+  onCancel={handleMnemonicCancel}
+/>
 <Navbar />
 		<div class=" flex flex-1 flex-col items-center ">
 			<div class="@container/main w-full max-w-7xl flex-1 px-2 sm:px-4">

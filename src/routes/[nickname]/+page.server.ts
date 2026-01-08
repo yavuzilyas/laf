@@ -228,12 +228,32 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 
 	// Get user's articles
 	const articlesCollection = await getArticlesCollection();
+	const isModeratorOrAdmin = locals.user?.role === 'moderator' || locals.user?.role === 'admin';
+	const isViewingOwnProfile = locals.user?._id?.toString() === profileUser._id.toString();
+
+	// Build the query based on user role
+	const query: any = {
+		'authorId': toObjectId(profileUser._id),
+		'deletedAt': { $exists: false }
+	};
+
+	if (isModeratorOrAdmin) {
+		// Moderators and admins can see all articles regardless of status
+		query['$or'] = [
+			{ status: 'published' },
+			{ status: 'pending' },
+			{ status: 'draft' }
+		];
+	} else if (isViewingOwnProfile) {
+		// Users can see all their own articles (any status)
+		// No status filter needed since we're showing all statuses for own articles
+	} else {
+		// For other users' profiles, only show published articles
+		query.status = 'published';
+	}
+
 	const userArticles = await articlesCollection
-		.find({
-			'authorId': toObjectId(profileUser._id),
-			'status': 'published',
-			'deletedAt': { $exists: false }
-		})
+		.find(query)
 		.sort({ publishedAt: -1 })
 		.limit(10)
 		.toArray();

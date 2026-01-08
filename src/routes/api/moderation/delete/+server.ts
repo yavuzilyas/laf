@@ -13,7 +13,7 @@ const getRoleRank = (role?: string | null) => {
 };
 
 // @ts-ignore - SvelteKit request types
-export async function POST({ request }) {
+export async function POST({ request, cookies }) {
   try {
     const { userId, reason, moderatorId } = await request.json();
 
@@ -44,21 +44,38 @@ export async function POST({ request }) {
 
     // Cannot delete same rank or higher rank users
     if (targetRank >= moderatorRank) {
-      return json({ error: 'Cannot delete user with same or higher rank' }, { status: 403 });
+      return json({ error: 'Aynı veya daha yüksek yetkiye sahip kullanıcıları silemezsiniz' }, { status: 403 });
     }
+
+    // Verify the mnemonic token
+    if (moderator.verificationToken !== verificationToken) {
+      return json({ error: 'Invalid verification token' }, { status: 401 });
+    }
+
+    // Clear the verification token after use
+    await users.updateOne(
+      { _id: moderatorObjectId },
+      { $unset: { verificationToken: 1 } }
+    );
 
     const result = await users.updateOne(
       { _id: targetObjectId },
       {
         $set: {
-          status: 'silinecek',
-          moderationAction: {
-            action: 'marked_for_deletion',
-            reason,
-            timestamp: now,
-            moderatorId: new ObjectId(moderatorId),
-            moderatorName: moderator.nickname || 'Moderator'
-          }
+          status: 'deleted',
+          deletedAt: now,
+          deletedBy: moderatorId,
+          deleteReason: reason,
+          email: `deleted-${Date.now()}@deleted.com`,
+          username: `deleted-${Date.now()}`,
+          name: 'Silinmiş Kullanıcı',
+          avatar: null,
+          bio: '',
+          website: '',
+          location: '',
+          twitter: '',
+          github: '',
+          linkedin: ''
         }
       }
     );

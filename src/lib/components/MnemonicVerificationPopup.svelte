@@ -9,6 +9,22 @@
   import { onMount } from 'svelte';
   
   let { openVerif = false, onVerified = () => {}, onCancel = () => {} } = $props();
+
+  // Generate a verification token when the component mounts
+  const generateUUID = () => {
+    // Use crypto.randomUUID() if available, otherwise fall back to a custom implementation
+    if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+      return crypto.randomUUID();
+    }
+    // Fallback implementation for browsers that don't support crypto.randomUUID()
+    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+      const r = Math.random() * 16 | 0;
+      const v = c === 'x' ? r : (r & 0x3 | 0x8);
+      return v.toString(16);
+    });
+  };
+
+  let verificationToken = generateUUID();
   let mnemonicInput: HTMLInputElement;
 
   let loading = $state(false);
@@ -20,22 +36,45 @@
   async function getMnemonicQuestion() {
     try {
       loading = true;
+      // Generate a new token for each verification attempt
+      verificationToken = generateUUID();
+      
       const res = await fetch('/api/auth/mnemonic-question', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ verificationToken }),
         credentials: 'include'
       });
 
       if (res.ok) {
         const data = await res.json();
+        if (data.error) {
+          throw new Error(data.error);
+        }
+        // Update the verification token with the one from the server
+        verificationToken = data.verificationToken;
         mnemonicIndex = data.index;
+        // Reset attempt count when getting a new question
+        attemptCount = 0;
+        remainingAttempts = 3;
+        console.log('New verification token set:', verificationToken);
       } else {
-        showToast("Doğrulama sorusu alınamadı", "error");
+        const error = await res.json().catch(() => ({}));
+        showToast(error.error || 'Doğrulama sorusu alınamadı', "error");
         handleCancel();
       }
     } catch (error) {
-      showToast("Bağlantı hatası", "error");
+      console.error('Mnemonic question error:', error);
+      showToast(error.message || 'Bağlantı hatası. Lütfen tekrar deneyin.', "error");
       handleCancel();
     } finally {
       loading = false;
+      // Focus the input when question is loaded
+      if (mnemonicInput) {
+        setTimeout(() => mnemonicInput.focus(), 100);
+      }
     }
   }
 
@@ -44,29 +83,44 @@
 
     loading = true;
     try {
+      console.log('Verifying with token:', verificationToken);
+      const payload = {
+        index: mnemonicIndex,
+        word: mnemonicAnswer.trim(),
+        attempts: attemptCount,
+        verificationToken: verificationToken
+      };
+      console.log('Sending verification payload:', payload);
+      
       const res = await fetch('/api/auth/verify-mnemonic', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
-        body: JSON.stringify({
-          index: mnemonicIndex,
-          word: mnemonicAnswer.trim(),
-          attempts: attemptCount
-        })
+        body: JSON.stringify(payload)
       });
 
-      const data = await res.json();
+      const data = await res.json().catch(e => {
+        console.error('Failed to parse response:', e);
+        return { error: 'Geçersiz yanıt formatı' };
+      });
+      
+      console.log('Verification response:', { status: res.status, data });
 
       if (res.ok) {
-        showToast(t('auth.success.mnemonicVerified'), "success");
+        if (data.verificationToken) {
+          verificationToken = data.verificationToken;
+          console.log('Updated verification token:', verificationToken);
+        }
+        showToast(data.message || 'Doğrulama başarılı', "success");
         openVerif = false;
-        onVerified();
+        onVerified(verificationToken);
         resetState();
       } else {
         handleVerificationError(data);
       }
     } catch (error) {
-      showToast(t('auth.errors.connectionError'), "error");
+      console.error('Verify mnemonic error:', error);
+      showToast('Doğrulama sırasında bir hata oluştu. Lütfen tekrar deneyin.', "error");
     } finally {
       loading = false;
     }
@@ -74,7 +128,7 @@
 
   function handleVerificationError(data: any) {
     if (data.reset) {
-      showToast(t('auth.errors.ProcessCanceled'), "error");
+      showToast(data.error || 'Çok fazla başarısız deneme. Lütfen tekrar deneyin.', "error");
       openVerif = false;
       onCancel();
       resetState();
@@ -82,7 +136,12 @@
       attemptCount++;
       remainingAttempts = 3 - attemptCount;
       mnemonicAnswer = "";
-      showToast(data.error || t('auth.errors.wrongMnemonic'), "error");
+      showToast(data.error || 'Yanlış mnemonic kelimesi. Kalan deneme hakkınız: ' + remainingAttempts, "error");
+      
+      // Focus the input for next attempt
+      if (mnemonicInput) {
+        setTimeout(() => mnemonicInput.focus(), 100);
+      }
     }
   }
 

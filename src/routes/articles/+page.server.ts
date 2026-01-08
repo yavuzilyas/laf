@@ -46,10 +46,17 @@ export const load: PageServerLoad = async ({ locals }) => {
     ? await usersCol.findOne({ _id: viewerObjectId })
     : null;
 
-  // Format following data to ensure consistent string IDs
+  // Format following data to ensure consistent string IDs and handle all ObjectId conversions
   const formattedUser = viewerDoc ? {
     ...viewerDoc,
     _id: viewerDoc._id.toString(),
+    // Handle moderationAction if it exists
+    ...(viewerDoc.moderationAction && {
+      moderationAction: {
+        ...viewerDoc.moderationAction,
+        moderatorId: viewerDoc.moderationAction.moderatorId?.toString()
+      }
+    }),
     blocked: Array.isArray(viewerDoc.blocked) 
       ? viewerDoc.blocked.map((block: any) => ({
           ...block,
@@ -59,13 +66,15 @@ export const load: PageServerLoad = async ({ locals }) => {
     following: Array.isArray(viewerDoc.following) 
       ? viewerDoc.following.map((follow: any) => ({
           ...follow,
-          followingUserId: follow.followingUserId?.toString?.() || follow.followingUserId
+          followingUserId: follow.followingUserId?.toString?.() || follow.followingUserId,
+          _id: follow._id?.toString?.() || follow._id
         }))
       : [],
     followers: Array.isArray(viewerDoc.followers) 
       ? viewerDoc.followers.map((follower: any) => ({
           ...follower,
-          followerUserId: follower.followerUserId?.toString?.() || follower.followerUserId
+          followerUserId: follower.followerUserId?.toString?.() || follower.followerUserId,
+          _id: follower._id?.toString?.() || follower._id
         }))
       : []
   } : null;
@@ -94,15 +103,48 @@ export const load: PageServerLoad = async ({ locals }) => {
         .map((id: any) => id.toString())
     : [];
 
+  // Build the base query
+  const query: any = {
+    deletedAt: { $exists: false },
+    $or: [
+      // Non-hidden articles
+      { hidden: { $ne: true } },
+      // Or user's own hidden articles
+      { authorId: user ? new ObjectId(user.id) : null }
+    ]
+  };
+
+  // Check user role
+  const isModeratorOrAdmin = user?.role === 'moderator' || user?.role === 'admin';
+  const isAuthor = !!user?.id;
+  const userId = user?.id ? new ObjectId(user.id) : null;
+
+  if (isModeratorOrAdmin) {
+    // Moderators and admins can see all articles regardless of status
+    query['$or'] = [
+      { status: 'published' },
+      { status: 'pending' },
+      { status: 'draft' }
+    ];
+  } else if (isAuthor) {
+    // Authors can see their own articles (any status) and published articles from others
+    query['$and'] = [
+      {
+        $or: [
+          // Either the article is published
+          { status: 'published' },
+          // Or it's the author's own article (any status)
+          { authorId: userId }
+        ]
+      }
+    ];
+  } else {
+    // Regular users only see published articles
+    query.status = 'published';
+  }
+
   const docs = await articlesCol
-    .find({
-      status: 'published',
-      deletedAt: { $exists: false },
-      $or: [
-        { hidden: { $ne: true } },  // Diğer kullanıcıların gizli makaleleri
-        { authorId: user ? new ObjectId(user.id) : null }  // Kullanıcının kendi gizli makaleleri
-      ]
-    })
+    .find(query)
     .sort({ publishedAt: -1 })
     .limit(30)
     .toArray();
@@ -124,6 +166,7 @@ export const load: PageServerLoad = async ({ locals }) => {
     featured?: boolean;
     coverImage?: string;
     dislikes?: number;
+    status?: 'published' | 'pending' | 'draft';
     defaultLanguage: string;
     translations: Record<string, {
       title: string;
@@ -240,6 +283,7 @@ export const load: PageServerLoad = async ({ locals }) => {
       dislikes: a.stats?.dislikes || 0,
       featured: a.featured || false,
       coverImage: a.thumbnail || undefined,
+      status: a.status,
       defaultLanguage,
       translations,
       availableLanguages: Object.keys(translations),

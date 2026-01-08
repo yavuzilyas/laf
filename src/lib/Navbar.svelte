@@ -115,6 +115,10 @@ import A from "$lib/components/ui/a.svelte";
 
   async function handleMarkAllNotifications() {
     await markAllNotificationsRead();
+    // Refresh the notifications list to reflect the changes
+    notificationsList = await fetchNotifications();
+    // Update the unread count
+    unreadTotal = 0;
   }
 
   let openSettings = $state(false);
@@ -175,7 +179,8 @@ import A from "$lib/components/ui/a.svelte";
     } else {
       items = baseLoggedOut.map((it) => ({ ...it, href: loginHref }));
     }
-  });
+  }); 
+
 import HammerLottie from "$lib/components/hammerIcon.svelte";
 </script>
 <SettingsDialog bind:open={openSettings} on:close={() => openSettings = false} />
@@ -198,7 +203,7 @@ import HammerLottie from "$lib/components/hammerIcon.svelte";
       <Tooltip.Provider>
  <Tooltip.Root>
   <Tooltip.Trigger>   
-    <A href="/" ><img class="max-h-6.5 fill-primary" src="{logo}" alt="LAF" /></A>
+    <A href="/" ><img class="max-h-6.5 fill-primary" src="{logo}" alt="LAF" /></A> 
   </Tooltip.Trigger>
   <Tooltip.Content>
    <p>{t('GoToHomePage')}</p>
@@ -249,4 +254,4 @@ import HammerLottie from "$lib/components/hammerIcon.svelte";
   </div>
 </nav> 
 
-<div class="relative h-8.5 sm:h-7"></div>    
+<div class="relative h-9.5 sm:h-8"></div>    
