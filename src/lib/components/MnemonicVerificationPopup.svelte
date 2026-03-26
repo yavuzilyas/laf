@@ -4,90 +4,46 @@
   import { Label } from "$lib/components/ui/label";
   import { ShieldAlert, X } from "@lucide/svelte";
   import { showToast } from "$lib/hooks/toast";
-  import { t, tJoin, tMany } from '$lib/stores/i18n.svelte.js';
+  import { t } from '$lib/stores/i18n.svelte.js';
   import { cn } from "$lib/utils.js";
   import { onMount } from 'svelte';
-  
-  let { openVerif = false, onVerified = () => {}, onCancel = () => {} } = $props();
+  import Loader from "@lucide/svelte/icons/loader";
 
-  // Generate a verification token when the component mounts
-  const generateUUID = () => {
-    // Use crypto.randomUUID() if available, otherwise fall back to a custom implementation
-    if (typeof crypto !== 'undefined' && crypto.randomUUID) {
-      return crypto.randomUUID();
+  let { openVerif = $bindable(false), onVerified = () => {}, onCancel = () => {}, verificationToken: initialToken = null } = $props();
+
+  // Helper function to get current user ID from session
+  async function getCurrentUserId(): Promise<string> {
+    const response = await fetch('/api/auth/session');
+    const data = await response.json();
+    return data.user?.id || '';
+  }
+
+  $effect(() => {
+    if (initialToken !== verificationToken) {
+      verificationToken = initialToken;
     }
-    // Fallback implementation for browsers that don't support crypto.randomUUID()
-    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
-      const r = Math.random() * 16 | 0;
-      const v = c === 'x' ? r : (r & 0x3 | 0x8);
-      return v.toString(16);
-    });
-  };
+  });
 
-  let verificationToken = generateUUID();
+  let verificationToken = $state(initialToken);
   let mnemonicInput: HTMLInputElement;
 
   let loading = $state(false);
-  let mnemonicIndex = $state<number | null>(null);
-  let mnemonicAnswer = $state("");
+  let mnemonic = $state("");
   let attemptCount = $state(0);
   let remainingAttempts = $state(3);
+  let errorMessage = $state("");
+  let errorMessageKey = $state(0);
+  let errorMessageExiting = $state(false);
 
-  async function getMnemonicQuestion() {
-    try {
-      loading = true;
-      // Generate a new token for each verification attempt
-      verificationToken = generateUUID();
-      
-      const res = await fetch('/api/auth/mnemonic-question', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ verificationToken }),
-        credentials: 'include'
-      });
-
-      if (res.ok) {
-        const data = await res.json();
-        if (data.error) {
-          throw new Error(data.error);
-        }
-        // Update the verification token with the one from the server
-        verificationToken = data.verificationToken;
-        mnemonicIndex = data.index;
-        // Reset attempt count when getting a new question
-        attemptCount = 0;
-        remainingAttempts = 3;
-        console.log('New verification token set:', verificationToken);
-      } else {
-        const error = await res.json().catch(() => ({}));
-        showToast(error.error || 'Doğrulama sorusu alınamadı', "error");
-        handleCancel();
-      }
-    } catch (error) {
-      console.error('Mnemonic question error:', error);
-      showToast(error.message || 'Bağlantı hatası. Lütfen tekrar deneyin.', "error");
-      handleCancel();
-    } finally {
-      loading = false;
-      // Focus the input when question is loaded
-      if (mnemonicInput) {
-        setTimeout(() => mnemonicInput.focus(), 100);
-      }
-    }
-  }
-
-  async function verifyMnemonic() {
-    if (!mnemonicAnswer.trim() || mnemonicIndex === null) return;
+  async function verifymnemonic() {
+    if (!mnemonic.trim()) return;
 
     loading = true;
     try {
-      console.log('Verifying with token:', verificationToken);
+      console.log('Verifying mnemonic with token:', verificationToken);
+      const userId = await getCurrentUserId();
       const payload = {
-        index: mnemonicIndex,
-        word: mnemonicAnswer.trim(),
-        attempts: attemptCount,
+        mnemonicPhrase: mnemonic.trim(),
         verificationToken: verificationToken
       };
       console.log('Sending verification payload:', payload);
@@ -128,17 +84,28 @@
 
   function handleVerificationError(data: any) {
     if (data.reset) {
-      showToast(data.error || 'Çok fazla başarısız deneme. Lütfen tekrar deneyin.', "error");
-      openVerif = false;
-      onCancel();
-      resetState();
+      if (errorMessage !== (data.error || 'Çok fazla başarısız deneme. Lütfen tekrar deneyin.')) {
+        errorMessageExiting = false;
+        errorMessageKey++;
+      }
+      errorMessage = data.error || 'Çok fazla başarısız deneme. Lütfen tekrar deneyin.';
+      setTimeout(() => {
+        openVerif = false;
+        onCancel();
+        resetState();
+      }, 2000);
     } else {
       attemptCount++;
       remainingAttempts = 3 - attemptCount;
-      mnemonicAnswer = "";
-      showToast(data.error || 'Yanlış mnemonic kelimesi. Kalan deneme hakkınız: ' + remainingAttempts, "error");
+      mnemonic = "";
+      const errorMsg = data.error || 'Yanlış mnemonic. Kalan deneme hakkınız: ' + remainingAttempts;
+      if (errorMessage !== errorMsg) {
+        errorMessageExiting = false;
+        errorMessageKey++;
+      }
+      errorMessage = errorMsg;
       
-      // Focus the input for next attempt
+      // Focus input for next attempt
       if (mnemonicInput) {
         setTimeout(() => mnemonicInput.focus(), 100);
       }
@@ -152,22 +119,28 @@
   }
 
   function resetState() {
-    mnemonicAnswer = "";
-    mnemonicIndex = null;
+    mnemonic = "";
     attemptCount = 0;
     remainingAttempts = 3;
+    if (errorMessage) {
+      errorMessageExiting = true;
+      const oldErrorKey = errorMessageKey;
+      setTimeout(() => {
+        if (errorMessageKey === oldErrorKey) {
+          errorMessage = "";
+          errorMessageExiting = false;
+        }
+      }, 200);
+    }
   }
 
   function handleKeyPress(e: KeyboardEvent) {
-    if (e.key === 'Enter') verifyMnemonic();
+    if (e.key === 'Enter') verifymnemonic();
     if (e.key === 'Escape') handleCancel();
   }
 
   $effect(() => {
     if (openVerif) {
-      if (!mnemonicIndex && !loading) {
-        getMnemonicQuestion();
-      }
       // Focus input when dialog opens
       if (mnemonicInput) {
         setTimeout(() => mnemonicInput.focus(), 100);
@@ -184,63 +157,61 @@
       return () => window.removeEventListener('keydown', handleEscape);
     }
   });
- import * as Drawer from "$lib/components/ui/drawer/index.js";
+  import * as Drawer from "$lib/components/ui/drawer/index.js";
 </script>
 <Drawer.Root  bind:open={openVerif} dismissible={true} onClose={handleCancel}>
- <Drawer.Trigger class="sr-only">openVerif</Drawer.Trigger>
- <Drawer.Content>
+  <Drawer.Trigger class="sr-only">openVerif</Drawer.Trigger>
+  <Drawer.Content>
       <div class="mx-auto w-full py-2 px-8 md:px-0 max-w-sm">
 
   <Drawer.Header>
     <ShieldAlert size={20} class="text-primary z-60 " />
    <Drawer.Title>{t('VerificationIsRequired')}</Drawer.Title>
-   <Drawer.Description>{t('EnterTheMnemonicWord')}</Drawer.Description>
+   <Drawer.Description>{t('EnterYourmnemonic')}</Drawer.Description>
   </Drawer.Header>
-  {#if mnemonicIndex !== null}
+  {#if !loading}
           <div class="z-60 space-y-2">
 
-            <p class="z-60 text-sm font-medium text-primary bg-primary/10 p-2 rounded-md">
-              {t("auth.login.mnemonicQuestionP1")} {mnemonicIndex + 1}{t("auth.login.mnemonicQuestionP2")}
-            </p>
-            <form on:submit|preventDefault={verifyMnemonic}>
+            <form on:submit|preventDefault={verifymnemonic}>
               <Input
                 id="mnemonic-answer"
-                type="text"
-                placeholder={t('EnterMnemonic')}
-                bind:value={mnemonicAnswer}
+                type="mnemonic"
+                placeholder={t('Entermnemonic')}
+                bind:value={mnemonic}
                 bind:this={mnemonicInput}
                 disabled={loading}
-                on:keydown={(e) => e.key === 'Enter' && verifyMnemonic()}
+                on:keydown={(e) => e.key === 'Enter' && verifymnemonic()}
               />
             </form>
           
 
-          {#if attemptCount > 0}
-            <div class="z-60  bg-red-500/20 border border-red-500/75 rounded-md p-1.5">
-              <p class="z-60 text-xs text-red-500 text-center">
-                {remainingAttempts} {t('attemptsLeft')}
-              </p>
-            </div>
+          {#if errorMessage}
+            <p 
+              key={errorMessageKey}
+              class="text-xs text-red-500 error-message {errorMessageExiting ? 'exit' : ''}"
+            >
+              {errorMessage}
+            </p>
           {/if}</div>
         {:else if loading}
           <div class="z-60 flex justify-center py-4">
-            <div class="z-60 h-6 w-6 animate-spin rounded-full border-2 border-primary border-r-transparent"></div>
+                    <Loader class="animate-spin text-primary" />
+
           </div>
         {/if}
   <Drawer.Footer class="flex flex-row ">
            <Button
           class="flex-1 z-60 "
-          onclick={verifyMnemonic}
-          disabled={loading || !mnemonicAnswer.trim() || mnemonicIndex === null}
+          onclick={verifymnemonic}
+          disabled={loading || !mnemonic.trim()}
         >
-          {#if loading}
-            <span class="z-60 inline-flex items-center gap-2">
-              <span class="z-60 h-3 w-3 animate-spin rounded-full border-2 border-current border-r-transparent"></span>
-              {t("Loading")}...
-            </span>
-          {:else}
-            {t('Verificate')}({remainingAttempts})
-          {/if}
+                   {#if loading}
+            <Loader class="animate-spin" />
+              {t('Verifying')}
+              
+            {:else}
+              {t('Continue')}
+            {/if}
         </Button>
           <Button variant="outline" class="z-60 flex-1" onclick={handleCancel} disabled={loading}>
          {t('Cancel')}
@@ -248,4 +219,35 @@
   </Drawer.Footer>
       </div>
  </Drawer.Content>
-</Drawer.Root>   
+</Drawer.Root>
+<style>
+  .error-message {
+    animation: slideInFade 0.3s ease-out;
+  }
+  
+  .error-message.exit {
+    animation: slideOutFade 0.2s ease-in forwards;
+  }
+  
+  @keyframes slideInFade {
+    0% {
+      opacity: 0;
+      transform: translateY(-8px);
+    }
+    100% {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  
+  @keyframes slideOutFade {
+    0% {
+      opacity: 1;
+      transform: translateY(0);
+    }
+    100% {
+      opacity: 0;
+      transform: translateY(-8px);
+    }
+  }
+</style>

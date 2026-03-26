@@ -3,9 +3,11 @@
   import { Input } from "$lib/components/ui/input";
   import { Button } from "$lib/components/ui/button";
   import { Badge } from "$lib/components/ui/badge";
-  import { t } from '$lib/stores/i18n.svelte';
+  import { t, getCurrentLocale } from '$lib/stores/i18n.svelte';
   import { Search, X, Clock, TrendingUp, Hash, BookOpen } from "@lucide/svelte";
-  import { onMount, onDestroy } from 'svelte';
+  import { onDestroy } from 'svelte';
+  import { goto } from '$app/navigation';
+  import Loader from "@lucide/svelte/icons/loader";
 
   interface ArticleSuggestion {
     id: string;
@@ -84,12 +86,11 @@
     }
   });
 
-  // Get current language
-  let currentLanguage = 'tr';
+  // Get current language (non-store getter)
+  let currentLanguage = getCurrentLocale?.() || 'tr';
   $effect(() => {
-    if ($t?.language) {
-      currentLanguage = $t.language;
-    }
+    // Update once on mount; if locale changes dynamically, consuming page should re-render
+    currentLanguage = getCurrentLocale?.() || currentLanguage || 'tr';
   });
 
   // Handle search query changes with better performance
@@ -115,7 +116,7 @@
       isLoading = true;
       
       try {
-        const response = await fetch(`/api/articles?search=${encodeURIComponent(query)}&limit=5&fields=id,title,slug,excerpt,translations,language`);
+        const response = await fetch(`/api/articles?search=${encodeURIComponent(query)}&limit=5&fields=id,title,slug,excerpt,translations,language,author,authorId`);
         
         if (!response.ok) {
           throw new Error(`API Error: ${response.status}`);
@@ -127,28 +128,51 @@
         if (data?.articles?.length) {
           articleSuggestions = data.articles
             .map(article => {
-              // Skip articles with fallback values
-              if (article.title === 'No Title' || article.slug?.startsWith('article-')) {
-                return null;
-              }
-              
+              // Get the best available title and slug from translations or fallback
               const lang = article.language || currentLanguage;
               const translation = article.translations?.[lang] || {};
               
-              // Only use translation if it exists and is not empty
-              const title = translation.title || article.title;
-              const slug = translation.slug || article.slug;
+              // Try translation first, then fallback to main article fields
+              let title = translation.title || article.title;
+              let slug = translation.slug || article.slug;
               
-              // Skip if either title or slug is missing or invalid
-              if (!title || !slug || title === 'No Title' || slug.startsWith('article-')) {
+              // Handle fallback values more gracefully
+              if (!title || title === 'No Title') {
+                // Try other languages if current language has no title
+                const availableLanguages = Object.keys(article.translations || {});
+                for (const langCode of availableLanguages) {
+                  const langTranslation = article.translations[langCode];
+                  if (langTranslation?.title && langTranslation.title !== 'No Title') {
+                    title = langTranslation.title;
+                    slug = langTranslation.slug || slug;
+                    break;
+                  }
+                }
+              }
+              
+              // Final fallback - if still no valid title, skip this article
+              if (!title || title === 'No Title') {
                 return null;
+              }
+              
+              // Generate a better slug if needed
+              if (!slug || slug.startsWith('article-')) {
+                // Try to extract slug from title
+                slug = title.toLowerCase()
+                  .replace(/[^a-z0-9\s-]/g, '')
+                  .replace(/\s+/g, '-')
+                  .substring(0, 50);
               }
               
               return {
                 id: article.id || article._id?.toString(),
                 title,
                 slug,
-                excerpt: translation.excerpt || article.excerpt || ''
+                excerpt: translation.excerpt || article.excerpt || '',
+                author: {
+                  name: article.author?.name || article.author_name || article.author_nickname,
+                  avatar: article.author?.avatar || article.author_avatar
+                }
               };
             })
             .filter(Boolean); // Remove null entries
@@ -195,8 +219,9 @@
     const searchTerm = query || searchQuery;
     if (searchTerm.trim()) {
       onSearch?.(searchTerm.trim());
-      // Don't close the dropdown on search, just update the results
-      inputRef?.focus();
+      // Close dropdown after triggering search for a clearer UX
+      showDropdown = false;
+      inputRef?.blur?.();
     }
   };
 
@@ -301,13 +326,7 @@
     (articleSuggestions && articleSuggestions.length > 0)
   );
   
-  // Debug info
-  console.log('hasSuggestions:', {
-    filteredSuggestions: filteredSuggestions?.length,
-    filteredRecentSearches: filteredRecentSearches?.length,
-    articleSuggestions: articleSuggestions?.length,
-    hasSuggestions
-  });
+  
 </script>
 
 <div class={cn("relative w-full", className)} {...restProps}>
@@ -359,14 +378,8 @@
   </div>
 
   <!-- Popover for Search Suggestions and Results -->
-  <!-- Debug Info (temporary) -->
-  <div class="fixed bottom-0 left-0 p-2 bg-black text-white text-xs z-50">
-    <div>Search Query: {searchQuery || '(empty)'}</div>
-    <div>Has Suggestions: {hasSuggestions ? 'Yes' : 'No'}</div>
-    <div>Article Suggestions: {articleSuggestions?.length || 0}</div>
-  </div>
   
-  {#if isMounted && (isLoading || hasSuggestions)}
+  {#if isMounted}
     <div 
       bind:this={popoverRef}
       class="search-popover absolute z-50 mt-1 w-full rounded-md border bg-popover shadow-md transition-all duration-200 ease-out {isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-1'}"
@@ -375,8 +388,8 @@
       style="pointer-events: {isVisible ? 'auto' : 'none'}"
     >
       <!-- Suggestions Dropdown -->
-      {#if showSuggestions && hasSuggestions}
-        <div class="p-2">
+      {#if showSuggestions}
+        <div class="p-2 ">
           <!-- Article Suggestions -->
           {#if articleSuggestions.length > 0}
             <div class="mb-4">
@@ -393,16 +406,19 @@
                       class="flex flex-col gap-1 rounded-md px-2 py-1.5 text-sm hover:bg-accent hover:text-accent-foreground cursor-pointer transition-colors"
                       on:click|preventDefault={() => {
                         if (article.slug) {
-                          // Use SvelteKit's goto for client-side navigation if available
-                          if (window.__sveltekit && window.__sveltekit.goto) {
-                            window.__sveltekit.goto(`/article/${article.slug}`, { replaceState: false });
-                          } else {
-                            window.location.href = `/article/${article.slug}`;
-                          }
+                          goto(`/article/${article.slug}`);
                         }
                       }}
                     >
                       <span class="font-medium">{article.title}</span>
+                      {#if article.author?.name}
+                        <span class="flex items-center gap-2 text-[11px] text-muted-foreground">
+                          {#if article.author?.avatar}
+                            <img src={article.author.avatar} alt={article.author.name} class="h-4 w-4 rounded-full object-cover" />
+                          {/if}
+                          <span class="truncate">{article.author.name}</span>
+                        </span>
+                      {/if}
                       {#if article.excerpt}
                         <span class="text-xs text-muted-foreground line-clamp-1">
                           {article.excerpt}
@@ -474,18 +490,21 @@
 
       <!-- Loading State -->
       {#if isLoading && articleSuggestions.length === 0}
-        <div class="p-4 text-center text-sm text-muted-foreground">
-          {t('common.loading')}...
-        </div>
+        <Loader class="animate-spin m-auto text-primary" />
       {/if}
 
       <!-- No Results -->
       {#if searchQuery && filteredSuggestions.length === 0 && filteredRecentSearches.length === 0 && articleSuggestions.length === 0}
         <div class="p-3 text-center text-xs text-muted-foreground">
-          {t('articles.search.noSuggestions')}
+                   {t('articles.search.noSuggestions')}
+        </div>
+
+      {/if}
+      {#if !searchQuery}
+        <div class="p-3 text-center text-xs text-muted-foreground">
+                   {t('articles.search.typeForSearch')}
         </div>
       {/if}
-
       <!-- Search Action -->
       {#if searchQuery}
         <div class="border-t p-2">

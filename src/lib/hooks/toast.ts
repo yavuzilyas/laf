@@ -1,6 +1,7 @@
 import { writable } from 'svelte/store';
+import { notificationPreferences } from '$lib/stores/notification-preferences';
 
-export type ToastType = 'success' | 'error' | 'info';
+export type ToastType = 'success' | 'error' | 'info' | 'warning';
 
 export type Toast = {
     id: number;
@@ -26,12 +27,48 @@ export function showToast(
     duration = 3000,
     options?: { link?: string }
 ): number {
-    // Check if the same message is already in the queue
-    let toastExists = false;
-    const unsubscribe = toasts.subscribe(list => {
-        toastExists = list.some(t => t.message === message && t.type === type && t.link === options?.link);
+    // Check notification preferences before showing toast
+    let shouldShowToast = true;
+    let currentPreferences = {
+        successToasts: true,
+        errorToasts: true,
+        infoToasts: true,
+        warningToasts: true
+    };
+    
+    // Get current preferences
+    const unsubscribe = notificationPreferences.subscribe(pref => {
+        currentPreferences = pref;
     });
     unsubscribe();
+    
+    // Check if this toast type should be shown
+    switch (type) {
+        case 'success':
+            shouldShowToast = currentPreferences.successToasts;
+            break;
+        case 'error':
+            shouldShowToast = currentPreferences.errorToasts;
+            break;
+        case 'info':
+            shouldShowToast = currentPreferences.infoToasts;
+            break;
+        case 'warning':
+            shouldShowToast = currentPreferences.warningToasts;
+            break;
+        default:
+            shouldShowToast = true;
+    }
+    
+    // If toast type is disabled, skip showing
+    if (!shouldShowToast) return -1;
+    
+    // Check if same message is already in queue
+    let toastExists = false;
+    const unsubscribe2 = toasts.subscribe(list => {
+        toastExists = list.some(t => t.message === message && t.type === type && t.link === options?.link);
+    });
+    unsubscribe2();
     
     if (toastExists) return -1; // Skip if same message is already showing
     
@@ -44,12 +81,48 @@ export function showToast(
 }
 
 export function showToastKey(key: string, type: ToastType = 'info', duration = 3000): number {
-    // Check if the same key is already in the queue
-    let toastExists = false;
-    const unsubscribe = toasts.subscribe(list => {
-        toastExists = list.some(t => t.key === key && t.type === type);
+    // Check notification preferences before showing toast
+    let shouldShowToast = true;
+    let currentPreferences = {
+        successToasts: true,
+        errorToasts: true,
+        infoToasts: true,
+        warningToasts: true
+    };
+    
+    // Get current preferences
+    const unsubscribe = notificationPreferences.subscribe(pref => {
+        currentPreferences = pref;
     });
     unsubscribe();
+    
+    // Check if this toast type should be shown
+    switch (type) {
+        case 'success':
+            shouldShowToast = currentPreferences.successToasts;
+            break;
+        case 'error':
+            shouldShowToast = currentPreferences.errorToasts;
+            break;
+        case 'info':
+            shouldShowToast = currentPreferences.infoToasts;
+            break;
+        case 'warning':
+            shouldShowToast = currentPreferences.warningToasts;
+            break;
+        default:
+            shouldShowToast = true;
+    }
+    
+    // If toast type is disabled, skip showing
+    if (!shouldShowToast) return -1;
+    
+    // Check if same key is already in queue
+    let toastExists = false;
+    const unsubscribe2 = toasts.subscribe(list => {
+        toastExists = list.some(t => t.key === key && t.type === type);
+    });
+    unsubscribe2();
     
     if (toastExists) return -1; // Skip if same key is already showing
     
@@ -60,11 +133,47 @@ export function showToastKey(key: string, type: ToastType = 'info', duration = 3
 }
 
 export function showToastKeys(keys: string[], type: ToastType = 'info', duration = 3000, sep = ' '): number {
+    // Check notification preferences before showing toast
+    let shouldShowToast = true;
+    let currentPreferences = {
+        successToasts: true,
+        errorToasts: true,
+        infoToasts: true,
+        warningToasts: true
+    };
+    
+    // Get current preferences
+    const unsubscribe = notificationPreferences.subscribe(pref => {
+        currentPreferences = pref;
+    });
+    unsubscribe();
+    
+    // Check if this toast type should be shown
+    switch (type) {
+        case 'success':
+            shouldShowToast = currentPreferences.successToasts;
+            break;
+        case 'error':
+            shouldShowToast = currentPreferences.errorToasts;
+            break;
+        case 'info':
+            shouldShowToast = currentPreferences.infoToasts;
+            break;
+        case 'warning':
+            shouldShowToast = currentPreferences.warningToasts;
+            break;
+        default:
+            shouldShowToast = true;
+    }
+    
+    // If toast type is disabled, skip showing
+    if (!shouldShowToast) return -1;
+    
     const keysStr = keys.join(',');
     
-    // Check if the same keys combination is already in the queue
+    // Check if same keys combination is already in queue
     let toastExists = false;
-    const unsubscribe = toasts.subscribe(list => {
+    const unsubscribe2 = toasts.subscribe(list => {
         toastExists = list.some(t => 
             t.keys && 
             t.keys.join(',') === keysStr && 
@@ -72,7 +181,7 @@ export function showToastKeys(keys: string[], type: ToastType = 'info', duration
             t.sep === sep
         );
     });
-    unsubscribe();
+    unsubscribe2();
     
     if (toastExists) return -1; // Skip if same keys combination is already showing
     

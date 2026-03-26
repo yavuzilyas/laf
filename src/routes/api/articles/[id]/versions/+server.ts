@@ -1,22 +1,23 @@
 // src/routes/api/articles/[id]/versions/+server.ts
 import { json } from '@sveltejs/kit';
-import { ObjectId } from 'mongodb';
-import { getVersionsCollection } from '$db/mongo';
+import { getVersions, createVersion } from '$db/queries';
 
 export async function GET({ params, locals }) {
   const user = (locals as any)?.user;
   if (!user) return json({ error: 'Unauthorized' }, { status: 401 });
 
   try {
-    const versions = await getVersionsCollection();
-    const list = await versions
-      .find({ articleId: new ObjectId(params.id) })
-      .sort({ createdAt: -1 } as any)
-      .project({ })
-      .toArray();
+    const list = await getVersions({ articleId: params.id });
 
-    // Normalize _id to string
-    const normalized = list.map((v: any) => ({ ...v, _id: v._id.toString() }));
+    // Normalize id to string
+    const normalized = list.map((v: any) => ({ 
+      ...v, 
+      id: v.id,
+      articleId: v.article_id,
+      createdAt: v.created_at,
+      createdBy: v.created_by,
+      changeNote: v.change_note
+    }));
     return json(normalized);
   } catch (e) {
     console.error('Load versions error:', e);
@@ -31,19 +32,23 @@ export async function POST({ params, request, locals }) {
   try {
     const body = await request.json();
     const { data, changeNote } = body || {};
-    const versions = await getVersionsCollection();
 
-    const doc = {
-      articleId: new ObjectId(params.id),
-      versionNumber: (await versions.countDocuments({ articleId: new ObjectId(params.id) })) + 1,
+    const result = await createVersion({
+      articleId: params.id,
       data,
-      createdAt: new Date(),
-      authorId: new ObjectId(user.id),
+      authorId: user.id,
       changeNote
-    };
+    });
 
-    const result = await versions.insertOne(doc);
-    return json({ ...doc, _id: result.insertedId.toString() });
+    return json({ 
+      id: result.id,
+      articleId: params.id,
+      versionNumber: result.version_number,
+      data: result.data,
+      createdAt: result.created_at,
+      authorId: user.id,
+      changeNote: result.change_note
+    });
   } catch (e) {
     console.error('Create version error:', e);
     return json({ error: 'Internal server error' }, { status: 500 });

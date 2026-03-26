@@ -4,7 +4,7 @@
 	import { Button } from '$lib/components/ui/button';
 	import { ScrollArea } from '$lib/components/ui/scroll-area';
 	import * as DropdownMenu from '$lib/components/ui/dropdown-menu/index.js';
-	import { Trash2, UserX, Ellipsis, ChevronDown, ChevronUp } from '@lucide/svelte';
+	import { Trash2, UserX, Ellipsis, ChevronDown, ChevronUp, Edit } from '@lucide/svelte';
 	import type { NotificationRecord, TranslationObject } from '$lib/types/notification';
 	import { t, getCurrentLocale } from '$lib/stores/i18n.svelte';
 	import { Badge } from '$lib/components/ui/badge';
@@ -67,6 +67,7 @@
 		delete: { notification: NotificationRecord };
 		block: { notification: NotificationRecord };
 		unblock: { notification: NotificationRecord };
+		editArticle: { notification: NotificationRecord };
 	}>();
 
 	function handleSelect(item: any) {
@@ -89,8 +90,13 @@
 		dispatch('unblock', { notification: n });
 	}
 
+	function handleEditArticle(item: any) {
+		const n = item as NotificationRecord;
+		dispatch('editArticle', { notification: n });
+	}
+
 	function handleMarkAll() {
-		dispatch('markAll');
+		dispatch('markAll', {});
 	}
 
 	function formatTimestamp(value: string) {
@@ -134,9 +140,27 @@
 	}
 
 	function translateNotificationText(text: string | TranslationObject, actor: NotificationRecord['actor'], meta: NotificationRecord['meta']): string {
+		// If it's already a string, return as is
+		if (typeof text === 'string') {
+			// Check if it's a JSON string that needs to be parsed
+			try {
+				const parsed = JSON.parse(text);
+				if (parsed && typeof parsed === 'object' && parsed.key) {
+					text = parsed;
+				} else {
+					return text;
+				}
+			} catch {
+				// If parsing fails, return as string
+				return text;
+			}
+		}
+		
+		// Now text should be a TranslationObject
 		if (typeof text === 'string') {
 			return text;
 		}
+		
 		// Process values and replace {user} with actor name
 		const processedValues: Record<string, string | number> = {};
 		
@@ -185,6 +209,28 @@
 			}
 		}
 		
+		// Handle notes placeholder for rejection reasons
+		if (translationTemplate.includes('{notes}') && !processedValues.notes) {
+			if (meta?.notes) {
+				processedValues.notes = meta.notes;
+			}
+		}
+		
+		// Handle other common placeholders from meta
+		if (translationTemplate.includes('{moderator}') && !processedValues.moderator) {
+			if (actor) {
+				processedValues.moderator = actor.nickname || actor.name || t('notifications.messages.unknownUser');
+			} else {
+				processedValues.moderator = t('notifications.messages.unknownUser');
+			}
+		}
+		
+		if (translationTemplate.includes('{title}') && !processedValues.title) {
+			if (meta?.articleTitle) {
+				processedValues.title = meta.articleTitle;
+			}
+		}
+		
 		// Now translate with all values
 		return t(text.key, processedValues);
 	}
@@ -193,13 +239,13 @@
 
 <Dialog.Root bind:open>
   <Dialog.Content class="w-15/16 sm:w-2/3 md:w-1/2 h-[70vh] max-h-[80vh] flex flex-col overflow-hidden">
-    <Dialog.Header class="flex-shrink-0">
+    <Dialog.Header class="pt-6 flex-shrink-0">
       <Dialog.Title class="flex items-center justify-between">
         <span>{t('notifications.title') || 'Bildirimler'}</span>
         <Button 
           variant="outline" 
           size="xs" 
-          on:click={handleMarkAll} 
+          onclick={handleMarkAll} 
           disabled={unreadCount === 0}
         >
           {t('notifications.markAll')}
@@ -216,7 +262,7 @@
 
                 <div class="flex items-center p-2 justify-between">
                   <div class="flex items-center gap-2">
-                    {#if group.actor}
+                    {#if group.actor && group.actor.nickname}
                       <a href={`/${group.actor.nickname}`} class="flex-shrink-0">
                         <Avatar class="h-10 w-10">
                           <AvatarFallback>
@@ -227,7 +273,13 @@
                     {/if}
                     <div class="text-left">
                       <div class="text-sm">
-                        {group.actor ? getDisplayName(group.actor) : t('notifications.systemNotification')}
+                        {#if group.actor && group.actor.nickname}
+                          <a href={`/${group.actor.nickname}`} class="hover:text-primary transition-colors">
+                            {getDisplayName(group.actor)}
+                          </a>
+                        {:else}
+                          {t('notifications.systemNotification')}
+                        {/if}
                       </div>
                       <div class="text-xs text-muted-foreground">
                         {group.notifications.length} {group.notifications.length === 1 ? t('notifications.notification') : t('notifications.notifications')}
@@ -263,15 +315,39 @@
                       class="py-2.5 px-4 flex flex-row justify-between items-center relative group hover:bg-accent/20 transition-colors  {!item.read ? 'bg-primary/5' : ''}"
                     >
                       <div class="flex flex-col gap-1 flex-1">
-                        <div onclick={() => handleSelect(item)} class="text-xs text-secondary-foreground hover:text-primary cursor-pointer">{translateNotificationText(item.message, item.actor, item.meta)}</div>
+                        <!-- Title -->
+                        <div class="text-sm font-medium text-foreground">
+                          {translateNotificationText(item.title, item.actor, item.meta)}
+                        </div>
+                        <!-- Message/Content -->
+                        <div onclick={() => handleSelect(item)} class="text-xs text-secondary-foreground hover:text-primary cursor-pointer">
+                          {translateNotificationText(item.message, item.actor, item.meta)}
+                        </div>
+                        <!-- Timestamp -->
                         <div class="text-xs text-muted-foreground">
                           {formatTimestamp(item.createdAt)}
                         </div>
                       </div>
 
-                                                  <Button onclick={() => handleDelete(item)} size="icon" variant="outline">
-                        <Trash2 class="h-4 w-4" />
-                      </Button>
+                      <!-- Action buttons -->
+                      <div class="flex items-center gap-1">
+                        <!-- Edit Article button for rejected articles -->
+                        {#if item.type === 'article_status' && item.meta?.newStatus === 'rejected' && item.meta?.articleId}
+                          <Button 
+                            onclick={() => handleEditArticle(item)} 
+                            size="icon" 
+                            variant="outline"
+                            title="Makaleyi Düzenle"
+                          >
+                            <Edit class="h-4 w-4" />
+                          </Button>
+                        {/if}
+                        
+                        <!-- Delete button -->
+                        <Button onclick={() => handleDelete(item)} size="icon" variant="outline" title="Bildirimi Sil">
+                          <Trash2 class="h-4 w-4" />
+                        </Button>
+                      </div>
                     </div>
                   {/each}
                 </div>

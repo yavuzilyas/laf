@@ -1,18 +1,12 @@
 // src/routes/article/[slug]/+page.server.ts
 import type { PageServerLoad } from './$types';
 import { error, redirect } from '@sveltejs/kit';
-import { getArticlesCollection, getUsersCollection, toObjectId } from '$db/mongo';
-import { ObjectId } from 'mongodb';
-import { rm } from 'fs/promises';
-import { resolve } from 'path';
+import { getArticleBySlug, getArticleById, getArticles, incrementArticleViews, getUsers, getBlockedUsers, getFollows } from '$db/queries';
 
 const toSerializableId = (value: unknown) => {
   if (!value) return value;
   if (typeof value === 'string') return value;
-  if (typeof value === 'object' && typeof (value as { toString: () => string }).toString === 'function') {
-    return (value as { toString: () => string }).toString();
-  }
-  return value;
+  return String(value);
 };
 
 const sanitizeRelationEntries = <T extends Record<string, any>>(
@@ -34,14 +28,9 @@ const sanitizeRelationEntries = <T extends Record<string, any>>(
   }));
 };
 
-// ... existing imports ...
-
 export const load: PageServerLoad = async ({ params, locals }) => {
   const { slug } = params;
-  const articles = await getArticlesCollection();
-  const users = await getUsersCollection();
   const viewer = (locals as any)?.user ?? null;
-  const viewerObjectId = viewer ? new ObjectId(viewer.id) : null;
 
   // Try finding by slug across known locales
   const localesToTry = ['en', 'tr', 'de', 'fr', 'es'];
@@ -49,56 +38,30 @@ export const load: PageServerLoad = async ({ params, locals }) => {
   let matchedLang: string | null = null;
 
   for (const lang of localesToTry) {
-    // First, build the base query to find the article by slug and language
-    const query: any = {
-      [`translations.${lang}.slug`]: slug,
-      deletedAt: { $exists: false }
-    };
-
-    // If user is not logged in, they can only see published articles
-    if (!viewerObjectId) {
-      query.status = 'published';
-    } else {
-      // For logged-in users, check their access level
-      const isModeratorOrAdmin = viewer?.role === 'moderator' || viewer?.role === 'admin';
-      
-      if (isModeratorOrAdmin) {
-        // Moderators and admins can see all articles regardless of status
-        query.$or = [
-          { status: 'published' },
-          { status: 'pending' },
-          { status: 'draft' }
-        ];
-      } else {
-        // Regular users can see published articles and their own drafts/pending
-        query.$or = [
-          { status: 'published' },
-          {
-            $and: [
-              { authorId: viewerObjectId },
-              { $or: [{ status: 'draft' }, { status: 'pending' }] }
-            ]
-          }
-        ];
-      }
+    // Determine access level for this user
+    const isModeratorOrAdmin = viewer?.role === 'moderator' || viewer?.role === 'admin';
+    
+    // Try to find article by slug and language
+    const found = await getArticleBySlug(slug, lang, { 
+      includeHidden: isModeratorOrAdmin || (viewer && viewer.id),
+      includeDeleted: false
+    });
+    
+    if (!found) continue;
+    
+    // Check access permissions
+    if (!viewer) {
+      // Non-logged in users can only see published articles
+      if (found.status !== 'published') continue;
+    } else if (!isModeratorOrAdmin) {
+      // Regular users can see published articles and their own drafts/pending
+      const isAuthor = viewer.id === found.author_id;
+      if (found.status !== 'published' && !isAuthor) continue;
     }
     
-    const found = await articles.findOne(query);
-    if (found) {
-      // If article is draft/pending and user is not the author or moderator/admin, skip to next language
-      if ((found.status === 'draft' || found.status === 'pending')) {
-        const isAuthor = viewerObjectId && found.authorId && found.authorId.equals(viewerObjectId);
-        const isModeratorOrAdmin = viewer?.role === 'moderator' || viewer?.role === 'admin';
-        
-        if (!isAuthor && !isModeratorOrAdmin) {
-          continue;
-        }
-      }
-      
-      article = found;
-      matchedLang = lang;
-      break;
-    }
+    article = found;
+    matchedLang = lang;
+    break;
   }
 
   if (!article) {
@@ -106,81 +69,77 @@ export const load: PageServerLoad = async ({ params, locals }) => {
   }
 
   // Eğer makale gizlenmişse ve kullanıcı sahibi değilse erişim engelle
-  if (article.hidden && (!locals.user || String(article.authorId) !== String(locals.user.id))) {
+  if (article.is_hidden && (!viewer || String(article.author_id) !== String(viewer.id))) {
     throw redirect(303, '/403');
   }
 
   // Load viewer block lists
   let viewerBlockedIds = new Set<string>();
-  if (viewerObjectId) {
-    const viewerDoc = await users.findOne(
-      { _id: viewerObjectId },
-      { projection: { blocked: 1 } }
-    );
-
-    if (Array.isArray(viewerDoc?.blocked)) {
-      viewerBlockedIds = new Set(
-        viewerDoc.blocked
-          .map((entry: any) => entry?.blockedUserId)
-          .filter(Boolean)
-          .map((id: any) => id.toString())
-      );
+  if (viewer) {
+    const blockedData = await getBlockedUsers(viewer.id);
+    if (blockedData && blockedData.blocked_actor_ids) {
+      viewerBlockedIds = new Set(blockedData.blocked_actor_ids);
     }
   }
 
-  const authorIdStr = article.authorId ? String(article.authorId) : null;
+  const authorIdStr = article.author_id ? String(article.author_id) : null;
   const viewerBlocksAuthor = viewer && authorIdStr ? viewerBlockedIds.has(authorIdStr) : false;
 
+  // Load author data
   let authorDoc: any = null;
-  if (article.authorId) {
-    try {
-      authorDoc = await users.findOne({ _id: new ObjectId(article.authorId) });
-    } catch (err) {
-      console.error('Author lookup failed', err);
-    }
+  if (article.author_id) {
+    const authorData = await getUsers({ id: article.author_id });
+    authorDoc = authorData[0] || null;
   }
 
-  const authorBlocksViewer = Boolean(
-    viewerObjectId && authorDoc?.blocked?.some?.((entry: any) => {
-      try {
-        return entry?.blockedUserId && new ObjectId(entry.blockedUserId).equals(viewerObjectId);
-      } catch {
-        return false;
-      }
-    })
-  );
+  // Check if author blocks viewer
+  let authorBlocksViewer = false;
+  if (viewer && authorDoc) {
+    const authorBlockedData = await getBlockedUsers(article.author_id);
+    if (authorBlockedData && authorBlockedData.blocked_actor_ids) {
+      authorBlocksViewer = authorBlockedData.blocked_actor_ids.includes(viewer.id);
+    }
+  }
 
   if (viewerBlocksAuthor || authorBlocksViewer) {
     throw error(403, 'Blocked user content');
   }
 
   // Increment views
-  await articles.updateOne({ _id: article._id }, { $inc: { 'stats.views': 1 } });
+  await incrementArticleViews(article.id);
 
   // Build available translations map
   const availableTranslations: Record<string, { slug: string; title: string }> = {};
-  for (const [lang, tr] of Object.entries(article.translations || {})) {
-    if (tr && typeof tr === 'object' && tr.slug) {
-      availableTranslations[lang] = { slug: tr.slug, title: tr.title };
+  const translations = article.translations || {};
+  for (const [lang, tr] of Object.entries(translations)) {
+    if (tr && typeof tr === 'object' && (tr as any).slug) {
+      availableTranslations[lang] = { slug: (tr as any).slug, title: (tr as any).title };
     }
   }
 
   // Flatten selected translation into top-level fields for the page
-  const currentLang = matchedLang || article.defaultLanguage || Object.keys(availableTranslations)[0];
-  const tr = article.translations[currentLang];
+  const currentLang = matchedLang || article.default_language || Object.keys(availableTranslations)[0];
+  const tr = translations[currentLang] || {};
 
   // Load author as plain serializable object
-  let author: { id: string; nickname?: string; name?: string; surname?: string } | null = null;
-  if (article.authorId) {
+  let author: { id: string; nickname?: string; name?: string; surname?: string; avatar?: string } | null = null;
+  if (article.author_id) {
     if (authorDoc) {
       author = {
-        id: authorDoc._id.toString(),
-        nickname: authorDoc.nickname,
-        name: authorDoc.name,
-        surname: authorDoc.surname
+        id: authorDoc.id,
+        nickname: authorDoc.nickname || authorDoc.username || '',
+        name: authorDoc.name || authorDoc.username || '',
+        surname: authorDoc.surname || '',
+        avatar: authorDoc.avatar_url || ''
       };
     } else {
-      author = { id: String(article.authorId) };
+      author = { 
+        id: String(article.author_id),
+        nickname: '',
+        name: 'Unknown User',
+        surname: '',
+        avatar: ''
+      };
     }
   }
 
@@ -188,182 +147,160 @@ export const load: PageServerLoad = async ({ params, locals }) => {
   let profileUser = null;
   let isFollowing = false;
   let isFollowingMe = false;
-  let followersList = [];
-  let followingList = [];
+  let followersList: any[] = [];
+  let followingList: any[] = [];
   let isOwnProfile = false;
 
   if (authorDoc) {
-    const authorId = authorDoc._id;
-    const viewerId = viewerObjectId;
+    const authorId = authorDoc.id;
+    const viewerId = viewer?.id;
     
     // Check if viewer is the author
-    isOwnProfile = viewerId ? viewerId.equals(authorId) : false;
+    isOwnProfile = viewerId ? viewerId === authorId : false;
 
-    // Get followers and following lists
-    const followers = authorDoc.followers || [];
-    const following = authorDoc.following || [];
+    // Get followers and following from follows table
+    const followers = await getFollows({ following_id: authorId });
+    const following = await getFollows({ follower_id: authorId });
 
     // Check if viewer follows the author
-    isFollowing = viewerId && Array.isArray(followers) 
-      ? followers.some((f: any) => f.followerUserId && f.followerUserId.toString() === viewerId.toString())
-      : false;
+    isFollowing = viewerId && followers.some((f: any) => f.follower_id === viewerId);
 
     // Check if author follows the viewer
-    isFollowingMe = viewerId && Array.isArray(following)
-      ? following.some((f: any) => f.followingUserId && f.followingUserId.toString() === viewerId.toString())
-      : false;
+    isFollowingMe = viewerId && following.some((f: any) => f.following_id === viewerId);
 
     // Prepare followers list
-    if (Array.isArray(followers)) {
-      followersList = await Promise.all(followers.slice(0, 10).map(async (f: any) => {
-        if (!f.followerUserId) return null;
-        
-        const followerId = typeof f.followerUserId === 'object' 
-          ? f.followerUserId.toString() 
-          : String(f.followerUserId);
-        
-        const user = await users.findOne(
-          { _id: new ObjectId(followerId) },
-          { projection: { nickname: 1, name: 1, surname: 1, avatar: 1, bio: 1, followers: 1 } }
-        );
-        if (!user) return null;
-        
-        const userId = typeof user._id === 'object' ? user._id.toString() : String(user._id);
-        
-        // Check if viewer follows this follower
-        const isViewerFollowing = viewerId && Array.isArray(user.followers) 
-          ? user.followers.some((follow: any) => {
-              const followId = follow.followerUserId 
-                ? (typeof follow.followerUserId === 'object' 
-                    ? follow.followerUserId.toString() 
-                    : String(follow.followerUserId))
-                : null;
-              return followId === viewerId.toString();
-            })
-          : false;
+    followersList = await Promise.all(followers.slice(0, 10).map(async (f: any) => {
+      const followerData = await getUsers({ id: f.follower_id });
+      const user = followerData[0];
+      if (!user) return null;
+      
+      // Check if viewer follows this follower
+      const followerFollowers = await getFollows({ following_id: user.id });
+      const isViewerFollowing = viewerId && followerFollowers.some((follow: any) => follow.follower_id === viewerId);
 
-        return {
-          id: userId,
-          nickname: user.nickname || '',
-          name: user.name || '',
-          surname: user.surname || '',
-          avatar: typeof user.avatar === 'string' ? user.avatar : '',
-          bio: user.bio || '',
-          followedAt: f.followedAt instanceof Date ? f.followedAt.toISOString() : f.followedAt,
-          isFollowing: isViewerFollowing,
-          isBlocked: false
-        };
-      }));
-      followersList = followersList.filter(Boolean);
-    }
+      return {
+        id: user.id,
+        nickname: user.nickname || '',
+        name: user.name || '',
+        surname: user.surname || '',
+        avatar: user.avatar_url || '',
+        bio: user.bio || '',
+        followedAt: f.created_at instanceof Date ? f.created_at.toISOString() : f.created_at,
+        isFollowing: isViewerFollowing,
+        isBlocked: false
+      };
+    }));
+    followersList = followersList.filter(Boolean);
 
     // Prepare following list
-    if (Array.isArray(following)) {
-      followingList = await Promise.all(following.slice(0, 10).map(async (f: any) => {
-        if (!f.followingUserId) return null;
-        
-        const followingId = typeof f.followingUserId === 'object' 
-          ? f.followingUserId.toString() 
-          : String(f.followingUserId);
-        
-        const user = await users.findOne(
-          { _id: new ObjectId(followingId) },
-          { projection: { nickname: 1, name: 1, surname: 1, avatar: 1, bio: 1, followers: 1 } }
-        );
-        if (!user) return null;
-        
-        const userId = typeof user._id === 'object' ? user._id.toString() : String(user._id);
-        
-        // Check if viewer follows this user
-        const isViewerFollowing = viewerId && Array.isArray(user.followers) 
-          ? user.followers.some((follow: any) => {
-              const followId = follow.followerUserId 
-                ? (typeof follow.followerUserId === 'object' 
-                    ? follow.followerUserId.toString() 
-                    : String(follow.followerUserId))
-                : null;
-              return followId === viewerId.toString();
-            })
-          : false;
+    followingList = await Promise.all(following.slice(0, 10).map(async (f: any) => {
+      const followingData = await getUsers({ id: f.following_id });
+      const user = followingData[0];
+      if (!user) return null;
+      
+      // Check if viewer follows this user
+      const followingFollowers = await getFollows({ following_id: user.id });
+      const isViewerFollowing = viewerId && followingFollowers.some((follow: any) => follow.follower_id === viewerId);
 
-        return {
-          id: userId,
-          nickname: user.nickname || '',
-          name: user.name || '',
-          surname: user.surname || '',
-          avatar: typeof user.avatar === 'string' ? user.avatar : '',
-          bio: user.bio || '',
-          followedAt: f.followedAt instanceof Date ? f.followedAt.toISOString() : f.followedAt,
-          isFollowing: isViewerFollowing,
-          isBlocked: false
-        };
-      }));
-      followingList = followingList.filter(Boolean);
-    }
+      return {
+        id: user.id,
+        nickname: user.nickname || '',
+        name: user.name || '',
+        surname: user.surname || '',
+        avatar: user.avatar_url || '',
+        bio: user.bio || '',
+        followedAt: f.created_at instanceof Date ? f.created_at.toISOString() : f.created_at,
+        isFollowing: isViewerFollowing,
+        isBlocked: false
+      };
+    }));
+    followingList = followingList.filter(Boolean);
 
     // Prepare profile data for the ProfileCard
-    const profileData = {
-      name: authorDoc.name || '',
-      surname: authorDoc.surname || '',
-      nickname: authorDoc.nickname || '',
-      bio: authorDoc.bio || '',
-      avatar: typeof authorDoc.avatar === 'string' ? authorDoc.avatar : '',
-      bannerColor: authorDoc.bannerColor || '#0f172a',
-      bannerImage: typeof authorDoc.bannerImage === 'string' ? authorDoc.bannerImage : '',
-      website: authorDoc.website || '',
-      location: authorDoc.location || '',
-      interests: Array.isArray(authorDoc.interests) ? authorDoc.interests : []
-    };
-
-    // Sanitize profile user data
     profileUser = {
       ...authorDoc,
-      _id: authorDoc._id.toString(),
-      avatar: typeof authorDoc.avatar === 'string' ? authorDoc.avatar : '',
-      bannerColor: authorDoc.bannerColor || '#0f172a',
-      bannerImage: typeof authorDoc.bannerImage === 'string' ? authorDoc.bannerImage : '',
-      followers: sanitizeRelationEntries(authorDoc.followers, 'followerUserId', 'followedAt'),
-      following: sanitizeRelationEntries(authorDoc.following, 'followingUserId', 'followedAt'),
-      blocked: sanitizeRelationEntries(authorDoc.blocked, 'blockedUserId', 'blockedAt'),
-      followersCount: Array.isArray(authorDoc.followers) ? authorDoc.followers.length : 0,
-      followingCount: Array.isArray(authorDoc.following) ? authorDoc.following.length : 0,
-      createdAt: authorDoc.createdAt instanceof Date ? authorDoc.createdAt.toISOString() : authorDoc.createdAt,
-      updatedAt: authorDoc.updatedAt instanceof Date ? authorDoc.updatedAt.toISOString() : authorDoc.updatedAt,
-      ...(authorDoc.moderationAction ? {
-        moderationAction: {
-          ...authorDoc.moderationAction,
-          moderatorId: toSerializableId(authorDoc.moderationAction.moderatorId),
-          timestamp: authorDoc.moderationAction.timestamp instanceof Date 
-            ? authorDoc.moderationAction.timestamp.toISOString() 
-            : authorDoc.moderationAction.timestamp
-        }
-      } : {})
+      id: authorDoc.id,
+      avatar: authorDoc.avatar_url || '',
+      bannerColor: authorDoc.preferences?.bannerColor || authorDoc.banner_color || '#0f172a',
+      bannerImage: authorDoc.preferences?.bannerImage || authorDoc.banner_image || '',
+      followers: followers.map((f: any) => ({
+        followerUserId: f.follower_id,
+        followedAt: f.created_at
+      })),
+      following: following.map((f: any) => ({
+        followingUserId: f.following_id,
+        followedAt: f.created_at
+      })),
+      blocked: [],
+      followersCount: followers.length,
+      followingCount: following.length,
+      createdAt: authorDoc.created_at instanceof Date ? authorDoc.created_at.toISOString() : authorDoc.created_at,
+      updatedAt: authorDoc.updated_at instanceof Date ? authorDoc.updated_at.toISOString() : authorDoc.updated_at
     };
-    
-    // Ensure all ObjectIds are converted to strings
-    if (profileUser._id && typeof profileUser._id !== 'string') {
-      profileUser._id = profileUser._id.toString();
-    }
   }
 
   // Calculate article statistics
-  const articlesCollection = await getArticlesCollection();
-  const userArticles = await articlesCollection
-    .find({
-      'authorId': article.authorId,
-      'status': 'published',
-      'deletedAt': { $exists: false }
-    })
-    .toArray();
+  const userArticles = await getArticles({
+    author_id: article.author_id,
+    status: 'published'
+  });
 
   const totalArticles = userArticles.length;
-  const totalViews = userArticles.reduce((sum, a) => sum + ((a.stats?.views) || 0), 0);
-  const totalLikes = userArticles.reduce((sum, a) => sum + ((a.stats?.likes) || 0), 0);
-  const totalComments = userArticles.reduce((sum, a) => sum + ((a.stats?.comments) || 0), 0);
+  const totalViews = userArticles.reduce((sum, a) => sum + (a.views || 0), 0);
+  const totalLikes = userArticles.reduce((sum, a) => sum + (a.likes_count || 0), 0);
+  const totalComments = userArticles.reduce((sum, a) => sum + (a.comments_count || 0), 0);
+
+  // Load collaborator data if any
+  let collaborators: Array<{ id: string; username: string; name?: string; surname?: string }> = [];
+  let collaboratorProfiles: any[] = [];
+  if (article.collaborators && Array.isArray(article.collaborators) && article.collaborators.length > 0) {
+    const collaboratorUsers = await getUsers({ id: { $in: article.collaborators } });
+    collaborators = collaboratorUsers.map(user => ({
+      id: user.id,
+      username: user.username || user.nickname || '',
+      name: user.name || '',
+      surname: user.surname || ''
+    }));
+
+    // Get profile data for each collaborator
+    for (const collaborator of collaboratorUsers) {
+      const collaboratorArticles = await getArticles({
+        author_id: collaborator.id,
+        status: 'published'
+      });
+
+      const totalArticles = collaboratorArticles.length;
+      const totalViews = collaboratorArticles.reduce((sum: number, a: any) => sum + (a.views || 0), 0);
+      const totalLikes = collaboratorArticles.reduce((sum: number, a: any) => sum + (a.likes_count || 0), 0);
+      const totalComments = collaboratorArticles.reduce((sum: number, a: any) => sum + (a.comments_count || 0), 0);
+
+      collaboratorProfiles.push({
+        ...collaborator,
+        id: collaborator.id,
+        avatar: collaborator.avatar_url || '',
+        bannerColor: collaborator.preferences?.bannerColor || collaborator.banner_color || '#0f172a',
+        bannerImage: collaborator.preferences?.bannerImage || collaborator.banner_image || '',
+        followers: [],
+        following: [],
+        blocked: [],
+        followersCount: 0,
+        followingCount: 0,
+        createdAt: collaborator.created_at instanceof Date ? collaborator.created_at.toISOString() : collaborator.created_at,
+        updatedAt: collaborator.updated_at instanceof Date ? collaborator.updated_at.toISOString() : collaborator.updated_at,
+        stats: {
+          totalArticles: Number(totalArticles) || 0,
+          totalViews: Number(totalViews) || 0,
+          totalLikes: Number(totalLikes) || 0,
+          totalComments: Number(totalComments) || 0
+        }
+      });
+    }
+  }
 
   // Create a serializable article object
   const serializedArticle = {
-    _id: article._id.toString(),
+    _id: article.id,
+    id: article.id,
     language: currentLang,
     title: tr?.title ?? '',
     excerpt: tr?.excerpt ?? '',
@@ -374,44 +311,39 @@ export const load: PageServerLoad = async ({ params, locals }) => {
     status: article.status,
     tags: Array.isArray(article.tags) ? [...article.tags] : [],
     stats: {
-      views: article.stats?.views || 0,
-      likes: article.stats?.likes || 0,
-      comments: article.stats?.comments || 0,
-      dislikes: article.stats?.dislikes || 0
+      views: article.views || 0,
+      likes: article.likes_count || 0,
+      comments: article.comments_count || 0,
+      dislikes: article.dislikes || 0
     },
     author,
-    authorId: article.authorId ? String(article.authorId) : undefined,
-    createdAt: article.createdAt ? new Date(article.createdAt).toISOString() : undefined,
-    updatedAt: article.updatedAt ? new Date(article.updatedAt).toISOString() : undefined,
-    publishedAt: article.publishedAt ? new Date(article.publishedAt).toISOString() : undefined,
+    authorId: article.author_id ? String(article.author_id) : undefined,
+    createdAt: article.created_at ? new Date(article.created_at).toISOString() : undefined,
+    updatedAt: article.updated_at ? new Date(article.updated_at).toISOString() : undefined,
+    publishedAt: article.published_at ? new Date(article.published_at).toISOString() : undefined,
     availableTranslations
   };
 
   // Create a safe profile user object
   const safeProfileUser = profileUser ? {
     ...profileUser,
-    _id: profileUser._id ? String(profileUser._id) : undefined,
-    moderationAction: profileUser.moderationAction ? {
-      ...profileUser.moderationAction,
-      moderatorId: toSerializableId(profileUser.moderationAction.moderatorId),
-      timestamp: profileUser.moderationAction.timestamp instanceof Date 
-        ? profileUser.moderationAction.timestamp.toISOString()
-        : profileUser.moderationAction.timestamp
-    } : undefined
+    id: profileUser.id ? String(profileUser.id) : undefined
   } : null;
 
   // Create safe current user object
-  const safeCurrentUser = locals.user ? {
-    id: locals.user.id ? String(locals.user.id) : undefined,
-    role: locals.user.role,
-    nickname: locals.user.nickname,
-    email: locals.user.email,
-    name: locals.user.name,
-    surname: locals.user.surname
+  const safeCurrentUser = viewer ? {
+    id: viewer.id ? String(viewer.id) : undefined,
+    role: viewer.role,
+    nickname: viewer.nickname,
+    email: viewer.email,
+    name: viewer.name,
+    surname: viewer.surname
   } : null;
 
   return {
     article: serializedArticle,
+    collaborators,
+    collaboratorProfiles,
     profileUser: safeProfileUser,
     isFollowing,
     isFollowingMe,
@@ -424,8 +356,8 @@ export const load: PageServerLoad = async ({ params, locals }) => {
       totalViews: Number(totalViews) || 0,
       totalLikes: Number(totalLikes) || 0,
       totalComments: Number(totalComments) || 0,
-      joinDate: authorDoc?.createdAt 
-        ? new Date(authorDoc.createdAt).toISOString() 
+      joinDate: authorDoc?.created_at 
+        ? new Date(authorDoc.created_at).toISOString() 
         : new Date().toISOString()
     }
   };

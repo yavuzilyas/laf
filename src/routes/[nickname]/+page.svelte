@@ -34,11 +34,12 @@
 
     let { data } = $props();
     let profileUser = data.profileUser;
+    let userProfileData = data.userProfileData;
     const currentUser = data.currentUser;
     const currentUserId = currentUser?.id;
     const isModeratorOrAdmin = currentUser?.role === 'moderator' || currentUser?.role === 'admin';
-    const profileNicknameSlug = $derived(() => {
-        const value = profileUser?.nickname || profileUser?.id || 'user';
+    const profileusernameSlug = $derived(() => {
+        const value = profileUser?.username || profileUser?.id || 'user';
         return value
             .toString()
             .trim()
@@ -47,7 +48,7 @@
             .replace(/-+/g, '-')
             .replace(/^-|-$/g, '') || 'user';
     });
-    const profileUserId = $derived(profileUser?._id || profileUser?.id);
+    const profileUserId = $derived(profileUser?.id);
     const serverArticles = data.articles ?? [];
     let stats = data.stats;
     let isOwnProfile = data.isOwnProfile;
@@ -55,14 +56,14 @@
     let followersList = $state(data.followersList ?? []);
     let followingList = $state(data.followingList ?? []);
     
-    // Track URL changes and reload when nickname changes
+    // Track URL changes and reload when username changes
     onMount(() => {
-        let previousNickname = $page.params.nickname;
+        let previoususername = $page.params.nickname;
         
         return afterNavigate(({ to }) => {
-            const newNickname = to?.params.nickname;
-            if (newNickname && newNickname !== previousNickname) {
-                previousNickname = newNickname;
+            const newusername = to?.params.nickname;
+            if (newusername && newusername !== previoususername) {
+                previoususername = newusername;
                 // Force a full page reload to ensure all data is refreshed
                 window.location.href = to.url.href;
             }
@@ -170,8 +171,8 @@
             const formData = new FormData();
             formData.append('file', file);
             formData.append('folder', 'avatars');
-            if (profileData.avatar) {
-                formData.append('previousUrl', profileData.avatar);
+            if (profileFormData.avatar) {
+                formData.append('previousUrl', profileFormData.avatar);
             }
 
             const response = await fetch('/api/upload', {
@@ -185,19 +186,19 @@
 
             const result = await response.json();
             const newAvatarUrl = result.url;
-            profileData.avatar = newAvatarUrl;
+            profileFormData.avatar = newAvatarUrl;
 
             const saved = await persistProfileUpdate({ avatar: newAvatarUrl });
             if (!saved) {
-                profileData.avatar = previous;
+                profileFormData.avatar = previous;
                 throw new Error('Failed to persist avatar');
             }
 
-            profileUser = { ...profileUser, avatar: newAvatarUrl };
+            profileUser = { ...profileUser, avatar_url: newAvatarUrl };
         } catch (error) {
             console.error('Avatar upload error:', error);
-            profileData.avatar = previous;
-            profileUser = { ...profileUser, avatar: previous };
+            profileFormData.avatar = previous;
+            profileUser = { ...profileUser, avatar_url: previous };
             alert(t('profile.avatarUploadError'));
         } finally {
             avatarUploading = false;
@@ -206,10 +207,10 @@
     };
 
     const handleAvatarRemove = async () => {
-        if (!profileData.avatar) return;
+        if (!profileFormData.avatar) return;
 
-        const previous = profileData.avatar;
-        profileData.avatar = "";
+        const previous = profileFormData.avatar;
+        profileFormData.avatar = "";
 
         try {
             const response = await fetch('/api/upload', {
@@ -227,27 +228,27 @@
                 throw new Error('Failed to persist avatar removal');
             }
 
-            profileUser = { ...profileUser, avatar: '' };
+            profileUser = { ...profileUser, avatar_url: '' };
         } catch (error) {
             console.error('Avatar remove error:', error);
-            profileData.avatar = previous;
-            profileUser = { ...profileUser, avatar: previous };
+            profileFormData.avatar = previous;
+            profileUser = { ...profileUser, avatar_url: previous };
         }
     };
 
     // Profile form data
-    let profileData = $state({
+    let profileFormData = $state({
         name: profileUser?.name || "",
         surname: profileUser?.surname || "",
-        nickname: profileUser?.nickname || "",
+        username: profileUser?.username || "",
         bio: profileUser?.bio || "",
-        location: profileUser?.location || "",
-        website: profileUser?.website || "",
-        interests: profileUser?.interests || [],
-        avatar: profileUser?.avatar || "",
-        bannerColor: profileUser?.bannerColor || DEFAULT_BANNER_COLOR,
-        bannerImage: profileUser?.bannerImage || "",
-        socialLinks: profileUser?.socialLinks || {
+        avatar: profileUser?.avatar_url || "",
+        location: profileUser?.preferences?.location || "",
+        website: profileUser?.preferences?.website || "",
+        interests: profileUser?.preferences?.interests || [],
+        bannerColor: profileUser?.preferences?.bannerColor || "#0f172a",
+        bannerImage: profileUser?.preferences?.bannerImage || "",
+        socialLinks: profileUser?.preferences?.socialLinks || {
             twitter: "",
             github: "",
             linkedin: ""
@@ -296,18 +297,18 @@
     };
 
     const handleCancelEdit = () => {
-        profileData = {
+        profileFormData = {
             name: profileUser?.name || "",
             surname: profileUser?.surname || "",
-            nickname: profileUser?.nickname || "",
+            username: profileUser?.username || "",
             bio: profileUser?.bio || "",
-            location: profileUser?.location || "",
-            website: profileUser?.website || "",
-            interests: profileUser?.interests || [],
-            avatar: profileUser?.avatar || "",
-            bannerColor: profileUser?.bannerColor || DEFAULT_BANNER_COLOR,
-            bannerImage: profileUser?.bannerImage || "",
-            socialLinks: profileUser?.socialLinks || {
+            avatar: profileUser?.avatar_url || "",
+            location: profileUser?.preferences?.location || "",
+            website: profileUser?.preferences?.website || "",
+            interests: profileUser?.preferences?.interests || [],
+            bannerColor: profileUser?.preferences?.bannerColor || "#0f172a",
+            bannerImage: profileUser?.preferences?.bannerImage || "",
+            socialLinks: profileUser?.preferences?.socialLinks || {
                 twitter: "",
                 github: "",
                 linkedin: ""
@@ -317,7 +318,7 @@
     };
 
     const handleBannerColorChange = (color: string) => {
-        profileData.bannerColor = color || DEFAULT_BANNER_COLOR;
+        profileFormData.bannerColor = color || DEFAULT_BANNER_COLOR;
     };
 
     const triggerBannerFileDialog = () => {
@@ -331,7 +332,7 @@
         const file = input.files?.[0];
         if (!file) return;
 
-        const previousBanner = profileData.bannerImage;
+        const previousBanner = profileFormData.bannerImage;
         const maxBytes = 4 * 1024 * 1024;
         if (file.size > maxBytes) {
             alert(t('profile.bannerSizeError') ?? 'Banner en fazla 4MB olmalı.');
@@ -351,8 +352,8 @@
             const formData = new FormData();
             formData.append('file', file);
             formData.append('folder', 'banners');
-            if (profileData.bannerImage) {
-                formData.append('previousUrl', profileData.bannerImage);
+            if (profileFormData.bannerImage) {
+                formData.append('previousUrl', profileFormData.bannerImage);
             }
 
             const response = await fetch('/api/upload', {
@@ -366,19 +367,19 @@
 
             const result = await response.json();
             const newBannerUrl = result.url;
-            profileData.bannerImage = newBannerUrl;
+            profileFormData.bannerImage = newBannerUrl;
 
             const saved = await persistProfileUpdate({ bannerImage: newBannerUrl });
             if (!saved) {
-                profileData.bannerImage = previousBanner;
+                profileFormData.bannerImage = previousBanner;
                 throw new Error('Failed to persist banner image');
             }
 
-            profileUser = { ...profileUser, bannerImage: newBannerUrl };
+            profileUser = { ...profileUser, preferences: { ...profileUser.preferences, bannerImage: newBannerUrl } };
         } catch (error) {
             console.error('Banner upload error:', error);
-            profileData.bannerImage = previousBanner;
-            profileUser = { ...profileUser, bannerImage: previousBanner };
+            profileFormData.bannerImage = previousBanner;
+            profileUser = { ...profileUser, preferences: { ...profileUser.preferences, bannerImage: previousBanner } };
             alert(t('profile.bannerUploadError') ?? 'Banner yüklenirken bir sorun oluştu.');
         } finally {
             bannerUploading = false;
@@ -387,10 +388,10 @@
     };
 
     const handleBannerRemove = async () => {
-        if (!profileData.bannerImage) return;
+        if (!profileFormData.bannerImage) return;
 
-        const previous = profileData.bannerImage;
-        profileData.bannerImage = "";
+        const previous = profileFormData.bannerImage;
+        profileFormData.bannerImage = "";
 
         try {
             const response = await fetch('/api/upload', {
@@ -408,11 +409,11 @@
                 throw new Error('Failed to persist banner removal');
             }
 
-            profileUser = { ...profileUser, bannerImage: '' };
+            profileUser = { ...profileUser, preferences: { ...profileUser.preferences, bannerImage: '' } };
         } catch (error) {
             console.error('Banner remove error:', error);
-            profileData.bannerImage = previous;
-            profileUser = { ...profileUser, bannerImage: previous };
+            profileFormData.bannerImage = previous;
+            profileUser = { ...profileUser, preferences: { ...profileUser.preferences, bannerImage: previous } };
         }
     };
 
@@ -430,13 +431,13 @@
     };
 
     const addInterest = (interest: string) => {
-        if (interest.trim() && !profileData.interests.includes(interest.trim())) {
-            profileData.interests = [...profileData.interests, interest.trim()];
+        if (interest.trim() && !profileFormData.interests.includes(interest.trim())) {
+            profileFormData.interests = [...profileFormData.interests, interest.trim()];
         }
     };
 
     const removeInterest = (interest: string) => {
-        profileData.interests = profileData.interests.filter(i => i !== interest);
+        profileFormData.interests = profileFormData.interests.filter(i => i !== interest);
     };
 
     let newInterest = $state("");
@@ -714,18 +715,18 @@
 <Loader />
 
 <svelte:head>
-    <title>@{profileUser.nickname} - LAF</title>
-    <meta name="description" content={profileUser.bio || `${profileUser.nickname}'s profile on LAF`} />
+    <title>@{profileUser.username} - LAF</title>
+    <meta name="description" content={profileUser.bio || `${profileUser.username}'s profile on LAF`} />
 </svelte:head>
 
 <Navbar />
 
 <main class="min-h-screen bg-background">
-    <div class="container mx-auto px-3 py-4 sm:px-4 sm:py-8 max-w-6xl">
+    <div class="container mx-auto px-3 py-10 sm:px-4 max-w-6xl">
         <!-- Profile Header -->
         <div class="mb-8">
             <ProfileCard
-                profileData={profileData}
+                profileData={userProfileData}
                 profileUser={profileUser}
                 isOwnProfile={isOwnProfile}
                 isEditing={isEditing}
@@ -803,7 +804,7 @@
             <CardHeader class="space-y-2">
                 <CardTitle>{t('profile.articles')}</CardTitle>
                 <CardDescription>
-                    {isOwnProfile ? t('profile.myArticlesDescription') : `@${profileUser.nickname}'s articles`}
+                    {isOwnProfile ? t('profile.myArticlesDescription') : `@${profileUser.username}'s articles`}
                 </CardDescription>
             </CardHeader>
             <CardContent class="space-y-6">
@@ -812,6 +813,7 @@
                         value={searchQuery}
                         suggestions={[]}
                         recentSearches={recentSearches}
+                        articles={articles}
                         onSearch={handleSearch}
                         onClear={() => {
                             searchQuery = '';

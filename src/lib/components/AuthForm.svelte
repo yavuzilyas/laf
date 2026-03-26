@@ -11,9 +11,10 @@
 
   import { fly, crossfade } from "svelte/transition";
   import ScratchToReveal from "./ScratchToReveal.svelte";
-  import { User, LockKeyhole, RotateCcwKey, ShieldAlert, UserRoundPlus, KeyRound, LayoutDashboard, Eye, EyeOff, Check, Copy } from "@lucide/svelte";
+  import { User, LockKeyhole, RotateCcwKey, ShieldAlert, UserRoundPlus, KeyRound, LayoutDashboard, Eye, EyeOff, Check, Copy, Printer } from "@lucide/svelte";
   import Loader from "@lucide/svelte/icons/loader";
   import { t, i18n, dativeSuffix, locativeSuffix } from '$lib/stores/i18n.svelte.js';
+  import { setMnemonicPhrase, clearMnemonicPhrase } from '$lib/stores/mnemonic';
 
   let {
     mode = "login",
@@ -32,12 +33,15 @@
   // Login state
   let identifier = $state("");
   let password = $state("");
+  let showLoginPassword = $state(false);
   let mnemonicStep = $state(false);
   let mnemonicIndex = $state<number | null>(null);
   let mnemonicAnswer = $state("");
   let attemptCount = $state(0);
     let remainingAttempts = $state(3);
   let mnemonicQuestion = $state("");
+  let verificationToken = $state<string | null>(null);
+  let mnemonicPhrase = $state("");
   // Register multi-step state
   let step = $state<1 | 2 | 3>(1);
   let nickname = $state("");
@@ -52,6 +56,8 @@
 
 import * as bip39 from '@scure/bip39';
 import { wordlist } from '@scure/bip39/wordlists/english.js';
+import jsPDF from 'jspdf';
+import logo from '$lib/assets/hatlaf.png';
 
   // ... mevcut kodlar
 
@@ -69,6 +75,7 @@ import { wordlist } from '@scure/bip39/wordlists/english.js';
   let emailErrorExiting = $state(false);
   let showPassword = $state(false);
   let passwordCopied = $state(false);
+  let isGeneratingPDF = $state(false);
   
   function copyToClipboard(text: string) {
     navigator.clipboard.writeText(text).then(() => {
@@ -97,6 +104,7 @@ import { wordlist } from '@scure/bip39/wordlists/english.js';
     const v = (value || "").trim();
     if (v.length < 3 || v.length > 20) return t("auth.errors.usernameLength") || "3-20 karakter olmalı";
     if (v.length === 0) return t("auth.errors.usernameRequired") || "Kullanıcı adı gerekli";
+    if (!/^[a-z]+$/.test(v)) return t("auth.errors.usernameFormat") || "Sadece küçük harfler";
     return "";
   }
 
@@ -146,6 +154,145 @@ import { wordlist } from '@scure/bip39/wordlists/english.js';
     pw = pw.split('').sort(() => Math.random() - 0.5).join('');
     return pw;
   }
+const fadeScaleVariants = {
+  hidden: { opacity: 0, scale: 0 },
+  visible: { opacity: 1, scale: 1, transition: { duration: 0.3 } },
+  exit: { opacity: 0, scale: 0, transition: { duration: 0.15 } }
+}
+
+  async function generateMnemonicPDF() {
+    if (!mnemonic || mnemonic.length === 0) {
+      console.error('No mnemonic available');
+      return;
+    }
+    
+    isGeneratingPDF = true;
+    
+    try {
+      console.log('Generating mnemonic PDF with jsPDF...');
+      const pdf = new jsPDF();
+      
+      // Set background to match site
+      pdf.setFillColor(249, 250, 251); // Light gray background
+      pdf.rect(0, 0, 210, 297, 'F');
+      
+      // Logo in top-left
+      pdf.setFillColor(1, 1, 1); // Blue background
+      pdf.roundedRect(20, 20, 25, 25, 5, 5, 'F');
+      pdf.addImage(logo, 'PNG', 20, 20, 25, 25);
+      
+      // Document Title
+      pdf.setTextColor(31, 41, 55); // Dark gray
+      pdf.setFontSize(20);
+      pdf.setFont('Libre Baskerville', 'bold');
+      pdf.text('Mnemonic Backup Document', 20, 65);
+      
+      // Document Description
+      pdf.setTextColor(75, 85, 99); // Medium gray
+      pdf.setFontSize(11);
+      pdf.setFont('Libre Baskerville', 'normal');
+      pdf.text('This document contains your recovery phrase for account access.', 20, 75);
+      
+      // Document Importance
+      pdf.setTextColor(107, 114, 128); // Lighter gray
+      pdf.setFontSize(10);
+      pdf.text('IMPORTANCE: Keep this document secure and private. Never share with anyone.', 20, 85);
+      
+      // Date
+      pdf.setTextColor(156, 163, 175); // Even lighter gray
+      pdf.setFontSize(9);
+      pdf.text(`Generated: ${new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}`, 20, 95);
+      
+      // Mnemonic Code Section
+      pdf.setTextColor(31, 41, 55); // Dark gray
+      pdf.setFontSize(12);
+      pdf.setFont('Libre Baskerville', 'bold');
+      pdf.text('Mnemonic Code:', 20, 115);
+      
+      // Split mnemonic into words and create rounded borders for each
+      const wordsPerRow = 4;
+      const startX = 20;
+      const startY = 125;
+      const boxWidth = 40;
+      const boxHeight = 15;
+      const spacing = 5;
+      
+      pdf.setTextColor(55, 65, 81); // Medium-dark gray
+      pdf.setFontSize(9);
+      pdf.setFont('Libre Baskerville', 'normal');
+      
+      mnemonic.forEach((word, index) => {
+        const row = Math.floor(index / wordsPerRow);
+        const col = index % wordsPerRow;
+        const x = startX + (col * (boxWidth + spacing));
+        const y = startY + (row * (boxHeight + spacing));
+        
+        // Draw rounded border
+        pdf.setDrawColor(156, 163, 175); // Light gray border
+        pdf.setLineWidth(0.5);
+        pdf.roundedRect(x, y, boxWidth, boxHeight, 2, 2);
+        
+        // Add word number
+        pdf.setTextColor(156, 163, 175); // Light gray for number
+        pdf.setFontSize(7);
+        pdf.text(`${index + 1}.`, x + 2, y + 4);
+        
+        // Add word
+        pdf.setTextColor(31, 41, 55); // Dark gray for word
+        pdf.setFontSize(8);
+        pdf.text(word, x + boxWidth/2, y + boxHeight/2 + 2, { align: 'center' });
+      });
+      
+      // Additional Information Section
+      const infoY = startY + Math.ceil(mnemonic.length / wordsPerRow) * (boxHeight + spacing) + 20;
+      
+      pdf.setTextColor(31, 41, 55); // Dark gray
+      pdf.setFontSize(11);
+      pdf.setFont('Libre Baskerville', 'bold');
+      pdf.text('Important Information:', 20, infoY);
+      
+      pdf.setTextColor(75, 85, 99); // Medium gray
+      pdf.setFontSize(9);
+      pdf.setFont('Libre Baskerville', 'normal');
+      
+      const infoLines = [
+        '1- This phrase is the master key to your account',
+        '2- Store it in a secure physical location',
+        '3- Do not store digitally or photograph',
+        '4- Anyone with this phrase can access your account',
+        '5- This phrase cannot be recovered if lost'
+      ];
+      
+      let currentY = infoY + 10;
+      infoLines.forEach(line => {
+        pdf.text(line, 20, currentY);
+        currentY += 8;
+      });
+      
+      // Footer Information
+      const footerY = 270;
+      
+      pdf.setDrawColor(209, 213, 219); // Light gray line
+      pdf.setLineWidth(0.5);
+      pdf.line(20, footerY, 190, footerY);
+      
+      pdf.setTextColor(107, 114, 128); // Light gray
+      pdf.setFontSize(8);
+      pdf.text('LAF - Libertarian Anarchist Foundation', 20, footerY + 8);
+      
+      // Trigger print dialog instead of saving
+      pdf.autoPrint();
+      window.open(pdf.output('bloburl'), '_blank');
+      
+      showToast('Print dialog opened successfully', 'success');
+      
+    } catch (error) {
+      console.error('Error generating mnemonic PDF:', error);
+      showToast(`Failed to generate PDF: ${error.message}`, 'error');
+    } finally {
+      isGeneratingPDF = false;
+    }
+  }
   async function proceedRegisterStep1(e) {
     e.preventDefault();
     if (!nickname || !regPassword) {
@@ -181,8 +328,6 @@ import { wordlist } from '@scure/bip39/wordlists/english.js';
   }
 
 
-import { sha256 } from 'js-sha256';
-
 async function finalizeRegister() {
   if (selection.length !== mnemonic.length || !selection.every((w, i) => w === mnemonic[i])) {
     showToast(t('auth.register.mnemonicError'), "error");
@@ -190,10 +335,7 @@ async function finalizeRegister() {
   }
   loading = true;
   try {
-    // js-sha256 ile hash hesaplama
-    const mnemonicHashes: string[] = mnemonic.map(word => {
-      return sha256(word);
-    });
+    const phrase = mnemonic.join(' ');
 
     const res = await fetch(`/register`, {
       method: "POST",
@@ -204,7 +346,7 @@ async function finalizeRegister() {
         name, 
         surname, 
         email: email || undefined,
-        mnemonicHashes
+        mnemonicPhrase: phrase
       })
     });
 
@@ -244,7 +386,7 @@ async function finalizeRegister() {
     loading = true;
     try {
       const body = mnemonicStep ? 
-        { identifier, password, mnemonicIndex, mnemonicAnswer, attemptCount } : 
+        { identifier, password, mnemonicPhrase, verificationToken } : 
         { identifier, password };
 
       const res = await fetch(`/login`, {
@@ -259,12 +401,11 @@ async function finalizeRegister() {
         if (data.requiresMnemonic && !mnemonicStep) {
           // İki adımlı doğrulama gerekiyor
           mnemonicStep = true;
-          mnemonicIndex = data.mnemonicIndex;
           attemptCount = data.attemptCount || 0;
           remainingAttempts = 3 - attemptCount;
+          verificationToken = data.verificationToken || null;
 
-
-          mnemonicQuestion = `${t('auth.login.mnemonicQuestionP1')} ${data.mnemonicIndex + 1}${t('auth.login.mnemonicQuestionP2')}`;
+          mnemonicQuestion = `${t('VerificationIsRequired')}`;
           if (data.infoKey) {
             showToastKey(data.infoKey, "info");
           } else {
@@ -272,6 +413,9 @@ async function finalizeRegister() {
           }
         } else {
           // Tüm doğrulamalar başarılı
+          if (mnemonicStep && mnemonicPhrase) {
+            setMnemonicPhrase(mnemonicPhrase);
+          }
           const params = new URLSearchParams(window.location.search);
           const redirectTo = params.get("redirectTo");
           if (data.successKey) {
@@ -293,9 +437,11 @@ async function finalizeRegister() {
         } else if (data.requiresMnemonic) {
           // Yanlış mnemonic, yeniden dene
           mnemonicStep = true;
-          mnemonicIndex = data.mnemonicIndex;
           attemptCount = data.attemptCount || 0;
           remainingAttempts = 3 - attemptCount;
+          if (data.verificationToken) {
+            verificationToken = data.verificationToken;
+          }
           if (data.errorKey) {
             showToastKey(data.errorKey, "error");
           } else {
@@ -328,6 +474,9 @@ async function finalizeRegister() {
     mnemonicIndex = null;
     attemptCount = 0;
     remainingAttempts = 3;
+    verificationToken = null;
+    mnemonicPhrase = "";
+    clearMnemonicPhrase();
   }
   async function validateNickname(value: string) {
   clearTimeout(nicknameTimeout);
@@ -469,14 +618,83 @@ async function validateEmail(value: string) {
         <div class="grid gap-3 w-full mt-3">
           <div class="grid gap-3">
             <Label for="identifier-{id}">{t('UsernameOrEmail')}</Label>
-            <Input id="identifier-{id}" name="identifier" type="text" placeholder="m@example.com" required bind:value={identifier} disabled={loading} />
+            <Input 
+              id="identifier-{id}" 
+              name="identifier" 
+              type="text" 
+              placeholder="m@example.com" 
+              required 
+              bind:value={identifier} 
+              disabled={loading}
+              maxlength="20"
+              oninput={(e) => {
+                let v = (e.target as HTMLInputElement)?.value || '';
+                // Convert to lowercase and remove non-letter characters
+                v = v.toLowerCase().replace(/[^a-z]/g, '');
+                identifier = v;
+              }}
+              onkeydown={(e) => {
+                // Allow only lowercase letters, backspace, delete, tab, escape, enter
+                const allowedKeys = ['Backspace', 'Delete', 'Tab', 'Escape', 'Enter'];
+                if (allowedKeys.includes(e.key)) return;
+                
+                // Prevent uppercase letters and non-letter characters
+                if (e.key.length === 1 && (!/^[a-z]$/.test(e.key) || e.shiftKey)) {
+                  e.preventDefault();
+                }
+              }}
+              onpaste={(e) => {
+                e.preventDefault();
+                const pastedText = e.clipboardData?.getData('text/plain') || '';
+                
+                // Filter to only lowercase letters
+                const filteredText = pastedText.toLowerCase().replace(/[^a-z]/g, '');
+                
+                // Insert the text at cursor position
+                const target = e.target as HTMLInputElement;
+                const start = target.selectionStart || 0;
+                const end = target.selectionEnd || 0;
+                const newValue = target.value.substring(0, start) + filteredText + target.value.substring(end);
+                
+                // Update the input value and cursor position
+                target.value = newValue;
+                const newCursorPos = start + filteredText.length;
+                target.setSelectionRange(newCursorPos, newCursorPos);
+                
+                // Update the state
+                identifier = newValue;
+              }}
+            />
           </div>
           <div class="grid gap-3">
             <div class="flex items-center">
               <Label for="password-{id}">{t('Password')}</Label>
               <a href="/forgot" class="text-primary ml-auto text-xs underline-offset-4 hover:underline">{t('ForgotPassword')}</a>
             </div>
-            <Input id="password-{id}" name="password" type="password" required bind:value={password} disabled={loading} />
+            <div class="relative">
+              <Input 
+                id="password-{id}" 
+                name="password" 
+                type={showLoginPassword ? 'text' : 'password'} 
+                required 
+                bind:value={password} 
+                disabled={loading} 
+                class="pr-10"
+              />
+              <button 
+                type="button" 
+                class="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground rounded-full p-1.5 transition-colors hover:bg-accent/50 active:bg-accent/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                onmousedown={(e) => e.preventDefault()}
+                onclick={() => showLoginPassword = !showLoginPassword}
+                aria-label={showLoginPassword ? t('Hide password') : t('Show password')}
+              >
+                {#if showLoginPassword}
+                  <EyeOff class="h-4 w-4" />
+                {:else}
+                  <Eye class="h-4 w-4" />
+                {/if}
+              </button>
+            </div>
           </div>
         </div>
         <Button type="submit" class="w-full" disabled={loading}>
@@ -515,9 +733,9 @@ async function validateEmail(value: string) {
             <Input 
               id="mnemonic-answer-{id}" 
               type="text" 
-              placeholder={t('mnemonicWord')}
+              placeholder={t('EnterMnemonic')}
               required 
-              bind:value={mnemonicAnswer} 
+              bind:value={mnemonicPhrase} 
               disabled={loading} 
             />
                     {#if remainingAttempts < 3}
@@ -573,30 +791,42 @@ async function validateEmail(value: string) {
               placeholder="kullanici-adi" 
               required 
               bind:value={nickname} 
-              disabled={loading} 
+              disabled={loading}
+              maxlength="20"
               oninput={(e) => {
                 let v = (e.target as HTMLInputElement)?.value || '';
+                // Convert to lowercase and remove non-letter characters
+                v = v.toLowerCase().replace(/[^a-z]/g, '');
                 nickname = v;
                 nicknameError = validateNicknameClient(v);
                 if (!nicknameError) validateNickname(v);
               }}
               onkeydown={(e) => {
-                // No restrictions
+                // Allow only lowercase letters, backspace, delete, tab, escape, enter
+                const allowedKeys = ['Backspace', 'Delete', 'Tab', 'Escape', 'Enter'];
+                if (allowedKeys.includes(e.key)) return;
+                
+                // Prevent uppercase letters and non-letter characters
+                if (e.key.length === 1 && (!/^[a-z]$/.test(e.key) || e.shiftKey)) {
+                  e.preventDefault();
+                }
               }}
               onpaste={(e) => {
-                // Allow all text
                 e.preventDefault();
                 const pastedText = e.clipboardData?.getData('text/plain') || '';
+                
+                // Filter to only lowercase letters
+                const filteredText = pastedText.toLowerCase().replace(/[^a-z]/g, '');
                 
                 // Insert the text at cursor position
                 const target = e.target as HTMLInputElement;
                 const start = target.selectionStart || 0;
                 const end = target.selectionEnd || 0;
-                const newValue = target.value.substring(0, start) + pastedText + target.value.substring(end);
+                const newValue = target.value.substring(0, start) + filteredText + target.value.substring(end);
                 
                 // Update the input value and cursor position
                 target.value = newValue;
-                const newCursorPos = start + pastedText.length;
+                const newCursorPos = start + filteredText.length;
                 target.setSelectionRange(newCursorPos, newCursorPos);
                 
                 // Update the state
@@ -777,6 +1007,7 @@ async function validateEmail(value: string) {
           <ScratchToReveal
       minScratchPercentage={85}
       class="flex items-center justify-center overflow-hidden rounded-2xl my-2 bg-background"
+      
       gradientColors={["gray", "lightgray", "gray"]}
       onComplete={() => {
         scratchDone = true;
@@ -784,18 +1015,40 @@ async function validateEmail(value: string) {
     >
     <div class="w-fit min-h-39 md:min-h-44 grid grid-cols-3 gap-2 my-2 bg-secondary  p-2 rounded-lg">
       {#each mnemonic as w, i}
-        <div class="font-bold whitespace-nowrap select-none cursor-pointer text-sm rounded-md   drop-shadow-md bg-primary px-2 py-1.5 text-secondary">{i + 1}. {w}</div>
+        <div class="font-bold whitespace-nowrap text-sm rounded-md   drop-shadow-md bg-primary px-2 py-1.5 text-secondary flex flex-row gap-1.5"><p class="select-none pointer-events-none ">{i + 1}. </p>{w}</div>
       {/each}
       </div>
+
     </ScratchToReveal>
 
-                      <div class="flex flex-col gap-1 my-1.5 bg-secondary/50 rounded-xl px-4 py-2.5">
-                        <div class="flex flex-row gap-1 ">{#if browser}
-          <LockIcon triggers={{ hover: false }}  animationState="loading" size={14} class="text-primary"  loop={true} />
-        {:else}
-          <LockKeyhole duration={3000}  size={14} strokeWidth={2.5} class="text-primary" />
-        {/if}      
-          <h1 class="text-sm font-bold">{t('auth.register.mnemonicInfoTitle')}</h1></div>
+
+{#if scratchDone == true}
+<Motion variants={fadeScaleVariants} initial="hidden" animate="visible" exit="exit" let:motion>
+  <div class="flex justify-center my-1.5" use:motion>
+    <Button 
+      type="button" 
+      variant="outline" 
+      
+      onclick={generateMnemonicPDF}
+      disabled={isGeneratingPDF}
+      class="flex items-center gap-2"
+    >
+      {#if isGeneratingPDF}
+        <div class="w-4 h-4 animate-spin rounded-full border-2 border-current border-t-transparent"></div>
+        {t('Generating')}...
+      {:else}
+        <Printer class="w-4 h-4" />
+        {t('Print')} {t('Mnemonic')}
+      {/if}
+    </Button>
+  </div>
+</Motion>
+{/if}
+                      <div class="flex flex-col gap-1 my-1.5 bg-secondary/50 rounded-xl px-4 py-2.5  " use:fadeScaleVariants>
+                        <div class="flex flex-row gap-1 ">
+          <LockIcon triggers={{ hover: false }}  animationState="loading" size={21} class="text-[red] animate-pulse"  loop={true} />
+
+          <h1 class="text-base font-bold !text-[red] capitalize animate-pulse">{t('auth.register.mnemonicInfoTitle')}</h1></div>
 
           <p class="text-sm underline-hard-primary text-secondary-foreground/80">{t('auth.register.mnemonicInfo')}</p>
                         <ul class="list-disc list-inside text-sm text-secondary-foreground/80">

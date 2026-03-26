@@ -8,9 +8,11 @@ import NotificationDialog from "$lib/components/NotificationDialog.svelte";
 import A from "$lib/components/ui/a.svelte";
 
     import {HandCoins, BadgeInfo, Cog, BellIcon,LogOutIcon, LogInIcon, UserRound, Shield } from "@lucide/svelte";
-  import logo from '$lib/assets/hatlaf.svg';
+  import logo from '$lib/assets/laf1.svg';
       import { t, tJoin, tMany, dativeSuffix } from '$lib/stores/i18n.svelte.js';
+  import { goto } from '$app/navigation';
   import { page } from "$app/stores";
+  import { userStore } from "$lib/stores/user";
   import {
     notifications as notificationsStore,
     unreadCount as unreadCountStore,
@@ -73,6 +75,7 @@ import A from "$lib/components/ui/a.svelte";
   });
 
   async function openNotificationsDialog() {
+    playSound('swift2');
     await fetchNotifications();
     showNotificationsDialog = true;
   }
@@ -113,6 +116,15 @@ import A from "$lib/components/ui/a.svelte";
     await unblockUserNotifications(notification.actor.id);
   }
 
+  async function handleEditArticle(event: CustomEvent<{ notification: NotificationRecord }>) {
+    const notification = event.detail.notification;
+    if (!notification || !notification.meta?.articleId) return;
+
+    // Navigate to edit page with query parameters
+    goto(`/write?articleId=${notification.meta.articleId}&mode=edit`);
+    showNotificationsDialog = false;
+  }
+
   async function handleMarkAllNotifications() {
     await markAllNotificationsRead();
     // Refresh the notifications list to reflect the changes
@@ -124,29 +136,38 @@ import A from "$lib/components/ui/a.svelte";
   let openSettings = $state(false);
   // Ve fonksiyonu ekleyin:
   function handleSettingsClick() {
-    console.log('Settings clicked, current state:', openSettings);
+
     openSettings = true;
-    console.log('Settings state after:', openSettings);
+
   }
+ import { playSound } from "$lib/stores/sound"; // 🔥 ekle
+ let prevOpen = openSettings;
 
-    type LayoutData = {
-      user?: {
-        id: string;
-        email?: string;
-        nickname?: string;
-        avatar?: string | null;
-        role?: string;
-      } | null;
-    };
+  $effect(() => {
+    if (openSettings !== prevOpen) {
+      playSound("swift2");
+      prevOpen = openSettings;
+    }
+  });
+    // Subscribe to user store
+  const currentUser = $derived($userStore.user);
+  const userLoading = $derived($userStore.loading);
 
-    let { data } = $props();
-    const currentUser = $derived(data?.user ?? $page.data.user);
+  // Debug currentUser changes
+  $effect(() => {
+    console.log('Navbar currentUser changed:', currentUser);
+  });
+
+  // Fetch user data on component mount
+  $effect(() => {
+    userStore.fetchUser();
+  });
     const accountImage = $derived(
       currentUser && typeof currentUser.avatar === 'string' && currentUser.avatar.trim().length > 0
         ? currentUser.avatar
         : undefined
     );
-    const accountHref = $derived(currentUser?.nickname ? `/${currentUser.nickname}` : '/profile');
+    const accountHref = $derived(currentUser?.nickname ? `/${currentUser.nickname}` : '/account');
 
   const isModerator = $derived(currentUser?.role === 'moderator' || currentUser?.role === 'admin');
   
@@ -155,7 +176,7 @@ import A from "$lib/components/ui/a.svelte";
     { icon: Cog, name: t('Settings'), onClick: handleSettingsClick },
     { icon: BellIcon, name: t('Notifications'), onClick: openNotificationsDialog, badge: unreadTotal },
     ...(isModerator ? [{ icon: Shield, name: t('Moderation'), href: "/moderation" }] : []),
-    { icon: HandCoins, name: t('Donations'), href: "/donations" },
+    { icon: HandCoins, name: t('Donate'), href: "/fundraiser" },
     { icon: BadgeInfo, name: t('Help'), href: "/help" },
     { icon: LogOutIcon, name: t('Logout'), href: '/logout', customStyle: "!text-red-500"},
   ]);
@@ -163,7 +184,7 @@ import A from "$lib/components/ui/a.svelte";
   // Reaktif logged-out items - dil değiştiğinde otomatik güncellenir
   const baseLoggedOut = $derived<MenuItem[]>([
     { icon: LogInIcon, name: t('Login'), href: "/login" },
-    { icon: HandCoins, name: t('Donations'), href: "/donations" },
+    { icon: HandCoins, name: t('Donations'), href: "/fundraiser" },
     { icon: BadgeInfo, name: t('Help'), href: "/help" },
   ]);
 
@@ -194,16 +215,17 @@ import HammerLottie from "$lib/components/hammerIcon.svelte";
   on:delete={handleNotificationDelete}
   on:block={handleNotificationBlock}
   on:unblock={handleNotificationUnblock}
+  on:editArticle={handleEditArticle}
 />
 
 <nav class="w-full fixed border-b top-0 z-45 text-secondary-foreground  rounded-xl">
     <div class="absolute -z-1 inset-0 bg-background/44 backdrop-blur-sm"></div>
-  <div class="max-w-7xl mx-auto  py-0 sm:pt-1 sm:pb-1.5 px-4 sm:px-6 lg:px-8">
+  <div class="max-w-7xl mx-auto  py-0 sm:py-0.5 px-5 sm:px-6 lg:px-8">
     <div class="flex items-center justify-between">
       <Tooltip.Provider>
  <Tooltip.Root>
   <Tooltip.Trigger>   
-    <A href="/" ><img class="max-h-6.5 fill-primary" src="{logo}" alt="LAF" /></A> 
+    <A href="/" ><img class="h-3.5 sm:h-4 text-primary" src="{logo}" alt="LAF" /></A> 
   </Tooltip.Trigger>
   <Tooltip.Content>
    <p>{t('GoToHomePage')}</p>
@@ -211,7 +233,7 @@ import HammerLottie from "$lib/components/hammerIcon.svelte";
  </Tooltip.Root>
 </Tooltip.Provider>
 
-      <div class=" pb-2 pt-2.5 max-w-50 sm:p-0 sm:max-w-full overflow-auto flex text-secondary-foreground space-x-4 text-xs">
+      <div class="py-2 max-w-50 sm:p-0 sm:max-w-full overflow-auto flex text-secondary-foreground space-x-4 text-xs">
         {#each menu as item}
 
 {#if item.isconstruction == "true"}
@@ -253,5 +275,3 @@ import HammerLottie from "$lib/components/hammerIcon.svelte";
     </div>
   </div>
 </nav> 
-
-<div class="relative h-9.5 sm:h-8"></div>    

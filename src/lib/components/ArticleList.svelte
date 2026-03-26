@@ -3,7 +3,7 @@
   import ArticleCard from "./ArticleCard.svelte";
   import { Button } from "$lib/components/ui/button";
   import { Skeleton } from "$lib/components/ui/skeleton";
-  import { t } from '$lib/stores/i18n.svelte.ts';
+  import { t } from '$lib/stores/i18n.svelte';
   import { Grid, List, Loader } from "@lucide/svelte";
 
   interface Article {
@@ -15,8 +15,10 @@
       id?: string;
       name: string;
       avatar?: string;
+      nickname?: string;
     };
     authorId?: string;
+    author_nickname?: string;
     publishedAt: string;
     readTime: number;
     category: string;
@@ -27,6 +29,22 @@
     featured?: boolean;
     coverImage?: string;
     status?: 'published' | 'pending' | 'draft';
+    collaborators?: Array<{
+      id: string;
+      name: string;
+      nickname: string;
+      avatar?: string;
+    }>;
+    collaboratorProfiles?: Array<{
+      id: string;
+      name: string;
+      surname?: string;
+      nickname: string;
+      avatar?: string;
+      bio?: string;
+      followersCount?: number;
+      followingCount?: number;
+    }>;
   }
 
   let {

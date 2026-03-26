@@ -9,6 +9,7 @@
 	import Button from '$lib/components/ui/button/button.svelte';
     import { t } from '$lib/stores/i18n.svelte';
 	import { articleEditor } from '$lib/stores/article-editor.svelte.js';
+	import { getFileSizeLimit, isFileSizeValid, getFileSizeError } from '../../config/file-limits.js';
 
 	let fileInput: HTMLInputElement;
 	let dialogOpen = $state(false);
@@ -20,9 +21,8 @@
 	}
 
 	async function uploadFile(file: File) {
-		const maxBytes = 4 * 1024 * 1024;
-		if (file.size > maxBytes) {
-			throw new Error(t('editor.media.fileTooLarge'));
+		if (!isFileSizeValid(file, 'image')) {
+			throw new Error(getFileSizeError(file, 'image'));
 		}
 
 		const articleId = await articleEditor.ensureArticleId();

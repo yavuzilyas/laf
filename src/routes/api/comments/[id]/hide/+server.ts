@@ -1,7 +1,6 @@
 // src/routes/api/comments/[id]/hide/+server.ts
 import { json } from '@sveltejs/kit';
-import { ObjectId } from 'mongodb';
-import { getCommentsCollection } from '$db/mongo';
+import { getComments, updateComment } from '$db/queries';
 
 export async function POST({ params, request, locals }) {
   const user = (locals as any)?.user;
@@ -12,20 +11,13 @@ export async function POST({ params, request, locals }) {
   // if (!user) return json({ error: 'Unauthorized' }, { status: 401 });
 
   const { hidden } = await request.json(); // boolean: true/false
-  const commentId = new ObjectId(params.id);
-  // const userId = new ObjectId(user.id);
-
-  const comments = await getCommentsCollection();
+  const commentId = params.id;
+  // const userId = user.id;
 
   // TEMPORARY: Skip permission check for testing
   // Yorumun var olup olmadığını ve kullanıcının sahibi olup olmadığını kontrol et
-  const comment = await comments.findOne({
-    _id: commentId
-    // $or: [
-    //   { userId: userId },
-    //   { 'author.id': userId.toString() }
-    // ]
-  });
+  const comments = await getComments({ id: commentId });
+  const comment = comments[0];
 
   console.log('COMMENT HIDE API - Found comment:', !!comment);
 
@@ -34,14 +26,14 @@ export async function POST({ params, request, locals }) {
   }
 
   // Yorumu güncelle
-  await comments.updateOne(
-    { _id: commentId },
-    { $set: { hidden, updatedAt: new Date() } }
-  );
+  await updateComment(commentId, { 
+    hidden
+  });
 
   console.log('COMMENT HIDE API - Update result:', 'success');
 
-  const updatedComment = await comments.findOne({ _id: commentId });
+  const updatedComments = await getComments({ id: commentId });
+  const updatedComment = updatedComments[0];
 
   return json({
     success: true,

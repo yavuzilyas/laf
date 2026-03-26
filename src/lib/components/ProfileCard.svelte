@@ -8,12 +8,14 @@
   import { Textarea } from "$lib/components/ui/textarea";
   import { Badge } from "$lib/components/ui/badge";
   import { ScrollArea } from "$lib/components/ui/scroll-area";
+  import BadgeList from "$lib/components/BadgeList.svelte";
   import { t } from '$lib/stores/i18n.svelte';
   import * as DropdownMenu from "$lib/components/ui/dropdown-menu";
   import { MoreVertical, Flag } from "@lucide/svelte";
   import ReportDrawer from "$lib/components/ReportDrawer.svelte";
     import * as Dialog from '$lib/components/ui/dialog/index.js';
   import * as Popover from "$lib/components/ui/popover/index.js";
+    import Loader from "@lucide/svelte/icons/loader";
   import {
     Camera,
     Edit,
@@ -60,13 +62,15 @@
         showFollowingDialog = false;
     };
 
-    // Debug: Check isFollowing values
+    // Debug: Check isFollowing values (only in browser)
     $effect(() => {
-        if (followersList) {
-            console.log('Followers with isFollowing:', followersList.map(f => ({id: f.id, nickname: f.nickname, isFollowing: f.isFollowing})));
-        }
-        if (followingList) {
-            console.log('Following with isFollowing:', followingList.map(f => ({id: f.id, nickname: f.nickname, isFollowing: f.isFollowing})));
+        if (typeof window !== 'undefined') {
+            if (followersList) {
+                console.log('Followers with isFollowing:', followersList.map(f => ({id: f.id, username: f.username, isFollowing: f.isFollowing})));
+            }
+            if (followingList) {
+                console.log('Following with isFollowing:', followingList.map(f => ({id: f.id, username: f.username, isFollowing: f.isFollowing})));
+            }
         }
     });
 
@@ -240,7 +244,7 @@
   type ProfileData = {
     name?: string;
     surname?: string;
-    nickname?: string;
+    username?: string;
     bio?: string;
     location?: string;
     website?: string;
@@ -254,10 +258,11 @@
       linkedin?: string;
       [key: string]: string | undefined;
     };
+    badges?: any[];
   };
 
   type ProfileUser = {
-    nickname: string;
+    username: string;
   } & Record<string, unknown>;
 
   let {
@@ -303,9 +308,35 @@
   let showReportDrawer = $state(false);
   let cardRef: HTMLDivElement;
 
+  // Create reactive form data for editing
+  let formData = $state({
+    name: profileData?.name || "",
+    surname: profileData?.surname || "",
+    bio: profileData?.bio || "",
+    location: profileData?.location || profileData?.preferences?.location || "",
+    website: profileData?.website || profileData?.preferences?.website || "",
+    interests: profileData?.interests || profileData?.preferences?.interests || [],
+    bannerColor: profileData?.bannerColor || profileData?.preferences?.bannerColor || "#0f172a",
+    bannerImage: profileData?.bannerImage || profileData?.preferences?.bannerImage || "",
+    avatar: profileData?.avatar || ""
+  });
+
   // Watch for isEditing changes to handle animation timing
   $effect(() => {
     if (isEditing) {
+      // Reset form data when entering edit mode
+      formData = {
+        name: profileData?.name || "",
+        surname: profileData?.surname || "",
+        bio: profileData?.bio || "",
+        location: profileData?.location || profileData?.preferences?.location || "",
+        website: profileData?.website || profileData?.preferences?.website || "",
+        interests: profileData?.interests || profileData?.preferences?.interests || [],
+        bannerColor: profileData?.bannerColor || profileData?.preferences?.bannerColor || "#0f172a",
+        bannerImage: profileData?.bannerImage || profileData?.preferences?.bannerImage || "",
+        avatar: profileData?.avatar || ""
+      };
+      
       // Reset showEditForm when entering edit mode
       showEditForm = false;
       
@@ -323,7 +354,7 @@
   const getDisplayName = (user: any) => {
     if (!user) return '';
     const fullName = [user.name, user.surname].filter(Boolean).join(' ').trim();
-    return fullName || user.nickname || '';
+    return fullName || user.username || '';
   };
 
   let interestInput = $state("");
@@ -343,8 +374,8 @@
   };
 
   const handleColorInput = (value: string) => {
-    if (!profileData) return;
-    profileData.bannerColor = value;
+    if (!formData) return;
+    formData.bannerColor = value;
     onBannerColorChange(value);
   };
 </script>
@@ -371,9 +402,9 @@
       </div>
     {/if}
 
-    {#if isOwnProfile}
+    {#if isOwnProfile && isEditing}
       <div class="absolute z-20 bottom-3 right-3 flex flex-wrap gap-2">
-        <Button size="sm" variant="outline" onclick={onTriggerBannerFile}>
+        <Button size="xs" variant="outline" onclick={onTriggerBannerFile}>
           {#if bannerUploading}
             <Loader2 class="h-4 w-4 animate-spin" />
           {:else}
@@ -385,12 +416,12 @@
           type="color"
           class="hidden"
           id="banner-color-input"
-          value={profileData?.bannerColor || '#0f172a'}
+          value={formData.bannerColor || '#0f172a'}
           oninput={(event) => handleColorInput((event.target as HTMLInputElement).value)}
         />
         <Popover.Root>
           <Popover.Trigger asChild>
-            <Button size="sm" variant="outline">
+            <Button size="xs" variant="outline">
               <Palette class="h-4 w-4" />
               <span class="hidden sm:inline">{t('profile.changeBannerColor')}</span>
             </Button>
@@ -400,11 +431,11 @@
               <input
                 type="color"
                 class="h-10 w-16 cursor-pointer rounded border"
-                value={profileData?.bannerColor || '#0f172a'}
+                value={formData.bannerColor || '#0f172a'}
                 oninput={(event) => handleColorInput((event.target as HTMLInputElement).value)}
               />
               <Input
-                value={profileData?.bannerColor || '#0f172a'}
+                value={formData.bannerColor || '#0f172a'}
                 onchange={(event) => handleColorInput((event.target as HTMLInputElement).value)}
                 placeholder="#0f172a"
                 class="w-24"
@@ -413,7 +444,7 @@
           </Popover.Content>
         </Popover.Root>
         {#if profileData?.bannerImage}
-          <Button size="sm" variant="destructive" onclick={onBannerRemove}>
+          <Button size="xs" variant="destructive" onclick={onBannerRemove}>
             <Trash2 class="h-4 w-4" />
             <span class=" hidden sm:inline">{t('profile.removeBanner')}</span>
           </Button>
@@ -430,12 +461,25 @@
             {#if profileData?.avatar}
               <AvatarImage
                 src={profileData.avatar}
-                alt={profileData.nickname || 'Avatar'}
+                alt={profileData.username || 'Avatar'}
                 class="object-cover"
               />
             {/if}
             <AvatarFallback class="text-3xl">
-              {(profileData?.nickname || profileUser?.nickname || 'U')[0].toUpperCase()}
+              {(() => {
+                const name = profileData?.name;
+                const surname = profileData?.surname;
+                const username = profileData?.username || profileUser?.username;
+                
+                if (name && surname) {
+                  return (name[0] + surname[0]).toUpperCase();
+                } else if (name) {
+                  return name[0].toUpperCase();
+                } else if (username) {
+                  return username[0].toUpperCase();
+                }
+                return 'U';
+              })()}
             </AvatarFallback>
           </Avatar>
 
@@ -447,11 +491,13 @@
         <div>
           <div class="flex items-center gap-1">
             <h1 class="text-lg font-bold text-foreground">
-              {profileData?.name || profileData?.nickname}
+              {profileData?.name && profileData?.surname 
+                ? `${profileData.name} ${profileData.surname}`
+                : profileData?.name || profileData?.username}
             </h1>
-            {#if showProfileLink && profileData?.nickname}
+            {#if showProfileLink && profileData?.username}
               <a 
-                href={`/${profileData.nickname}`}
+                href={`/${profileData.username}`}
                 class="text-muted-foreground hover:text-primary transition-colors ml-1"
                 aria-label={t('profile.viewProfile')}
                 title={t('profile.viewProfile')}
@@ -460,7 +506,7 @@
               </a>
             {/if}
           </div>
-          <p class="text-muted-foreground">@{profileUser?.nickname}</p>
+          <p class="text-muted-foreground">@{profileUser?.username || profileData?.username}</p>
         </div>
 
         {#if showEditForm && isEditing && isOwnProfile}
@@ -468,11 +514,11 @@
             <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
               <div>
                 <Label for="name">{t('Name')}</Label>
-                <Input id="name" bind:value={profileData.name} placeholder="{t('Name')}" class="transition-all duration-300 ease-in-out focus:scale-[1.02] focus:shadow-sm" />
+                <Input id="name" bind:value={formData.name} placeholder="{t('Name')}" class="transition-all duration-300 ease-in-out " />
               </div>
               <div>
                 <Label for="surname">{t('Surname')}</Label>
-                <Input id="surname" bind:value={profileData.surname} placeholder="{t('Surname')}" class="transition-all duration-300 ease-in-out focus:scale-[1.02] focus:shadow-sm" />
+                <Input id="surname" bind:value={formData.surname} placeholder="{t('Surname')}" class="transition-all duration-300 ease-in-out " />
               </div>
             </div>
 
@@ -480,21 +526,21 @@
               <Label for="bio">{t('profile.bio')}</Label>
               <Textarea
                 id="bio"
-                bind:value={profileData.bio}
+                bind:value={formData.bio}
                 placeholder={t('profile.bioPlaceholder')}
                 rows="3"
-                class="max-h-fit transition-all duration-300 ease-in-out focus:scale-[1.02] focus:shadow-sm"
+                class="max-h-fit transition-all duration-300 ease-in-out "
               />
             </div>
 
             <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
               <div>
                 <Label for="location">{t('profile.location')}</Label>
-                <Input id="location" bind:value={profileData.location} placeholder={t('profile.location')} class="transition-all duration-300 ease-in-out focus:scale-[1.02] focus:shadow-sm" />
+                <Input id="location" bind:value={formData.location} placeholder={t('profile.location')} class="transition-all duration-300 ease-in-out " />
               </div>
               <div>
                 <Label for="website">{t('profile.website')}</Label>
-                <Input id="website" bind:value={profileData.website} type="url" placeholder="https://" class="transition-all duration-300 ease-in-out focus:scale-[1.02] focus:shadow-sm" />
+                <Input id="website" bind:value={formData.website} type="url" placeholder="https://" class="transition-all duration-300 ease-in-out " />
               </div>
             </div>
 <!-- 
@@ -506,7 +552,7 @@
                   placeholder={t('profile.addInterest')}
                   onkeydown={handleInterestKey}
                 />
-                <Button size="sm" onclick={submitInterest}>
+                <Button size="xs" onclick={submitInterest}>
                   {t('Add')}
                 </Button>
               </div>
@@ -539,22 +585,29 @@
             {#if profileData?.bio}
               <p class="text-sm text-foreground">{profileData.bio}</p>
             {/if}
+            
+            {#if profileData?.badges && profileData.badges.length > 0}
+              <div class="flex items-center gap-2">
+                <BadgeList badges={profileData.badges} size="sm" maxVisible={3} />
+              </div>
+            {/if}
+            
             <div class="flex flex-wrap items-center gap-2.5 sm:gap-4 text-xs sm:text-sm text-muted-foreground">
-              {#if profileData?.location}
+              {#if (profileData?.location || profileData?.preferences?.location)}
                 <div class="flex items-center gap-1">
                   <MapPin class="h-4 w-4" />
-                  {profileData.location}
+                  {profileData?.location || profileData?.preferences?.location}
                 </div>
               {/if}
-              {#if profileData?.website}
+              {#if (profileData?.website || profileData?.preferences?.website)}
                 <div class="flex items-center gap-1">
                   <LinkIcon class="h-4 w-4" />
                   <a
-                    href={profileData.website}
+                    href={profileData?.website || profileData?.preferences?.website}
                     target="_blank"
                     class="flex items-center gap-1 text-primary hover:underline"
                   >
-                    {profileData.website}
+                    {profileData?.website || profileData?.preferences?.website}
                     <ExternalLink class="h-3 w-3" />
                   </a>
                 </div>
@@ -625,24 +678,11 @@
         <div class="flex flex-col gap-2 mt-auto">
           {#if isOwnProfile}
 
-            <Button
-              size="xs"
-              variant={isEditing ? "destructive" : "outline"}
-              onclick={isEditing ? onCancelEdit : onToggleEdit}
-            >
-              {#if isEditing}
-                <X class="h-4 w-4" />
-                {t('Cancel')}
-              {:else}
-                <Edit class="h-4 w-4" />
-                {t('profile.edit')}
-              {/if}
-            </Button>
-          {/if}
-          {#if isOwnProfile}
+ 
+         
             <Button size="xs" variant="outline" onclick={onTriggerAvatarFile}>
               {#if avatarUploading}
-                <Loader2 class="h-4 w-4 animate-spin" />
+                <Loader class="h-4 w-4 text-primary animate-spin" />
                 {t('profile.avatarUploading')}
               {:else}
                 <Camera class="h-4 w-4" />
@@ -655,6 +695,19 @@
                 {t('profile.removeAvatar')}
               </Button>
             {/if}
+                       <Button
+              size="xs"
+              variant={isEditing ? "destructive" : "outline"}
+              onclick={isEditing ? onCancelEdit : onToggleEdit}
+            >
+              {#if isEditing}
+                <X class="h-4 w-4" />
+                {t('Cancel')}
+              {:else}
+                <Edit class="h-4 w-4" />
+                {t('profile.edit')}
+              {/if}
+            </Button>
           {:else}
             <div class="flex gap-2 items-center">
               {#if isFollowing}
@@ -708,7 +761,7 @@
       bind:open={showReportDrawer} 
       reportType="profile"
        targetId={profileUser?._id || profileUser?.id}
-      targetTitle={profileUser?.nickname}
+      targetTitle={profileUser?.username}
     />
   {/if}
 
@@ -729,18 +782,18 @@
                         {#if profileData.avatar}
                             <AvatarImage 
                                 src={profileData.avatar} 
-                                alt={profileData.nickname || 'Avatar'} 
+                                alt={profileData.username || 'Avatar'} 
                                 class="object-cover" 
                             />
                         {/if}
                         <AvatarFallback class="text-4xl">
-                            {(profileData.nickname || 'U')[0].toUpperCase()}
+                            {(profileData.username || 'U')[0].toUpperCase()}
                         </AvatarFallback>
                     </Avatar>
                     
                     {#if avatarUploading}
                         <div class="absolute inset-0 flex items-center justify-center bg-black/50 rounded-full">
-                            <Loader2 class="h-8 w-8 animate-spin text-white" />
+                <Loader class="h-4 w-4 text-primary animate-spin" />
                         </div>
                     {/if}
                 </div>
@@ -753,7 +806,7 @@
                         disabled={avatarUploading}
                     >
                         {#if avatarUploading}
-                            <Loader2 class="h-4 w-4  animate-spin" />
+                <Loader class="h-4 w-4 text-primary animate-spin" />
                             {t('profile.avatarUploading')}
                         {:else}
                             <Camera class="h-4 w-4 " />
@@ -794,19 +847,19 @@
           {#each followersList ?? [] as follower (follower.id)}
             <li class="flex items-center justify-between gap-3 rounded-lg border p-3">
               <div class="flex max-w-[calc(100%-4rem)] items-center gap-3 flex-1">
-                <a href={`/${follower.nickname}`}>
+                <a href={`/${follower.username}`}>
                 <Avatar class="h-10 w-10">
                   {#if follower.avatar}
                     <AvatarImage src={follower.avatar} alt={getDisplayName(follower)} class="object-cover" />
                   {/if}
                   <AvatarFallback>
-                    {(follower.nickname?.[0] ?? '?').toUpperCase()}
+                    {(follower.username?.[0] ?? '?').toUpperCase()}
                   </AvatarFallback>
                 </Avatar>
                 </a>
                 <div class="flex flex-col text-sm flex-1">
-                  <a href={`/${follower.nickname}`} class="font-semibold text-foreground hover:text-primary transition-colors">{getDisplayName(follower)}</a>
-                  <a href={`/${follower.nickname}`} class="text-muted-foreground hover:text-primary transition-colors">@{follower.nickname}</a>
+                  <a href={`/${follower.username}`} class="font-semibold text-foreground hover:text-primary transition-colors">{getDisplayName(follower)}</a>
+                  <a href={`/${follower.username}`} class="text-muted-foreground hover:text-primary transition-colors">@{follower.username}</a>
                 </div>
               </div>
               {#if follower.id !== currentUserId}
@@ -844,19 +897,19 @@
           {#each followingList ?? [] as following (following.id)}
             <li class="flex items-center justify-between gap-3 rounded-lg border p-3">
               <div class="flex items-center gap-3 flex-1">
-                <a href={`/${following.nickname}`}>
+                <a href={`/${following.username}`}>
                   <Avatar class="h-10 w-10">
                     {#if following.avatar}
                       <AvatarImage src={following.avatar} alt={getDisplayName(following)} class="object-cover" />
                     {/if}
                     <AvatarFallback>
-                      {(following.nickname?.[0] ?? '?').toUpperCase()}
+                      {(following.username?.[0] ?? '?').toUpperCase()}
                     </AvatarFallback>
                   </Avatar>
                 </a>
                 <div class="flex flex-col text-sm flex-1">
-                  <a href={`/${following.nickname}`} class="font-semibold text-foreground hover:text-primary transition-colors">{getDisplayName(following)}</a>
-                  <a href={`/${following.nickname}`} class="text-muted-foreground hover:text-primary transition-colors">@{following.nickname}</a>
+                  <a href={`/${following.username}`} class="font-semibold text-foreground hover:text-primary transition-colors">{getDisplayName(following)}</a>
+                  <a href={`/${following.username}`} class="text-muted-foreground hover:text-primary transition-colors">@{following.username}</a>
                 </div>
               </div>
               {#if following.id !== currentUserId}

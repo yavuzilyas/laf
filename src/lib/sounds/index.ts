@@ -10,7 +10,8 @@ export const soundFiles: Record<string, string> = {
   success: "/sounds/notification_high-intensity.wav",
   info: "/sounds/notification_ambient.wav",
   errorNot: "/sounds/alert_error-01.wav",
-  swift: "/sounds/focus_change_large.wav",
+  swift: "/sounds/navigationpush.wav",
+  swift2: "/sounds/navigationpop.wav",
   refresh: "/sounds/ui_refresh-feed.wav",
   loading: "/sounds/ui_loading.wav"
 };

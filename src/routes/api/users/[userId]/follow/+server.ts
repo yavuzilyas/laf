@@ -1,7 +1,6 @@
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from '@sveltejs/kit';
-import { getUsersCollection, toObjectId } from '$db/mongo';
-import { createNotification } from '$lib/server/notifications';
+import { getUsers, followUser, unfollowUser, isFollowing, getFollowCounts, createNotification } from '$db/queries';
 
 export const POST: RequestHandler = async ({ locals, params }) => {
 	const user = (locals as any)?.user;
@@ -13,64 +12,37 @@ export const POST: RequestHandler = async ({ locals, params }) => {
 	}
 
 	try {
-		const usersCol = await getUsersCollection();
-		
 		// Check if target user exists
-		const targetUser = await usersCol.findOne({ _id: toObjectId(userId) });
-		if (!targetUser) {
+		const targetUsers = await getUsers({ id: userId });
+		if (!targetUsers.length) {
 			return json({ error: 'User not found' }, { status: 404 });
 		}
 
 		// Check if already following
-		const currentUser = await usersCol.findOne({ 
-			_id: toObjectId(user.id),
-			'following.followingUserId': toObjectId(userId)
-		});
-
-		if (currentUser) {
+		const alreadyFollowing = await isFollowing(user.id, userId);
+		if (alreadyFollowing) {
 			return json({ error: 'Already following' }, { status: 400 });
 		}
 
 		// Add follow relationship
-		await usersCol.updateOne(
-			{ _id: toObjectId(user.id) },
-			{ 
-				$push: { 
-					following: {
-						followingUserId: toObjectId(userId),
-						followedAt: new Date()
-					}
-				}
-			}
-		);
-
-		// Add to target user's followers
-		await usersCol.updateOne(
-			{ _id: toObjectId(userId) },
-			{ 
-				$push: { 
-					followers: {
-						followerUserId: toObjectId(user.id),
-						followedAt: new Date()
-					}
-				}
-			}
-		);
+		await followUser(user.id, userId);
 
 		// Create follow notification
 		await createNotification({
-			userId: userId,
+			user_id: userId,
 			type: 'follow',
 			title: { key: 'notifications.messages.newFollower' },
-			message: { key: 'notifications.messages.newFollower' },
-			link: `/${user.nickname}`,
-			actor: {
-				id: user.id,
-				nickname: user.nickname,
-				name: user.name
-			},
-			meta: {
-				followerId: user.id
+			content: { key: 'notifications.messages.newFollower' },
+			data: {
+				link: `/${user.nickname}`,
+				actor: {
+					id: user.id,
+					nickname: user.nickname,
+					name: user.name
+				},
+				meta: {
+					followerId: user.id
+				}
 			}
 		});
 
@@ -91,19 +63,8 @@ export const DELETE: RequestHandler = async ({ locals, params }) => {
 	}
 
 	try {
-		const usersCol = await getUsersCollection();
-		
 		// Remove follow relationship
-		await usersCol.updateOne(
-			{ _id: toObjectId(user.id) },
-			{ $pull: { following: { followingUserId: toObjectId(userId) } } }
-		);
-
-		// Remove from target user's followers
-		await usersCol.updateOne(
-			{ _id: toObjectId(userId) },
-			{ $pull: { followers: { followerUserId: toObjectId(user.id) } } }
-		);
+		await unfollowUser(user.id, userId);
 
 		return json({ success: true, following: false });
 	} catch (error) {
@@ -122,29 +83,16 @@ export const GET: RequestHandler = async ({ locals, params }) => {
 	}
 
 	try {
-		const usersCol = await getUsersCollection();
-		
 		// Check if following
-		const currentUser = await usersCol.findOne({ 
-			_id: toObjectId(user.id),
-			'following.followingUserId': toObjectId(userId)
-		});
+		const following = await isFollowing(user.id, userId);
 
 		// Get follower/following counts
-		const targetUser = await usersCol.findOne(
-			{ _id: toObjectId(userId) },
-			{ 
-				projection: { 
-					followers: { $size: { $ifNull: ['$followers', []] } },
-					following: { $size: { $ifNull: ['$following', []] } }
-				}
-			}
-		);
+		const counts = await getFollowCounts(userId);
 
 		return json({ 
-			following: !!currentUser,
-			followersCount: targetUser?.followers || 0,
-			followingCount: targetUser?.following || 0
+			following,
+			followersCount: counts.followersCount,
+			followingCount: counts.followingCount
 		});
 	} catch (error) {
 		console.error('Check follow status error:', error);

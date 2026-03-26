@@ -1,42 +1,74 @@
 <script lang="ts">
   import { Button } from "$lib/components/ui/button";
   import { Label } from "$lib/components/ui/label";
+  import { Input } from "$lib/components/ui/input";
   import { Textarea } from "$lib/components/ui/textarea";
   import { Flag } from "@lucide/svelte";
   import { showToast } from "$lib/hooks/toast";
   import { t } from '$lib/stores/i18n.svelte.js';
   import * as Drawer from "$lib/components/ui/drawer/index.js";
-  type ReportType = 'profile' | 'article' | 'comment';
+  
+  type ReportType = 'profile' | 'article' | 'comment' | 'error';
 
   let {
     open = $bindable(false),
-
     reportType = 'article',
     targetId = '',
     targetTitle = '',
+    targetUrl = '',
     onReported = () => {}
   }: {
     open: boolean;
     reportType: ReportType;
     targetId: string;
     targetTitle?: string;
+    targetUrl?: string;
     onReported?: () => void;
   } = $props();
 
   let loading = $state(false);
   let reportMessage = $state('');
+  let errorUrl = $state('');
   const MAX_LENGTH = 300;
 
-  async function submitReport() {
+  function extractUrl(text: string): string | null {
+    if (!text) return null;
+    const match = text.match(/https?:\/\/[^)\s]+/i);
+    return match ? match[0] : null;
+  }
 
-    // Check if user is logged in (member)
-    const response = await fetch('/api/auth/session', { credentials: 'include' });
-    const session = await response.json();
-    
-    if (!session?.user) {
-      showToast(t('auth.errors.loginRequired'), 'error');
-      open = false;
-      return;
+  function isValidHttpUrl(maybeUrl: string): boolean {
+    try {
+      const u = new URL(maybeUrl);
+      return u.protocol === 'http:' || u.protocol === 'https:';
+    } catch {
+      return false;
+    }
+  }
+
+  async function submitReport() {
+    // Error reports don't require login
+    if (reportType !== 'error') {
+      // Check if user is logged in (member)
+      const response = await fetch('/api/auth/session', { credentials: 'include' });
+      const session = await response.json();
+      
+      if (!session?.user) {
+        showToast(t('auth.errors.loginRequired'), 'error');
+        open = false;
+        return;
+      }
+    }
+
+    if (reportType === 'error') {
+      if (!errorUrl.trim()) {
+        showToast(t('report.errors.urlRequired') || 'Lütfen hata URL\'sini girin.', 'error');
+        return;
+      }
+      if (!isValidHttpUrl(errorUrl.trim())) {
+        showToast(t('report.errors.invalidUrl') || 'Lütfen geçerli bir URL girin.', 'error');
+        return;
+      }
     }
 
     if (!reportMessage.trim()) {
@@ -57,8 +89,10 @@
         credentials: 'include',
         body: JSON.stringify({
           type: reportType,
-          targetId,
-          reason: reportMessage.trim()
+          targetId: reportType === 'error' ? targetId || 'site-error' : targetId,
+          reason: reportMessage.trim(),
+          details: reportType === 'error' ? errorUrl.trim() : targetTitle,
+          url: reportType === 'error' ? errorUrl.trim() : (targetUrl && targetUrl !== 'undefined' ? targetUrl : undefined)
         })
       });
 
@@ -86,10 +120,23 @@
 
   function resetState() {
     reportMessage = '';
+    if (reportType === 'error') {
+      errorUrl = deriveInitialUrl();
+    }
   }
 
   function handleKeyPress(e: KeyboardEvent) {
     if (e.key === 'Escape') handleCancel();
+  }
+
+  function deriveInitialUrl(): string {
+    if (targetUrl && isValidHttpUrl(targetUrl)) return targetUrl;
+    const parsed = extractUrl(targetTitle || '');
+    if (parsed && isValidHttpUrl(parsed)) return parsed;
+    try {
+      if (typeof window !== 'undefined' && window.location?.href) return window.location.href;
+    } catch {}
+    return '';
   }
 
   $effect(() => {
@@ -102,11 +149,18 @@
     }
   });
 
+  $effect(() => {
+    if (reportType === 'error') {
+      errorUrl = deriveInitialUrl();
+    }
+  });
+
   const getReportTitle = $derived(() => {
     switch (reportType) {
       case 'profile': return t('report.titles.reportProfile');
       case 'article': return t('report.titles.reportArticle');
       case 'comment': return t('report.titles.reportComment');
+      case 'error': return t('report.titles.reportError') || 'Hata Bildir';
       default: return t('report.titles.report');
     }
   });
@@ -116,6 +170,7 @@
       case 'profile': return t('report.descriptions.reportProfile');
       case 'article': return t('report.descriptions.reportArticle');
       case 'comment': return t('report.descriptions.reportComment');
+      case 'error': return t('report.descriptions.reportError') || 'Site üzerinde karşılaştığınız teknik sorunları veya hataları bildirin.';
       default: return t('report.descriptions.report');
     }
   });
@@ -134,26 +189,51 @@
       </Drawer.Header>
 
       <div class="z-60 space-y-4 px-4 pb-4">
-        {#if targetTitle}
+        {#if reportType === 'error'}
+          <div class="space-y-2">
+            <Label for="error-url">{t('report.errorLocation') || 'Hata Konumu (URL)'}</Label>
+            <Input
+              id="error-url"
+              type="url"
+              bind:value={errorUrl}
+              placeholder="https://..."
+              disabled={loading}
+            />
+            {#if errorUrl && !isValidHttpUrl(errorUrl)}
+              <p class="text-xs text-destructive">{t('report.errors.invalidUrl') || 'Geçerli bir URL girin.'}</p>
+            {/if}
+          </div>
+        {:else if targetTitle}
           <div class="bg-muted/50 p-3 rounded-md">
             <p class="text-sm font-medium text-muted-foreground">
-              {t('report.reporting')}: <span class="text-foreground">{targetTitle}</span>
+              {t('report.reporting')}: 
+              <span class="text-foreground">{targetTitle}</span>
             </p>
           </div>
         {/if}
         <div class="space-y-2">
-          <Label for="report-message">{t('report.describeIssue') || 'Sorunu kısaca açıklayın'}</Label>
+          <Label for="report-message">
+            {reportType === 'error' 
+              ? (t('report.describeError') || 'Karşılaştığınız hatayı açıklayın')
+              : (t('report.describeIssue') || 'Sorunu kısaca açıklayın')}
+          </Label>
           <Textarea
             id="report-message"
             bind:value={reportMessage}
             maxlength={MAX_LENGTH}
-            placeholder={t('report.describeIssuePlaceholder') || 'En fazla 300 karakter'}
+            placeholder={reportType === 'error' 
+              ? (t('report.errorPlaceholder') || 'Hatanın detaylarını, ne zaman oluştuğunu ve yaptığınız işlemleri açıklayın...')
+              : (t('report.describeIssuePlaceholder') || 'En fazla 300 karakter')}
             disabled={loading}
             rows={5}
             class="resize-none"
           />
           <div class="flex items-center justify-between text-xs text-muted-foreground">
-            <span>{t('report.moderationNote') || 'Yanlış raporlar yaptırım gerektirebilir.'}</span>
+            <span>
+              {reportType === 'error'
+                ? (t('report.errorNote') || 'Teknik ekibimiz sorunu en kısa sürede inceleyecektir.')
+                : (t('report.moderationNote') || 'Yanlış raporlar yaptırım gerektirebilir.')}
+            </span>
             <span>{reportMessage.trim().length}/{MAX_LENGTH}</span>
           </div>
         </div>
@@ -163,7 +243,7 @@
         <Button
           class="flex-1 z-60"
           onclick={submitReport}
-          disabled={loading || !reportMessage.trim()}
+          disabled={loading || !reportMessage.trim() || (reportType === 'error' && (!errorUrl.trim() || !isValidHttpUrl(errorUrl.trim())))}
           variant="destructive"
         >
           {#if loading}

@@ -1,32 +1,23 @@
 <script lang="ts">
   import Navbar from '$lib/Navbar.svelte';
   import Footer from '$lib/Footer.svelte';
-  import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '$lib/components/ui/card';
-  import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '$lib/components/ui/table';
-  import { Tabs, TabsContent, TabsList, TabsTrigger } from '$lib/components/ui/tabs';
-  import { Button } from '$lib/components/ui/button';
-  import { Badge } from '$lib/components/ui/badge';
-  import { Separator } from '$lib/components/ui/separator';
-  import { ScrollArea } from '$lib/components/ui/scroll-area';
   import * as AlertDialog from '$lib/components/ui/alert-dialog/index.js';
+  import * as Tabs from '$lib/components/ui/tabs/index.js';
   import { t } from '$lib/stores/i18n.svelte.js';
   import { showToast } from '$lib/hooks/toast';
   import MnemonicVerificationPopup from '$lib/components/MnemonicVerificationPopup.svelte';
-  // @ts-ignore - SvelteKit internal module
-  import { page } from '$app/stores';
-  // @ts-ignore - SvelteKit internal module
-  import { goto, invalidateAll } from '$app/navigation';
+	import PasswordVerificationPopup from '$lib/components/PasswordVerificationPopup.svelte';
+ 	import SectionCards from "$lib/components/section-cards.svelte";
+ 	import ChartAreaInteractive from "$lib/components/chart-area-interactive.svelte";
+ 	import DataTable from "$lib/components/data-table.svelte";
+   // @ts-ignore - SvelteKit internal module
+  import { invalidateAll } from '$app/navigation';
 
   let { data } = $props();
   let tableData = $state(data.tableData ?? []);
-  let selectedUsers = $state<Set<string>>(new Set());
-  let showBulkActions = $state(false);
 
   $effect(() => {
     tableData = data.tableData ?? [];
-    // Reset selection when table data changes
-    selectedUsers = new Set();
-    showBulkActions = false;
   });
 
   let currentUser = data.currentUser;
@@ -36,13 +27,25 @@
   
   // Mnemonic verification state
   let showMnemonicVerification = $state(false);
-  let pendingAction = $state<() => Promise<void>>();
+  let showPasswordVerification = $state(false);
+  let pendingAction = $state<(() => Promise<void>) | null>(null);
   let verificationToken = $state<string | null>(null);
   
   // Handle mnemonic verification
   function requestMnemonicVerification(action: () => Promise<void>) {
     pendingAction = action;
+    showPasswordVerification = true;
+  }
+  
+  async function handlePasswordVerified(token: string) {
+    showPasswordVerification = false;
+    verificationToken = token;
     showMnemonicVerification = true;
+  }
+  
+  function handlePasswordCancel() {
+    showPasswordVerification = false;
+    pendingAction = null;
   }
   
   async function handleMnemonicVerified(token: string) {
@@ -53,7 +56,7 @@
         await pendingAction();
       } catch (error) {
         console.error("Action failed after verification:", error);
-        showToast("İşlem sırasında bir hata oluştu", "error");
+        showToast("An error occurred during the operation", "error");
       }
       pendingAction = null;
     }
@@ -64,48 +67,7 @@
     pendingAction = null;
   }
   
-  let stats = $state({
-    reportedArticles: 0,
-    reportedComments: 0,
-    reportedUsers: 0,
-    hiddenArticles: 0,
-    hiddenComments: 0,
-    totalReports: 0
-  });
-
-  let reports = $state({
-    articles: [] as any[],
-    comments: [] as any[],
-    users: [] as any[]
-  });
-
-  let loading = $state(true);
-  let activeTab = $state('overview');
-
-  async function fetchStats() {
-    try {
-      const response = await fetch('/api/moderation/stats');
-      if (response.ok) {
-        stats = await response.json();
-      }
-    } catch (error) {
-      console.error('Failed to fetch stats:', error);
-    }
-  }
-
-  async function fetchReports() {
-    try {
-      const response = await fetch('/api/moderation/reports');
-      if (response.ok) {
-        reports = await response.json();
-      }
-    } catch (error) {
-      console.error('Failed to fetch reports:', error);
-    }
-  }
-
   async function refreshModerationData() {
-    await Promise.all([fetchStats(), fetchReports()]);
     await invalidateAll();
   }
 
@@ -130,93 +92,9 @@
     }
   }
 
-  // Bulk actions
-  function toggleUserSelection(userId: string) {
-    const newSelection = new Set(selectedUsers);
-    if (newSelection.has(userId)) {
-      newSelection.delete(userId);
-    } else {
-      newSelection.add(userId);
-    }
-    selectedUsers = newSelection;
-    showBulkActions = newSelection.size > 0;
-  }
-
-  function selectAllUsers() {
-    if (selectedUsers.size === tableData.length) {
-      selectedUsers = new Set();
-    } else {
-      selectedUsers = new Set(tableData.map((user: any) => user.id));
-    }
-    showBulkActions = selectedUsers.size > 0;
-  }
-
-  async function banSelectedUsers() {
+  async function banUser(userId: string) {
     if (!currentUser?.id || currentUser.id === 'unknown') {
-      showToast('Yetkiniz yok', 'error');
-      return;
-    }
-
-    try {
-      const promises = Array.from(selectedUsers).map(userId => 
-        banUser(userId, { skipToast: true })
-      );
-      
-      await Promise.all(promises);
-      showToast(`${selectedUsers.size} kullanıcı yasaklandı`, 'success');
-      selectedUsers = new Set();
-      showBulkActions = false;
-      await refreshModerationData();
-    } catch (error) {
-      showToast('Toplu işlem sırasında hata oluştu', 'error');
-    }
-  }
-
-  async function unbanSelectedUsers() {
-    if (!currentUser?.id || currentUser.id === 'unknown') {
-      showToast('Yetkiniz yok', 'error');
-      return;
-    }
-
-    try {
-      const promises = Array.from(selectedUsers).map(userId => 
-        unbanUser(userId, { skipToast: true })
-      );
-      
-      await Promise.all(promises);
-      showToast(`${selectedUsers.size} kullanıcının yasağı kaldırıldı`, 'success');
-      selectedUsers = new Set();
-      showBulkActions = false;
-      await refreshModerationData();
-    } catch (error) {
-      showToast('Toplu işlem sırasında hata oluştu', 'error');
-    }
-  }
-
-  async function deleteSelectedUsers() {
-    if (!currentUser?.id || currentUser.id === 'unknown') {
-      showToast('Yetkiniz yok', 'error');
-      return;
-    }
-
-    try {
-      const promises = Array.from(selectedUsers).map(userId => 
-        deleteUser(userId, { skipConfirm: true, skipToast: true })
-      );
-      
-      await Promise.all(promises);
-      showToast(`${selectedUsers.size} kullanıcı silindi`, 'success');
-      selectedUsers = new Set();
-      showBulkActions = false;
-      await refreshModerationData();
-    } catch (error) {
-      showToast('Toplu silme işlemi sırasında hata oluştu', 'error');
-    }
-  }
-
-  async function banUser(userId: string, options: { skipToast?: boolean } = {}) {
-    if (!currentUser?.id || currentUser.id === 'unknown') {
-      showToast('Kullanıcı bilgisi alınamadı', 'error');
+      showToast('User information could not be retrieved', 'error');
       return;
     }
 
@@ -232,19 +110,19 @@
       });
 
       if (response.ok) {
-        showToast('Kullanıcı yasaklandı', 'success');
+        showToast('User banned', 'success');
         await refreshModerationData();
       } else {
-        showToast('Yasaklama başarısız', 'error');
+        showToast('Ban failed', 'error');
       }
     } catch (error) {
-      showToast('Yasaklama hatası', 'error');
+      showToast('Ban error', 'error');
     }
   }
 
   async function unbanUser(userId: string) {
     if (!currentUser?.id || currentUser.id === 'unknown') {
-      showToast('Kullanıcı bilgisi alınamadı', 'error');
+      showToast('User information could not be retrieved', 'error');
       return;
     }
 
@@ -260,19 +138,19 @@
       });
 
       if (response.ok) {
-        showToast('Yasaklama kaldırıldı', 'success');
+        showToast('Ban removed', 'success');
         await refreshModerationData();
       } else {
-        showToast('İşlem başarısız', 'error');
+        showToast('Operation failed', 'error');
       }
     } catch (error) {
-      showToast('İşlem hatası', 'error');
+      showToast('Operation error', 'error');
     }
   }
 
   async function hideUser(userId: string) {
     if (!currentUser?.id || currentUser.id === 'unknown') {
-      showToast('Kullanıcı bilgisi alınamadı', 'error');
+      showToast('User information could not be retrieved', 'error');
       return;
     }
 
@@ -288,19 +166,19 @@
       });
 
       if (response.ok) {
-        showToast('Kullanıcı gizlendi', 'success');
+        showToast('User hidden', 'success');
         await refreshModerationData();
       } else {
-        showToast('Gizleme başarısız', 'error');
+        showToast('Hide failed', 'error');
       }
     } catch (error) {
-      showToast('Gizleme hatası', 'error');
+      showToast('Hide error', 'error');
     }
   }
 
   async function unhideUser(userId: string) {
     if (!currentUser?.id || currentUser.id === 'unknown') {
-      showToast('Kullanıcı bilgisi alınamadı', 'error');
+      showToast('User information could not be retrieved', 'error');
       return;
     }
 
@@ -316,13 +194,13 @@
       });
 
       if (response.ok) {
-        showToast('Görünürlük geri açıldı', 'success');
+        showToast('Visibility restored', 'success');
         await refreshModerationData();
       } else {
-        showToast('İşlem başarısız', 'error');
+        showToast('Operation failed', 'error');
       }
     } catch (error) {
-      showToast('İşlem hatası', 'error');
+      showToast('Operation error', 'error');
     }
   }
 
@@ -362,7 +240,7 @@
 
   async function performDelete(userId: string) {
     if (!currentUser?.id || currentUser.id === 'unknown') {
-      showToast('Kullanıcı bilgisi alınamadı', 'error');
+      showToast('User information could not be retrieved', 'error');
       return;
     }
 
@@ -382,15 +260,15 @@
         });
 
         if (response.ok) {
-          showToast('Hesap silme işlemi başlatıldı', 'success');
+          showToast('Account deletion process started', 'success');
           await refreshModerationData();
         } else {
           const errorData = await response.json().catch(() => ({}));
-          showToast(errorData.message || 'Silme başarısız', 'error');
+          showToast(errorData.message || 'Deletion failed', 'error');
         }
       } catch (error) {
         console.error('Delete error:', error);
-        showToast('Silme hatası', 'error');
+        showToast('Deletion error', 'error');
       }
     };
 
@@ -411,7 +289,7 @@
 
   async function undoDeleteUser(userId: string) {
     if (!currentUser?.id || currentUser.id === 'unknown') {
-      showToast('Kullanıcı bilgisi alınamadı', 'error');
+      showToast('User information could not be retrieved', 'error');
       return;
     }
 
@@ -427,19 +305,19 @@
       });
 
       if (response.ok) {
-        showToast('Hesap silme işlemi iptal edildi', 'success');
+        showToast('Account deletion cancelled', 'success');
         await refreshModerationData();
       } else {
-        showToast('İşlem başarısız', 'error');
+        showToast('Operation failed', 'error');
       }
     } catch (error) {
-      showToast('İşlem hatası', 'error');
+      showToast('Operation error', 'error');
     }
   }
 
   async function promoteToModerator(userId: string) {
     if (currentUser?.role !== 'admin') {
-      showToast('Bu işlem için admin yetkisi gerekiyor', 'error');
+      showToast('Admin privileges required for this operation', 'error');
       return;
     }
 
@@ -455,20 +333,20 @@
       });
 
       if (response.ok) {
-        showToast('Kullanıcı moderatör yapıldı', 'success');
+        showToast('User promoted to moderator', 'success');
         await refreshModerationData();
       } else {
         const error = await response.json();
-        showToast(error.error ?? 'İşlem başarısız', 'error');
+        showToast(error.error ?? 'Operation failed', 'error');
       }
     } catch (error) {
-      showToast('İşlem hatası', 'error');
+      showToast('Operation error', 'error');
     }
   }
 
   async function demoteToUser(userId: string) {
     if (currentUser?.role !== 'admin') {
-      showToast('Bu işlem için admin yetkisi gerekiyor', 'error');
+      showToast('Admin privileges required for this operation', 'error');
       return;
     }
 
@@ -484,58 +362,104 @@
       });
 
       if (response.ok) {
-        showToast('Kullanıcının moderatörlüğü kaldırıldı', 'success');
+        showToast('User moderator role removed', 'success');
         await refreshModerationData();
       } else {
         const error = await response.json();
-        showToast(error.error ?? 'İşlem başarısız', 'error');
+        showToast(error.error ?? 'Operation failed', 'error');
+      }
+    } catch (error) {
+      showToast('Operation error', 'error');
+    }
+  }
+
+  $effect(() => {
+    void refreshModerationData();
+  });
+
+  // Donation moderation functions
+  async function approveDonation(donationId: string) {
+    if (!currentUser?.id || currentUser.id === 'unknown') {
+      showToast('User information could not be retrieved', 'error');
+      return;
+    }
+
+    try {
+      const response = await fetch('/api/donations/moderate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'approve',
+          donationId
+        })
+      });
+
+      if (response.ok) {
+        showToast('Bağış onaylandı', 'success');
+        await refreshModerationData();
+      } else {
+        const error = await response.json();
+        showToast(error.error || 'Onay başarısız', 'error');
       }
     } catch (error) {
       showToast('İşlem hatası', 'error');
     }
   }
 
-  function formatDate(date: string | Date) {
-    if (!date) return '-';
-    const d = typeof date === 'string' ? new Date(date) : date;
-    return new Intl.DateTimeFormat('tr-TR', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    }).format(d);
+  async function rejectDonation(donationId: string, reason?: string) {
+    if (!currentUser?.id || currentUser.id === 'unknown') {
+      showToast('User information could not be retrieved', 'error');
+      return;
+    }
+
+    try {
+      const response = await fetch('/api/donations/moderate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'reject',
+          donationId,
+          rejectionReason: reason
+        })
+      });
+
+      if (response.ok) {
+        showToast('Bağış reddedildi', 'success');
+        await refreshModerationData();
+      } else {
+        const error = await response.json();
+        showToast(error.error || 'Red başarısız', 'error');
+      }
+    } catch (error) {
+      showToast('İşlem hatası', 'error');
+    }
   }
-
-  async function loadData() {
-    loading = true;
-    await Promise.all([fetchStats(), fetchReports()]);
-    loading = false;
-  }
-
-  $effect(() => {
-    loadData();
-  });
-
-
-	import SectionCards from "$lib/components/section-cards.svelte";
-	import ChartAreaInteractive from "$lib/components/chart-area-interactive.svelte";
-	import DataTable from "$lib/components/data-table.svelte";
 </script>
 
 <svelte:head>
   <title>{t('Moderation')} - LAF</title>
 </svelte:head>
 
+<!-- Password Verification Popup -->
+<PasswordVerificationPopup
+  bind:openVerif={showPasswordVerification}
+  onVerified={handlePasswordVerified}
+  onCancel={handlePasswordCancel}
+  title="Moderator Action Confirmation"
+  description="You need to verify your account password to perform moderator actions."
+/>
+
 <!-- Add Mnemonic Verification Popup -->
 <MnemonicVerificationPopup
   bind:openVerif={showMnemonicVerification}
+  verificationToken={verificationToken}
   onVerified={handleMnemonicVerified}
   onCancel={handleMnemonicCancel}
 />
+
 <Navbar />
 		<div class=" flex flex-1 flex-col items-center ">
-			<div class="@container/main w-full max-w-7xl flex-1 px-2 sm:px-4">
+			<div class="@container/main w-full max-w-[96vw] flex-1 px-2 sm:px-4">
 			<div class="flex flex-col gap-3 py-3 sm:gap-4 sm:py-4 md:gap-5 md:py-5">
           <div class="w-full flex justify-center items-center px-2">
             <h1 class="text-xl font-bold sm:text-2xl">{t('ModerationAndAnalysis')}</h1>
@@ -546,57 +470,6 @@
           <div class="px-1 sm:px-2 lg:px-4">
             <ChartAreaInteractive />
           </div>
-          
-          {#if showBulkActions}
-            <div class="bg-muted/50 p-3 rounded-lg mb-4 flex items-center justify-between flex-wrap gap-2">
-              <div class="text-sm font-medium">
-                {selectedUsers.size} öğe seçildi
-              </div>
-              <div class="flex flex-wrap gap-2">
-                <Button 
-                  variant="outline" 
-                  size="sm"
-                  on:click={() => {
-                    banSelectedUsers();
-                  }}
-                >
-                  <BanIcon class="h-4 w-4 mr-2" />
-                  Yasakla
-                </Button>
-                <Button 
-                  variant="outline" 
-                  size="sm"
-                  on:click={() => {
-                    unbanSelectedUsers();
-                  }}
-                >
-                  <CheckCircleIcon class="h-4 w-4 mr-2" />
-                  Yasak Kaldır
-                </Button>
-                <Button 
-                  variant="destructive" 
-                  size="sm"
-                  on:click={() => {
-                    deleteSelectedUsers();
-                  }}
-                >
-                  <Trash2Icon class="h-4 w-4 mr-2" />
-                  Seçileni Sil
-                </Button>
-                <Button 
-                  variant="ghost" 
-                  size="sm"
-                  on:click={() => {
-                    selectedUsers = new Set();
-                    showBulkActions = false;
-                  }}
-                >
-                  <XCircleIcon class="h-4 w-4 mr-2" />
-                  İptal
-                </Button>
-              </div>
-            </div>
-          {/if}
           
           <DataTable
             data={tableData}
@@ -609,10 +482,8 @@
             {currentUser}
             {promoteToModerator}
             {demoteToUser}
-            selectedUsers={selectedUsers}
-            onToggleUserSelection={toggleUserSelection}
-            onSelectAllUsers={selectAllUsers}
-            showCheckboxes={true}
+            {approveDonation}
+            {rejectDonation}
           />
 
 				<AlertDialog.Root bind:open={showDeleteDialog} onOpenChange={handleDeleteDialogOpenChange}>

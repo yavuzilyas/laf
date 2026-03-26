@@ -6,7 +6,7 @@
   import { ScrollArea } from "$lib/components/ui/scroll-area";
   import { Switch } from "$lib/components/ui/switch/index.js";
   import DateRangePicker from "$lib/components/DateRangePicker.svelte";
-  import { t } from '$lib/stores/i18n.svelte.ts';
+  import { t } from '$lib/stores/i18n.svelte';
   import { Filter, Calendar, Globe, BookOpen, Users } from "@lucide/svelte";
   import { CategoryTree } from '$lib/components/ui/category-tree';
   import { categoryTree } from '$lib/data/categories';

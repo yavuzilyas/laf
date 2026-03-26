@@ -1,5 +1,5 @@
 <script lang="ts">
-      let isOpen = false;
+      let isOpen = $state(false);
 
   import {Menu, Expand, Shrink, Volume2, VolumeOff} from "@lucide/svelte";
   import { Motion, useAnimation } from "svelte-motion";
@@ -12,6 +12,28 @@
   import LanguageSelector from "./LanguageSelector.svelte";
   import { t } from '$lib/stores/i18n.svelte.ts';
 	import { playSound } from "$lib/stores/sound"; // 🔥 ekle
+	import { highContrast } from "$lib/stores/highcontrast.js";
+
+	// High contrast state from store
+	let isHighContrast = $state(false);
+
+	// Sync with store
+	$effect(() => {
+		isHighContrast = $highContrast;
+	});
+
+	// Toggle high contrast mode
+	function toggleHighContrast() {
+		isHighContrast = !isHighContrast;
+		
+		// Update DOM
+		if (typeof document !== 'undefined') {
+			document.documentElement.classList.toggle('highcontrast', isHighContrast);
+		}
+		
+		// Update store
+		highContrast.set(isHighContrast);
+	}
 
 type DropdownItem = {
     icon?: any;
@@ -25,13 +47,14 @@ type DropdownItem = {
     image?: string;
 };
 
-export let items: DropdownItem[] = [];
+let { items = [] }: { items: DropdownItem[] } = $props();
   let svgControls = useAnimation();
 
 let list = {
   visible: {
     clipPath: "inset(0% 0% 0% 0% round 12px)",
     transition: {
+      duration: 0.20,
       type: "spring",
       bounce: 0,
     },
@@ -40,7 +63,7 @@ let list = {
   hidden: {
     clipPath: "inset(5% 5% 95% 95% round 12px)", // sağdan sola kapanır
     transition: {
-      duration: 0.45,
+      duration: 0.6,
       type: "spring",
       bounce: 0,
     },
@@ -53,13 +76,15 @@ let variants = {
     opacity: 1,
     x: 0,             // sola kayma animasyonu burada
     filter: "blur(0px)",
-    transition: { duration: 0.22, delay: i * 0.08},
+    transition: { duration: 0.14, delay: i * 0.04},
   }),
-  hidden: {
+  hidden: (i: number) => ({
     opacity: 0,
     x: 24,            // başlangıçta sağdan 10px ötede
     filter: "blur(6px)",
-  },
+        transition: { duration: 0.18, delay: i * 0.05},
+
+  }),
 };
 function handleItemClick(item: any) {
     if (item.onClick) {

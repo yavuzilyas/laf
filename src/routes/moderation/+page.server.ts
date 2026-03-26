@@ -1,6 +1,6 @@
 import type { PageServerLoad } from './$types';
 import { error } from '@sveltejs/kit';
-import { getUsersCollection, getArticlesCollection } from '$db/mongo';
+import { getUsers, getArticles } from '$db/queries';
 
 const formatDate = (value?: Date | string) => {
   if (!value) return '-';
@@ -14,54 +14,38 @@ const formatDate = (value?: Date | string) => {
 };
 
 export const load: PageServerLoad = async ({ locals }) => {
-  const currentUser = locals.user;
+  const currentUser = (locals as any).user;
 
   if (!currentUser || (currentUser.role !== 'moderator' && currentUser.role !== 'admin')) {
     throw error(403, 'Yetkisiz erişim');
   }
 
   // Get pending articles count
-  const articlesCollection = await getArticlesCollection();
-  const pendingArticlesCount = await articlesCollection.countDocuments({ 
-    status: 'pending',
-    deletedAt: { $exists: false }
-  });
+  const pendingArticles = await getArticles({ status: 'pending' });
+  const pendingArticlesCount = pendingArticles.length;
 
   // Debug: log current user structure
   console.log('Current user:', JSON.stringify(currentUser, null, 2));
 
-  const usersCollection = await getUsersCollection();
-  const users = await usersCollection
-    .find(
-      {},
-      {
-        projection: {
-          password: 0,
-          mnemonicHashes: 0
-        }
-      }
-    )
-    .sort({ createdAt: -1 })
-    .limit(150)
-    .toArray();
+  const users = await getUsers({ limit: 150 });
 
-  const tableData = users.map((user, index) => ({
-    id: user._id.toString(),
-    header: user.nickname || user.email || `Kullanıcı ${index + 1}`,
+  const tableData = users.map((user: any) => ({
+    id: user.id,
+    header: user.username || user.email || `Kullanıcı`,
     type: user.role ?? 'user',
-    status: user.status || (user.banned ? 'banned' : user.hidden ? 'hidden' : 'active'),
-    banned: user.banned || false,
-    hidden: user.hidden || false,
-    target: `${Array.isArray(user.reports) ? user.reports.length : user.reportsCount || 0}`,
-    limit: formatDate(user.createdAt),
-    reviewer: user.moderationAction?.action ?? '—',
+    status: user.status || (user.is_banned ? 'banned' : user.is_hidden ? 'hidden' : 'active'),
+    banned: user.is_banned || false,
+    hidden: user.is_hidden || false,
+    target: `${user.report_count || 0}`,
+    limit: formatDate(user.created_at),
+    reviewer: user.moderation_action?.action ?? '—',
     deletionTimestamp:
-      user.status === 'silinecek' && user.moderationAction?.timestamp
-        ? new Date(user.moderationAction.timestamp).toISOString()
+      user.status === 'silinecek' && user.moderation_action?.timestamp
+        ? new Date(user.moderation_action.timestamp).toISOString()
         : null,
     name: user.name || null,
     surname: user.surname || null,
-    nickname: user.nickname || '',
+    nickname: user.username || null,
     email: user.email || null
   }));
 
@@ -69,9 +53,9 @@ export const load: PageServerLoad = async ({ locals }) => {
     tableData,
     pendingArticlesCount,
     currentUser: {
-      id: currentUser._id?.toString() || currentUser.id || 'unknown',
+      id: currentUser.id || 'unknown',
       role: currentUser.role || 'user',
-      nickname: currentUser.nickname || 'Unknown'
+      nickname: currentUser.username || 'Unknown'
     }
   };
 };

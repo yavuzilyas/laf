@@ -147,6 +147,9 @@
 		window.removeEventListener('mouseup', endResize);
 		window.removeEventListener('touchmove', handleTouchMove);
 		window.removeEventListener('touchend', handleTouchEnd);
+		
+		// Delete file from server when node is destroyed (e.g., keyboard deletion)
+		deleteFromServer(initialSrc);
 	});
 </script>
 
@@ -275,8 +278,7 @@
 								<Fullscreen class="mr-1 size-4" /> Full Screen
 							</DropdownMenu.Item>
 							<DropdownMenu.Item
-								onclick={async () => {
-									await deleteFromServer((node as any)?.attrs?.src);
+								onclick={() => {
 									deleteNode();
 								}}
 								class="text-destructive"

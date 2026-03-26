@@ -27,6 +27,7 @@
     await preloadSounds(soundFiles);
   });
   import Loader from "$lib/components/load.svelte";
+  import { page } from '$app/stores';
 </script>
 <Loader />
 <svelte:head>

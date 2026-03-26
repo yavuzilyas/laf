@@ -1,7 +1,6 @@
 import type { PageServerLoad } from './$types';
 import { error } from '@sveltejs/kit';
-import { getArticlesCollection } from '$db/mongo';
-import { ObjectId } from 'mongodb';
+import { getArticleById, getArticles } from '$db/queries';
 
 const normalizeContent = (content: unknown) => {
   if (!content) return null;
@@ -54,32 +53,25 @@ export const load: PageServerLoad = async ({ url, locals }) => {
     };
   }
 
-  const articles = await getArticlesCollection();
-  const objectId = ObjectId.isValid(articleId) ? new ObjectId(articleId) : null;
   const slugParam = url.searchParams.get('slug');
 
-  let articleDoc = objectId ? await articles.findOne({ _id: objectId }) : null;
+  // Try to find article by ID first
+  let articleDoc = await getArticleById(articleId);
 
-  const slugCandidates = Array.from(
-    new Set(
-      [slugParam, articleId]
-        .filter((value): value is string => Boolean(value) && value !== (objectId ? articleId : ''))
-    )
-  );
-
-  if (!articleDoc && slugCandidates.length > 0) {
-    const slugConditions = [] as Record<string, string>[];
+  // If not found by ID, try by slug
+  if (!articleDoc && slugParam) {
+    const slugCandidates = [slugParam, articleId];
     const languageKeys = ['tr', 'en', 'de', 'fr', 'es'];
 
     for (const candidate of slugCandidates) {
-      slugConditions.push({ slug: candidate });
-      for (const key of languageKeys) {
-        slugConditions.push({ [`translations.${key}.slug`]: candidate } as Record<string, string>);
+      for (const lang of languageKeys) {
+        const articles = await getArticles({ slug: candidate, language: lang });
+        if (articles && articles.length > 0) {
+          articleDoc = articles[0];
+          break;
+        }
       }
-    }
-
-    if (slugConditions.length > 0) {
-      articleDoc = await articles.findOne({ $or: slugConditions });
+      if (articleDoc) break;
     }
   }
 
@@ -87,7 +79,7 @@ export const load: PageServerLoad = async ({ url, locals }) => {
     throw error(404, 'Article not found');
   }
 
-  if (String(articleDoc.authorId) !== String(user.id)) {
+  if (String(articleDoc.author_id) !== String(user.id)) {
     throw error(403, 'Unauthorized');
   }
 
@@ -100,13 +92,13 @@ export const load: PageServerLoad = async ({ url, locals }) => {
   }
 
   if (Object.keys(translations).length === 0) {
-    const fallbackLang = articleDoc.language || articleDoc.defaultLanguage || 'tr';
+    const fallbackLang = articleDoc.default_language || 'tr';
     const fallback = sanitizeTranslation(
       {
-        title: articleDoc.title,
-        excerpt: articleDoc.excerpt,
-        content: articleDoc.content,
-        slug: articleDoc.slug
+        title: '',
+        excerpt: '',
+        content: null,
+        slug: ''
       },
       fallbackLang
     );
@@ -119,20 +111,20 @@ export const load: PageServerLoad = async ({ url, locals }) => {
   const availableLanguages = Object.keys(translations);
 
   const responseArticle = {
-    id: articleDoc._id.toString(),
-    slug: articleDoc.slug || undefined,
-    defaultLanguage: articleDoc.defaultLanguage || availableLanguages[0],
+    id: articleDoc.id,
+    slug: undefined,
+    defaultLanguage: articleDoc.default_language || availableLanguages[0],
     category: articleDoc.category || '',
     subcategory: articleDoc.subcategory || '',
     tags: Array.isArray(articleDoc.tags) ? articleDoc.tags : [],
     status: articleDoc.status || 'draft',
-    collaborators: Array.isArray(articleDoc.collaborators) ? articleDoc.collaborators : [],
-    authorId: articleDoc.authorId ? String(articleDoc.authorId) : user.id,
+    collaborators: [],
+    authorId: articleDoc.author_id ? String(articleDoc.author_id) : user.id,
     thumbnail: articleDoc.thumbnail || '',
     translations,
     availableLanguages,
-    version: articleDoc.version || 1,
-    publishedAt: articleDoc.publishedAt ? new Date(articleDoc.publishedAt).toISOString() : undefined
+    version: 1,
+    publishedAt: articleDoc.published_at ? new Date(articleDoc.published_at).toISOString() : undefined
   };
 
   return {

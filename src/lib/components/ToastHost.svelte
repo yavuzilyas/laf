@@ -149,7 +149,7 @@
 	};
 </script>
 
-<div class="w-full h-0 fixed translate z-[70] flex flex-col justify-center items-center gap-1">
+<div class="w-full h-0 fixed translate !z-[1000] flex flex-col justify-center items-center gap-1">
 	{#each renderList as item, i (item.toast.id)}
 		<Motion
 			custom={i + 1}

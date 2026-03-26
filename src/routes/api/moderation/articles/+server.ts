@@ -1,13 +1,12 @@
 import { json } from '@sveltejs/kit';
-import { ObjectId } from 'mongodb';
-import { getArticlesCollection, getUsersCollection } from '$db/mongo';
+import { getArticles, getUsers } from '$db/queries';
 
 const MAX_ARTICLES = 300;
 
 const ensureLocaleText = (article: any) => {
 	const languages = Object.keys(article?.translations ?? {});
-	const primary = article?.defaultLanguage && article.translations?.[article.defaultLanguage]
-		? article.translations[article.defaultLanguage]
+	const primary = article?.default_language && article.translations?.[article.default_language]
+		? article.translations[article.default_language]
 		: languages.length > 0
 			? article.translations?.[languages[0]]
 			: null;
@@ -16,34 +15,30 @@ const ensureLocaleText = (article: any) => {
 };
 
 export async function GET({ locals, url }) {
-	const currentUser = locals.user;
+	const currentUser = (locals as any).user;
 
 	if (!currentUser || (currentUser.role !== 'moderator' && currentUser.role !== 'admin')) {
 		return json({ error: 'Unauthorized' }, { status: 403 });
 	}
 
 	const statusFilter = url.searchParams.get('status');
-	const match: Record<string, unknown> = {
-		deletedAt: { $exists: false }
+	const filters: Record<string, any> = {
+		limit: MAX_ARTICLES,
+		sort_by: 'created_at'
 	};
 
 	if (statusFilter && statusFilter !== 'all') {
-		match.status = statusFilter;
+		filters.status = statusFilter;
 	}
 
 	try {
-		const articlesCollection = await getArticlesCollection();
-		const articles = await articlesCollection
-			.find(match)
-			.sort({ createdAt: -1 })
-			.limit(MAX_ARTICLES)
-			.toArray();
+		const articles = await getArticles(filters);
 
 		const authorIds = Array.from(
 			new Set(
 				articles
-					.map((article) => article.authorId)
-					.filter((id): id is ObjectId => Boolean(id))
+					.map((article: any) => article.author_id)
+					.filter((id: any): id is string => Boolean(id))
 			)
 		);
 
@@ -53,44 +48,42 @@ export async function GET({ locals, url }) {
 		>();
 
 		if (authorIds.length > 0) {
-			const usersCollection = await getUsersCollection();
-			const authors = await usersCollection
-				.find(
-					{ _id: { $in: authorIds } },
-					{ projection: { name: 1, surname: 1, nickname: 1, role: 1 } }
-				)
-				.toArray();
-
-			for (const author of authors) {
-				const fullName = `${author.name || ''} ${author.surname || ''}`.trim();
-				authorsMap.set(author._id.toString(), {
-					fullName: fullName || null,
-					nickname: author.nickname || null,
-					role: author.role || null
-				});
+			for (const authorId of authorIds) {
+				const authorData = await getUsers({ id: authorId });
+				const author = authorData[0];
+				if (author) {
+					const fullName = `${author.name || ''} ${author.surname || ''}`.trim();
+					authorsMap.set(author.id, {
+						fullName: fullName || null,
+						username: author.username || null,
+						nickname: author.nickname || null,
+						role: author.role || null
+					});
+				}
 			}
 		}
 
-		const formattedArticles = articles.map((article) => {
+		const formattedArticles = articles.map((article: any) => {
 			const localeText = ensureLocaleText(article);
-			const authorId = article.authorId?.toString() ?? '';
+			const authorId = article.author_id?.toString() ?? '';
 			return {
-				id: article._id.toString(),
+				id: article.id,
 				title: localeText?.title ?? 'Başlıksız',
 				slug: localeText?.slug ?? article.slug ?? null,
 				authorId,
-				authorName: authorsMap.get(authorId)?.fullName ?? null,
+				authorName: authorsMap.get(authorId)?.username ?? null,
+				authorFullName: authorsMap.get(authorId)?.fullName ?? null,
 				authorNickname: authorsMap.get(authorId)?.nickname ?? null,
 				authorRole: authorsMap.get(authorId)?.role ?? null,
 				status: article.status ?? 'draft',
 				category: article.category ?? null,
 				tags: Array.isArray(article.tags) ? article.tags : [],
-				defaultLanguage: article.defaultLanguage ?? null,
-				language: article.defaultLanguage ?? (localeText?.language ?? null),
-				createdAt: article.createdAt ?? null,
-				updatedAt: article.updatedAt ?? null,
-				hidden: !!article.hidden,
-				deletedAt: article.deletedAt ?? null
+				defaultLanguage: article.default_language ?? null,
+				language: article.default_language ?? (localeText?.language ?? null),
+				createdAt: article.created_at ?? null,
+				updatedAt: article.updated_at ?? null,
+				hidden: !!article.is_hidden,
+				deletedAt: article.deleted_at ?? null
 			};
 		});
 

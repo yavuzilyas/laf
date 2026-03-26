@@ -2,6 +2,7 @@
 	import MediaPlaceHolder from '../../components/MediaPlaceHolder.svelte';
 	import type { NodeViewProps } from '@tiptap/core';
 	import { t } from '$lib/stores/i18n.svelte';
+	import { getFileSizeLimit, isFileSizeValid, getFileSizeError } from '../../config/file-limits.js';
 
 	const { editor }: NodeViewProps = $props();
 	import Audio from '@lucide/svelte/icons/audio-lines';
@@ -23,6 +24,10 @@
 		if (!file) return;
 		(async () => {
 			try {
+				if (!isFileSizeValid(file, 'audio')) {
+					throw new Error(getFileSizeError(file, 'audio'));
+				}
+
 				const fd = new FormData();
 				fd.append('file', file);
 				fd.append('folder', 'audio');
@@ -35,6 +40,7 @@
 				dialogOpen = false;
 			} catch (err) {
 				console.error('Audio upload error', err);
+				alert(err instanceof Error ? err.message : 'Upload failed');
 			} finally {
 				input.value = '';
 			}

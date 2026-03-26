@@ -1,6 +1,5 @@
 import { json } from '@sveltejs/kit';
-import { getUsersCollection } from '$db/mongo';
-import { ObjectId } from 'mongodb';
+import { getUsers, updateUserAuthFields } from '$db/queries';
 import type { RequestHandler } from './$types';
 
 // 5 minute expiration for verification tokens
@@ -27,7 +26,6 @@ function safeCompare(a: string, b: string): boolean {
 }
 
 export const POST = async ({ request, cookies }) => {
-  const users = await getUsersCollection();
   const now = new Date();
   
   try {
@@ -39,20 +37,18 @@ export const POST = async ({ request, cookies }) => {
     }
     
     // Get user and check rate limit
-    const user = await users.findOne({
-      _id: new ObjectId(session),
-      status: { $ne: 'suspended' }
-    });
+    const users = await getUsers({ id: session, status: { $ne: 'suspended' } });
+    const user = users[0];
     
     if (!user) {
       return json({ error: 'Kullanıcı bulunamadı veya erişim engellendi' }, { status: 404 });
     }
     
     // Check rate limit from user document
-    const lastAttempt = user.lastMnemonicAttempt ? new Date(user.lastMnemonicAttempt) : null;
+    const lastAttempt = user.last_mnemonic_attempt ? new Date(user.last_mnemonic_attempt) : null;
     const attemptWindow = lastAttempt ? now.getTime() - lastAttempt.getTime() : RATE_LIMIT_WINDOW + 1;
     
-    if (user.mnemonicAttempts >= MAX_ATTEMPTS && attemptWindow < RATE_LIMIT_WINDOW) {
+    if (user.mnemonic_attempts >= MAX_ATTEMPTS && attemptWindow < RATE_LIMIT_WINDOW) {
       const retryAfter = Math.ceil((RATE_LIMIT_WINDOW - attemptWindow) / 1000);
       return json({
         error: `Çok fazla deneme yaptınız. Lütfen ${Math.ceil(retryAfter / 60)} dakika sonra tekrar deneyin.`
@@ -80,44 +76,24 @@ export const POST = async ({ request, cookies }) => {
       return json({ error: 'Geçersiz doğrulama tokenı' }, { status: 400 });
     }
 
-    if (!user.mnemonicHashes?.length) {
+    if (!user.mnemonic_hash || typeof user.mnemonic_hash !== 'string') {
       return json({ error: 'Mnemonic bulunamadı' }, { status: 404 });
     }
-
-    // Generate a secure random index
-    const randomIndex = Math.floor(crypto.getRandomValues(new Uint32Array(1))[0] / (0xffffffff + 1) * user.mnemonicHashes.length);
     
     // Create a new verification token with expiration
     const newVerificationToken = crypto.randomUUID();
     const tokenExpiry = new Date(Date.now() + VERIFICATION_TOKEN_EXPIRY);
     
     // Store the verification token with expiration and update rate limit
-    await users.updateOne(
-      { _id: user._id },
-      [
-        {
-          $set: {
-            verificationToken: newVerificationToken,
-            verificationTokenExpiresAt: tokenExpiry,
-            lastMnemonicAttempt: now,
-            mnemonicAttempts: { 
-              $cond: [
-                { $ifNull: ['$mnemonicAttempts', false] },
-                { $add: ['$mnemonicAttempts', 1] },
-                1
-              ]
-            }
-          }
-        },
-        {
-          $unset: 'verificationAttempts'
-        }
-      ]
-    );
+    await updateUserAuthFields(user.id, {
+      verification_token: newVerificationToken,
+      verification_token_expires_at: tokenExpiry,
+      last_mnemonic_attempt: now,
+      mnemonic_attempts: (user.mnemonic_attempts || 0) + 1
+    });
     
     // Return minimal required information
     return json({ 
-      index: randomIndex,
       verificationToken: newVerificationToken,
       expiresIn: VERIFICATION_TOKEN_EXPIRY / 1000 // in seconds
     }, {

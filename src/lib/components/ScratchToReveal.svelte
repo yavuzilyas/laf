@@ -181,9 +181,9 @@
   <div
     use:motion
     bind:this={container}
-    class={cn("scratch-container", _class)}
+    class={cn("scratch-container", _class, isComplete && "completed")}
     style="width: fit-content; height: fit-content; cursor:
-     url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIzMiIgaGVpZ2h0PSIzMiIgdmlld0JveD0iMCAwIDMyIDMyIj4KICA8Y2lyY2xlIGN4PSIxNiIgY3k9IjE2IiByPSIxNSIgc3R5bGU9ImZpbGw6I2ZmZjtzdHJva2U6IzAwMDtzdHJva2Utd2lkdGg6MXB4OyIgLz4KPC9zdmc+'), auto; z-index: 90; touch-action: none;"
+     {isComplete ? 'auto' : "url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIzMiIgaGVpZ2h0PSIzMiIgdmlld0JveD0iMCAwIDMyIDMyIj4KICA8Y2lyY2xlIGN4PSIxNiIgY3k9IjE2IiByPSIxNSIgc3R5bGU9ImZpbGw6I2ZmZjtzdHJva2U6IzAwMDtzdHJva2Utd2lkdGg6MXB4OyIgLz4KPC9zdmc+')"}; z-index: 90; touch-action: {isComplete ? 'auto' : 'none'};"
   >
     <canvas
       bind:this={canvas}
@@ -192,7 +192,7 @@
       class="z-20"
       on:mousedown={handleMouseDown}
       on:touchstart={handleTouchStart}
-      style="touch-action: none;"
+      style="touch-action: none; pointer-events: {isComplete ? 'none' : 'auto'};"
     ></canvas>
     <div style="position: relative; width: 100%; height: 100%;">
       <slot />
@@ -212,6 +212,16 @@
     -khtml-user-select: none;
     -moz-user-select: none;
     -ms-user-select: none;
+  }
+
+  .scratch-container.completed {
+    user-select: auto;
+    animation: none;
+    -webkit-touch-callout: auto;
+    -webkit-user-select: auto;
+    -khtml-user-select: auto;
+    -moz-user-select: auto;
+    -ms-user-select: auto;
   }
 
   canvas {

@@ -1,7 +1,8 @@
 import type { PageServerLoad } from './$types';
-import { getUsersCollection, getArticlesCollection, toObjectId } from '$db/mongo';
+import { getUsers, getArticles, getFollowersList, getFollowingList, getFollowCounts, isUserBlockedRelation, isFollowing } from '$db/queries';
 import { error } from '@sveltejs/kit';
 import { slugify } from '$lib/utils/slugify';
+import { getUserBadges } from '$lib/server/badges';
 
 interface ArticleVersion {
     title: string;
@@ -60,265 +61,186 @@ interface Article {
     authorId: any;
 }
 
-export const load: PageServerLoad = async ({ params, locals }) => {
+export const load: PageServerLoad = async ({ params, locals }: any) => {
 	const requestedNickname = slugify(params.nickname);
 	
 	// Get user data from database
-	const users = await getUsersCollection();
-	const profileUser = await users.findOne(
-		{ nickname: requestedNickname },
-		{ 
-			projection: { 
-				password: 0,
-				mnemonicHashes: 0
-			} 
-		}
-	);
+	const profileUsers = await getUsers({ username: requestedNickname });
+	const profileUser = profileUsers[0];
 
 	if (!profileUser) {
 		throw error(404, 'User not found');
 	}
 
-	const viewerId = locals.user?._id || locals.user?.id;
-	const viewerObjectId = viewerId ? toObjectId(viewerId) : null;
+	const viewerId = locals.user?.id;
+	const viewerObjectId = viewerId;
 
-	const viewerDoc = viewerObjectId
-		? await users.findOne({ _id: viewerObjectId }, { projection: { blocked: 1 } })
-		: null;
+	// Get viewer data for blocking information
+	const viewerDoc = viewerObjectId ? await getUsers({ id: viewerObjectId }) : [];
+	const viewer = viewerDoc[0];
 
-	const viewerBlocksProfile = !!(viewerObjectId && viewerDoc?.blocked?.some?.((entry: any) => {
-		try {
-			return entry?.blockedUserId && toObjectId(entry.blockedUserId).equals(profileUser._id);
-		} catch {
-			return false;
-		}
-	}));
+	const viewerBlocksProfile = viewerObjectId ? await isUserBlockedRelation(viewerObjectId, profileUser.id) : false;
 
 	// No blocking logic - everyone can view everyone's profile
 	// Blocked users can see blocker's profile and vice versa
 
-	const followerEntries = Array.isArray(profileUser.followers) ? profileUser.followers : [];
-	const followingEntries = Array.isArray(profileUser.following) ? profileUser.following : [];
+	// Get followers and following lists using PostgreSQL
+	const [followersList, followingList, followCounts] = await Promise.all([
+		getFollowersList(profileUser.id, viewerObjectId),
+		getFollowingList(profileUser.id, viewerObjectId),
+		getFollowCounts(profileUser.id)
+	]);
 
-	const followerIds = followerEntries
-		.map((entry) => entry?.followerUserId)
-		.filter(Boolean)
-		.map((id) => toObjectId(id));
+	const isFollowingMe = viewerObjectId ? await isFollowing(viewerObjectId, profileUser.id) : false;
 
-	const followingIds = followingEntries
-		.map((entry) => entry?.followingUserId)
-		.filter(Boolean)
-		.map((id) => toObjectId(id));
+	const profileAvatar = profileUser.avatar_url || '';
 
-	const followersData = followerIds.length
-		? await users
-			.find({ _id: { $in: followerIds } }, {
-				projection: {
-					nickname: 1,
-					name: 1,
-					surname: 1,
-					avatar: 1,
-					bio: 1
-				}
-			})
-			.toArray()
-		: [];
-
-	const followingData = followingIds.length
-		? await users
-			.find({ _id: { $in: followingIds } }, {
-				projection: {
-					nickname: 1,
-					name: 1,
-					surname: 1,
-					avatar: 1,
-					bio: 1
-				}
-			})
-			.toArray()
-		: [];
-
-	const followersMap = new Map(followersData.map((user) => [user._id.toString(), user]));
-	const followingMap = new Map(followingData.map((user) => [user._id.toString(), user]));
-
-	const followersList = followerEntries
-		.map((entry) => {
-			if (!entry?.followerUserId) return null;
-			const user = followersMap.get(toObjectId(entry.followerUserId).toString());
-			if (!user) return null;
-			
-			// Check if current user is following this follower
-			const isFollowing = viewerObjectId && followingEntries?.some((followEntry) => 
-				followEntry?.followingUserId && 
-				toObjectId(followEntry.followingUserId).equals(toObjectId(user._id))
-			);
-			
-			// Check if current user has blocked this follower
-			const isBlocked = viewerDoc?.blocked?.some((entry: any) => {
-				try {
-					return entry?.blockedUserId && toObjectId(entry.blockedUserId).equals(toObjectId(user._id));
-				} catch {
-					return false;
-				}
-			});
-			
-			return {
-				id: user._id.toString(),
-				nickname: user.nickname,
-				name: user.name,
-				surname: user.surname,
-				avatar: typeof user.avatar === 'string' ? user.avatar : '',
-				bio: user.bio || '',
-				followedAt: entry.followedAt instanceof Date ? entry.followedAt.toISOString() : entry.followedAt,
-				isFollowing: !!isFollowing,
-				isBlocked: !!isBlocked
-			};
-		})
-		.filter(Boolean);
-
-	const followingList = followingEntries
-		.map((entry) => {
-			if (!entry?.followingUserId) return null;
-			const user = followingMap.get(toObjectId(entry.followingUserId).toString());
-			if (!user) return null;
-			
-			// Check if current user has blocked this following user
-			const isBlocked = viewerDoc?.blocked?.some((entry: any) => {
-				try {
-					return entry?.blockedUserId && toObjectId(entry.blockedUserId).equals(toObjectId(user._id));
-				} catch {
-					return false;
-				}
-			});
-			
-			return {
-				id: user._id.toString(),
-				nickname: user.nickname,
-				name: user.name,
-				surname: user.surname,
-				avatar: typeof user.avatar === 'string' ? user.avatar : '',
-				bio: user.bio || '',
-				followedAt: entry.followedAt instanceof Date ? entry.followedAt.toISOString() : entry.followedAt,
-				isFollowing: true,  // All users in following list are already followed
-				isBlocked: !!isBlocked
-			};
-		})
-		.filter(Boolean);
-
-	const isFollowingMe = !!(viewerObjectId && followingEntries?.some((entry) => {
-		if (!entry?.followingUserId) return false;
-		try {
-			return toObjectId(entry.followingUserId).equals(viewerObjectId);
-		} catch {
-			return false;
-		}
-	}));
-
-	const profileAvatar = typeof profileUser.avatar === 'string' && profileUser.avatar.trim().length
-		? profileUser.avatar
-		: '';
-
-	const profileBannerColor = typeof profileUser.bannerColor === 'string' && profileUser.bannerColor.trim().length
-		? profileUser.bannerColor
-		: '#0f172a';
-
-	const profileBannerImage = typeof profileUser.bannerImage === 'string' && profileUser.bannerImage.trim().length
-		? profileUser.bannerImage
-		: '';
-
-	// Get user's articles
-	const articlesCollection = await getArticlesCollection();
+	// Get user's articles (both authored and collaborated)
 	const isModeratorOrAdmin = locals.user?.role === 'moderator' || locals.user?.role === 'admin';
-	const isViewingOwnProfile = locals.user?._id?.toString() === profileUser._id.toString();
+	const isViewingOwnProfile = locals.user?.id === profileUser.id;
 
-	// Build the query based on user role
-	const query: any = {
-		'authorId': toObjectId(profileUser._id),
-		'deletedAt': { $exists: false }
+	// Build queries for authored and collaborated articles
+	const authoredFilters: any = {
+		author_id: profileUser.id
 	};
 
+	const collaboratedFilters: any = {
+		collaborator_id: profileUser.id
+	};
+
+	// Apply status filters based on viewer role
 	if (isModeratorOrAdmin) {
 		// Moderators and admins can see all articles regardless of status
-		query['$or'] = [
-			{ status: 'published' },
-			{ status: 'pending' },
-			{ status: 'draft' }
-		];
+		// No status filter needed
 	} else if (isViewingOwnProfile) {
 		// Users can see all their own articles (any status)
-		// No status filter needed since we're showing all statuses for own articles
+		// No status filter needed
 	} else {
-		// For other users' profiles, only show published articles
-		query.status = 'published';
+		// For other users' profiles, only show published articles (exclude drafts)
+		authoredFilters.status = 'published';
+		collaboratedFilters.status = 'published';
+		authoredFilters.is_hidden = false;
+		collaboratedFilters.is_hidden = false;
 	}
 
-	const userArticles = await articlesCollection
-		.find(query)
-		.sort({ publishedAt: -1 })
-		.limit(10)
-		.toArray();
+	// Get both authored and collaborated articles
+	const [authoredArticles, collaboratedArticles] = await Promise.all([
+		getArticles({ ...authoredFilters, limit: 10 }),
+		getArticles({ ...collaboratedFilters, limit: 10 })
+	]);
+
+	// Combine and deduplicate articles
+	const allArticles = [...authoredArticles, ...collaboratedArticles];
+	const uniqueArticles = allArticles.filter((article, index, self) => 
+		index === self.findIndex((a) => a.id === article.id)
+	);
 
 	// Get user's preferred language from i18n settings or use default 'tr'
 	const userLanguage = locals.locale || 'tr';
 
 	// Return all language versions and let the client handle the language switching
-	const processedArticles = userArticles.flatMap((article: Article) => {
-		const baseArticle = {
-			id: article._id.toString(),
-			publishedAt: article.publishedAt || article.createdAt,
-			category: article.category,
-			subcategory: article.subcategory,
-			tags: article.tags || [],
-			views: article.stats?.views || 0,
-			likes: article.stats?.likes || 0,
-			comments: article.stats?.comments || 0,
-			author: {
-				id: profileUser._id.toString(),
-				name: profileUser.name,
-				surname: profileUser.surname,
-				nickname: profileUser.nickname,
-				avatar: profileAvatar
-			},
-			thumbnail: article.thumbnail || '',
-			defaultLanguage: article.defaultLanguage || 'tr',
-			translations: {}
-		};
+	const processedArticles = await Promise.all(uniqueArticles.map(async (article: any) => {
+		// Extract stats from metadata
+		const stats = article.metadata?.stats || {};
+		
+		// Extract translations from JSONB
+		const translations = article.translations || {};
+		const translationKeys = Object.keys(translations);
+		
+		// Get the default language or first available translation
+		const defaultLang = article.default_language || 'tr';
+		const primaryTranslation = translations[defaultLang] || translations[translationKeys[0]] || {};
+		
+		// Extract title and content from translations or fallback to old fields
+		const title = primaryTranslation.title || article.title || 'Başlıksız';
+		const excerpt = primaryTranslation.excerpt || article.content?.substring(0, 200) || '';
+		const content = primaryTranslation.content || article.content || '';
+		
+		// Get author information from the query result
+		const authorId = article.author_id;
+		const authorName = article.author_full_name 
+			? `${article.author_full_name} ${article.author_surname || ''}`.trim()
+			: article.author_name || article.author_nickname || 'Unknown';
+		const authorAvatar = article.author_avatar || '';
+		const authorNickname = article.author_nickname || article.author_name || '';
+		
+		// Process collaborators
+		let collaborators: Array<{ id: string; name: string; nickname: string; avatar?: string }> = [];
+		let collaboratorProfiles: Array<{
+			id: string;
+			name: string;
+			surname?: string;
+			nickname: string;
+			avatar?: string;
+			bio?: string;
+			followersCount?: number;
+			followingCount?: number;
+		}> = [];
 
-		if (article.translations) {
-			// For multi-language articles, include all translations
-			return [{
-				...baseArticle,
-				translations: Object.entries(article.translations).reduce((acc, [lang, trans]) => ({
-					...acc,
-					[lang]: {
-						title: trans.title || 'Başlıksız',
-						excerpt: trans.excerpt || '',
-						slug: trans.slug || article.slug,
-						language: trans.language || lang,
-						content: trans.content
-					}
-				}), {})
-			}];
-		}
-
-		// For backward compatibility with single-language articles
-		return [{
-			...baseArticle,
-			title: article.title || 'Başlıksız',
-			excerpt: article.excerpt || '',
-			slug: article.slug,
-			language: article.language || 'tr',
-			translations: {
-				[article.language || 'tr']: {
-					title: article.title || 'Başlıksız',
-					excerpt: article.excerpt || '',
-					slug: article.slug,
-					language: article.language || 'tr',
-					content: article.content
+		if (article.collaborator_ids && Array.isArray(article.collaborator_ids) && article.collaborator_ids.length > 0) {
+			// Get collaborator user data
+			const collaboratorUsers = await getUsers({ id: { $in: article.collaborator_ids } });
+			
+			for (const collaboratorId of article.collaborator_ids) {
+				const collaboratorUser = collaboratorUsers.find((u: any) => u.id === collaboratorId);
+				if (collaboratorUser) {
+					const collaboratorName = collaboratorUser.name 
+						? `${collaboratorUser.name} ${collaboratorUser.surname || ''}`.trim() 
+						: collaboratorUser.nickname || collaboratorUser.username || 'Unknown';
+					
+					collaborators.push({
+						id: collaboratorUser.id,
+						name: collaboratorName,
+						nickname: collaboratorUser.nickname || collaboratorUser.username || '',
+						avatar: collaboratorUser.avatar_url || ''
+					});
+					
+					collaboratorProfiles.push({
+						id: collaboratorUser.id,
+						name: collaboratorUser.name || '',
+						surname: collaboratorUser.surname || '',
+						nickname: collaboratorUser.nickname || collaboratorUser.username || '',
+						avatar: collaboratorUser.avatar_url || '',
+						bio: collaboratorUser.bio || '',
+						followersCount: collaboratorUser.followers_count || 0,
+						followingCount: collaboratorUser.following_count || 0
+					});
 				}
 			}
-		}];
-	});
+		}
+
+		// Return the article with proper translation and collaborator data
+		return {
+			id: article.id,
+			publishedAt: article.published_at || article.created_at,
+			tags: article.tags || [],
+			author: {
+				id: authorId,
+				name: authorName,
+				nickname: authorNickname,
+				avatar: authorAvatar
+			},
+			authorId: authorId,
+			metadata: article.metadata || {},
+			defaultLanguage: defaultLang,
+			translations: translations,
+			views: article.views || stats.views || 0,
+			likes: article.likes_count || stats.likes || 0,
+			comments: article.comments_count || stats.comments || 0,
+			thumbnail: article.thumbnail || stats.thumbnail || '',
+			title: title,
+			excerpt: excerpt,
+			slug: primaryTranslation.slug || article.id,
+			language: defaultLang,
+			content: content,
+			availableLanguages: translationKeys,
+			collaborators,
+			collaboratorProfiles,
+			status: article.status,
+			category: article.category || '',
+			subcategory: article.subcategory || ''
+		};
+	}));
 
 	// Calculate total statistics
 	const totalArticles = processedArticles.length;
@@ -327,50 +249,42 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 	const totalComments = processedArticles.reduce((sum, article) => sum + (article.comments || 0), 0);
 
 	// Check if viewing own profile
-	const isOwnProfile = locals.user && profileUser._id && 
-	    (locals.user._id?.toString() === profileUser._id.toString() || 
-	     locals.user.nickname?.toLowerCase() === profileUser.nickname?.toLowerCase());
+	const isOwnProfile = locals.user && profileUser.id && 
+	    (locals.user.id === profileUser.id || 
+	     locals.user.username?.toLowerCase() === profileUser.username?.toLowerCase());
+
+	// Get user badges
+	const userBadges = await getUserBadges(profileUser.id);
 
 	const sanitizedProfileUser = {
-		...profileUser,
-		_id: profileUser._id.toString(),
-		avatar: profileAvatar,
-		bannerColor: profileBannerColor,
-		bannerImage: profileBannerImage,
-		moderationAction: profileUser.moderationAction
-			? {
-				...profileUser.moderationAction,
-				moderatorId: profileUser.moderationAction.moderatorId
-					? toSerializableId(profileUser.moderationAction.moderatorId)
-					: undefined
-			}
-			: undefined,
-		followers: sanitizeRelationEntries(profileUser.followers, 'followerUserId', 'followedAt'),
-		following: sanitizeRelationEntries(profileUser.following, 'followingUserId', 'followedAt'),
-		blocked: sanitizeRelationEntries(profileUser.blocked, 'blockedUserId', 'blockedAt'),
-		followersCount: Array.isArray(profileUser.followers)
-			? profileUser.followers.length
-			: profileUser.followersCount || 0,
-		followingCount: Array.isArray(profileUser.following)
-			? profileUser.following.length
-			: profileUser.followingCount || 0,
-		createdAt: profileUser.createdAt instanceof Date
-			? profileUser.createdAt.toISOString()
-			: profileUser.createdAt,
-		updatedAt: profileUser.updatedAt instanceof Date
-			? profileUser.updatedAt.toISOString()
-			: profileUser.updatedAt
+		id: profileUser.id,
+		username: profileUser.username,
+		name: profileUser.name,
+		surname: profileUser.surname,
+		bio: profileUser.bio,
+		avatar_url: profileUser.avatar_url || '',
+		preferences: profileUser.preferences || {},
+		created_at: profileUser.created_at,
+		updated_at: profileUser.updated_at,
+		status: profileUser.status,
+		email: profileUser.email,
+		is_banned: profileUser.is_banned,
+		ban_reason: profileUser.ban_reason
 	};
 
 		return {
 		profileUser: sanitizedProfileUser,
+		userProfileData: {
+			...sanitizedProfileUser,
+			badges: userBadges
+		},
 		articles: processedArticles,
 		stats: {
 			totalArticles,
 			totalViews,
 			totalLikes,
 			totalComments,
-			joinDate: profileUser.createdAt
+			joinDate: profileUser.created_at
 		},
 		isOwnProfile,
 		currentUser: locals.user,
@@ -378,9 +292,9 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 		followersList,
 		followingList,
 		viewerBlocksProfile,
+		followCounts,
 
 		// ⭐ Bu satır sayfanın param değişimini yeniden yükleme tetikler
 		key: requestedNickname
 	};
 };
-

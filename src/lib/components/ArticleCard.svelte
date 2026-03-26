@@ -18,8 +18,9 @@
     author: {
       name: string;
       avatar?: string;
-      nickname?: string;
+      nickname: string;
     };
+    author_nickname: string;
     authorId?: string;
     publishedAt: string;
     readTime: number;
@@ -31,6 +32,22 @@
     dislikes?: number;
     featured?: boolean;
     coverImage?: string;
+    collaborators?: Array<{
+      id: string;
+      name: string;
+      nickname: string;
+      avatar?: string;
+    }>;
+    collaboratorProfiles?: Array<{
+      id: string;
+      name: string;
+      surname?: string;
+      nickname: string;
+      avatar?: string;
+      bio?: string;
+      followersCount?: number;
+      followingCount?: number;
+    }>;
   }
 
   let {
@@ -56,6 +73,22 @@
   const truncateText = (text: string, maxLength: number) => {
     if (text.length <= maxLength) return text;
     return text.slice(0, maxLength).trim() + '...';
+  };
+
+  const getAuthorIdentifier = (article: Article) => {
+    return article.author?.nickname || article.author_nickname || article.authorId || 'user';
+  };
+
+  const getAuthorDisplayName = (article: Article) => {
+    return article.author?.name || 'Unknown User';
+  };
+
+  const getCollaboratorDisplayName = (collaborator: any) => {
+    return collaborator.name || collaborator.nickname || 'Unknown User';
+  };
+
+  const getCollaboratorIdentifier = (collaborator: any) => {
+    return collaborator.nickname || collaborator.id || 'user';
   };
 
   const formatNumber = (num: number): string => {
@@ -102,7 +135,7 @@
     
     <div class="flex flex-col justify-between p-6 md:order-1">
       <div class="space-y-4">
-        <div class="flex items-center gap-2 text-sm text-muted-foreground">
+        <div class="flex items-center gap-2 text-xs text-muted-foreground">
           <Badge variant="secondary" class="text-xs">
             {article.category}
           </Badge>
@@ -143,11 +176,11 @@
       <div class="mt-6 flex items-center justify-between">
         <div class="flex items-center gap-3">
           <div class="flex items-center gap-2">
-            <A href={`/${article.author.nickname || article.authorId}`} class="flex items-center gap-2 hover:opacity-80 transition-opacity">
+            <A href={`/${getAuthorIdentifier(article)}`} class="flex items-center gap-2 hover:opacity-80 transition-opacity">
               {#if article.author.avatar}
                 <img 
                   src={article.author.avatar} 
-                  alt={article.author.name}
+                  alt={getAuthorDisplayName(article)}
                   class="h-8 w-8 rounded-full object-cover"
                 />
               {:else}
@@ -155,13 +188,44 @@
                   <User class="h-4 w-4" />
                 </div>
               {/if}
-              <div class="text-sm">
-                <p class="font-medium">{article.author.name}</p>
+              <div class="text-xs">
+                <p class="font-medium">{getAuthorDisplayName(article)}</p>
               </div>
             </A>
-          <div class="flex items-center gap-1 text-xs text-muted-foreground">
-            <Clock class="h-3 w-3" />
-            <span>{article.readTime} {t('articles.minRead')}</span>
+            {#if article.collaborators && article.collaborators.length > 0}
+              <div class="flex items-center gap-1">
+                <div class="flex -space-x-2">
+                  {#each article.collaborators.slice(0, 3) as collaborator}
+                    <A href={`/${getCollaboratorIdentifier(collaborator)}`} class="hover:opacity-80 transition-opacity">
+                      {#if collaborator.avatar}
+                        <img 
+                          src={collaborator.avatar} 
+                          alt={getCollaboratorDisplayName(collaborator)}
+                          class="h-6 w-6 rounded-full object-cover border-2 border-background"
+                          title={getCollaboratorDisplayName(collaborator)}
+                        />
+                      {:else}
+                        <div 
+                          class="flex h-6 w-6 items-center justify-center rounded-full bg-muted border-2 border-background"
+                          title={getCollaboratorDisplayName(collaborator)}
+                        >
+                          <User class="h-3 w-3" />
+                        </div>
+                      {/if}
+                    </A>
+                  {/each}
+                  {#if article.collaborators.length > 3}
+                    <div class="flex h-6 w-6 items-center justify-center rounded-full bg-muted border-2 border-background text-xs font-medium">
+                      +{article.collaborators.length - 3}
+                    </div>
+                  {/if}
+                </div>
+              </div>
+            {/if}
+            <div class="flex items-center gap-1 text-xs text-muted-foreground">
+              <Clock class="h-3 w-3" />
+              <span>{article.readTime} {t('articles.minRead')}</span>
+            </div>
           </div>
         </div>
         
@@ -209,17 +273,17 @@
         {/if}
       </div>
       
-      <p class="text-sm text-muted-foreground">
+      <p class="text-xs text-muted-foreground">
         {truncateText(article.excerpt, 120)}
       </p>
       
       <div class="flex items-center gap-4">
         <div class="flex items-center gap-2">
-          <A href={`/${article.author.nickname || article.authorId}`} class="flex items-center gap-2 hover:opacity-80 transition-opacity">
+          <A href={`/${getAuthorIdentifier(article)}`} class="flex items-center gap-2 hover:opacity-80 transition-opacity">
             {#if article.author.avatar}
               <img 
                 src={article.author.avatar} 
-                alt={article.author.name}
+                alt={getAuthorDisplayName(article)}
                 class="h-10 w-10 rounded-full object-cover"
               />
             {:else}
@@ -227,10 +291,41 @@
                 <User class="h-4 w-5" />
               </div>
             {/if}
-            <div class="text-sm">
-              <p class="font-medium">{article.author.name}</p>
+            <div class="text-xs">
+              <p class="font-medium">{getAuthorDisplayName(article)}</p>
             </div>
           </A>
+          {#if article.collaborators && article.collaborators.length > 0}
+            <div class="flex items-center gap-1">
+              <div class="flex -space-x-2">
+                {#each article.collaborators.slice(0, 2) as collaborator}
+                  <A href={`/${getCollaboratorIdentifier(collaborator)}`} class="hover:opacity-80 transition-opacity">
+                    {#if collaborator.avatar}
+                      <img 
+                        src={collaborator.avatar} 
+                        alt={getCollaboratorDisplayName(collaborator)}
+                        class="h-8 w-8 rounded-full object-cover border-2 border-background"
+                        title={getCollaboratorDisplayName(collaborator)}
+                      />
+                    {:else}
+                      <div 
+                        class="flex h-8 w-8 items-center justify-center rounded-full bg-muted border-2 border-background"
+                        title={getCollaboratorDisplayName(collaborator)}
+                      >
+                        <User class="h-4 w-4" />
+                      </div>
+                    {/if}
+                  </A>
+                {/each}
+                {#if article.collaborators.length > 2}
+                  <div class="flex h-8 w-8 items-center justify-center rounded-full bg-muted border-2 border-background text-xs font-medium">
+                    +{article.collaborators.length - 2}
+                  </div>
+                {/if}
+              </div>
+            </div>
+          {/if}
+        </div>
         <div class="flex items-center gap-3 text-xs text-muted-foreground">
           <div class="flex items-center gap-1">
             <Eye class="h-3 w-3" />
@@ -278,7 +373,7 @@
       {/if}
     </div>
     
-    <p class="text-sm text-muted-foreground">
+    <p class="text-xs text-muted-foreground">
       {truncateText(article.excerpt, 150)}
     </p>
     
@@ -287,7 +382,7 @@
         <div class="flex items-center gap-1 text-xs text-muted-foreground">
           <User class="h-3 w-3" />
           <A href={article.slug ? `/article/${article.slug}` : undefined} class="hover:text-foreground transition-colors">
-            {article.author.name}
+            {getAuthorDisplayName(article)}
           </A>
         </div>
       </div>
@@ -352,15 +447,16 @@
     {/if}
     
     <div class="p-3 sm:p-4 space-y-3">
-      <div class="flex items-center gap-2 sm:gap-4 text-xs sm:text-sm text-muted-foreground">
-        <ScrollArea orientation="horizontal" class="pb-1.5 max-w-1/2">
+      <div class="flex items-center gap-2 sm:gap-4 text-xs sm:text-xs text-muted-foreground">
+        <ScrollArea orientation="horizontal" class="pb-2 max-w-1/2">
           <div class="flex flex-row gap-1">
+                              {#if article.status === 'pending'}
+            <Badge variant="warning">{t('articles.status.pending')}</Badge>
+          {/if}
         <Badge variant="secondary">
           {t(article.category)}
         </Badge>
-                  {#if article.status === 'pending'}
-            <Badge variant="warning">{t('articles.status.pending')}</Badge>
-          {/if}
+
       </div>
       </ScrollArea>
 
@@ -377,42 +473,74 @@
       
       <div>
         <div class="flex flex-wrap items-center gap-2">
-          <h2 class="text-sm sm:text-base font-bold leading-tight tracking-tight group-hover:text-primary transition-colors">
+          <h2 class="text-xs sm:text-base font-bold leading-tight tracking-tight group-hover:text-primary transition-colors">
             <A href={article.slug ? `/article/${article.slug}` : undefined}>{article.title}</A>
           </h2>
 
         </div>
-        <p class="mt-2 text-xs sm:text-sm text-muted-foreground">
+        <p class="mt-2 text-xs sm:text-xs text-muted-foreground">
           {truncateText(article.excerpt, 150)}
         </p>
       </div>
       
       
       <div class="flex items-center justify-between">
+      <div class="flex items-center gap-1">
         <div class="flex items-center gap-2">
-          <A href={`/${article.author.nickname || article.authorId}`} class="flex items-center gap-2 hover:opacity-80 transition-opacity">
+          <A href={`/${getAuthorIdentifier(article)}`} class="flex items-center gap-2 hover:opacity-80 transition-opacity">
             {#if article.author.avatar}
               <img 
                 src={article.author.avatar} 
-                alt={article.author.name}
-                class="h-8 w-8 rounded-full object-cover"
+                alt={getAuthorDisplayName(article)}
+                class="h-7 w-7 rounded-full object-cover"
               />
             {:else}
-              <div class="flex h-8 w-8 items-center justify-center rounded-full bg-muted">
-                <User class="h-4 w-5" />
+              <div class="flex h-7 w-7 items-center justify-center rounded-full bg-muted">
+                <User class="h-4 w-4" />
               </div>
             {/if}
-            <div class="text-xs sm:text-sm">
-              <p class="font-medium">{article.author.name}</p>
+            <div class="text-xs sm:text-xs">
+              <p class="font-medium">{getAuthorDisplayName(article)}</p>
             </div>
           </A>
+          {#if article.collaborators && article.collaborators.length > 0}
+            <div class="flex items-center gap-1">
+              <div class="flex -space-x-2">
+                {#each article.collaborators.slice(0, 2) as collaborator}
+                  <A href={`/${getCollaboratorIdentifier(collaborator)}`} class="hover:opacity-80 transition-opacity">
+                    {#if collaborator.avatar}
+                      <img 
+                        src={collaborator.avatar} 
+                        alt={getCollaboratorDisplayName(collaborator)}
+                        class="h-6 w-6 rounded-full object-cover border-2 border-background"
+                        title={getCollaboratorDisplayName(collaborator)}
+                      />
+                    {:else}
+                      <div 
+                        class="flex h-6 w-6 items-center justify-center rounded-full bg-muted border-2 border-background"
+                        title={getCollaboratorDisplayName(collaborator)}
+                      >
+                        <User class="h-3 w-3" />
+                      </div>
+                    {/if}
+                  </A>
+                {/each}
+                {#if article.collaborators.length > 2}
+                  <div class="flex h-6 w-6 items-center justify-center rounded-full bg-muted border-2 border-background text-xs font-medium">
+                    +{article.collaborators.length - 2}
+                  </div>
+                {/if}
+              </div>
+            </div>
+          {/if}
+        </div>
         
-        <div class="flex items-center gap-2 sm:gap-4 text-xs sm:text-sm text-muted-foreground">
+        <div class="flex items-center gap-2 sm:gap-4 text-xs text-muted-foreground">
           <Tooltip.Provider>
             <Tooltip.Root>
               <Tooltip.Trigger>
                 <div class="flex items-center gap-1">
-                  <Eye class="h-4 w-4" />
+                  <Eye class="h-3 w-3" />
                   <span>{formatNumber(article.views)}</span>
                 </div>
               </Tooltip.Trigger>
@@ -426,7 +554,7 @@
             <Tooltip.Root>
               <Tooltip.Trigger>
                 <div class="flex items-center gap-1">
-                  <MessageCircle class="h-4 w-4" />
+                  <MessageCircle class="h-3 w-3" />
                   <span>{formatNumber(article.comments)}</span>
                 </div>
               </Tooltip.Trigger>
@@ -440,7 +568,7 @@
             <Tooltip.Root>
               <Tooltip.Trigger>
                 <div class="flex items-center gap-1">
-                  <ThumbsUp class="h-4 w-4" />
+                  <ThumbsUp class="h-3 w-3" />
                   <span>{formatNumber(article.likes)}</span>
                 </div>
               </Tooltip.Trigger>
@@ -454,7 +582,7 @@
             <Tooltip.Root>
               <Tooltip.Trigger>
                 <div class="flex items-center gap-1">
-                  <ThumbsDown class="h-4 w-4" />
+                  <ThumbsDown class="h-3 w-3" />
                   <span>{formatNumber(article.dislikes || 0)}</span>
                 </div>
               </Tooltip.Trigger>

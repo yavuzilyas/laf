@@ -1,6 +1,5 @@
 import { json } from '@sveltejs/kit';
-import { ObjectId } from 'mongodb';
-import { getCommentsCollection } from '$db/mongo';
+import { getComments } from '$db/queries';
 
 export async function GET({ url, locals }) {
     const user = (locals as any)?.user;
@@ -12,22 +11,17 @@ export async function GET({ url, locals }) {
     }
 
     try {
-        const comments = await getCommentsCollection();
+        // Get all comments for this article
+        const comments = await getComments({ article_id: articleId });
         
-        // Find all comments for this article where the current user has reacted
-        const userComments = await comments.find({
-            'articleId': new ObjectId(articleId),
-            $or: [
-                { 'userReactions': { $exists: true, $ne: {} } },
-                { 'userReactions.userId': new ObjectId(user.id) }
-            ]
-        }).toArray();
-
         // Create a map of commentId -> reaction
-        const reactions = {};
-        userComments.forEach(comment => {
-            if (comment.userReactions?.[user.id]) {
-                reactions[comment._id.toString()] = comment.userReactions[user.id];
+        const reactions: Record<string, 'like' | 'dislike' | null> = {};
+        comments.forEach((comment: any) => {
+            // Check if user has reacted to this comment (stored in metadata.userReactions)
+            const metadata = comment.metadata || {};
+            const userReactions = metadata.userReactions || {};
+            if (userReactions[user.id]) {
+                reactions[comment.id] = userReactions[user.id];
             }
         });
 

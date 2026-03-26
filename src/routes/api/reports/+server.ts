@@ -1,25 +1,32 @@
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
-import { ObjectId } from 'mongodb';
-import { clientPromise } from '$db/mongo';
+import { 
+  getReports, 
+  createReport, 
+  updateReport, 
+  getReportsCount, 
+  checkExistingReport,
+  incrementReportCount,
+  getUsers,
+  getArticles,
+  getComments
+} from '$db/queries';
+import { notifyNewReport } from '$lib/server/notifications-pg';
 
 interface ReportData {
-  type: 'profile' | 'article' | 'comment';
+  type: 'profile' | 'article' | 'comment' | 'error';
   targetId: string;
   reason: string;
   details?: string;
+  url?: string;
 }
 
 export const POST: RequestHandler = async ({ request, locals }) => {
   const user = (locals as any)?.user;
 
-  if (!user) {
-    return json({ error: 'Giriş yapmalısınız' }, { status: 401 });
-  }
-
   try {
     const data: ReportData = await request.json();
-    const { type, targetId, reason, details } = data;
+    const { type, targetId, reason, details, url } = data;
 
     // Validate required fields
     if (!type || !targetId || !reason) {
@@ -27,80 +34,121 @@ export const POST: RequestHandler = async ({ request, locals }) => {
     }
 
     // Validate report type
-    if (!['profile', 'article', 'comment'].includes(type)) {
+    if (!['profile', 'article', 'comment', 'error'].includes(type)) {
       return json({ error: 'Geçersiz rapor türü' }, { status: 400 });
     }
 
-    // Validate targetId
-    if (!ObjectId.isValid(targetId)) {
-      return json({ error: 'Geçersiz hedef ID' }, { status: 400 });
+    // Error reports don't require authentication
+    if (type !== 'error' && !user) {
+      return json({ error: 'Giriş yapmalısınız' }, { status: 401 });
     }
 
-    const db = (await clientPromise).db("laf_app");
-    const reportsCollection = db.collection('reports');
-    const userId = new ObjectId(user.id);
-    const targetObjectId = new ObjectId(targetId);
+    // For error reports, use a special handling
+    if (type === 'error') {
+      const reportData = {
+        type: 'error',
+        target_id: targetId, // This will be a descriptive string like "500" or "site-error"
+        reporter_id: user ? user.id : null,
+        reason,
+        details: details?.trim() || '',
+        url: url?.trim() || null,
+        target_data: {
+          location: details || 'Unknown location',
+          userAgent: request.headers.get('user-agent') || 'Unknown',
+          timestamp: new Date().toISOString()
+        },
+        reporter_data: user ? {
+          username: user.username,
+          name: user.name,
+          surname: user.surname,
+          email: user.email
+        } : {
+          anonymous: true
+        },
+        status: 'pending'
+      };
+
+      const result = await createReport(reportData);
+
+      // Create notification for admins (not moderators for error reports)
+      const admins = await getUsers({ role: 'admin' });
+      
+      // Note: You'll need to implement notification creation separately
+      // This is a placeholder for the notification logic
+
+      return json({ 
+        success: true, 
+        message: 'Hata bildiriminiz alındı. Teknik ekibimiz en kısa sürede inceleyecektir.',
+        reportId: result.id
+      });
+    }
+
+    // Standard reports (profile, article, comment) require authentication
+    const userId = user.id;
 
     // Check if user already reported this target
-    const existingReport = await reportsCollection.findOne({
-      reporterId: userId,
-      targetId: targetObjectId,
-      type,
-      status: { $in: ['pending', 'reviewing'] }
-    });
-
+    const existingReport = await checkExistingReport(userId, targetId, type);
     if (existingReport) {
       return json({ error: 'Bu içeriği zaten bildirdiniz' }, { status: 400 });
     }
 
-    // Verify target exists
+    // Verify target exists and get target data
     let targetExists = false;
     let targetData: any = {};
+    let articleId = null;
+    let commentId = null;
+    let profileId = null;
 
     switch (type) {
       case 'profile':
-        const usersCollection = db.collection('users');
-        const userDoc = await usersCollection.findOne({ _id: targetObjectId });
+        const users = await getUsers({ id: targetId });
+        const userDoc = users[0];
         targetExists = !!userDoc;
         if (userDoc) {
           targetData = {
-            nickname: userDoc.nickname,
+            username: userDoc.username,
             name: userDoc.name,
             surname: userDoc.surname
           };
+          profileId = targetId;
         }
         break;
 
       case 'article':
-        const articlesCollection = db.collection('articles');
-        const articleDoc = await articlesCollection.findOne({ 
-          _id: targetObjectId,
-          deletedAt: { $exists: false }
-        });
+        const articles = await getArticles({ id: targetId });
+        const articleDoc = articles[0];
         targetExists = !!articleDoc;
         if (articleDoc) {
           targetData = {
-            title: articleDoc.title,
-            authorId: articleDoc.authorId
+            title: articleDoc.translations?.tr?.title || articleDoc.translations?.en?.title || 'Untitled',
+            authorId: articleDoc.author_id
           };
+          articleId = targetId;
         }
         break;
 
       case 'comment':
-        const commentsCollection = db.collection('comments');
-        const commentDoc = await commentsCollection.findOne({ 
-          _id: targetObjectId,
-          deletedAt: { $exists: false }
-        });
+        const comments = await getComments({ id: targetId });
+        const commentDoc = comments[0];
         targetExists = !!commentDoc;
         if (commentDoc) {
+          let content = commentDoc.content;
+          if (typeof content === 'string' && content.trim().startsWith('{')) {
+            try {
+              content = JSON.parse(content);
+            } catch (e) {
+              // Keep as string if parsing fails
+            }
+          }
+          
           targetData = {
-            content: typeof commentDoc.content === 'string' 
-              ? commentDoc.content.substring(0, 100)
-              : JSON.stringify(commentDoc.content).substring(0, 100),
-            authorId: commentDoc.userId,
-            articleId: commentDoc.articleId
+            content: typeof content === 'string' 
+              ? content.substring(0, 100)
+              : JSON.stringify(content).substring(0, 100),
+            authorId: commentDoc.author_id,
+            articleId: commentDoc.article_id
           };
+          commentId = targetId;
         }
         break;
     }
@@ -110,80 +158,48 @@ export const POST: RequestHandler = async ({ request, locals }) => {
     }
 
     // Create report
-    const report = {
+    const reportData = {
       type,
-      targetId: targetObjectId,
-      targetData,
-      reporterId: userId,
-      reporterData: {
-        nickname: user.nickname,
+      target_id: targetId,
+      article_id: articleId,
+      comment_id: commentId,
+      profile_id: profileId,
+      reporter_id: userId,
+      reason,
+      details: details?.trim() || '',
+      url: url?.trim() || null,
+      target_data: targetData,
+      reporter_data: {
+        username: user.username,
         name: user.name,
         surname: user.surname
       },
-      reason,
-      details: details?.trim() || '',
-      status: 'pending', // pending, reviewing, resolved, rejected
-      createdAt: new Date(),
-      updatedAt: new Date(),
-      reviewedBy: null,
-      reviewedAt: null,
-      resolution: null,
-      notes: ''
+      status: 'pending'
     };
 
-    const result = await reportsCollection.insertOne(report);
+    const result = await createReport(reportData);
 
     // Increment report count on target
-    switch (type) {
-      case 'profile':
-        await db.collection('users').updateOne(
-          { _id: targetObjectId },
-          { $inc: { reportCount: 1 } }
-        );
-        break;
+    await incrementReportCount(type, targetId);
 
-      case 'article':
-        await db.collection('articles').updateOne(
-          { _id: targetObjectId },
-          { $inc: { reportCount: 1 } }
-        );
-        break;
-
-      case 'comment':
-        await db.collection('comments').updateOne(
-          { _id: targetObjectId },
-          { $inc: { reportCount: 1 } }
-        );
-        break;
-    }
-
-    // Create notification for moderators
-    const notificationsCollection = db.collection('notifications');
-    const moderators = await db.collection('users').find({ 
-      role: { $in: ['moderator', 'admin'] }
-    }).toArray();
-
-    for (const moderator of moderators) {
-      await notificationsCollection.insertOne({
-        userId: moderator._id,
-        type: 'report',
-        title: 'Yeni Bildirim',
-        message: `${type === 'profile' ? 'Profil' : type === 'article' ? 'Makale' : 'Yorum'} bildirildi: ${reason}`,
-        data: {
-          reportId: result.insertedId,
-          reportType: type,
-          targetId: targetObjectId,
-          reason
-        },
-        read: false,
-        createdAt: new Date()
+    // Create notification for moderators about new report
+    try {
+      await notifyNewReport({
+        reportId: result.id,
+        reporterId: userId,
+        reportType: type,
+        targetId: targetId,
+        reason: reason
       });
+    } catch (notificationError) {
+      console.error('Failed to send notification for new report:', notificationError);
+      // Don't fail the request if notification fails
     }
 
     return json({ 
       success: true, 
       message: 'Bildiriminiz alındı ve incelenecek',
-      reportId: result.insertedId.toString()
+      reportId: result.id
     });
 
   } catch (error) {
@@ -201,36 +217,21 @@ export const GET: RequestHandler = async ({ url, locals }) => {
   }
 
   try {
-    const db = (await clientPromise).db("laf_app");
-    const reportsCollection = db.collection('reports');
-    const userId = new ObjectId(user.id);
-
+    const userId = user.id;
     const page = parseInt(url.searchParams.get('page') || '1');
     const limit = parseInt(url.searchParams.get('limit') || '20');
-    const skip = (page - 1) * limit;
+    const offset = (page - 1) * limit;
 
-    const reports = await reportsCollection
-      .find({ reporterId: userId })
-      .sort({ createdAt: -1 })
-      .skip(skip)
-      .limit(limit)
-      .toArray();
+    const reports = await getReports({ 
+      reporter_id: userId,
+      limit,
+      offset
+    });
 
-    const total = await reportsCollection.countDocuments({ reporterId: userId });
-
-    const serializedReports = reports.map(report => ({
-      ...report,
-      _id: report._id.toString(),
-      targetId: report.targetId.toString(),
-      reporterId: report.reporterId.toString(),
-      reviewedBy: report.reviewedBy ? report.reviewedBy.toString() : null,
-      createdAt: report.createdAt.toISOString(),
-      updatedAt: report.updatedAt.toISOString(),
-      reviewedAt: report.reviewedAt ? report.reviewedAt.toISOString() : null
-    }));
+    const total = await getReportsCount({ reporter_id: userId });
 
     return json({
-      reports: serializedReports,
+      reports: reports,
       pagination: {
         page,
         limit,

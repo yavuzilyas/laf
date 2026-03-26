@@ -1,29 +1,23 @@
 import type { RequestHandler } from "@sveltejs/kit";
-import { getUsersCollection } from "$db/mongo";
+import { getUsers, updateUser } from "$db/queries";
 import { error, json } from "@sveltejs/kit";
 
-export const POST: RequestHandler = async ({ request, locals }) => {
+export const POST: RequestHandler = async ({ request, locals }: any) => {
     if (!locals.user) {
         throw error(401, 'Unauthorized');
     }
 
     try {
         const profileData = await request.json();
-        const users = await getUsersCollection();
 
         // Validate and sanitize the data
         const allowedFields = [
             'name', 
             'surname', 
+            'username',
             'bio', 
-            'location', 
-            'website', 
-            'birthDate', 
-            'interests',
-            'socialLinks',
-            'avatar',
-            'bannerColor',
-            'bannerImage'
+            'avatar_url',
+            'preferences'
         ];
 
         const updateData: any = {};
@@ -34,16 +28,40 @@ export const POST: RequestHandler = async ({ request, locals }) => {
             }
         }
 
-        // Add updated timestamp
-        updateData.updatedAt = new Date();
+        // Handle special cases for field name mapping
+        if (profileData.avatar !== undefined) {
+            updateData.avatar_url = profileData.avatar;
+            delete updateData.avatar;
+        }
+
+        // Handle preferences updates
+        if (profileData.location !== undefined || profileData.website !== undefined || 
+            profileData.interests !== undefined || profileData.bannerColor !== undefined || 
+            profileData.bannerImage !== undefined || profileData.socialLinks !== undefined) {
+            
+            const currentPreferences = locals.user.preferences || {};
+            updateData.preferences = {
+                ...currentPreferences,
+                ...(profileData.location && { location: profileData.location }),
+                ...(profileData.website && { website: profileData.website }),
+                ...(profileData.interests && { interests: profileData.interests }),
+                ...(profileData.bannerColor && { bannerColor: profileData.bannerColor }),
+                ...(profileData.bannerImage && { bannerImage: profileData.bannerImage }),
+                ...(profileData.socialLinks && { socialLinks: profileData.socialLinks })
+            };
+            
+            delete updateData.location;
+            delete updateData.website;
+            delete updateData.interests;
+            delete updateData.bannerColor;
+            delete updateData.bannerImage;
+            delete updateData.socialLinks;
+        }
 
         // Update the user document
-        const result = await users.updateOne(
-            { nickname: locals.user.nickname },
-            { $set: updateData }
-        );
+        const result = await updateUser(locals.user.id, updateData);
 
-        if (result.matchedCount === 0) {
+        if (!result) {
             throw error(404, 'User not found');
         }
 

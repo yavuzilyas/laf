@@ -52,6 +52,10 @@ export const getNotificationsCollection = async () => {
     const db = (await clientPromise).db("laf_app");
     return db.collection("notifications");
 };
+export const getMessagesCollection = async () => {
+    const db = (await clientPromise).db("laf_app");
+    return db.collection<MessageDoc>("messages");
+};
 
 // Yardımcı fonksiyonlar
 export const toObjectId = (id: string | ObjectId): ObjectId => {

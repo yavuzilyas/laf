@@ -168,6 +168,7 @@ class I18nStore {
   }
 
   private getNestedValue(obj: LocaleData, path: string): string | undefined {
+    if (!path || typeof path !== 'string') return undefined;
     const keys = path.split('.');
     let current: any = obj;
 

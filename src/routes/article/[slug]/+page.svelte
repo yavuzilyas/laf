@@ -8,6 +8,7 @@
     import { Separator } from "$lib/components/ui/separator";
     import { t, getCurrentLocale } from '$lib/stores/i18n.svelte';
     import { onMount } from 'svelte';
+    import { afterNavigate, goto } from '$app/navigation';
     import { EdraEditor, EdraToolBar } from '$lib/components/edra/shadcn/index.js';
     import type { Editor } from '@tiptap/core';
     import ProfileCard from "$lib/components/ProfileCard.svelte";
@@ -19,6 +20,7 @@
         MessageCircle, 
         Share2,
         User,
+        Users,
         ArrowLeft,
         Languages,
         ThumbsDown,
@@ -31,35 +33,471 @@
     import { cn } from "$lib/utils";
     import { page } from "$app/stores";
     import { showToast, persistToast } from "$lib/hooks/toast";
-    import * as ContextMenu from "$lib/components/ui/context-menu";
+    import * as DropdownMenu from "$lib/components/ui/dropdown-menu";
     import { ArrowLeftIcon, MessageSquareIcon, EllipsisIcon, BookMinusIcon, NotebookPenIcon, EyeOffIcon, BadgeAlertIcon } from 'svelte-animate-icons';
     import { Motion, useMotionValue, useMotionTemplate } from "svelte-motion";
     import { browser } from '$app/environment';
     import ReportDrawer from "$lib/components/ReportDrawer.svelte";
     import * as AlertDialog from "$lib/components/ui/alert-dialog";
-        import * as DropdownMenu from "$lib/components/ui/dropdown-menu";
-    
+    import * as Dialog from "$lib/components/ui/dialog";
+    import { ScrollArea } from "$lib/components/ui/scroll-area";
+    import { Avatar, AvatarFallback, AvatarImage } from "$lib/components/ui/avatar";
+
     let { data } = $props();
+    let collaborators = $state(data.collaborators || []);
+    let collaboratorProfiles = $state(data.collaboratorProfiles || []);
     let likesCount = $state<number>(Number(data.article?.stats?.likes) || 0);
     let dislikesCount = $state<number>(Number(data.article?.stats?.dislikes) || 0);
     let reaction = $state<'like' | 'dislike' | null>(null);
     let showReportDrawer = $state(false);
-    // Get current locale and set up reactive article content
+
+    // State for collaborator profile editing when the collaborator is the current user
+    let collaboratorProfileData = $state<Record<string, any>>({});
+    let collaboratorEditing = $state<Record<string, boolean>>({});
+    let collaboratorSaving = $state<Record<string, boolean>>({});
+    let collaboratorAvatarUploading = $state<Record<string, boolean>>({});
+    let collaboratorBannerUploading = $state<Record<string, boolean>>({});
+    let collaboratorFollowing = $state<Record<string, boolean>>({});
+    let collaboratorBlocked = $state<Record<string, boolean>>({});
+
+    // Initialize collaborator profile data when component mounts
+    $effect(() => {
+        collaboratorProfiles.forEach((collaborator: any) => {
+            if (collaborator.id === currentUserId && !collaboratorProfileData[collaborator.id]) {
+                collaboratorProfileData[collaborator.id] = {
+                    name: collaborator.name || "",
+                    surname: collaborator.surname || "",
+                    nickname: collaborator.nickname || "",
+                    bio: collaborator.bio || "",
+                    location: collaborator.preferences?.location || "",
+                    website: collaborator.preferences?.website || "",
+                    interests: collaborator.preferences?.interests || [],
+                    avatar: collaborator.avatar || "",
+                    bannerColor: collaborator.bannerColor || collaborator.preferences?.bannerColor || DEFAULT_BANNER_COLOR,
+                    bannerImage: collaborator.bannerImage || collaborator.preferences?.bannerImage || "",
+                    socialLinks: collaborator.preferences?.socialLinks || {
+                        twitter: "",
+                        github: "",
+                        linkedin: ""
+                    }
+                };
+                collaboratorEditing[collaborator.id] = false;
+                collaboratorSaving[collaborator.id] = false;
+                collaboratorAvatarUploading[collaborator.id] = false;
+                collaboratorBannerUploading[collaborator.id] = false;
+            }
+            
+            // Initialize follow/block status for all collaborators (except current user)
+            if (collaborator.id !== currentUserId) {
+                if (collaboratorFollowing[collaborator.id] === undefined) {
+                    collaboratorFollowing[collaborator.id] = false;
+                }
+                if (collaboratorBlocked[collaborator.id] === undefined) {
+                    collaboratorBlocked[collaborator.id] = false;
+                }
+                
+                // Load actual follow/block status from server
+                loadCollaboratorFollowStatus(collaborator.id);
+            }
+        });
+    });
+
+    // Load follow/block status for a specific collaborator
+    const loadCollaboratorFollowStatus = async (collaboratorId: string) => {
+        try {
+            // Load follow status
+            const followResponse = await fetch(`/api/users/${collaboratorId}/follow`);
+            if (followResponse.ok) {
+                const followData = await followResponse.json();
+                collaboratorFollowing[collaboratorId] = !!followData.following;
+            }
+            
+            // Load block status
+            const blockResponse = await fetch(`/api/users/${collaboratorId}/block`);
+            if (blockResponse.ok) {
+                const blockData = await blockResponse.json();
+                collaboratorBlocked[collaboratorId] = !!blockData.blocked;
+            }
+        } catch (error) {
+            console.error('Load collaborator follow status error:', error);
+        }
+    };
+
+    // Helper functions for collaborator follow/block
+    const handleCollaboratorFollow = async (collaboratorId: string) => {
+        if (!collaboratorId) return;
+        try {
+            const response = await fetch(`/api/users/${collaboratorId}/follow`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' }
+            });
+            if (!response.ok) {
+                const errorMessage = await response.text().catch(() => response.statusText);
+                console.error('Follow error:', errorMessage);
+                return;
+            }
+
+            collaboratorFollowing[collaboratorId] = true;
+            // Update followers count
+            const collaboratorIndex = collaboratorProfiles.findIndex((c: any) => c.id === collaboratorId);
+            if (collaboratorIndex !== -1) {
+                collaboratorProfiles[collaboratorIndex] = { 
+                    ...collaboratorProfiles[collaboratorIndex], 
+                    followersCount: (collaboratorProfiles[collaboratorIndex].followersCount || 0) + 1
+                };
+            }
+            
+            // Reload status to confirm
+            await loadCollaboratorFollowStatus(collaboratorId);
+        } catch (error) {
+            console.error('Follow error:', error);
+        }
+    };
+
+    const handleCollaboratorUnfollow = async (collaboratorId: string) => {
+        if (!collaboratorId) return;
+        try {
+            const response = await fetch(`/api/users/${collaboratorId}/follow`, {
+                method: 'DELETE',
+                headers: { 'Content-Type': 'application/json' }
+            });
+            if (!response.ok) {
+                const errorMessage = await response.text().catch(() => response.statusText);
+                console.error('Unfollow error:', errorMessage);
+                return;
+            }
+
+            collaboratorFollowing[collaboratorId] = false;
+            // Update followers count
+            const collaboratorIndex = collaboratorProfiles.findIndex((c: any) => c.id === collaboratorId);
+            if (collaboratorIndex !== -1) {
+                collaboratorProfiles[collaboratorIndex] = { 
+                    ...collaboratorProfiles[collaboratorIndex], 
+                    followersCount: Math.max(0, (collaboratorProfiles[collaboratorIndex].followersCount || 0) - 1)
+                };
+            }
+            
+            // Reload status to confirm
+            await loadCollaboratorFollowStatus(collaboratorId);
+        } catch (error) {
+            console.error('Unfollow error:', error);
+        }
+    };
+
+    const handleCollaboratorBlock = async (collaboratorId: string) => {
+        if (!collaboratorId) return;
+        
+        collaboratorBlocked[collaboratorId] = true;
+        
+        try {
+            const response = await fetch(`/api/users/${collaboratorId}/block`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' }
+            });
+            if (!response.ok) {
+                const errorMessage = await response.text().catch(() => response.statusText);
+                console.error('Block error:', errorMessage);
+                collaboratorBlocked[collaboratorId] = false;
+                return;
+            }
+
+            // If following, unfollow first
+            if (collaboratorFollowing[collaboratorId]) {
+                await handleCollaboratorUnfollow(collaboratorId);
+            }
+            
+            // Reload status to confirm
+            await loadCollaboratorFollowStatus(collaboratorId);
+        } catch (error) {
+            console.error('Block error:', error);
+            collaboratorBlocked[collaboratorId] = false;
+        }
+    };
+
+    const handleCollaboratorUnblock = async (collaboratorId: string) => {
+        if (!collaboratorId) return;
+        
+        try {
+            const response = await fetch(`/api/users/${collaboratorId}/block`, {
+                method: 'DELETE',
+                headers: { 'Content-Type': 'application/json' }
+            });
+            if (!response.ok) {
+                const errorMessage = await response.text().catch(() => response.statusText);
+                console.error('Unblock error:', errorMessage);
+                return;
+            }
+
+            collaboratorBlocked[collaboratorId] = false;
+            
+            // Reload status to confirm
+            await loadCollaboratorFollowStatus(collaboratorId);
+        } catch (error) {
+            console.error('Unblock error:', error);
+        }
+    };
+
+    // Helper functions for collaborator profile management
+    const getCollaboratorProfileData = (collaboratorId: string) => {
+        return collaboratorProfileData[collaboratorId] || collaboratorProfiles.find((c: any) => c.id === collaboratorId);
+    };
+
+    const startCollaboratorEditing = (collaboratorId: string) => {
+        collaboratorEditing[collaboratorId] = true;
+    };
+
+    const handleCollaboratorCancelEdit = (collaboratorId: string) => {
+        const collaborator = collaboratorProfiles.find((c: any) => c.id === collaboratorId);
+        if (collaborator) {
+            collaboratorProfileData[collaboratorId] = {
+                name: collaborator.name || "",
+                surname: collaborator.surname || "",
+                nickname: collaborator.nickname || "",
+                bio: collaborator.bio || "",
+                location: collaborator.preferences?.location || "",
+                website: collaborator.preferences?.website || "",
+                interests: collaborator.preferences?.interests || [],
+                avatar: collaborator.avatar || "",
+                bannerColor: collaborator.bannerColor || collaborator.preferences?.bannerColor || DEFAULT_BANNER_COLOR,
+                bannerImage: collaborator.bannerImage || collaborator.preferences?.bannerImage || "",
+                socialLinks: collaborator.preferences?.socialLinks || {
+                    twitter: "",
+                    github: "",
+                    linkedin: ""
+                }
+            };
+        }
+        collaboratorEditing[collaboratorId] = false;
+    };
+
+    const handleCollaboratorSaveProfile = async (collaboratorId: string) => {
+        collaboratorSaving[collaboratorId] = true;
+        try {
+            const response = await fetch('/api/profile/update', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(collaboratorProfileData[collaboratorId])
+            });
+
+            if (response.ok) {
+                collaboratorEditing[collaboratorId] = false;
+                // Update the collaborator in the profiles array
+                const collaboratorIndex = collaboratorProfiles.findIndex((c: any) => c.id === collaboratorId);
+                if (collaboratorIndex !== -1) {
+                    collaboratorProfiles[collaboratorIndex] = { 
+                        ...collaboratorProfiles[collaboratorIndex], 
+                        ...collaboratorProfileData[collaboratorId] 
+                    };
+                }
+            } else {
+                console.error('Failed to update collaborator profile');
+            }
+        } catch (error) {
+            console.error('Error updating collaborator profile:', error);
+        } finally {
+            collaboratorSaving[collaboratorId] = false;
+        }
+    };
+
+    // Banner and avatar upload functions for collaborators
+    const handleCollaboratorTriggerBannerFile = (collaboratorId: string) => {
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.accept = 'image/*';
+        input.onchange = async (e) => {
+            const file = (e.target as HTMLInputElement).files?.[0];
+            if (file) {
+                handleCollaboratorBannerUpload(collaboratorId, file);
+            }
+        };
+        input.click();
+    };
+
+    const handleCollaboratorBannerUpload = async (collaboratorId: string, file: File) => {
+        collaboratorBannerUploading[collaboratorId] = true;
+        try {
+            const formData = new FormData();
+            formData.append('file', file);
+
+            const response = await fetch('/api/upload', {
+                method: 'POST',
+                body: formData
+            });
+
+            if (response.ok) {
+                const result = await response.json();
+                const newBannerUrl = result.url;
+                collaboratorProfileData[collaboratorId].bannerImage = newBannerUrl;
+
+                const saveResponse = await fetch('/api/profile/update', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ bannerImage: newBannerUrl })
+                });
+
+                if (saveResponse.ok) {
+                    // Update the collaborator in the profiles array
+                    const collaboratorIndex = collaboratorProfiles.findIndex((c: any) => c.id === collaboratorId);
+                    if (collaboratorIndex !== -1) {
+                        collaboratorProfiles[collaboratorIndex] = { 
+                            ...collaboratorProfiles[collaboratorIndex], 
+                            bannerImage: newBannerUrl 
+                        };
+                    }
+                }
+            }
+        } catch (error) {
+            console.error('Banner upload error:', error);
+        } finally {
+            collaboratorBannerUploading[collaboratorId] = false;
+        }
+    };
+
+    const handleCollaboratorBannerRemove = async (collaboratorId: string) => {
+        if (!collaboratorProfileData[collaboratorId].bannerImage) return;
+
+        collaboratorBannerUploading[collaboratorId] = true;
+        try {
+            collaboratorProfileData[collaboratorId].bannerImage = "";
+
+            const response = await fetch('/api/profile/update', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ bannerImage: "" })
+            });
+
+            if (response.ok) {
+                // Update the collaborator in the profiles array
+                const collaboratorIndex = collaboratorProfiles.findIndex((c: any) => c.id === collaboratorId);
+                if (collaboratorIndex !== -1) {
+                    collaboratorProfiles[collaboratorIndex] = { 
+                        ...collaboratorProfiles[collaboratorIndex], 
+                        bannerImage: "" 
+                    };
+                }
+            }
+        } catch (error) {
+            console.error('Banner remove error:', error);
+        } finally {
+            collaboratorBannerUploading[collaboratorId] = false;
+        }
+    };
+
+    const handleCollaboratorBannerColorChange = (collaboratorId: string, color: string) => {
+        collaboratorProfileData[collaboratorId].bannerColor = color || DEFAULT_BANNER_COLOR;
+    };
+
+    const handleCollaboratorTriggerAvatarFile = (collaboratorId: string) => {
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.accept = 'image/*';
+        input.onchange = async (e) => {
+            const file = (e.target as HTMLInputElement).files?.[0];
+            if (file) {
+                handleCollaboratorAvatarUpload(collaboratorId, file);
+            }
+        };
+        input.click();
+    };
+
+    const handleCollaboratorAvatarUpload = async (collaboratorId: string, file: File) => {
+        collaboratorAvatarUploading[collaboratorId] = true;
+        try {
+            const formData = new FormData();
+            formData.append('file', file);
+
+            const response = await fetch('/api/upload', {
+                method: 'POST',
+                body: formData
+            });
+
+            if (response.ok) {
+                const result = await response.json();
+                const newAvatarUrl = result.url;
+                collaboratorProfileData[collaboratorId].avatar = newAvatarUrl;
+
+                const saveResponse = await fetch('/api/profile/update', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ avatar: newAvatarUrl })
+                });
+
+                if (saveResponse.ok) {
+                    // Update the collaborator in the profiles array
+                    const collaboratorIndex = collaboratorProfiles.findIndex((c: any) => c.id === collaboratorId);
+                    if (collaboratorIndex !== -1) {
+                        collaboratorProfiles[collaboratorIndex] = { 
+                            ...collaboratorProfiles[collaboratorIndex], 
+                            avatar: newAvatarUrl 
+                        };
+                    }
+                }
+            }
+        } catch (error) {
+            console.error('Avatar upload error:', error);
+        } finally {
+            collaboratorAvatarUploading[collaboratorId] = false;
+        }
+    };
+
+    const handleCollaboratorAvatarRemove = async (collaboratorId: string) => {
+        if (!collaboratorProfileData[collaboratorId].avatar) return;
+
+        collaboratorAvatarUploading[collaboratorId] = true;
+        try {
+            collaboratorProfileData[collaboratorId].avatar = "";
+
+            const response = await fetch('/api/profile/update', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ avatar: "" })
+            });
+
+            if (response.ok) {
+                // Update the collaborator in the profiles array
+                const collaboratorIndex = collaboratorProfiles.findIndex((c: any) => c.id === collaboratorId);
+                if (collaboratorIndex !== -1) {
+                    collaboratorProfiles[collaboratorIndex] = { 
+                        ...collaboratorProfiles[collaboratorIndex], 
+                        avatar: "" 
+                    };
+                }
+            }
+        } catch (error) {
+            console.error('Avatar remove error:', error);
+        } finally {
+            collaboratorAvatarUploading[collaboratorId] = false;
+        }
+    };
+
+    const handleCollaboratorInterestAdd = (collaboratorId: string, interest: string) => {
+        if (interest.trim() && !collaboratorProfileData[collaboratorId].interests.includes(interest.trim())) {
+            collaboratorProfileData[collaboratorId].interests = [...collaboratorProfileData[collaboratorId].interests, interest.trim()];
+        }
+    };
+
+    const handleCollaboratorInterestRemove = (collaboratorId: string, interest: string) => {
+        collaboratorProfileData[collaboratorId].interests = collaboratorProfileData[collaboratorId].interests.filter(i => i !== interest);
+    };
 
     let currentLocale = $state(getCurrentLocale());
     
-    let profileUser = data.profileUser;
+    let profileUser = $state(data.profileUser);
     const currentUserId = data.currentUser?.id;
-    const profileNicknameSlug = $derived(() => {
-        const value = profileUser?.nickname || profileUser?.id || 'user';
-        return value
-            .toString()
-            .trim()
-            .toLowerCase()
-            .replace(/[^a-z0-9-_]/g, '-')
-            .replace(/-+/g, '-')
-            .replace(/^-|-$/g, '') || 'user';
-    });
+
+    const profileNicknameSlug = $derived(
+        (() => {
+            const value = profileUser?.nickname || profileUser?.id || 'user';
+            return value
+                .toString()
+                .trim()
+                .toLowerCase()
+                .replace(/[^a-z0-9-_]/g, '-')
+                .replace(/-+/g, '-')
+                .replace(/^-|-$/g, '') || 'user';
+        })()
+    );
+
     const profileUserId = $derived(profileUser?._id || profileUser?.id);
     const serverArticles = data.articles ?? [];
     let stats = data.stats;
@@ -72,18 +510,22 @@
     onMount(() => {
         let previousNickname = $page.params.nickname;
         
+        // Load follow and block status only on client side
+        loadFollowStatus(profileUserId);
+        loadBlockStatus(profileUserId);
+        
         return afterNavigate(({ to }) => {
             const newNickname = to?.params.nickname;
             if (newNickname && newNickname !== previousNickname) {
                 previousNickname = newNickname;
-                // Force a full page reload to ensure all data is refreshed
                 window.location.href = to.url.href;
             }
         });
     });
-    let viewerBlocksProfile = data.viewerBlocksProfile ?? false;
 
-    // Reactive articles based on current locale (using $derived rune)
+    let viewerBlocksProfile = $state(data.viewerBlocksProfile ?? false);
+
+    // Reactive articles based on current locale
     const articles = $derived(
         serverArticles.map((article) => {
             const translations = article.translations || {};
@@ -124,21 +566,17 @@
     let loadingArticles = $state(false);
     let hasMore = $state(false);
 
-    // Profile editing state (only for own profile)
     let isEditing = $state(false);
     let isSaving = $state(false);
 
     const DEFAULT_BANNER_COLOR = '#fac800';
 
-    // Avatar upload state
     let avatarUploading = $state(false);
     const avatarInputId = `profile-avatar-input-${Math.random().toString(36).substr(2, 9)}`;
 
-    // Banner upload state
     let bannerUploading = $state(false);
     const bannerInputId = `profile-banner-input-${Math.random().toString(36).substr(2, 9)}`;
 
-    // Follow/block state
     let isFollowing = $state(false);
     let isBlocked = $state(viewerBlocksProfile);
     let isBlockedChanging = $state(false);
@@ -163,6 +601,9 @@
         const input = event.target as HTMLInputElement;
         const file = input.files?.[0];
         if (!file) return;
+
+        // Capture previous value before any async work
+        const previous = profileData.avatar;
 
         const maxBytes = 4 * 1024 * 1024;
         if (file.size > maxBytes) {
@@ -248,19 +689,18 @@
         }
     };
 
-    // Profile form data
     let profileData = $state({
         name: profileUser?.name || "",
         surname: profileUser?.surname || "",
         nickname: profileUser?.nickname || "",
         bio: profileUser?.bio || "",
-        location: profileUser?.location || "",
-        website: profileUser?.website || "",
-        interests: profileUser?.interests || [],
+        location: profileUser?.preferences?.location || "",
+        website: profileUser?.preferences?.website || "",
+        interests: profileUser?.preferences?.interests || [],
         avatar: profileUser?.avatar || "",
-        bannerColor: profileUser?.bannerColor || DEFAULT_BANNER_COLOR,
-        bannerImage: profileUser?.bannerImage || "",
-        socialLinks: profileUser?.socialLinks || {
+        bannerColor: profileUser?.bannerColor || profileUser?.preferences?.bannerColor || DEFAULT_BANNER_COLOR,
+        bannerImage: profileUser?.bannerImage || profileUser?.preferences?.bannerImage || "",
+        socialLinks: profileUser?.preferences?.socialLinks || {
             twitter: "",
             github: "",
             linkedin: ""
@@ -433,7 +873,6 @@
         isEditing = true;
     };
 
-
     const addInterest = (interest: string) => {
         if (interest.trim() && !profileData.interests.includes(interest.trim())) {
             profileData.interests = [...profileData.interests, interest.trim()];
@@ -441,7 +880,7 @@
     };
 
     const removeInterest = (interest: string) => {
-        profileData.interests = profileData.interests.filter(i => i !== interest);
+        profileData.interests = profileData.interests.filter((i: string) => i !== interest);
     };
 
     let newInterest = $state("");
@@ -453,7 +892,7 @@
     // Follow/block handlers
     const loadFollowStatus = async (targetId?: string | null) => {
         const targetUserId = targetId ?? profileUserId;
-        if (!targetUserId || isOwnProfile) return;
+        if (!targetUserId || isOwnProfile || !browser) return;
         try {
             const response = await fetch(`/api/users/${targetUserId}/follow`);
             if (!response.ok) {
@@ -475,9 +914,8 @@
 
     const loadBlockStatus = async (targetId?: string | null) => {
         const targetUserId = targetId ?? profileUserId;
-        if (!targetUserId || isOwnProfile) return;
+        if (!targetUserId || isOwnProfile || !browser) return;
 
-        // Eğer zaten server'dan gelen veri varsa ve API çağrısı yapılmıyorsa, kullan
         if (viewerBlocksProfile !== undefined && !isBlockedChanging) {
             isBlocked = viewerBlocksProfile;
             return;
@@ -494,7 +932,6 @@
             }
 
             const data = await response.json();
-            // Sadece state değişmiyorsa güncelle (manuel değişimi koru)
             if (!isBlockedChanging) {
                 isBlocked = !!data.blocked;
             }
@@ -547,7 +984,6 @@
         const targetUserId = profileUserId;
         if (!targetUserId) return;
         
-        // Anında state'i güncelle
         isBlocked = true;
         isBlockedChanging = true;
         
@@ -559,19 +995,16 @@
             if (!response.ok) {
                 const errorMessage = await response.text().catch(() => response.statusText);
                 console.error('Block error:', errorMessage);
-                // Hata durumunda state'i geri al
                 isBlocked = false;
                 isBlockedChanging = false;
                 return;
             }
 
-            // Başarılı olduğunda viewerBlocksProfile'u güncelle
             viewerBlocksProfile = true;
             await loadBlockStatus(targetUserId);
             await loadFollowStatus(targetUserId);
         } catch (error) {
             console.error('Block error:', error);
-            // Hata durumunda state'i geri al
             isBlocked = false;
         } finally {
             isBlockedChanging = false;
@@ -582,7 +1015,6 @@
         const targetUserId = profileUserId;
         if (!targetUserId) return;
         
-        // Anında state'i güncelle
         isBlocked = false;
         isBlockedChanging = true;
         
@@ -594,28 +1026,21 @@
             if (!response.ok) {
                 const errorMessage = await response.text().catch(() => response.statusText);
                 console.error('Unblock error:', errorMessage);
-                // Hata durumunda state'i geri al
                 isBlocked = true;
                 isBlockedChanging = false;
                 return;
             }
 
-            // Başarılı olduğunda viewerBlocksProfile'u güncelle
             viewerBlocksProfile = false;
             await loadBlockStatus(targetUserId);
         } catch (error) {
             console.error('Unblock error:', error);
-            // Hata durumunda state'i geri al
             isBlocked = true;
         } finally {
             isBlockedChanging = false;
         }
     };
 
-    // Load follow/block status on component mount
-    loadFollowStatus(profileUserId);
-    loadBlockStatus(profileUserId);
-    // Define article type with translations
     interface ArticleTranslation {
         title: string;
         content: any;
@@ -631,6 +1056,7 @@
         excerpt: string;
         slug: string;
         language: string;
+        hidden?: boolean;
         translations: Record<string, ArticleTranslation>;
         stats?: {
             likes: number;
@@ -641,6 +1067,8 @@
         author?: {
             id: string;
             name: string;
+            surname?: string;
+            nickname?: string;
             avatar?: string;
         };
         authorId?: string;
@@ -648,24 +1076,29 @@
         subcategory?: string;
         tags: string[];
         publishedAt: string;
+        createdAt?: string;
         readTime?: number;
         featured?: boolean;
         coverImage?: string;
+        thumbnail?: string;
+        status?: string;
+        availableTranslations?: Record<string, { slug: string }>;
+        availableLanguages?: string[];
     }
 
-       const article = $derived({
+    const article = $derived({
         ...data.article,
         ...(data.article?.translations?.[currentLocale] || {}),
         translations: data.article?.translations || {}
     } as Article);
+
+    // Separate $state for article.hidden to allow mutation
+    let articleHidden = $state(data.article?.hidden ?? false);
     
-    
-    // Update article content when locale changes
     $effect(() => {
         currentLocale = getCurrentLocale();
     });
 
-    // localStorage'dan beğenme durumunu yükle
     $effect(() => {
         if (typeof window !== 'undefined' && data.article?._id) {
             const savedReaction = localStorage.getItem(`article_reaction_${data.article._id}`);
@@ -675,27 +1108,48 @@
         }
     });
     
-    // Comment system state
     let comments = $state<any[]>([]);
     const emptyDoc = { type: 'doc', content: [{ type: 'paragraph' }] };
-    let newComment = $state<any>(emptyDoc); // Edra JSON
+    let newComment = $state<any>(emptyDoc);
     let replyingTo = $state<string | null>(null);
-    let replyContent = $state<any>(emptyDoc); // Edra JSON
+    let replyContent = $state<any>(emptyDoc);
     let loadingComments = $state(false);
     let commentEditor = $state<Editor | null>(null);
     let replyEditor = $state<Editor | null>(null);
     let userReactions = $state<Record<string, 'like' | 'dislike' | null>>({});
+    
+    let replyEditors = $state<Record<string, Editor | null>>({});
+    let replyContents = $state<Record<string, any>>({});
 
-    // Alert Dialog states
+    let editingCommentId = $state<string | null>(null);
+    let editingContent = $state<any>(null);
+    let editingEditor = $state<Editor | null>(null);
+
+    let expandedComments = $state<Set<string>>(new Set());
+    const DEFAULT_VISIBLE_LEVELS = 1;
+
     let showDeleteDialog = $state(false);
     let showHideDialog = $state(false);
     let dialogType = $state<'article' | 'comment'>('article');
     let selectedArticle = $state<any>(null);
     let selectedComment = $state<any>(null);
+    
+    // Dialog for nested comments
+    let showNestedDialog = $state(false);
+    let dialogComments = $state<any[]>([]);
+    let dialogParentComment = $state<any>(null);
+    let dialogLevel = $state(0);
+    let dialogParentId = $state<string | null>(null);
+    const DIALOG_VISIBLE_LEVELS = 2;
+
+    // Loading states for spam protection
+    let postingComment = $state(false);
+    let postingReply = $state<Record<string, boolean>>({});
+    let lastCommentTime = $state(0);
+    let commentCooldown = $state(0);
 
 
     async function toggleReaction(type: 'like' | 'dislike') {
-        // Kullanıcı giriş kontrolü
         if (!$page.data.user) {
             showToast(t('LoginRequiredForReactions'), 'error');
             return;
@@ -720,10 +1174,8 @@
             }
             const json = await res.json();
 
-            // Güncel state'i API'den veya lokal olarak ayarla
             reaction = json.reaction ?? newReaction;
 
-            // localStorage'a kaydet
             if (typeof window !== 'undefined') {
                 if (reaction) {
                     localStorage.setItem(`article_reaction_${data.article._id}`, reaction);
@@ -732,7 +1184,6 @@
                 }
             }
 
-            // API'den gelen güncel sayıları kullan
             if (json.stats) {
                 likesCount = Number(json.stats.likes) || 0;
                 dislikesCount = Number(json.stats.dislikes) || 0;
@@ -744,9 +1195,19 @@
     }
 
     if (!article) {
-        // Handle article not found
         console.error('Article not found');
     }
+
+    const getAuthorIdentifier = (author: any) => {
+        return author?.nickname || author?.id || 'user';
+    };
+
+    const getAuthorDisplayName = (author: any) => {
+        if (author?.name && author?.surname) {
+            return `${author.name} ${author.surname}`.trim();
+        }
+        return author?.name || author?.nickname || 'Unknown User';
+    };
 
     const formatDate = (dateString: string) => {
         const date = new Date(dateString);
@@ -761,7 +1222,6 @@
         const uid = $page.data.user?.id;
         return Boolean(uid && (article?.authorId === uid || article?.author?.id === uid));
     }
-
 
     function onEditArticle() {
         if (!article?._id) {
@@ -780,11 +1240,13 @@
 
         window.location.href = `/write?${params.toString()}`;
     }
+
     function onDeleteArticle() {
         selectedArticle = article;
         dialogType = 'article';
         showDeleteDialog = true;
     }
+
     function onShowArticle() {
         selectedArticle = article;
         dialogType = 'article';
@@ -801,18 +1263,74 @@
         const uid = $page.data.user?.id;
         return Boolean(uid && (a?.author?.id === uid || a?.userId === uid));
     }
-    function reportComment(id: string) { showToast(t('Reported'), 'info'); }
-    function editComment(id: string) { showToast(t('NotImplemented'), 'warning'); }
+
+    function handleCommentReported() {
+        // Refresh dialog if it's open and the reported comment is in the current dialog
+        if (showNestedDialog && selectedComment) {
+            const reportedCommentInDialog = findComment(dialogComments, selectedComment.id);
+            if (reportedCommentInDialog) {
+                // Comment is in current dialog, refresh dialog comments
+                const parentComment = findComment(comments, dialogParentId);
+                if (parentComment) {
+                    dialogComments = parentComment.replies || [];
+                }
+            }
+        }
+    }
+
+    function reportComment(id: string) { 
+        showReportDrawer = true;
+        // First try to find in main comments
+        let comment = comments.find((c: any) => c.id === id);
+        
+        // If not found and dialog is open, look in dialog comments
+        if (!comment && showNestedDialog) {
+            comment = findComment(dialogComments, id);
+        }
+        
+        selectedComment = comment;
+    }
+
+    function editComment(id: string) { 
+        // First try to find in main comments
+        let comment = findComment(comments, id);
+        
+        // If not found and dialog is open, look in dialog comments
+        if (!comment && showNestedDialog) {
+            comment = findComment(dialogComments, id);
+        }
+        
+        if (comment) {
+            editingCommentId = id;
+            editingContent = comment.content;
+        }
+    }
+
     function deleteComment(id: string) {
-        const comment = comments.find(c => c.id === id);
+        // First try to find in main comments
+        let comment = comments.find((c: any) => c.id === id);
+        
+        // If not found and dialog is open, look in dialog comments
+        if (!comment && showNestedDialog) {
+            comment = findComment(dialogComments, id);
+        }
+        
         if (comment) {
             selectedComment = comment;
             dialogType = 'comment';
             showDeleteDialog = true;
         }
     }
+
     function hideComment(id: string) {
-        const comment = comments.find(c => c.id === id);
+        // First try to find in main comments
+        let comment = comments.find((c: any) => c.id === id);
+        
+        // If not found and dialog is open, look in dialog comments
+        if (!comment && showNestedDialog) {
+            comment = findComment(dialogComments, id);
+        }
+        
         if (comment) {
             selectedComment = comment;
             dialogType = 'comment';
@@ -841,7 +1359,6 @@
             const res = await fetch(`/api/articles/${article._id}/comments`);
             if (res.ok) {
                 comments = await res.json();
-                // Initialize user reactions
                 if ($page.data.user?.id) {
                     const reactionsRes = await fetch(`/api/comments/user-reactions?articleId=${article._id}`);
                     if (reactionsRes.ok) {
@@ -914,91 +1431,233 @@
         }
     }
 
-    function onReplyEditorUpdate() {
-        if (replyEditor) {
-            replyContent = replyEditor.getJSON();
+    function onEditingEditorUpdate() {
+        if (editingEditor) {
+            editingContent = editingEditor.getJSON();
+        }
+    }
+
+    async function saveEditedComment() {
+        if (!editingCommentId || !editingContent) return;
+        
+        try {
+            const res = await fetch(`/api/comments/${editingCommentId}/edit`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ content: editingContent })
+            });
+            
+            if (res.ok) {
+                showToast(t('CommentUpdated'), 'success');
+                await loadComments();
+                
+                // Refresh dialog if it's open and the edited comment is in the current dialog
+                if (showNestedDialog) {
+                    const editedCommentInDialog = findComment(dialogComments, editingCommentId);
+                    if (editedCommentInDialog) {
+                        // Comment is in current dialog, refresh dialog comments
+                        const parentComment = findComment(comments, dialogParentId);
+                        if (parentComment) {
+                            dialogComments = parentComment.replies || [];
+                        }
+                    }
+                }
+                
+                cancelEditComment();
+            } else if (res.status === 401) {
+                showToast(t('LoginRequired'), 'error');
+            } else if (res.status === 403) {
+                showToast(t('PermissionDenied'), 'error');
+            } else {
+                showToast(t('UpdateFailed'), 'error');
+            }
+        } catch (e) {
+            console.error('Failed to edit comment:', e);
+            showToast(t('UpdateFailed'), 'error');
+        }
+    }
+
+    function cancelEditComment() {
+        editingCommentId = null;
+        editingContent = null;
+        editingEditor = null;
+    }
+
+    function toggleCommentExpanded(commentId: string) {
+        const newExpanded = new Set(expandedComments);
+        if (newExpanded.has(commentId)) {
+            newExpanded.delete(commentId);
+        } else {
+            newExpanded.add(commentId);
+        }
+        expandedComments = newExpanded;
+    }
+
+    function shouldShowComment(commentId: string, level: number): boolean {
+        if (level <= DEFAULT_VISIBLE_LEVELS) {
+            return true;
+        }
+        return false;
+    }
+
+    function onReplyEditorUpdate(commentId: string) {
+        const editor = replyEditors[commentId];
+        if (editor) {
+            replyContents[commentId] = editor.getJSON();
         }
     }
     
     async function postComment() {
-        // Kullanıcı giriş kontrolü
         if (!$page.data.user) {
             showToast(t('LoginRequiredForComments'), 'error');
             return;
         }
 
         if (isCommentEmpty(newComment) || !article) return;
+
+        // Check cooldown
+        const now = Date.now();
+        if (now - lastCommentTime < commentCooldown) {
+            return;
+        }
+
+        postingComment = true;
         try {
             const res = await fetch(`/api/articles/${article._id}/comments`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ content: newComment })
+                body: JSON.stringify({ 
+                    content: newComment,
+                    timestamp: now
+                })
             });
+            
+            const data = await res.json();
+            
             if (res.ok) {
-                const comment = await res.json();
-                comments = [comment, ...comments];
+                showToast(t('CommentPosted'), 'success');
+                await loadComments();
                 newComment = emptyDoc;
                 if (commentEditor) commentEditor.commands.setContent('');
+                lastCommentTime = now;
+                commentCooldown = 60000; // 1 minute cooldown
+            } else if (res.status === 429) {
+                showToast(data.error || 'Çok hızlı yorum yapıyorsunuz. Lütfen bekleyin.', 'warning');
+                commentCooldown = 120000; // 2 minutes cooldown
+            } else if (res.status === 400) {
+                if (data.reasons && data.reasons.length > 0) {
+                    showToast(`Spam tespit edildi: ${data.reasons.join(', ')}`, 'error');
+                } else {
+                    showToast(data.error || 'Yorum gönderilemedi', 'error');
+                }
             } else if (res.status === 401) {
                 persistToast(t('LoginRequiredForComments'), 'error');
+            } else {
+                showToast('Yorum gönderilemedi', 'error');
             }
         } catch (e) {
             console.error('Failed to post comment:', e);
+            showToast('Bağlantı hatası', 'error');
+        } finally {
+            postingComment = false;
         }
     }
     
     async function postReply(parentId: string) {
-        const content = replyContent;
+        const content = replyContents[parentId];
         if (isCommentEmpty(content) || !article) return;
+
+        // Check cooldown
+        const now = Date.now();
+        if (now - lastCommentTime < commentCooldown) {
+            return;
+        }
+
+        postingReply[parentId] = true;
         try {
             const res = await fetch(`/api/articles/${article._id}/comments`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ content, parentId })
+                body: JSON.stringify({ 
+                    content, 
+                    parentId,
+                    timestamp: now
+                })
             });
+            
+            const data = await res.json();
+            
             if (res.ok) {
-                await res.json();
+                showToast(t('ReplyPosted'), 'success');
                 await loadComments();
-                replyContent = emptyDoc;
-                if (replyEditor) replyEditor.commands.setContent('');
-                replyEditor = null;
+                
+                // Refresh dialog if it's open and reply is related to current dialog
+                if (showNestedDialog) {
+                    if (dialogParentId === parentId) {
+                        // Reply to dialog parent comment
+                        const parentComment = findComment(comments, parentId);
+                        if (parentComment) {
+                            dialogComments = parentComment.replies || [];
+                        }
+                    } else if (dialogParentComment && findComment([dialogParentComment], parentId)) {
+                        // Reply to a comment within current dialog
+                        const updatedParentComment = findComment(comments, dialogParentId);
+                        if (updatedParentComment) {
+                            dialogComments = updatedParentComment.replies || [];
+                        }
+                    }
+                }
+                
+                replyContents[parentId] = emptyDoc;
+                const editor = replyEditors[parentId];
+                if (editor) editor.commands.setContent('');
+                delete replyEditors[parentId];
+                delete replyContents[parentId];
                 replyingTo = null;
+                lastCommentTime = now;
+                commentCooldown = 60000; // 1 minute cooldown
+            } else if (res.status === 429) {
+                showToast(data.error || 'Çok hızlı yorum yapıyorsunuz. Lütfen bekleyin.', 'warning');
+                commentCooldown = 120000; // 2 minutes cooldown
+            } else if (res.status === 400) {
+                if (data.reasons && data.reasons.length > 0) {
+                    showToast(`Spam tespit edildi: ${data.reasons.join(', ')}`, 'error');
+                } else {
+                    showToast(data.error || 'Yanıt gönderilemedi', 'error');
+                }
+            } else {
+                showToast('Yanıt gönderilemedi', 'error');
             }
         } catch (e) {
             console.error('Failed to post reply:', e);
+            showToast('Bağlantı hatası', 'error');
+        } finally {
+            postingReply[parentId] = false;
         }
     }
     
     async function toggleCommentReaction(commentId: string, type: 'like' | 'dislike', isReply: boolean, parentId?: string) {
-        // Kullanıcı giriş kontrolü
         if (!$page.data.user) {
             showToast(t('LoginRequiredForReactions'), 'error');
             return;
         }
 
-        // Optimistic UI update
         const previousReaction = userReactions[commentId];
         const comment = findComment(comments, commentId);
         
-        // Update local state immediately
         if (previousReaction === type) {
-            // Toggle off if clicking the same reaction
             userReactions[commentId] = null;
             if (comment) {
                 if (type === 'like') comment.likes = Math.max(0, (comment.likes || 0) - 1);
                 else if (type === 'dislike') comment.dislikes = Math.max(0, (comment.dislikes || 0) - 1);
             }
         } else {
-            // Update to new reaction
-            const previousReaction = userReactions[commentId];
             userReactions[commentId] = type;
             
             if (comment) {
-                // Remove previous reaction count
                 if (previousReaction === 'like') comment.likes = Math.max(0, (comment.likes || 0) - 1);
                 else if (previousReaction === 'dislike') comment.dislikes = Math.max(0, (comment.dislikes || 0) - 1);
                 
-                // Add new reaction count
                 if (type === 'like') comment.likes = (comment.likes || 0) + 1;
                 else if (type === 'dislike') comment.dislikes = (comment.dislikes || 0) + 1;
             }
@@ -1012,21 +1671,17 @@
             });
 
             if (!res.ok) {
-                // Revert on error
                 if (res.status === 401) {
                     showToast(t('LoginRequiredForReactions'), 'error');
                 }
-                // Reload comments to sync with server
                 await loadComments();
             }
         } catch (e) {
             console.error('Failed to react to comment:', e);
-            // Revert on error
             await loadComments();
         }
     }
     
-    // Alert Dialog handlers
     async function confirmDelete() {
         if (dialogType === 'article' && selectedArticle) {
             await deleteArticle(selectedArticle._id);
@@ -1038,11 +1693,9 @@
 
     async function confirmHide() {
         if (dialogType === 'article' && selectedArticle) {
-            // Eğer gizlenmişse göster, gizlenmemişse gizle
-            const shouldHide = !selectedArticle.hidden;
+            const shouldHide = !articleHidden;
             await hideArticle(selectedArticle._id, shouldHide);
         } else if (dialogType === 'comment' && selectedComment) {
-            // Eğer gizlenmişse göster, gizlenmemişse gizle
             const shouldHide = !selectedComment.hidden;
             await hideCommentAPI(selectedComment.id, shouldHide);
         }
@@ -1056,6 +1709,22 @@
         selectedComment = null;
         dialogType = 'article';
     }
+    
+    function openNestedDialog(comment: any, level: number, parentId: string | null = null) {
+        dialogParentComment = comment;
+        dialogComments = comment.replies || [];
+        dialogLevel = level;
+        dialogParentId = parentId;
+        showNestedDialog = true;
+    }
+    
+    function closeNestedDialog() {
+        showNestedDialog = false;
+        dialogComments = [];
+        dialogParentComment = null;
+        dialogLevel = 0;
+        dialogParentId = null;
+    }
 
     async function deleteArticle(articleId: string) {
         try {
@@ -1066,7 +1735,6 @@
 
             if (res.ok) {
                 showToast(t('ArticleDeleted'), 'success');
-                // Redirect to articles page or home
                 window.location.href = '/articles';
             } else if (res.status === 401) {
                 showToast(t('LoginRequired'), 'error');
@@ -1090,12 +1758,9 @@
             });
 
             if (res.ok) {
-                const action = shouldHide ? 'gizlendi' : 'gösterildi';
                 showToast(t('ArticleHidden'), 'success');
-                // Update article state to reflect hidden status
-                if (article && article._id === articleId) {
-                    article.hidden = shouldHide;
-                }
+                // Update the separate $state instead of the $derived article
+                articleHidden = shouldHide;
             } else if (res.status === 401) {
                 showToast(t('LoginRequired'), 'error');
             } else if (res.status === 403) {
@@ -1118,7 +1783,19 @@
 
             if (res.ok) {
                 showToast(t('CommentDeleted'), 'success');
-                await loadComments(); // Refresh comments
+                await loadComments();
+                
+                // Refresh dialog if it's open and the deleted comment was in the current dialog
+                if (showNestedDialog) {
+                    const deletedCommentInDialog = findComment(dialogComments, commentId);
+                    if (deletedCommentInDialog) {
+                        // Comment was in current dialog, refresh dialog comments
+                        const parentComment = findComment(comments, dialogParentId);
+                        if (parentComment) {
+                            dialogComments = parentComment.replies || [];
+                        }
+                    }
+                }
             } else if (res.status === 401) {
                 showToast(t('LoginRequired'), 'error');
             } else if (res.status === 403) {
@@ -1142,7 +1819,19 @@
 
             if (res.ok) {
                 showToast(t('CommentHidden'), 'success');
-                await loadComments(); // Refresh comments
+                await loadComments();
+                
+                // Refresh dialog if it's open and the hidden comment is in the current dialog
+                if (showNestedDialog) {
+                    const hiddenCommentInDialog = findComment(dialogComments, commentId);
+                    if (hiddenCommentInDialog) {
+                        // Comment is in current dialog, refresh dialog comments
+                        const parentComment = findComment(comments, dialogParentId);
+                        if (parentComment) {
+                            dialogComments = parentComment.replies || [];
+                        }
+                    }
+                }
             } else if (res.status === 401) {
                 showToast(t('LoginRequired'), 'error');
             } else if (res.status === 403) {
@@ -1177,18 +1866,15 @@
         return (num / 1000000).toFixed(0) + 'm';
     };
     
-    // Load comments on mount
     $effect(() => {
         if (article) {
             loadComments();
         }
     });
 
-  // Sadece client-side'da Motion fonksiyonlarını kullan
-  let mouseX = browser ? useMotionValue(0) : { set: () => {} };
-  let mouseY = browser ? useMotionValue(0) : { set: () => {} };
-  let background = browser && mouseX && mouseY ? useMotionTemplate`radial-gradient(200px circle at ${mouseX}px ${mouseY}px, rgba(51, 51, 51, 0.4), transparent 80%)` : '';
-
+    let mouseX = browser ? useMotionValue(0) : { set: () => {} };
+    let mouseY = browser ? useMotionValue(0) : { set: () => {} };
+    let background = browser && mouseX && mouseY ? useMotionTemplate`radial-gradient(200px circle at ${mouseX}px ${mouseY}px, rgba(51, 51, 51, 0.4), transparent 80%)` : '';
 </script>
 
 <svelte:head>
@@ -1209,103 +1895,93 @@
   role="presentation"
   onmousemove={(e) => {
     const { left, top } = e.currentTarget.getBoundingClientRect();
-
     mouseX.set(e.clientX - left);
     mouseY.set(e.clientY - top);
   }}
   class="group relative h-fit w-full overflow-hidden rounded-xl bg-card"
 >
-
   <Motion
-    style={{
-      background,
-    }}
+    style={{ background }}
     let:motion
   >
     <div
       use:motion
-      class="pointer-events-none absolute -inset-px rounded-xl opacity-0 transition duration-300 group-hover:opacity-75 "
+      class="pointer-events-none absolute -inset-px rounded-xl opacity-0 transition duration-300 group-hover:opacity-75"
     ></div>
   </Motion>
+
 <main class="min-h-screen bg-background">
     {#if !article}
-        <!-- Article not found -->
         <div class="container mx-auto px-4 py-12 text-center">
             <h1 class="text-2xl font-bold mb-4">Makale Bulunamadı</h1>
             <p class="text-muted-foreground mb-6">Aradığınız makale mevcut değil veya kaldırılmış olabilir.</p>
             <Button size="sm" href="/articles">Makalelere Dön</Button>
         </div>
     {:else}
-        <!-- Article content -->
-        <article class="container mx-auto px-4 py-6 max-w-5xl">
-            <!-- Back button -->
-                         <!-- Article content -->
-
+        <article class="container mx-auto px-4 py-12 max-w-5xl">
             <div class="mb-6 flex flex-row gap-2 justify-between items-center">
                 <Button variant="outline" size="xs" href="/articles">
                     <ArrowLeftIcon triggers={{ hover: false }} animationState="loading" duration={2000}/>
                     Makalelere Dön
                 </Button>
                 <div class="flex flex-row items-center gap-2">
-                                <!-- Language switcher -->
-                {#if article.availableTranslations}
-
-                    <span class="text-xs text-muted-foreground flex items-center gap-1">
-                        <Languages class="w-4 h-4" /> Diller:
-                    </span>
-                    {#each Object.keys(article.availableTranslations) as lang}
-                        <Button
-                            size="xs"
-                            variant={lang === article.language ? 'default' : 'outline'}
-                            onclick={() => switchToLanguage(lang)}
-                        >
-                            {lang.toUpperCase()}
-                        </Button>
-                    {/each}
-                {/if}
+                    {#if article.availableTranslations}
+                        <span class="text-xs text-muted-foreground flex items-center gap-1">
+                            <Languages class="w-4 h-4" /> Diller:
+                        </span>
+                        {#each Object.keys(article.availableTranslations) as lang}
+                            <Button
+                                size="xs"
+                                variant={lang === article.language ? 'default' : 'outline'}
+                                onclick={() => switchToLanguage(lang)}
+                            >
+                                {lang.toUpperCase()}
+                            </Button>
+                        {/each}
+                    {/if}
                 </div>
             </div>
             <Separator />
-            <!-- Article header -->
+
             <header class="relative my-5">
                 <div class="absolute top-2 right-2">
-									<DropdownMenu.Root>
-										<DropdownMenu.Trigger >
-											<Button variant="outline" class="h-6 w-6 p-0">
-												<EllipsisIcon triggers={{ hover: false }} animationState="loading" duration={1400} loop={true} />
-											</Button>
-										</DropdownMenu.Trigger>
-										<DropdownMenu.Content align="end" class="w-48">
-											<DropdownMenu.Item onclick={() => showReportDrawer = true} class="text-destructive">
-												<BadgeAlertIcon triggers={{ hover: false }}  animationState="loading"  duration={3000} loop={true}  class="mr-2 h-4 w-4" />
-												Bildir
-											</DropdownMenu.Item>
-											{#if isArticleOwner()}
-                                                <DropdownMenu.Separator />
+                    <DropdownMenu.Root>
+                        <DropdownMenu.Trigger>
+                            <Button variant="outline" class="h-6 w-6 p-0">
+                                <EllipsisIcon triggers={{ hover: false }} animationState="loading" duration={1400} loop={true} />
+                            </Button>
+                        </DropdownMenu.Trigger>
+                        <DropdownMenu.Content align="end" class="w-48">
+                            <DropdownMenu.Item onclick={() => showReportDrawer = true} class="text-destructive">
+                                <BadgeAlertIcon triggers={{ hover: false }} animationState="loading" duration={3000} loop={true} class="mr-2 h-4 w-4" />
+                                Bildir
+                            </DropdownMenu.Item>
+                            {#if isArticleOwner()}
+                                <DropdownMenu.Separator />
+                                <DropdownMenu.Item onclick={onDeleteArticle}>
+                                    <BookMinusIcon triggers={{ hover: false }} animationState="loading" duration={3000} loop={true} class="mr-2 h-4 w-4" />
+                                    Kaldır
+                                </DropdownMenu.Item>
+                                <DropdownMenu.Item onclick={onEditArticle}>
+                                    <NotebookPenIcon triggers={{ hover: false }} animationState="loading" duration={3000} loop={true} class="mr-2 h-4 w-4" />
+                                    Düzenle
+                                </DropdownMenu.Item>
+                                {#if articleHidden}
+                                    <DropdownMenu.Item onclick={onShowArticle}>
+                                        <Eye class="mr-2 h-4 w-4" />
+                                        Göster
+                                    </DropdownMenu.Item>
+                                {:else}
+                                    <DropdownMenu.Item onclick={onHideArticle}>
+                                        <EyeOffIcon triggers={{ hover: false }} class="mr-2 h-4 w-4" />
+                                        Gizle
+                                    </DropdownMenu.Item>
+                                {/if}
+                            {/if}
+                        </DropdownMenu.Content>
+                    </DropdownMenu.Root>
+                </div>
 
-													<DropdownMenu.Item onclick={onDeleteArticle}>
-														<BookMinusIcon triggers={{ hover: false }}  animationState="loading" duration={3000}  loop={true}  class="mr-2 h-4 w-4" />
-														Kaldır
-													</DropdownMenu.Item>
-
-													<DropdownMenu.Item onclick={onEditArticle}>
-														<NotebookPenIcon triggers={{ hover: false }}  animationState="loading" duration={3000}  loop={true}  class="mr-2 h-4 w-4" />
-														Düzenle
-													</DropdownMenu.Item>
-                        {#if article.hidden}
-                            <DropdownMenu.Item onclick={onShowArticle}>														
-														<Eye class="mr-2 h-4 w-4" />
-Göster</DropdownMenu.Item>
-                        {:else}
-                            <DropdownMenu.Item onclick={onHideArticle}>														
-														<EyeOffIcon triggers={{ hover: false }}  class="mr-2 h-4 w-4" />
- Gizle</DropdownMenu.Item>
-                        {/if}
-											{/if}
-										</DropdownMenu.Content>
-									</DropdownMenu.Root>
-                                                    
-								</div>
                 <div class="mb-3 flex flex-col gap-3">
                     <div class="flex flex-col sm:flex-row gap-3 items-center">
                         <h1 class="text-lg sm:text-xl md:text-2xl font-bold leading-tight">
@@ -1318,7 +1994,9 @@ Göster</DropdownMenu.Item>
                         {/if}
                         <div class="flex items-center gap-1">
                             <Badge variant="default">{t(article.category)}</Badge>
-                            <Badge variant="secondary">{t(article.subcategory)}</Badge>
+                            {#if article.subcategory}
+                                <Badge variant="secondary">{t(article.subcategory)}</Badge>
+                            {/if}
                         </div>
                     </div>
                     {#if article.status === 'pending'}
@@ -1330,14 +2008,16 @@ Göster</DropdownMenu.Item>
                         </div>
                     {/if}
                 </div>
+
                 {#if article.thumbnail}
                     <div class="mb-3 rounded-lg overflow-hidden">
                         <Lens>
-                        <img 
-                            src={article.thumbnail} 
-                            alt={article.title} 
-                            class="w-full h-auto max-h-[500px] object-cover"
-                        /></Lens>
+                            <img 
+                                src={article.thumbnail} 
+                                alt={article.title} 
+                                class="w-full h-auto max-h-[500px] object-cover"
+                            />
+                        </Lens>
                     </div>
                 {/if}
 
@@ -1347,45 +2027,70 @@ Göster</DropdownMenu.Item>
                     </p>
                 {/if}
 
-                <!-- Article meta -->
                 <div class="flex flex-wrap items-center gap-6 text-sm text-muted-foreground mb-3">
-                    <!-- Author -->
-                    <a href="/{article.author.nickname}" class="flex items-center gap-2 hover:opacity-80 transition-opacity">
-                        <div class="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
-                            <User class="w-4 h-4" />
-                        </div>
-                        <span class="font-medium">
-                            {article.author.name && article.author.surname 
-                                ? `${article.author.name} ${article.author.surname}`
-                                : article.author.nickname}
-                        </span>
-                    </a>
-
-                    <!-- Published date -->
-                    <div class="flex items-center gap-1">
-                        <Calendar class="w-4 h-4" />
-                        <time>{formatDate(article.publishedAt || article.createdAt)}</time>
+                    <div class="flex items-center gap-2">
+                        <a href="/{getAuthorIdentifier(article.author)}" class="flex items-center gap-2 hover:opacity-80 transition-opacity">
+                            <div class="w-8 h-8 rounded-full flex items-center justify-center">
+                                <Avatar class="w-8 h-8">
+                                    {#if article.author?.avatar}
+                                        <AvatarImage 
+                                            src={article.author.avatar} 
+                                            alt={getAuthorDisplayName(article.author)}
+                                            class="object-cover"
+                                        />
+                                    {/if}
+                                    <AvatarFallback class="text-xs">
+                                        {(() => {
+                                            const name = article.author?.name;
+                                            const surname = article.author?.surname;
+                                            const nickname = article.author?.nickname;
+                                            
+                                            if (name && surname) {
+                                                return (name[0] + surname[0]).toUpperCase();
+                                            } else if (name) {
+                                                return name[0].toUpperCase();
+                                            } else if (nickname) {
+                                                return nickname[0].toUpperCase();
+                                            }
+                                            return 'U';
+                                        })()}
+                                    </AvatarFallback>
+                                </Avatar>
+                            </div>
+                            <span class="font-medium">
+                                {getAuthorDisplayName(article.author)}
+                            </span>
+                        </a>
+                        {#if collaborators.length > 0}
+                            <div class="flex items-center gap-1 text-xs">
+                                <Users class="w-3 h-3" />
+                                <span>+{collaborators.length} yazar</span>
+                            </div>
+                        {/if}
                     </div>
 
-                    <!-- Read time -->
+                    <div class="flex items-center gap-1">
+                        <Calendar class="w-4 h-4" />
+                        <time>{formatDate(article.publishedAt || article.createdAt || '')}</time>
+                    </div>
+
                     <div class="flex items-center gap-1">
                         <Clock class="w-4 h-4" />
                         <span>{calculateReadTime(article.content)} dk okuma</span>
                     </div>
                 </div>
 
-                <!-- Article stats -->
                 <div class="flex items-center gap-3 text-sm text-muted-foreground">
                     <Tooltip.Provider>
                         <Tooltip.Root>
                             <Tooltip.Trigger>
                                 <div class="flex items-center gap-1">
                                     <Eye class="w-4 h-4" />
-                                    <span>{formatNumber(article.stats.views)}</span>
+                                    <span>{formatNumber(article.stats?.views ?? 0)}</span>
                                 </div>
                             </Tooltip.Trigger>
                             <Tooltip.Content>
-                                <p>{article.stats.views.toLocaleString()} görüntüleme</p>
+                                <p>{(article.stats?.views ?? 0).toLocaleString()} görüntüleme</p>
                             </Tooltip.Content>
                         </Tooltip.Root>
                     </Tooltip.Provider>
@@ -1401,7 +2106,7 @@ Göster</DropdownMenu.Item>
                                                 size="sm"
                                                 class={cn(
                                                     "h-8 gap-1 transition-all duration-200",
-                                                    reaction === 'like' && "bg-primary text-primary-foreground "
+                                                    reaction === 'like' && "bg-primary text-primary-foreground"
                                                 )}
                                                 onclick={() => toggleReaction('like')}
                                             >
@@ -1455,11 +2160,11 @@ Göster</DropdownMenu.Item>
                             <Tooltip.Trigger>
                                 <div class="flex items-center gap-1">
                                     <MessageCircle class="w-4 h-4" />
-                                    <span>{formatNumber(article.stats.comments)}</span>
+                                    <span>{formatNumber(article.stats?.comments ?? 0)}</span>
                                 </div>
                             </Tooltip.Trigger>
                             <Tooltip.Content>
-                                <p>{article.stats.comments.toLocaleString()} yorum</p>
+                                <p>{(article.stats?.comments ?? 0).toLocaleString()} yorum</p>
                             </Tooltip.Content>
                         </Tooltip.Root>
                     </Tooltip.Provider>
@@ -1468,23 +2173,19 @@ Göster</DropdownMenu.Item>
                         <Share2 class="w-4 h-4" />
                         Paylaş
                     </Button>
-
+                </div>
             </header>
 
-
-
-                    <div class="mt-6 prose prose-lg max-w-none">
-                        {#if typeof article.content === 'string'}
-                            {@html article.content}
-                        {:else}
-                            <div class="rounded-md ">
-                                <EdraEditor content={article.content} editable={false} />
-                            </div>
-                        {/if}
+            <div class="mt-6 prose prose-lg max-w-none">
+                {#if typeof article.content === 'string'}
+                    {@html article.content}
+                {:else}
+                    <div class="rounded-md">
+                        <EdraEditor content={article.content} editable={false} />
                     </div>
+                {/if}
+            </div>
 
-
-            <!-- Article tags -->
             {#if article.tags && article.tags.length > 0}
                 <div class="my-8 pt-8">
                     <h3 class="text-sm font-medium text-muted-foreground mb-3">Etiketler</h3>
@@ -1496,70 +2197,177 @@ Göster</DropdownMenu.Item>
                 </div>
             {/if}
             <Separator class="my-10"/>
-            <ProfileCard
-                profileData={profileData}
-                profileUser={profileUser}
-                isOwnProfile={isOwnProfile}
-                showProfileLink={true}
-                isEditing={isEditing}
-                isSaving={isSaving}
-                avatarUploading={avatarUploading}
-                bannerUploading={bannerUploading}
-                avatarInputId={avatarInputId}
-                bannerInputId={bannerInputId}
-                joinDate={stats.joinDate}
-                formatDate={formatDate}
-                onToggleEdit={startEditing}
-                onCancelEdit={handleCancelEdit}
-                onSaveProfile={handleSaveProfile}
-                onTriggerAvatarFile={triggerAvatarFileDialog}
-                onAvatarUpload={handleAvatarUpload}
-                onAvatarRemove={handleAvatarRemove}
-                onInterestAdd={addInterest}
-                onInterestRemove={removeInterest}
-                onBannerColorChange={handleBannerColorChange}
-                onTriggerBannerFile={triggerBannerFileDialog}
-                onBannerUpload={handleBannerUpload}
-                onBannerRemove={handleBannerRemove}
-                onFollowUser={handleFollowUser}
-                onUnfollowUser={handleUnfollowUser}
-                onBlockUser={handleBlockUser}
-                onUnblockUser={handleUnblockUser}
-                isFollowing={isFollowing}
-                isBlocked={isBlocked}
-                followersCount={followersCount}
-                followingCount={followingCount}
-                isFollowingMe={isFollowingMe}
-                followersList={followersList}
-                followingList={followingList}
-                currentUserId={currentUserId}
-            />
+
+            {#if collaborators.length > 0}
+                <div class="my-8 pt-8">
+                    <h3 class="text-lg font-semibold mb-4 flex items-center gap-2">
+                        <Users class="w-5 h-5" />
+                        Yazarlar ({1 + collaborators.length})
+                    </h3>
+                    <div class="space-y-8">
+                        <!-- Ana Yazar -->
+                        <div class="space-y-4">
+  
+                            
+                            <!-- Ana Yazar ProfileCard -->
+                            {#if profileUser}
+                                <ProfileCard
+                                    profileData={profileData}
+                                    profileUser={profileUser}
+                                    isOwnProfile={isOwnProfile}
+                                    showProfileLink={true}
+                                    isEditing={isEditing}
+                                    isSaving={isSaving}
+                                    avatarUploading={avatarUploading}
+                                    bannerUploading={bannerUploading}
+                                    onToggleEdit={startEditing}
+                                    onCancelEdit={handleCancelEdit}
+                                    onSaveProfile={handleSaveProfile}
+                                    onTriggerAvatarFile={triggerAvatarFileDialog}
+                                    onAvatarUpload={handleAvatarUpload}
+                                    onAvatarRemove={handleAvatarRemove}
+                                    onInterestAdd={addInterest}
+                                    onInterestRemove={removeInterest}
+                                    onBannerColorChange={handleBannerColorChange}
+                                    onTriggerBannerFile={triggerBannerFileDialog}
+                                    onBannerUpload={handleBannerUpload}
+                                    onBannerRemove={handleBannerRemove}
+                                    onFollowUser={handleFollowUser}
+                                    onUnfollowUser={handleUnfollowUser}
+                                    onBlockUser={handleBlockUser}
+                                    onUnblockUser={handleUnblockUser}
+                                    isFollowing={isFollowing}
+                                    isBlocked={isBlocked}
+                                    followersCount={followersCount}
+                                    followingCount={followingCount}
+                                    isFollowingMe={isFollowingMe}
+                                    followersList={followersList}
+                                    followingList={followingList}
+                                    currentUserId={currentUserId}
+                                />
+                            {/if}
+                        </div>
+                        
+                        <!-- İşbirlikçiler -->
+                        {#each collaboratorProfiles as collaboratorProfile, index}
+                            {@const isCollaboratorCurrentUser = collaborators[index].id === currentUserId}
+                            {@const collaboratorId = collaborators[index].id}
+                            <div class="space-y-4">
+                                
+                                <!-- İşbirlikçi ProfileCard -->
+                                <ProfileCard
+                                    profileData={getCollaboratorProfileData(collaboratorId)}
+                                    profileUser={collaboratorProfile}
+                                    isOwnProfile={isCollaboratorCurrentUser}
+                                    showProfileLink={true}
+                                    isEditing={isCollaboratorCurrentUser ? collaboratorEditing[collaboratorId] || false : false}
+                                    isSaving={isCollaboratorCurrentUser ? collaboratorSaving[collaboratorId] || false : false}
+                                    avatarUploading={isCollaboratorCurrentUser ? collaboratorAvatarUploading[collaboratorId] || false : false}
+                                    bannerUploading={isCollaboratorCurrentUser ? collaboratorBannerUploading[collaboratorId] || false : false}
+                                    onToggleEdit={isCollaboratorCurrentUser ? () => startCollaboratorEditing(collaboratorId) : () => {}}
+                                    onCancelEdit={isCollaboratorCurrentUser ? () => handleCollaboratorCancelEdit(collaboratorId) : () => {}}
+                                    onSaveProfile={isCollaboratorCurrentUser ? () => handleCollaboratorSaveProfile(collaboratorId) : () => {}}
+                                    onTriggerAvatarFile={isCollaboratorCurrentUser ? () => handleCollaboratorTriggerAvatarFile(collaboratorId) : () => {}}
+                                    onAvatarUpload={isCollaboratorCurrentUser ? (file) => handleCollaboratorAvatarUpload(collaboratorId, file) : () => {}}
+                                    onAvatarRemove={isCollaboratorCurrentUser ? () => handleCollaboratorAvatarRemove(collaboratorId) : () => {}}
+                                    onInterestAdd={isCollaboratorCurrentUser ? (interest) => handleCollaboratorInterestAdd(collaboratorId, interest) : () => {}}
+                                    onInterestRemove={isCollaboratorCurrentUser ? (interest) => handleCollaboratorInterestRemove(collaboratorId, interest) : () => {}}
+                                    onBannerColorChange={isCollaboratorCurrentUser ? (color) => handleCollaboratorBannerColorChange(collaboratorId, color) : () => {}}
+                                    onTriggerBannerFile={isCollaboratorCurrentUser ? () => handleCollaboratorTriggerBannerFile(collaboratorId) : () => {}}
+                                    onBannerUpload={isCollaboratorCurrentUser ? (file) => handleCollaboratorBannerUpload(collaboratorId, file) : () => {}}
+                                    onBannerRemove={isCollaboratorCurrentUser ? () => handleCollaboratorBannerRemove(collaboratorId) : () => {}}
+                                    onFollowUser={isCollaboratorCurrentUser ? () => {} : () => handleCollaboratorFollow(collaboratorId)}
+                                    onUnfollowUser={isCollaboratorCurrentUser ? () => {} : () => handleCollaboratorUnfollow(collaboratorId)}
+                                    onBlockUser={isCollaboratorCurrentUser ? () => {} : () => handleCollaboratorBlock(collaboratorId)}
+                                    onUnblockUser={isCollaboratorCurrentUser ? () => {} : () => handleCollaboratorUnblock(collaboratorId)}
+                                    isFollowing={isCollaboratorCurrentUser ? false : collaboratorFollowing[collaboratorId] || false}
+                                    isBlocked={isCollaboratorCurrentUser ? false : collaboratorBlocked[collaboratorId] || false}
+                                    followersCount={collaboratorProfile.followersCount || 0}
+                                    followingCount={collaboratorProfile.followingCount || 0}
+                                    isFollowingMe={false}
+                                    followersList={[]}
+                                    followingList={[]}
+                                    currentUserId={currentUserId}
+                                />
+                            </div>
+                        {/each}
+                    </div>
+                </div>
+            {/if}
+
+
+            {#if collaborators.length === 0}
+                <ProfileCard
+                    profileData={profileData}
+                    profileUser={profileUser}
+                    isOwnProfile={isOwnProfile}
+                    showProfileLink={true}
+                    isEditing={isEditing}
+                    isSaving={isSaving}
+                    avatarUploading={avatarUploading}
+                    bannerUploading={bannerUploading}
+                    onToggleEdit={startEditing}
+                    onCancelEdit={handleCancelEdit}
+                    onSaveProfile={handleSaveProfile}
+                    onTriggerAvatarFile={triggerAvatarFileDialog}
+                    onAvatarUpload={handleAvatarUpload}
+                    onAvatarRemove={handleAvatarRemove}
+                    onInterestAdd={addInterest}
+                    onInterestRemove={removeInterest}
+                    onBannerColorChange={handleBannerColorChange}
+                    onTriggerBannerFile={triggerBannerFileDialog}
+                    onBannerUpload={handleBannerUpload}
+                    onBannerRemove={handleBannerRemove}
+                    onFollowUser={handleFollowUser}
+                    onUnfollowUser={handleUnfollowUser}
+                    onBlockUser={handleBlockUser}
+                    onUnblockUser={handleUnblockUser}
+                    isFollowing={isFollowing}
+                    isBlocked={isBlocked}
+                    followersCount={followersCount}
+                    followingCount={followingCount}
+                    isFollowingMe={isFollowingMe}
+                    followersList={followersList}
+                    followingList={followingList}
+                    currentUserId={currentUserId}
+                />
+            {/if}
 
             <Separator class="my-10"/>
 
             <!-- Comments Section -->
-            <div class="mt-12 ">
+            <div class="mt-12">
                 <div class="flex flex-col items-center justify-center mb-6 gap-1">
-                <MessageSquareIcon size={36} triggers={{ hover: false }} duration={2500} animationState="loading" class="text-primary" />
-                <h2 class="text-lg font-bold">{t('Comments')}</h2>
+                    <MessageSquareIcon size={36} triggers={{ hover: false }} duration={2500} animationState="loading" class="text-primary" />
+                    <h2 class="text-lg font-bold">{t('Comments')}</h2>
                 </div>
                 
                 <!-- Comment Form -->
                 <div class="mb-8">
                     <div class="mb-3 border p-2 rounded-lg">
                         {#if commentEditor}
-                            <EdraToolBar editor={commentEditor} class=" overflow-y-auto h-min mb-2" />
+                            <EdraToolBar editor={commentEditor} class="overflow-y-auto h-min mb-2" />
                         {/if}
                         <EdraEditor
                             bind:editor={commentEditor}
                             content={newComment}
-                            class="min-h-[140px] "
+                            class="min-h-[140px]"
                             onUpdate={onCommentEditorUpdate}
                             placeholder={t('WriteYourComment')}
                         />
                     </div>
                     <div class="flex justify-end mt-2">
-                        <Button onclick={postComment} disabled={isCommentEmpty(newComment)}>Yorum Yap</Button>
+                        <Button 
+                        onclick={postComment} 
+                        disabled={isCommentEmpty(newComment) || postingComment}
+                    >
+                        {#if postingComment}
+                                       <Loader class="animate-spin" />
+                            Gönderiliyor...
+                        {:else}
+                            Yorum Yap
+                        {/if}
+                    </Button>
                     </div>
                 </div>
 
@@ -1575,27 +2383,96 @@ Göster</DropdownMenu.Item>
                         </div>
                     {:else}
                         {#each comments as comment (comment.id)}
-                            <ContextMenu.Root>
-                            <ContextMenu.Trigger asChild>
                             <div class="border rounded-lg p-4" id={`comment-${comment.id}`}>
                                 <div class="flex items-start gap-3">
-                                    <div class="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
-                                        <User class="w-5 h-5" />
-                                    </div>
-                                    <div class="flex-1">
+                                                                    <div>
+
+
+
                                         <div class="flex items-center gap-2 mb-2">
-                                            <span class="font-medium">
-                                                {comment.author?.name && comment.author?.surname 
-                                                    ? `${comment.author.name} ${comment.author.surname}`
-                                                    : comment.author?.nickname || 'Anonim'}
-                                            </span>
-                                            <span class="text-sm text-muted-foreground">{formatTimeAgo(comment.createdAt)}</span>
+                                                                            <a href="/{getAuthorIdentifier(comment.author)}">
+                                        <div class="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0">
+                                            <Avatar class="w-10 h-10">
+                                                {#if comment.author?.avatar}
+                                                    <AvatarImage 
+                                                        src={comment.author.avatar} 
+                                                        alt={getAuthorDisplayName(comment.author)}
+                                                        class="object-cover"
+                                                    />
+                                                {/if}
+                                                <AvatarFallback class="text-sm">
+                                                    {(() => {
+                                                        const name = comment.author?.name;
+                                                        const surname = comment.author?.surname;
+                                                        const nickname = comment.author?.nickname;
+                                                        
+                                                        if (name && surname) {
+                                                            return (name[0] + surname[0]).toUpperCase();
+                                                        } else if (name) {
+                                                            return name[0].toUpperCase();
+                                                        } else if (nickname) {
+                                                            return nickname[0].toUpperCase();
+                                                        }
+                                                        return 'U';
+                                                    })()}
+                                                </AvatarFallback>
+                                            </Avatar>
+                                        </div>
+                                    </a>
+                                            <a href="/{getAuthorIdentifier(comment.author)}">
+                                                <span class="font-medium">
+                                                    {comment.author?.name && comment.author?.surname 
+                                                        ? `${comment.author.name} ${comment.author.surname}`
+                                                        : comment.author?.nickname || 'Anonim'}
+                                                </span>
+                                                                                    </a>
+        <ScrollArea orientation="horizontal" class="max-w-3/4">
+          <div class="flex flex-row gap-2 pb-1.5">
+            
+                                            <span class="text-xs truncate text-muted-foreground italic">{formatTimeAgo(comment.createdAt)}</span>
+                                            {#if comment.metadata?.edited}
+                                                <span class="text-xs truncate text-muted-foreground italic">(düzenlenmiştir)</span>
+                                            {/if}
+                                            {#if comment.hidden}
+                                                <span class="text-xs truncate text-orange-600 italic">(gizli)</span>
+                                            {/if}
+                                            {#if comment.reportCount > 0}
+                                                <span class="text-xs truncate text-red-600 italic">(bildirildi)</span>
+                                            {/if} </div>
+                                            </ScrollArea>
                                         </div>
                                         <Separator class="mb-4"/>
                                         <div class="text-sm mb-2">
-                                                    <EdraEditor content={comment.content} editable={false} />
+                                            {#if editingCommentId === comment.id}
+                                                <div class="border p-2 rounded-lg">
+                                                    {#if editingEditor}
+                                                        <EdraToolBar editor={editingEditor} class="mb-1 overflow-y-auto text-sm" />
+                                                    {/if}
+                                                    <EdraEditor
+                                                        bind:editor={editingEditor}
+                                                        content={editingContent || emptyDoc}
+                                                        class="min-h-[100px] rounded-lg h-min text-sm"
+                                                        onUpdate={onEditingEditorUpdate}
+                                                        placeholder="Yorumunuzu düzenleyin..."
+                                                    />
+                                                    <div class="flex justify-end gap-2 mt-2">
+                                                        <Button variant="ghost" size="sm" onclick={cancelEditComment}>
+                                                            İptal
+                                                        </Button>
+                                                        <Button
+                                                            size="sm"
+                                                            onclick={saveEditedComment}
+                                                            disabled={isCommentEmpty(editingContent)}
+                                                        >
+                                                            Kaydet
+                                                        </Button>
+                                                    </div>
+                                                </div>
+                                            {:else}
+                                                <EdraEditor content={comment.content} editable={false} />
+                                            {/if}
                                         </div>
-                                                                                <Separator class="my-4"/>
+                                        <Separator class="my-4"/>
 
                                         <div class="flex items-center gap-4">
                                             <Button 
@@ -1620,7 +2497,7 @@ Göster</DropdownMenu.Item>
                                                 size="sm"
                                                 class={cn(
                                                     "h-8 gap-1 transition-all duration-200 text-xs",
-                                                    userReactions[comment.id] === 'dislike' && "bg-primary text-primary-foreground "
+                                                    userReactions[comment.id] === 'dislike' && "bg-primary text-primary-foreground"
                                                 )}
                                                 onclick={() => toggleCommentReaction(comment.id, 'dislike', false)}
                                             >
@@ -1632,15 +2509,54 @@ Göster</DropdownMenu.Item>
                                                     {formatNumber(comment.dislikes || 0)}
                                                 </span>
                                             </Button>
-                                            <Button 
-                                                variant="ghost" 
-                                                size="sm" 
-                                                class="h-8 gap-1"
-                                                onclick={() => { replyingTo = replyingTo === comment.id ? null : comment.id; if (replyEditor) replyEditor.commands.setContent(''); replyContent = null; }}
-                                            >
-                                                <MessageCircle class="w-3 h-3" />
-                                                <span class="text-xs">Yanıtla</span>
-                                            </Button>
+                                            <Button
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    class="h-7 gap-1"
+                                                    onclick={() => { 
+                                                        replyingTo = replyingTo === comment.id ? null : comment.id; 
+                                                        if (!replyContents[comment.id]) replyContents[comment.id] = emptyDoc;
+                                                    }}
+                                                    disabled={postingComment}
+                                                >
+                                                    <MessageCircle class="w-3 h-3" />
+                                                    <span class="text-xs">Yanıtla</span>
+                                                </Button>
+                                            <DropdownMenu.Root>
+                                                <DropdownMenu.Trigger asChild>
+                                                    <Button variant="ghost" size="sm" class="h-8 w-8 p-0">
+                                                        <Ellipsis class="w-4 h-4" />
+                                                    </Button>
+                                                </DropdownMenu.Trigger>
+                                                <DropdownMenu.Content align="end" class="w-48">
+                                                    <DropdownMenu.Item onclick={() => reportComment(comment.id)}>
+                                                        <BadgeAlertIcon triggers={{ hover: false }} animationState="loading" duration={3000} loop={true} class="mr-2 h-4 w-4" />
+                                                        Bildir
+                                                    </DropdownMenu.Item>
+                                                    {#if isCommentOwner(comment)}
+                                                        <DropdownMenu.Separator />
+                                                        <DropdownMenu.Item onclick={() => editComment(comment.id)}>
+                                                            <NotebookPenIcon triggers={{ hover: false }} animationState="loading" duration={3000} loop={true} class="mr-2 h-4 w-4" />
+                                                            Düzenle
+                                                        </DropdownMenu.Item>
+                                                        <DropdownMenu.Item onclick={() => deleteComment(comment.id)}>
+                                                            <BookMinusIcon triggers={{ hover: false }} animationState="loading" duration={3000} loop={true} class="mr-2 h-4 w-4" />
+                                                            Sil
+                                                        </DropdownMenu.Item>
+                                                        {#if comment.hidden}
+                                                            <DropdownMenu.Item onclick={() => hideComment(comment.id)}>
+                                                                <Eye class="mr-2 h-4 w-4" />
+                                                                Göster
+                                                            </DropdownMenu.Item>
+                                                        {:else}
+                                                            <DropdownMenu.Item onclick={() => hideComment(comment.id)}>
+                                                                <EyeOffIcon triggers={{ hover: false }} animationState="loading" duration={3000} loop={true} class="mr-2 h-4 w-4" />
+                                                                Gizle
+                                                            </DropdownMenu.Item>
+                                                        {/if}
+                                                    {/if}
+                                                </DropdownMenu.Content>
+                                            </DropdownMenu.Root>
                                         </div>
 
                                         <!-- Reply form -->
@@ -1648,14 +2564,14 @@ Göster</DropdownMenu.Item>
                                             <div class="mt-4">
                                                 {#key replyingTo}
                                                     <div class="mb-2 border p-2 rounded-lg">
-                                                        {#if replyEditor}
-                                                            <EdraToolBar editor={replyEditor} class="mb-1 overflow-y-auto text-sm" />
+                                                        {#if replyEditors[comment.id]}
+                                                            <EdraToolBar editor={replyEditors[comment.id]} class="mb-1 overflow-y-auto text-sm" />
                                                         {/if}
                                                         <EdraEditor
-                                                            bind:editor={replyEditor}
-                                                            content={replyContent}
-                                                            class="min-h-[100px]  rounded-lg h-min text-sm"
-                                                            onUpdate={onReplyEditorUpdate}
+                                                            bind:editor={replyEditors[comment.id]}
+                                                            content={replyContents[comment.id] || emptyDoc}
+                                                            class="min-h-[100px] rounded-lg h-min text-sm"
+                                                            onUpdate={() => onReplyEditorUpdate(comment.id)}
                                                             placeholder="Yanıtınızı yazın..."
                                                         />
                                                     </div>
@@ -1664,16 +2580,25 @@ Göster</DropdownMenu.Item>
                                                     <Button
                                                         variant="ghost"
                                                         size="sm"
-                                                        onclick={() => { replyingTo = null; replyContent = null; if (replyEditor) replyEditor.commands.setContent(''); replyEditor = null; }}
+                                                        onclick={() => { 
+                                                            replyingTo = null; 
+                                                            delete replyContents[comment.id]; 
+                                                            delete replyEditors[comment.id]; 
+                                                        }}
                                                     >
                                                         İptal
                                                     </Button>
                                                     <Button
                                                         size="sm"
                                                         onclick={() => postReply(comment.id)}
-                                                        disabled={isCommentEmpty(replyContent)}
+                                                        disabled={isCommentEmpty(replyContents[comment.id]) || postingReply[comment.id] || postingComment}
                                                     >
-                                                        Yanıtla
+                                                        {#if postingReply[comment.id]}
+                                                            <div class="animate-spin rounded-full h-3 w-3 border-b-2 border-white mr-1"></div>
+                                                            Gönderiliyor...
+                                                        {:else}
+                                                            Yanıtla
+                                                        {/if}
                                                     </Button>
                                                 </div>
                                             </div>
@@ -1683,81 +2608,193 @@ Göster</DropdownMenu.Item>
                                         {#if comment.replies && comment.replies.length > 0}
                                             <div class="mt-4 ml-6 space-y-4 border-l-2 pl-4">
                                                 {#each comment.replies as reply (reply.id)}
-                                                    <ContextMenu.Root>
-                                                    <ContextMenu.Trigger asChild>
+                                                    {@const replyLevel = 1}
+                                                    {@const hasMoreReplies = reply.replies && reply.replies.length > 0}
+                                                    
                                                     <div class="flex items-start gap-3" id={`comment-${reply.id}`}>
-                                                        <div class="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
-                                                            <User class="w-4 h-4" />
-                                                        </div>
+
                                                         <div class="flex-1">
-                                                            <div class="flex items-center gap-2 mb-1">
+                                                        
+                                                            <div class="flex items-center gap-2 mb-3">
+                                                                                                                                                    <a href="/{getAuthorIdentifier(reply.author)}">
+
+                                                        <div class="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0">
+                                                            <Avatar class="w-8 h-8">
+                                                                {#if reply.author?.avatar}
+                                                                    <AvatarImage 
+                                                                        src={reply.author.avatar} 
+                                                                        alt={getAuthorDisplayName(reply.author)}
+                                                                        class="object-cover"
+                                                                    />
+                                                                {/if}
+                                                                <AvatarFallback class="text-xs">
+                                                                    {(() => {
+                                                                        const name = reply.author?.name;
+                                                                        const surname = reply.author?.surname;
+                                                                        const nickname = reply.author?.nickname;
+                                                                        
+                                                                        if (name && surname) {
+                                                                            return (name[0] + surname[0]).toUpperCase();
+                                                                        } else if (name) {
+                                                                            return name[0].toUpperCase();
+                                                                        } else if (nickname) {
+                                                                            return nickname[0].toUpperCase();
+                                                                        }
+                                                                        return 'U';
+                                                                    })()}
+                                                                </AvatarFallback>
+                                                            </Avatar>
+                                                        </div>
+                                                        </a>
+                                                                                                    <a href="/{getAuthorIdentifier(reply.author)}">
                                                                 <span class="font-medium text-sm">
                                                                     {reply.author?.name && reply.author?.surname 
                                                                         ? `${reply.author.name} ${reply.author.surname}`
                                                                         : reply.author?.nickname || 'Anonim'}
                                                                 </span>
+</a>        <ScrollArea orientation="horizontal" class="max-w-3/4">
+          <div class="flex flex-row gap-2 pb-1.5">
                                                                 <span class="text-xs text-muted-foreground">{formatTimeAgo(reply.createdAt)}</span>
+                                                                {#if reply.metadata?.edited}
+                                                                    <span class="text-xs text-muted-foreground italic">(düzenlenmiştir)</span>
+                                                                {/if}
+                                                                {#if reply.hidden}
+                                                                    <span class="text-xs text-orange-600 italic">(gizli)</span>
+                                                                {/if}
+                                                                {#if reply.reportCount > 0}
+                                                                    <span class="text-xs text-red-600 italic">(bildirildi)</span>
+                                                                {/if}                                               </div></ScrollArea>
                                                             </div>
-                                                            <div class="text-sm mb-2">
-                                                                        <EdraEditor content={reply.content} editable={false} />
+                                                            <Separator />
+                                                            <div class="text-sm my-3">
+                                                                {#if editingCommentId === reply.id}
+                                                                    <div class="border p-2 rounded-lg">
+                                                                        {#if editingEditor}
+                                                                            <EdraToolBar editor={editingEditor} class="mb-1 overflow-y-auto text-sm" />
+                                                                        {/if}
+                                                                        <EdraEditor
+                                                                            bind:editor={editingEditor}
+                                                                            content={editingContent || emptyDoc}
+                                                                            class="min-h-[100px] rounded-lg h-min text-sm"
+                                                                            onUpdate={onEditingEditorUpdate}
+                                                                            placeholder="Yorumunuzu düzenleyin..."
+                                                                        />
+                                                                        <div class="flex justify-end gap-2 mt-2">
+                                                                            <Button variant="ghost" size="sm" onclick={cancelEditComment}>
+                                                                                İptal
+                                                                            </Button>
+                                                                            <Button
+                                                                                size="sm"
+                                                                                onclick={saveEditedComment}
+                                                                                disabled={isCommentEmpty(editingContent)}
+                                                                            >
+                                                                                Kaydet
+                                                                            </Button>
+                                                                        </div>
+                                                                    </div>
+                                                                {:else}
+                                                                    <EdraEditor content={reply.content} editable={false} />
+                                                                {/if}
                                                             </div>
-                                                            <div class="flex items-center gap-3">
-                                                                    <Button 
-                                                                        variant={userReactions[reply.id] === 'like' ? 'default' : 'ghost'}
-                                                                        size="sm"
-                                                                        class={cn(
-                                                                            "h-7 gap-1 transition-all duration-200 text-xs",
-                                                                            userReactions[reply.id] === 'like' && "bg-primary text-primary-foreground"
-                                                                        )}
-                                                                        onclick={() => toggleCommentReaction(reply.id, 'like', true, comment.id)}
-                                                                    >
-                                                                        <ThumbsUp class={cn(
-                                                                            "h-3 w-3 transition-all duration-200",
-                                                                            userReactions[reply.id] === 'like' && "fill-current"
-                                                                        )} />
-                                                                        <span class={cn("max-w-12 w-4", userReactions[reply.id] === 'like' && "font-medium")}>
-                                                                            {formatNumber(reply.likes || 0)}
-                                                                        </span>
-                                                                    </Button>
-                                                                    <Button 
-                                                                        variant={userReactions[reply.id] === 'dislike' ? 'default' : 'ghost'}
-                                                                        size="sm"
-                                                                        class={cn(
-                                                                            "h-7 gap-1 transition-all duration-200 text-xs",
-                                                                            userReactions[reply.id] === 'dislike' && "bg-primary text-primary-foreground "
-                                                                        )}
-                                                                        onclick={() => toggleCommentReaction(reply.id, 'dislike', true, comment.id)}
-                                                                    >
-                                                                        <ThumbsDown class={cn(
-                                                                            "h-3 w-3 transition-all duration-200",
-                                                                            userReactions[reply.id] === 'dislike' && "fill-current"
-                                                                        )} />
-                                                                        <span class={cn("max-w-12 w-4", userReactions[reply.id] === 'dislike' && "font-medium")}>
-                                                                            {formatNumber(reply.dislikes || 0)}
-                                                                        </span>
-                                                                    </Button>
+                                                            <Separator />
+
+                                                            <div class="flex mt-3 items-center gap-3">
+                                                                <Button 
+                                                                    variant={userReactions[reply.id] === 'like' ? 'default' : 'ghost'}
+                                                                    size="sm"
+                                                                    class={cn(
+                                                                        "h-7 gap-1 transition-all duration-200 text-xs",
+                                                                        userReactions[reply.id] === 'like' && "bg-primary text-primary-foreground"
+                                                                    )}
+                                                                    onclick={() => toggleCommentReaction(reply.id, 'like', true, comment.id)}
+                                                                >
+                                                                    <ThumbsUp class={cn(
+                                                                        "h-3 w-3 transition-all duration-200",
+                                                                        userReactions[reply.id] === 'like' && "fill-current"
+                                                                    )} />
+                                                                    <span class={cn("max-w-12 w-4", userReactions[reply.id] === 'like' && "font-medium")}>
+                                                                        {formatNumber(reply.likes || 0)}
+                                                                    </span>
+                                                                </Button>
+                                                                <Button 
+                                                                    variant={userReactions[reply.id] === 'dislike' ? 'default' : 'ghost'}
+                                                                    size="sm"
+                                                                    class={cn(
+                                                                        "h-7 gap-1 transition-all duration-200 text-xs",
+                                                                        userReactions[reply.id] === 'dislike' && "bg-primary text-primary-foreground"
+                                                                    )}
+                                                                    onclick={() => toggleCommentReaction(reply.id, 'dislike', true, comment.id)}
+                                                                >
+                                                                    <ThumbsDown class={cn(
+                                                                        "h-3 w-3 transition-all duration-200",
+                                                                        userReactions[reply.id] === 'dislike' && "fill-current"
+                                                                    )} />
+                                                                    <span class={cn("max-w-12 w-4", userReactions[reply.id] === 'dislike' && "font-medium")}>
+                                                                        {formatNumber(reply.dislikes || 0)}
+                                                                    </span>
+                                                                </Button>
                                                                 <Button
                                                                     variant="ghost"
                                                                     size="sm"
                                                                     class="h-7 gap-1"
-                                                                    onclick={() => { replyingTo = replyingTo === reply.id ? null : reply.id; if (replyEditor) replyEditor.commands.setContent(''); replyContent = null; }}
+                                                                    onclick={() => { 
+                                                                        replyingTo = replyingTo === reply.id ? null : reply.id; 
+                                                                        if (!replyContents[reply.id]) replyContents[reply.id] = emptyDoc;
+                                                                    }}
                                                                 >
                                                                     <MessageCircle class="w-3 h-3" />
                                                                     <span class="text-xs">Yanıtla</span>
                                                                 </Button>
+                                                                <DropdownMenu.Root>
+                                                                    <DropdownMenu.Trigger asChild>
+                                                                        <Button variant="ghost" size="sm" class="h-7 w-7 p-0">
+                                                                            <Ellipsis class="w-3 h-3" />
+                                                                        </Button>
+                                                                    </DropdownMenu.Trigger>
+                                                                    <DropdownMenu.Content align="end" class="w-48">
+                                                                        <DropdownMenu.Item onclick={() => reportComment(reply.id)}>
+                                                                            <BadgeAlertIcon triggers={{ hover: false }} animationState="loading" duration={3000} loop={true} class="mr-2 h-4 w-4" />
+                                                                            Bildir
+                                                                        </DropdownMenu.Item>
+                                                                        {#if isCommentOwner(reply)}
+                                                                            <DropdownMenu.Separator />
+                                                                            <DropdownMenu.Item onclick={() => editComment(reply.id)}>
+                                                                                <NotebookPenIcon triggers={{ hover: false }} animationState="loading" duration={3000} loop={true} class="mr-2 h-4 w-4" />
+                                                                                Düzenle
+                                                                            </DropdownMenu.Item>
+                                                                            <DropdownMenu.Item onclick={() => deleteComment(reply.id)}>
+                                                                                <BookMinusIcon triggers={{ hover: false }} animationState="loading" duration={3000} loop={true} class="mr-2 h-4 w-4" />
+                                                                                Sil
+                                                                            </DropdownMenu.Item>
+                                                                            {#if reply.hidden}
+                                                                                <DropdownMenu.Item onclick={() => hideComment(reply.id)}>
+                                                                                    <Eye class="mr-2 h-4 w-4" />
+                                                                                    Göster
+                                                                                </DropdownMenu.Item>
+                                                                            {:else}
+                                                                                <DropdownMenu.Item onclick={() => hideComment(reply.id)}>
+                                                                                    <EyeOffIcon triggers={{ hover: false }} animationState="loading" duration={3000} loop={true} class="mr-2 h-4 w-4" />
+                                                                                    Gizle
+                                                                                </DropdownMenu.Item>
+                                                                            {/if}
+                                                                        {/if}
+                                                                    </DropdownMenu.Content>
+                                                                </DropdownMenu.Root>
                                                             </div>
+                                                            
+                                                            <!-- Reply form for this reply -->
                                                             {#if replyingTo === reply.id}
                                                                 <div class="mt-3 ml-4 border p-2 rounded-lg">
                                                                     {#key replyingTo}
                                                                         <div class="mb-2">
-                                                                            {#if replyEditor}
-                                                                                <EdraToolBar editor={replyEditor} class="mb-1 overflow-y-auto text-sm" />
+                                                                            {#if replyEditors[reply.id]}
+                                                                                <EdraToolBar editor={replyEditors[reply.id]} class="mb-1 overflow-y-auto text-sm" />
                                                                             {/if}
                                                                             <EdraEditor
-                                                                                bind:editor={replyEditor}
-                                                                                content={replyContent}
-                                                                                class="min-h-[80px]  h-min rounded-lg  text-sm"
-                                                                                onUpdate={onReplyEditorUpdate}
+                                                                                bind:editor={replyEditors[reply.id]}
+                                                                                content={replyContents[reply.id] || emptyDoc}
+                                                                                class="min-h-[80px] h-min rounded-lg text-sm"
+                                                                                onUpdate={() => onReplyEditorUpdate(reply.id)}
                                                                                 placeholder="Yanıtınızı yazın..."
                                                                             />
                                                                         </div>
@@ -1766,14 +2803,18 @@ Göster</DropdownMenu.Item>
                                                                         <Button
                                                                             variant="ghost"
                                                                             size="sm"
-                                                                            onclick={() => { replyingTo = null; replyContent = null; if (replyEditor) replyEditor.commands.setContent(''); replyEditor = null; }}
+                                                                            onclick={() => { 
+                                                                                replyingTo = null; 
+                                                                                delete replyContents[reply.id]; 
+                                                                                delete replyEditors[reply.id]; 
+                                                                            }}
                                                                         >
                                                                             İptal
                                                                         </Button>
                                                                         <Button
                                                                             size="sm"
                                                                             onclick={() => postReply(reply.id)}
-                                                                            disabled={isCommentEmpty(replyContent)}
+                                                                            disabled={isCommentEmpty(replyContents[reply.id])}
                                                                         >
                                                                             Yanıtla
                                                                         </Button>
@@ -1781,130 +2822,255 @@ Göster</DropdownMenu.Item>
                                                                 </div>
                                                             {/if}
 
-                                                            {#if reply.replies && reply.replies.length > 0}
+                                                            <!-- Show replies dialog button for level 1 replies -->
+                                                            {#if hasMoreReplies && replyLevel >= DEFAULT_VISIBLE_LEVELS}
+                                                                <div class="border-l mt-1 mb-2">
+                                                                    <Button
+                                                                        variant="ghost"
+                                                                        size="sm"
+                                                                        class="text-xs text-muted-foreground hover:text-foreground"
+                                                                        onclick={() => openNestedDialog(reply, replyLevel, comment.id)}
+                                                                    >
+                                                                        <MessageCircle class="w-3 h-3 mr-1" />
+                                                                        {reply.replies.length} yanıtı göster
+                                                                    </Button>
+                                                                </div>
+                                                            {/if}
+
+                                                            <!-- Deeply nested replies -->
+                                                            {#if hasMoreReplies && (replyLevel < DEFAULT_VISIBLE_LEVELS || expandedComments.has(reply.id))}
                                                                 <div class="mt-3 ml-4 space-y-3 border-l pl-3">
-                                                                    {#each reply.replies as nested (nested.id)}
-                                                                        <ContextMenu.Root>
-                                                                        <ContextMenu.Trigger asChild>
-                                                                        <div class="flex items-start gap-3" id={`comment-${nested.id}`}>
-                                                                            <div class="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
-                                                                                <User class="w-3 h-3" />
-                                                                            </div>
-                                                                            <div class="flex-1">
-                                                                                <div class="flex items-center gap-2 mb-1">
-                                                                                    <span class="font-medium text-xs">
-                                                                                        {nested.author?.name && nested.author?.surname 
-                                                                                            ? `${nested.author.name} ${nested.author.surname}`
-                                                                                            : nested.author?.nickname || 'Anonim'}
-                                                                                    </span>
-                                                                                    <span class="text-xs text-muted-foreground">{formatTimeAgo(nested.createdAt)}</span>
-                                                                                </div>
-                                                                                <div class="text-xs mb-2">
-                                                                                            <EdraEditor content={nested.content} editable={false} />
-                                                                                </div>
-                                                                                <div class="flex items-center gap-2">
-                                                                                    <Button 
-                                                                                        variant={userReactions[nested.id] === 'like' ? 'default' : 'ghost'}
-                                                                                        size="sm"
-                                                                                        class={cn(
-                                                                                            "h-6 gap-1 transition-all duration-200 text-xs",
-                                                                                            userReactions[nested.id] === 'like' && "bg-primary text-primary-foreground"
-                                                                                        )}
-                                                                                        onclick={() => toggleCommentReaction(nested.id, 'like', true, reply.id)}
-                                                                                    >
-                                                                                        <ThumbsUp class={cn(
-                                                                                            "h-2.5 w-2.5 transition-all duration-200",
-                                                                                            userReactions[nested.id] === 'like' && "fill-current"
-                                                                                        )} />
-                                                                                        <span class={cn("max-w-12 w-4", userReactions[nested.id] === 'like' && "font-medium")}>
-                                                                                            {formatNumber(nested.likes || 0)}
-                                                                                        </span>
-                                                                                    </Button>
-                                                                                    <Button 
-                                                                                        variant={userReactions[nested.id] === 'dislike' ? 'default' : 'ghost'}
-                                                                                        size="sm"
-                                                                                        class={cn(
-                                                                                            "h-6 gap-1 transition-all duration-200 text-xs",
-                                                                                            userReactions[nested.id] === 'dislike' && "bg-primary text-primary-foreground"
-                                                                                        )}
-                                                                                        onclick={() => toggleCommentReaction(nested.id, 'dislike', true, reply.id)}
-                                                                                    >
-                                                                                        <ThumbsDown class={cn(
-                                                                                            "h-2.5 w-2.5 transition-all duration-200",
-                                                                                            userReactions[nested.id] === 'dislike' && "fill-current"
-                                                                                        )} />
-                                                                                        <span class={cn("max-w-12 w-4", userReactions[nested.id] === 'dislike' && "font-medium")}>
-                                                                                            {formatNumber(nested.dislikes || 0)}
-                                                                                        </span>
-                                                                                    </Button>
-                                                                                </div>
-                                                                            </div>
-                                                                        </div>
-                                                                        </ContextMenu.Trigger>
-                                                                        <ContextMenu.Content class="w-56">
-                                                                            <ContextMenu.Item onclick={() => reportComment(nested.id)}>Bildir</ContextMenu.Item>
-                                                                            {#if isCommentOwner(nested)}
-                                                                                <ContextMenu.Separator />
-                                                                                <ContextMenu.Item onclick={() => editComment(nested.id)}>Düzenle</ContextMenu.Item>
-                                                                                <ContextMenu.Item onclick={() => deleteComment(nested.id)}>Sil</ContextMenu.Item>
-                                                                                {#if nested.hidden}
-                                                                                    <ContextMenu.Item onclick={() => hideComment(nested.id)}>Göster</ContextMenu.Item>
-                                                                                {:else}
-                                                                                    <ContextMenu.Item onclick={() => hideComment(nested.id)}>Gizle</ContextMenu.Item>
-                                                                                {/if}
-                                                                            {/if}
-                                                                        </ContextMenu.Content>
-                                                                        </ContextMenu.Root>
-                                                                    {/each}
+                                                                    {@render NestedReplyList(reply.replies, replyLevel + 1, reply.id)}
                                                                 </div>
                                                             {/if}
                                                         </div>
                                                     </div>
-                                                    </ContextMenu.Trigger>
-                                                    <ContextMenu.Content class="w-56">
-                                                        <ContextMenu.Item onclick={() => reportComment(reply.id)}>Bildir</ContextMenu.Item>
-                                                        {#if isCommentOwner(reply)}
-                                                            <ContextMenu.Separator />
-                                                            <ContextMenu.Item onclick={() => editComment(reply.id)}>Düzenle</ContextMenu.Item>
-                                                            <ContextMenu.Item onclick={() => deleteComment(reply.id)}>Sil</ContextMenu.Item>
-                                                            {#if reply.hidden}
-                                                                <ContextMenu.Item onclick={() => hideComment(reply.id)}>Göster</ContextMenu.Item>
-                                                            {:else}
-                                                                <ContextMenu.Item onclick={() => hideComment(reply.id)}>Gizle</ContextMenu.Item>
-                                                            {/if}
-                                                        {/if}
-                                                    </ContextMenu.Content>
-                                                    </ContextMenu.Root>
                                                 {/each}
                                             </div>
                                         {/if}
                                     </div>
                                 </div>
                             </div>
-                            </ContextMenu.Trigger>
-                            <ContextMenu.Content class="w-56">
-                                <ContextMenu.Item onclick={() => reportComment(comment.id)}>Bildir</ContextMenu.Item>
-                                {#if isCommentOwner(comment)}
-                                    <ContextMenu.Separator />
-                                    <ContextMenu.Item onclick={() => editComment(comment.id)}>Düzenle</ContextMenu.Item>
-                                    <ContextMenu.Item onclick={() => deleteComment(comment.id)}>Sil</ContextMenu.Item>
-                                    {#if comment.hidden}
-                                        <ContextMenu.Item onclick={() => hideComment(comment.id)}>Göster</ContextMenu.Item>
-                                    {:else}
-                                        <ContextMenu.Item onclick={() => hideComment(comment.id)}>Gizle</ContextMenu.Item>
-                                    {/if}
-                                {/if}
-                            </ContextMenu.Content>
-                            </ContextMenu.Root>
                         {/each}
                     {/if}
                 </div>
             </div>
         </article>
-
     {/if}
 </main>
 </div>
+
+<!-- Nested Reply Snippet -->
+{#snippet NestedReplyList(replies: any[], level: number, parentId: string)}
+    {#each replies as reply (reply.id)}
+        {@const replyLevel = level}
+        {@const hasMoreReplies = reply.replies && reply.replies.length > 0}
+        
+        <div class="flex items-start gap-3" id={`comment-${reply.id}`}>
+
+            <div class="flex-1">
+                <div class="flex items-center gap-2 mb-1">
+                    <a href="/{getAuthorIdentifier(reply.author)}">
+            <div class="w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0">
+                <Avatar class="w-6 h-6">
+                    {#if reply.author?.avatar}
+                        <AvatarImage 
+                            src={reply.author.avatar} 
+                            alt={getAuthorDisplayName(reply.author)}
+                            class="object-cover"
+                        />
+                    {/if}
+                    <AvatarFallback class="text-[8px]">
+                        {(() => {
+                            const name = reply.author?.name;
+                            const surname = reply.author?.surname;
+                            const nickname = reply.author?.nickname;
+                            
+                            if (name && surname) {
+                                return (name[0] + surname[0]).toUpperCase();
+                            } else if (name) {
+                                return name[0].toUpperCase();
+                            } else if (nickname) {
+                                return nickname[0].toUpperCase();
+                            }
+                            return 'U';
+                        })()}
+                    </AvatarFallback>
+                </Avatar>
+            </div>
+        </a>
+                            <a href="/{getAuthorIdentifier(reply.author)}">
+
+                    <span class="font-medium text-xs">
+                        {reply.author?.name && reply.author?.surname 
+                            ? `${reply.author.name} ${reply.author.surname}`
+                            : reply.author?.nickname || 'Anonim'}
+                    </span>
+                            </a>
+
+                    <span class="text-xs text-muted-foreground">{formatTimeAgo(reply.createdAt)}</span>
+                    {#if reply.metadata?.edited}
+                        <span class="text-xs text-muted-foreground italic">(düzenlenmiştir)</span>
+                    {/if}
+                    {#if reply.hidden}
+                        <span class="text-xs text-orange-600 italic">(gizli)</span>
+                    {/if}
+                </div>
+                <div class="text-xs mb-2">
+                    <EdraEditor content={reply.content} editable={false} />
+                </div>
+                <div class="flex items-center gap-2">
+                    <Button 
+                        variant={userReactions[reply.id] === 'like' ? 'default' : 'ghost'}
+                        size="sm"
+                        class={cn(
+                            "h-6 gap-1 transition-all duration-200 text-xs",
+                            userReactions[reply.id] === 'like' && "bg-primary text-primary-foreground"
+                        )}
+                        onclick={() => toggleCommentReaction(reply.id, 'like', true, parentId)}
+                    >
+                        <ThumbsUp class={cn(
+                            "h-3 w-3 transition-all duration-200",
+                            userReactions[reply.id] === 'like' && "fill-current"
+                        )} />
+                        <span class={cn("max-w-12 w-4", userReactions[reply.id] === 'like' && "font-medium")}>
+                            {formatNumber(reply.likes || 0)}
+                        </span>
+                    </Button>
+                    <Button 
+                        variant={userReactions[reply.id] === 'dislike' ? 'default' : 'ghost'}
+                        size="sm"
+                        class={cn(
+                            "h-6 gap-1 transition-all duration-200 text-xs",
+                            userReactions[reply.id] === 'dislike' && "bg-primary text-primary-foreground"
+                        )}
+                        onclick={() => toggleCommentReaction(reply.id, 'dislike', true, parentId)}
+                    >
+                        <ThumbsDown class={cn(
+                            "h-3 w-3 transition-all duration-200",
+                            userReactions[reply.id] === 'dislike' && "fill-current"
+                        )} />
+                        <span class={cn("max-w-12 w-4", userReactions[reply.id] === 'dislike' && "font-medium")}>
+                            {formatNumber(reply.dislikes || 0)}
+                        </span>
+                    </Button>
+                    <Button
+                        variant="ghost"
+                        size="sm"
+                        class="h-6 gap-1"
+                        onclick={() => { 
+                            replyingTo = replyingTo === reply.id ? null : reply.id; 
+                            if (!replyContents[reply.id]) replyContents[reply.id] = emptyDoc;
+                        }}
+                    >
+                        <MessageCircle class="w-3 h-3" />
+                        <span class="text-xs">Yanıtla</span>
+                    </Button>
+                    <DropdownMenu.Root>
+                        <DropdownMenu.Trigger asChild>
+                            <Button variant="ghost" size="sm" class="h-6 w-6 p-0">
+                                <Ellipsis class="w-3 h-3" />
+                            </Button>
+                        </DropdownMenu.Trigger>
+                        <DropdownMenu.Content align="end" class="w-48">
+                            <DropdownMenu.Item onclick={() => reportComment(reply.id)}>
+                                <BadgeAlertIcon triggers={{ hover: false }} animationState="loading" duration={3000} loop={true} class="mr-2 h-4 w-4" />
+                                Bildir
+                            </DropdownMenu.Item>
+                            {#if isCommentOwner(reply)}
+                                <DropdownMenu.Separator />
+                                <DropdownMenu.Item onclick={() => editComment(reply.id)}>
+                                    <NotebookPenIcon triggers={{ hover: false }} animationState="loading" duration={3000} loop={true} class="mr-2 h-4 w-4" />
+                                    Düzenle
+                                </DropdownMenu.Item>
+                                <DropdownMenu.Item onclick={() => deleteComment(reply.id)}>
+                                    <BookMinusIcon triggers={{ hover: false }} animationState="loading" duration={3000} loop={true} class="mr-2 h-4 w-4" />
+                                    Sil
+                                </DropdownMenu.Item>
+                                {#if reply.hidden}
+                                    <DropdownMenu.Item onclick={() => hideComment(reply.id)}>
+                                        <Eye class="mr-2 h-4 w-4" />
+                                        Göster
+                                    </DropdownMenu.Item>
+                                {:else}
+                                    <DropdownMenu.Item onclick={() => hideComment(reply.id)}>
+                                        <EyeOffIcon triggers={{ hover: false }} animationState="loading" duration={3000} loop={true} class="mr-2 h-4 w-4" />
+                                        Gizle
+                                    </DropdownMenu.Item>
+                                {/if}
+                            {/if}
+                        </DropdownMenu.Content>
+                    </DropdownMenu.Root>
+                </div>
+                
+                <!-- Reply form -->
+                {#if replyingTo === reply.id}
+                    <div class="mt-2 ml-2 border p-1 rounded-lg">
+                        {#key replyingTo}
+                            <div class="mb-1">
+                                {#if replyEditors[reply.id]}
+                                    <EdraToolBar editor={replyEditors[reply.id]} class="mb-1 overflow-y-auto text-xs" />
+                                {/if}
+                                <EdraEditor
+                                    bind:editor={replyEditors[reply.id]}
+                                    content={replyContents[reply.id] || emptyDoc}
+                                    class="min-h-[60px] h-min rounded-lg text-xs"
+                                    onUpdate={() => onReplyEditorUpdate(reply.id)}
+                                    placeholder="Yanıtınızı yazın..."
+                                />
+                            </div>
+                        {/key}
+                        <div class="flex justify-end gap-1 mt-1">
+                            <Button
+                                variant="ghost"
+                                size="sm"
+                                class="text-xs"
+                                onclick={() => { 
+                                    replyingTo = null; 
+                                    delete replyContents[reply.id]; 
+                                    delete replyEditors[reply.id]; 
+                                }}
+                            >
+                                İptal
+                            </Button>
+                            <Button
+                                size="sm"
+                                class="text-xs"
+                                onclick={() => postReply(reply.id)}
+                                disabled={isCommentEmpty(replyContents[reply.id])}
+                            >
+                                Yanıtla
+                            </Button>
+                        </div>
+                    </div>
+                {/if}
+
+                <!-- Show nested replies or dialog button -->
+                {#if hasMoreReplies}
+                    {#if replyLevel < DEFAULT_VISIBLE_LEVELS}
+                        <!-- Show nested replies directly for first level -->
+                        <div class="mt-2 ml-2 space-y-2 border-l pl-2">
+                            {@render NestedReplyList(reply.replies, replyLevel + 1, reply.id)}
+                        </div>
+                    {:else}
+                        <!-- Show dialog button for level 1 replies and deeper -->
+                        <div class="mt-1 mb-2 border-l">
+                            <Button
+                                variant="ghost"
+                                size="sm"
+                                class="text-xs text-muted-foreground hover:text-foreground"
+                                onclick={() => openNestedDialog(reply, replyLevel, reply.id)}
+                            >
+                                <MessageCircle class="w-3 h-3 mr-1" />
+                                {reply.replies.length} yanıtı göster
+                            </Button>
+                        </div>
+                    {/if}
+                {/if}
+            </div>
+        </div>
+    {/each}
+{/snippet}
 
 <!-- Alert Dialogs -->
 <AlertDialog.Root bind:open={showDeleteDialog}>
@@ -1932,11 +3098,11 @@ Göster</DropdownMenu.Item>
     <AlertDialog.Content>
         <AlertDialog.Header>
             <AlertDialog.Title>
-                {selectedArticle?.hidden || selectedComment?.hidden ? 'Göster' : 'Gizle'}
+                {articleHidden || selectedComment?.hidden ? 'Göster' : 'Gizle'}
                 {dialogType === 'article' ? ' Makaleyi' : ' Yorumu'}
             </AlertDialog.Title>
             <AlertDialog.Description>
-                {selectedArticle?.hidden || selectedComment?.hidden
+                {articleHidden || selectedComment?.hidden
                     ? `Bu ${dialogType === 'article' ? 'makaleyi' : 'yorumu'} göstermek istediğinizden emin misiniz?`
                     : `Bu ${dialogType === 'article' ? 'makaleyi' : 'yorumu'} gizlemek istediğinizden emin misiniz? ${dialogType === 'article' ? 'Makale' : 'Yorum'} diğer kullanıcılar tarafından görülemeyecek.`}
             </AlertDialog.Description>
@@ -1944,15 +3110,537 @@ Göster</DropdownMenu.Item>
         <AlertDialog.Footer>
             <AlertDialog.Cancel>İptal</AlertDialog.Cancel>
             <AlertDialog.Action onclick={confirmHide}>
-                {selectedArticle?.hidden || selectedComment?.hidden ? 'Göster' : 'Gizle'}
+                {articleHidden || selectedComment?.hidden ? 'Göster' : 'Gizle'}
             </AlertDialog.Action>
         </AlertDialog.Footer>
     </AlertDialog.Content>
 </AlertDialog.Root>
- <ReportDrawer
-	bind:open={showReportDrawer}
-	reportType="article"
-	targetId={data.article?._id}
-	targetTitle={data.article?.title}
+
+<ReportDrawer
+    bind:open={showReportDrawer}
+    reportType={selectedComment ? "comment" : "article"}
+    targetId={selectedComment ? selectedComment.id : data.article?._id}
+    targetTitle={selectedComment ? "Yorum" : data.article?.title}
+    targetUrl={selectedComment ? (typeof window !== 'undefined' ? window.location.href : undefined) : undefined}
+    onReported={handleCommentReported}
 />
+
+<!-- Nested Comments Dialog -->
+<Dialog.Root bind:open={showNestedDialog}>
+    <Dialog.Content class="max-w-4xl max-h-[80vh] overflow-y-auto">
+        <Dialog.Header>
+            <Dialog.Title class="flex items-center gap-2">
+                <MessageCircle class="w-5 h-5" />
+                Yanıtlar
+            </Dialog.Title>
+            {#if dialogParentComment}
+                <Dialog.Description class="text-sm text-muted-foreground">
+                    {dialogParentComment.author?.name && dialogParentComment.author?.surname 
+                        ? `${dialogParentComment.author.name} ${dialogParentComment.author.surname}`
+                        : dialogParentComment.author?.nickname || 'Anonim'} kullanıcısının yanıtına devam ediyor
+                </Dialog.Description>
+            {/if}
+        </Dialog.Header>
+        
+        <div class="mt-4 space-y-4">
+            {#each dialogComments as comment (comment.id)}
+                {@const commentLevel = dialogLevel}
+                {@const hasMoreReplies = comment.replies && comment.replies.length > 0}
+                
+                <div class="flex flex-col">
+                    <div class="flex items-start gap-3">
+                
+                        <div class="flex-1">
+                            <div class="flex items-center gap-2 mb-2">
+                                <a href="/{getAuthorIdentifier(comment.author)}">
+            <div class="w-7.5 h-7.5 rounded-full flex items-center justify-center flex-shrink-0">
+                <Avatar class="w-7.5 h-7.5">
+                    {#if comment.author?.avatar}
+                        <AvatarImage 
+                            src={comment.author.avatar} 
+                            alt={getAuthorDisplayName(comment.author)}
+                            class="object-cover"
+                        />
+                    {/if}
+                    <AvatarFallback class="text-[10px]">
+                        {(() => {
+                            const name = comment.author?.name;
+                            const surname = comment.author?.surname;
+                            const nickname = comment.author?.nickname;
+                            
+                            if (name && surname) {
+                                return (name[0] + surname[0]).toUpperCase();
+                            } else if (name) {
+                                return name[0].toUpperCase();
+                            } else if (nickname) {
+                                return nickname[0].toUpperCase();
+                            }
+                            return 'U';
+                        })()}
+                    </AvatarFallback>
+                </Avatar>
+            </div>
+        </a>
+                            <a href="/{getAuthorIdentifier(comment.author)}">
+
+                    <span class="font-medium text-xs">
+                        {comment.author?.name && comment.author?.surname 
+                            ? `${comment.author.name} ${comment.author.surname}`
+                            : comment.author?.nickname || 'Anonim'}
+                    </span>
+                            </a>
+                                <ScrollArea orientation="horizontal" class="max-w-3/4">
+          <div class="flex flex-row gap-2 pb-1.5">
+                                <span class="text-xs text-muted-foreground">{formatTimeAgo(comment.createdAt)}</span>
+                                {#if comment.metadata?.edited}
+                                    <span class="text-xs text-muted-foreground italic">(düzenlenmiştir)</span>
+                                {/if}
+                                {#if comment.hidden}
+                                    <span class="text-xs text-orange-600 italic">(gizli)</span>
+                                {/if}
+                                {#if comment.reportCount > 0}
+                                    <span class="text-xs text-red-600 italic">(bildirildi)</span>
+                                {/if}                            </div>
+          </ScrollArea>
+                            </div>
+                            <Separator />
+                            <div class="text-sm my-3">
+                                {#if editingCommentId === comment.id}
+                                    <!-- Edit form -->
+                                    <div class="border p-2 rounded-lg">
+                                        {#key editingCommentId}
+                                            <div class="mb-2">
+                                                {#if editingEditor}
+                                                    <EdraToolBar editor={editingEditor} class="mb-1 overflow-y-auto text-sm" />
+                                                {/if}
+                                                <EdraEditor
+                                                    bind:editor={editingEditor}
+                                                    content={editingContent || emptyDoc}
+                                                    class="min-h-[80px] h-min rounded-lg text-sm"
+                                                    onUpdate={onEditingEditorUpdate}
+                                                    placeholder="Yorumunuzu düzenleyin..."
+                                                />
+                                            </div>
+                                        {/key}
+                                        <div class="flex justify-end gap-2 mt-2">
+                                            <Button
+                                                variant="ghost"
+                                                size="sm"
+                                                onclick={cancelEditComment}
+                                            >
+                                                İptal
+                                            </Button>
+                                            <Button
+                                                size="sm"
+                                                onclick={saveEditedComment}
+                                                disabled={isCommentEmpty(editingContent)}
+                                            >
+                                                Kaydet
+                                            </Button>
+                                        </div>
+                                    </div>
+                                {:else}
+                                    <!-- Normal content display -->
+                                    <EdraEditor content={comment.content} editable={false} />
+                                {/if}
+                            </div>
+                                                        <Separator />
+
+                            <div class="flex items-center gap-3 mt-3">
+                                                                <Button 
+                                                                    variant={userReactions[comment.id] === 'like' ? 'default' : 'ghost'}
+                                                                    size="sm"
+                                                                    class={cn(
+                                                                        "h-7 gap-1 transition-all duration-200 text-xs",
+                                                                        userReactions[comment.id] === 'like' && "bg-primary text-primary-foreground"
+                                                                    )}
+                                                                    onclick={() => toggleCommentReaction(comment.id, 'like', true, dialogParentId)}
+                                                                >
+                                                                    <ThumbsUp class={cn(
+                                                                        "h-3 w-3 transition-all duration-200",
+                                                                        userReactions[comment.id] === 'like' && "fill-current"
+                                                                    )} />
+                                                                    <span class={cn("max-w-12 w-4", userReactions[comment.id] === 'like' && "font-medium")}>
+                                                                        {formatNumber(comment.likes || 0)}
+                                                                    </span>
+                                                                </Button>
+                                                                <Button 
+                                                                    variant={userReactions[comment.id] === 'dislike' ? 'default' : 'ghost'}
+                                                                    size="sm"
+                                                                    class={cn(
+                                                                        "h-7 gap-1 transition-all duration-200 text-xs",
+                                                                        userReactions[comment.id] === 'dislike' && "bg-primary text-primary-foreground"
+                                                                    )}
+                                                                    onclick={() => toggleCommentReaction(comment.id, 'dislike', true, dialogParentId)}
+                                                                >
+                                                                    <ThumbsDown class={cn(
+                                                                        "h-3 w-3 transition-all duration-200",
+                                                                        userReactions[comment.id] === 'dislike' && "fill-current"
+                                                                    )} />
+                                                                    <span class={cn("max-w-12 w-4", userReactions[comment.id] === 'dislike' && "font-medium")}>
+                                                                        {formatNumber(comment.dislikes || 0)}
+                                                                    </span>
+                                                                </Button>
+                                                                <Button
+                                                                    variant="ghost"
+                                                                    size="sm"
+                                                                    class="h-7 gap-1"
+                                                                    onclick={() => { 
+                                                                        replyingTo = replyingTo === comment.id ? null : comment.id; 
+                                                                        if (!replyContents[comment.id]) replyContents[comment.id] = emptyDoc;
+                                                                    }}
+                                                                >
+                                                                    <MessageCircle class="w-3 h-3" />
+                                                                    <span class="text-xs">Yanıtla</span>
+                                                                </Button>
+                                                                <DropdownMenu.Root>
+                                                                    <DropdownMenu.Trigger asChild>
+                                                                        <Button variant="ghost" size="sm" class="h-7 w-7 p-0">
+                                                                            <Ellipsis class="w-3 h-3" />
+                                                                        </Button>
+                                                                    </DropdownMenu.Trigger>
+                                                                    <DropdownMenu.Content align="end" class="w-48">
+                                                                        <DropdownMenu.Item onclick={() => reportComment(comment.id)}>
+                                                                            <BadgeAlertIcon triggers={{ hover: false }} animationState="loading" duration={3000} loop={true} class="mr-2 h-4 w-4" />
+                                                                            Bildir
+                                                                        </DropdownMenu.Item>
+                                                                        {#if isCommentOwner(comment)}
+                                                                            <DropdownMenu.Separator />
+                                                                            <DropdownMenu.Item onclick={() => editComment(comment.id)}>
+                                                                                <NotebookPenIcon triggers={{ hover: false }} animationState="loading" duration={3000} loop={true} class="mr-2 h-4 w-4" />
+                                                                                Düzenle
+                                                                            </DropdownMenu.Item>
+                                                                            <DropdownMenu.Item onclick={() => deleteComment(comment.id)}>
+                                                                                <BookMinusIcon triggers={{ hover: false }} animationState="loading" duration={3000} loop={true} class="mr-2 h-4 w-4" />
+                                                                                Sil
+                                                                            </DropdownMenu.Item>
+                                                                            {#if comment.hidden}
+                                                                                <DropdownMenu.Item onclick={() => hideComment(comment.id)}>
+                                                                                    <Eye class="mr-2 h-4 w-4" />
+                                                                                    Göster
+                                                                                </DropdownMenu.Item>
+                                                                            {:else}
+                                                                                <DropdownMenu.Item onclick={() => hideComment(comment.id)}>
+                                                                                    <EyeOffIcon triggers={{ hover: false }} animationState="loading" duration={3000} loop={true} class="mr-2 h-4 w-4" />
+                                                                                    Gizle
+                                                                                </DropdownMenu.Item>
+                                                                            {/if}
+                                                                        {/if}
+                                                                    </DropdownMenu.Content>
+                                                                </DropdownMenu.Root>
+                                                            </div>
+                                                            
+                                                            
+                                                            
+                                                           
+                                                        </div>
+                                                         
+                                                    </div>
+                                                    <!-- Reply form -->
+                                                            {#if replyingTo === comment.id}
+                                                                <div class="mt-3 border p-2 rounded-lg">
+                                                                    {#key replyingTo}
+                                                                        <div class="mb-2">
+                                                                            {#if replyEditors[comment.id]}
+                                                                                <EdraToolBar editor={replyEditors[comment.id]} class="mb-1 overflow-y-auto text-sm" />
+                                                                            {/if}
+                                                                            <EdraEditor
+                                                                                bind:editor={replyEditors[comment.id]}
+                                                                                content={replyContents[comment.id] || emptyDoc}
+                                                                                class="min-h-[80px] h-min rounded-lg text-sm"
+                                                                                onUpdate={() => onReplyEditorUpdate(comment.id)}
+                                                                                placeholder="Yanıtınızı yazın..."
+                                                                            />
+                                                                        </div>
+                                                                    {/key}
+                                                                    <div class="flex justify-end gap-2 mt-2">
+                                                                        <Button
+                                                                            variant="ghost"
+                                                                            size="sm"
+                                                                            onclick={() => { 
+                                                                                replyingTo = null; 
+                                                                                delete replyContents[comment.id]; 
+                                                                                delete replyEditors[comment.id]; 
+                                                                            }}
+                                                                        >
+                                                                            İptal
+                                                                        </Button>
+                                                                        <Button
+                                                                            size="sm"
+                                                                            onclick={() => postReply(comment.id)}
+                                                                            disabled={isCommentEmpty(replyContents[comment.id])}
+                                                                        >
+                                                                            Yanıtla
+                                                                        </Button>
+                                                                    </div>
+                                                                </div>
+                                                            {/if}
+                                                    <!-- Show nested replies or dialog button -->
+                                                            {#if hasMoreReplies}
+                                                                <!-- Always show nested replies for first 2 levels in dialog -->
+                                                                <div class="mt-3 ml-4 space-y-3 border-l pl-3">
+                                                                    {@render DialogNestedReplyList(comment.replies, commentLevel + 1, comment.id)}
+                                                                </div>
+                                                            {/if}
+                                                </div>
+            {/each}
+        </div>
+    </Dialog.Content>
+</Dialog.Root>
+
+<!-- Nested Reply Snippet for Dialog -->
+{#snippet DialogNestedReplyList(replies: any[], level: number, parentId: string)}
+    {#each replies as reply (reply.id)}
+        {@const replyLevel = level}
+        {@const hasMoreReplies = reply.replies && reply.replies.length > 0}
+        
+        <div class="flex items-start gap-3">
+        
+            <div class="flex-1">
+                <div class="flex items-center gap-2 mb-2">
+                                                   <a href="/{getAuthorIdentifier(reply.author)}">
+            <div class="w-7.5 h-7.5 rounded-full flex items-center justify-center flex-shrink-0">
+                <Avatar class="w-7.5 h-7.5">
+                    {#if reply.author?.avatar}
+                        <AvatarImage 
+                            src={reply.author.avatar} 
+                            alt={getAuthorDisplayName(reply.author)}
+                            class="object-cover"
+                        />
+                    {/if}
+                    <AvatarFallback class="text-[10px]">
+                        {(() => {
+                            const name = reply.author?.name;
+                            const surname = reply.author?.surname;
+                            const nickname = reply.author?.nickname;
+                            
+                            if (name && surname) {
+                                return (name[0] + surname[0]).toUpperCase();
+                            } else if (name) {
+                                return name[0].toUpperCase();
+                            } else if (nickname) {
+                                return nickname[0].toUpperCase();
+                            }
+                            return 'U';
+                        })()}
+                    </AvatarFallback>
+                </Avatar>
+            </div>
+        </a>
+                            <a href="/{getAuthorIdentifier(reply.author)}">
+
+                    <span class="font-medium text-xs">
+                        {reply.author?.name && reply.author?.surname 
+                            ? `${reply.author.name} ${reply.author.surname}`
+                            : reply.author?.nickname || 'Anonim'}
+                    </span>
+                            </a><ScrollArea orientation="horizontal" class="max-w-3/4">
+          <div class="flex flex-row gap-2 pb-1.5">
+                    <span class="text-xs text-muted-foreground">{formatTimeAgo(reply.createdAt)}</span>
+                    {#if reply.metadata?.edited}
+                        <span class="text-xs text-muted-foreground italic">(düzenlenmiştir)</span>
+                    {/if}
+                    {#if reply.hidden}
+                        <span class="text-xs text-orange-600 italic">(gizli)</span>
+                    {/if}</div> </ScrollArea> 
+                </div>
+                <Separator />
+                <div class="text-xs my-2">
+                    {#if editingCommentId === reply.id}
+                        <!-- Edit form for nested reply -->
+                        <div class="border p-2 rounded-lg">
+                            {#key editingCommentId}
+                                <div class="mb-2">
+                                    {#if editingEditor}
+                                        <EdraToolBar editor={editingEditor} class="mb-1 overflow-y-auto text-xs" />
+                                    {/if}
+                                    <EdraEditor
+                                        bind:editor={editingEditor}
+                                        content={editingContent || emptyDoc}
+                                        class="min-h-[60px] h-min rounded-lg text-xs"
+                                        onUpdate={onEditingEditorUpdate}
+                                        placeholder="Yorumunuzu düzenleyin..."
+                                    />
+                                </div>
+                            {/key}
+                            <div class="flex justify-end gap-2 mt-2">
+                                <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    class="text-xs"
+                                    onclick={cancelEditComment}
+                                >
+                                    İptal
+                                </Button>
+                                <Button
+                                    size="sm"
+                                    class="text-xs"
+                                    onclick={saveEditedComment}
+                                    disabled={isCommentEmpty(editingContent)}
+                                >
+                                    Kaydet
+                                </Button>
+                            </div>
+                        </div>
+                    {:else}
+                        <!-- Normal content display -->
+                        <EdraEditor content={reply.content} editable={false} />
+                    {/if}
+                </div>
+                                <Separator />
+
+                <div class="flex items-center gap-2 mt-2">
+                    <Button 
+                        variant={userReactions[reply.id] === 'like' ? 'default' : 'ghost'}
+                        size="sm"
+                        class={cn(
+                            "h-6 gap-1 transition-all duration-200 text-xs",
+                            userReactions[reply.id] === 'like' && "bg-primary text-primary-foreground"
+                        )}
+                        onclick={() => toggleCommentReaction(reply.id, 'like', true, parentId)}
+                    >
+                        <ThumbsUp class={cn(
+                            "h-3 w-3 transition-all duration-200",
+                            userReactions[reply.id] === 'like' && "fill-current"
+                        )} />
+                        <span class={cn("max-w-12 w-4", userReactions[reply.id] === 'like' && "font-medium")}>
+                            {formatNumber(reply.likes || 0)}
+                        </span>
+                    </Button>
+                    <Button 
+                        variant={userReactions[reply.id] === 'dislike' ? 'default' : 'ghost'}
+                        size="sm"
+                        class={cn(
+                            "h-6 gap-1 transition-all duration-200 text-xs",
+                            userReactions[reply.id] === 'dislike' && "bg-primary text-primary-foreground"
+                        )}
+                        onclick={() => toggleCommentReaction(reply.id, 'dislike', true, parentId)}
+                    >
+                        <ThumbsDown class={cn(
+                            "h-3 w-3 transition-all duration-200",
+                            userReactions[reply.id] === 'dislike' && "fill-current"
+                        )} />
+                        <span class={cn("max-w-12 w-4", userReactions[reply.id] === 'dislike' && "font-medium")}>
+                            {formatNumber(reply.dislikes || 0)}
+                        </span>
+                    </Button>
+                    <Button
+                        variant="ghost"
+                        size="sm"
+                        class="h-6 gap-1"
+                        onclick={() => { 
+                            replyingTo = replyingTo === reply.id ? null : reply.id; 
+                            if (!replyContents[reply.id]) replyContents[reply.id] = emptyDoc;
+                        }}
+                    >
+                        <MessageCircle class="w-3 h-3" />
+                        <span class="text-xs">Yanıtla</span>
+                    </Button>
+                    <DropdownMenu.Root>
+                        <DropdownMenu.Trigger asChild>
+                            <Button variant="ghost" size="sm" class="h-6 w-6 p-0">
+                                <Ellipsis class="w-3 h-3" />
+                            </Button>
+                        </DropdownMenu.Trigger>
+                        <DropdownMenu.Content align="end" class="w-48">
+                            <DropdownMenu.Item onclick={() => reportComment(reply.id)}>
+                                <BadgeAlertIcon triggers={{ hover: false }} animationState="loading" duration={3000} loop={true} class="mr-2 h-4 w-4" />
+                                Bildir
+                            </DropdownMenu.Item>
+                            {#if isCommentOwner(reply)}
+                                <DropdownMenu.Separator />
+                                <DropdownMenu.Item onclick={() => editComment(reply.id)}>
+                                    <NotebookPenIcon triggers={{ hover: false }} animationState="loading" duration={3000} loop={true} class="mr-2 h-4 w-4" />
+                                    Düzenle
+                                </DropdownMenu.Item>
+                                <DropdownMenu.Item onclick={() => deleteComment(reply.id)}>
+                                    <BookMinusIcon triggers={{ hover: false }} animationState="loading" duration={3000} loop={true} class="mr-2 h-4 w-4" />
+                                    Sil
+                                </DropdownMenu.Item>
+                                {#if reply.hidden}
+                                    <DropdownMenu.Item onclick={() => hideComment(reply.id)}>
+                                        <Eye class="mr-2 h-4 w-4" />
+                                        Göster
+                                    </DropdownMenu.Item>
+                                {:else}
+                                    <DropdownMenu.Item onclick={() => hideComment(reply.id)}>
+                                        <EyeOffIcon triggers={{ hover: false }} animationState="loading" duration={3000} loop={true} class="mr-2 h-4 w-4" />
+                                        Gizle
+                                    </DropdownMenu.Item>
+                                {/if}
+                            {/if}
+                        </DropdownMenu.Content>
+                    </DropdownMenu.Root>
+                </div>
+                
+                
+                <!-- Show nested replies or dialog button -->
+                {#if hasMoreReplies}
+                    {#if replyLevel < DIALOG_VISIBLE_LEVELS}
+                        <!-- Show nested replies directly for first 2 levels in dialog -->
+                        <div class="mt-2 ml-2 space-y-2 border-l pl-2">
+                            {@render DialogNestedReplyList(reply.replies, replyLevel + 1, reply.id)}
+                        </div>
+                    {:else}
+                        <!-- Show dialog button for deeper levels -->
+                        <div class="mt-2">
+                            <Button
+                                variant="ghost"
+                                size="sm"
+                                class="text-xs text-muted-foreground hover:text-foreground"
+                                onclick={() => openNestedDialog(reply, replyLevel + 1, reply.id)}
+                            >
+                                <MessageCircle class="w-3 h-3 mr-1" />
+                                {reply.replies.length} yanıtı göster
+                            </Button>
+                        </div>
+                    {/if}
+                {/if}
+            </div>
+            
+        </div>
+
+                <!-- Reply form -->
+                {#if replyingTo === reply.id}
+                    <div class="mt-2 ml-2 border p-1 rounded-lg">
+                        {#key replyingTo}
+                            <div class="mb-1">
+                                {#if replyEditors[reply.id]}
+                                    <EdraToolBar editor={replyEditors[reply.id]} class="mb-1 overflow-y-auto text-xs" />
+                                {/if}
+                                <EdraEditor
+                                    bind:editor={replyEditors[reply.id]}
+                                    content={replyContents[reply.id] || emptyDoc}
+                                    class="min-h-[60px] h-min rounded-lg text-xs"
+                                    onUpdate={() => onReplyEditorUpdate(reply.id)}
+                                    placeholder="Yanıtınızı yazın..."
+                                />
+                            </div>
+                        {/key}
+                        <div class="flex justify-end gap-1 mt-1">
+                            <Button
+                                variant="ghost"
+                                size="sm"
+                                class="text-xs"
+                                onclick={() => { 
+                                    replyingTo = null; 
+                                    delete replyContents[reply.id]; 
+                                    delete replyEditors[reply.id]; 
+                                }}
+                            >
+                                İptal
+                            </Button>
+                            <Button
+                                size="sm"
+                                class="text-xs"
+                                onclick={() => postReply(reply.id)}
+                                disabled={isCommentEmpty(replyContents[reply.id])}
+                            >
+                                Yanıtla
+                            </Button>
+                        </div>
+                    </div>
+                {/if}
+    {/each}
+{/snippet}
 <Footer />

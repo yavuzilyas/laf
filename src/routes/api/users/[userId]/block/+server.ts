@@ -1,6 +1,6 @@
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from '@sveltejs/kit';
-import { getUsersCollection, toObjectId } from '$db/mongo';
+import { getUsers, blockUserRelation, unblockUserRelation, isUserBlockedRelation, unfollowUser } from '$db/queries';
 
 export const POST: RequestHandler = async ({ locals, params }) => {
 	const user = (locals as any)?.user;
@@ -12,47 +12,28 @@ export const POST: RequestHandler = async ({ locals, params }) => {
 	}
 
 	try {
-		const usersCol = await getUsersCollection();
-		
 		// Check if target user exists
-		const targetUser = await usersCol.findOne({ _id: toObjectId(userId) });
-		if (!targetUser) {
+		const targetUsers = await getUsers({ id: userId });
+		if (!targetUsers.length) {
 			return json({ error: 'User not found' }, { status: 404 });
 		}
 
 		// Check if already blocked
-		const currentUser = await usersCol.findOne({ 
-			_id: toObjectId(user.id),
-			'blocked.blockedUserId': toObjectId(userId)
-		});
-
-		if (currentUser) {
+		const alreadyBlocked = await isUserBlockedRelation(user.id, userId);
+		if (alreadyBlocked) {
 			return json({ error: 'Already blocked' }, { status: 400 });
 		}
 
 		// Add block relationship
-		await usersCol.updateOne(
-			{ _id: toObjectId(user.id) },
-			{ 
-				$push: { 
-					blocked: {
-						blockedUserId: toObjectId(userId),
-						blockedAt: new Date()
-					}
-				}
-			}
-		);
+		await blockUserRelation(user.id, userId);
 
 		// Remove follow relationships if they exist
-		await usersCol.updateOne(
-			{ _id: toObjectId(user.id) },
-			{ $pull: { following: { followingUserId: toObjectId(userId) } } }
-		);
-
-		await usersCol.updateOne(
-			{ _id: toObjectId(userId) },
-			{ $pull: { followers: { followerUserId: toObjectId(user.id) } } }
-		);
+		try {
+			await unfollowUser(user.id, userId);
+			await unfollowUser(userId, user.id);
+		} catch (error) {
+			// Ignore errors if follow relationships don't exist
+		}
 
 		return json({ success: true, blocked: true });
 	} catch (error) {
@@ -71,13 +52,8 @@ export const DELETE: RequestHandler = async ({ locals, params }) => {
 	}
 
 	try {
-		const usersCol = await getUsersCollection();
-		
 		// Remove block relationship
-		await usersCol.updateOne(
-			{ _id: toObjectId(user.id) },
-			{ $pull: { blocked: { blockedUserId: toObjectId(userId) } } }
-		);
+		await unblockUserRelation(user.id, userId);
 
 		return json({ success: true, blocked: false });
 	} catch (error) {
@@ -96,16 +72,11 @@ export const GET: RequestHandler = async ({ locals, params }) => {
 	}
 
 	try {
-		const usersCol = await getUsersCollection();
-		
 		// Check if blocked
-		const currentUser = await usersCol.findOne({ 
-			_id: toObjectId(user.id),
-			'blocked.blockedUserId': toObjectId(userId)
-		});
+		const blocked = await isUserBlockedRelation(user.id, userId);
 
 		return json({ 
-			blocked: !!currentUser
+			blocked
 		});
 	} catch (error) {
 		console.error('Check block status error:', error);

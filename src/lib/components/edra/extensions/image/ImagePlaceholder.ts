@@ -1,6 +1,7 @@
 import { Editor, Node, mergeAttributes, type CommandProps, type NodeViewProps } from '@tiptap/core';
 import type { Component } from 'svelte';
 import { SvelteNodeViewRenderer } from 'svelte-tiptap';
+import { getFileSizeLimit } from '../../config/file-limits';
 
 export interface ImagePlaceholderOptions {
 	HTMLAttributes: Record<string, object>;
@@ -33,7 +34,8 @@ export const ImagePlaceholder = (
 				HTMLAttributes: {},
 				onDrop: () => {},
 				onDropRejected: () => {},
-				onEmbed: () => {}
+				onEmbed: () => {},
+				maxSize: getFileSizeLimit('image')
 			};
 		},
 		parseHTML() {

@@ -1,6 +1,6 @@
 // src/routes/api/articles/draft/+server.ts
 import { json } from '@sveltejs/kit';
-import { getDraftsCollection } from '$db/mongo';
+import { getDrafts } from '$db/queries';
 
 export async function GET({ locals }) {
 	const user = (locals as any)?.user;
@@ -8,14 +8,12 @@ export async function GET({ locals }) {
 	if (!user) return json(null);
 
 	try {
-		const drafts = await getDraftsCollection();
-    const draft = await drafts.findOne(
-      { authorId: user.id },
-      { sort: { lastSaved: -1 } as any }
-    );
+    const drafts = await getDrafts({ authorId: user.id });
 
-    if (!draft) return json(null);
+    if (!drafts || drafts.length === 0) return json(null);
 
+    // Return the most recent draft data
+    const draft = drafts[0];
     return json(draft.data || null);
   } catch (e) {
     console.error('Load draft error:', e);

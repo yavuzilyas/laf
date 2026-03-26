@@ -1,6 +1,7 @@
 import { json } from '@sveltejs/kit';
-import { getUsersCollection } from '$db/mongo';
-import { ObjectId } from 'mongodb';
+import { getUsers, updateUserAuthFields } from '$db/queries';
+import pkg from 'argon2';
+const { verify } = pkg;
 
 // Rate limiting configuration
 const MAX_ATTEMPTS = 3;
@@ -24,7 +25,6 @@ function safeCompare(a: string, b: string): boolean {
 
 export async function POST({ request, cookies }) {
   try {
-    const users = await getUsersCollection();
     const now = new Date();
     
     const session = cookies.get('session');
@@ -33,28 +33,18 @@ export async function POST({ request, cookies }) {
     }
 
     // Get user and check rate limit
-    let user;
-    try {
-      user = await users.findOne({
-        _id: new ObjectId(session),
-        status: { $ne: 'suspended' }
-      });
-    } catch (err) {
-      console.error('Error finding user:', err);
-      return json({ 
-        error: 'Kullanıcı bilgileri alınırken bir hata oluştu' 
-      }, { status: 500 });
-    }
+    const users = await getUsers({ id: session, status: { $ne: 'suspended' } });
+    const user = users[0];
     
     if (!user) {
       return json({ error: 'Kullanıcı bulunamadı veya erişim engellendi' }, { status: 404 });
     }
     
     // Check rate limit from user document
-    const lastAttempt = user.lastMnemonicAttempt ? new Date(user.lastMnemonicAttempt) : null;
+    const lastAttempt = user.last_mnemonic_attempt ? new Date(user.last_mnemonic_attempt) : null;
     const attemptWindow = lastAttempt ? now.getTime() - lastAttempt.getTime() : RATE_LIMIT_WINDOW + 1;
     
-    if (user.mnemonicAttempts >= MAX_ATTEMPTS && attemptWindow < RATE_LIMIT_WINDOW) {
+    if (user.mnemonic_attempts >= MAX_ATTEMPTS && attemptWindow < RATE_LIMIT_WINDOW) {
       const retryAfter = Math.ceil((RATE_LIMIT_WINDOW - attemptWindow) / 1000);
       return json({
         error: `Çok fazla deneme yaptınız. Lütfen ${Math.ceil(retryAfter / 60)} dakika sonra tekrar deneyin.`,
@@ -78,32 +68,25 @@ export async function POST({ request, cookies }) {
       return json({ error: 'Geçersiz istek formatı' }, { status: 400 });
     }
 
-    const { index, word, verificationToken } = requestData;
+    const { mnemonicPhrase, verificationToken } = requestData;
     
-    if (typeof index !== 'number' || index < 0 || !word || !verificationToken) {
+    if (!mnemonicPhrase || typeof mnemonicPhrase !== 'string' || !verificationToken) {
       return json({ error: 'Eksik veya geçersiz istek parametreleri' }, { status: 400 });
     }
     
-    if (!user.mnemonicHashes?.length) {
+    if (!user.mnemonic_hash || typeof user.mnemonic_hash !== 'string') {
       return json({ error: 'Mnemonic bulunamadı' }, { status: 404 });
-    }
-    
-    if (index >= user.mnemonicHashes.length) {
-      return json({ error: 'Geçersiz mnemonic indeksi' }, { status: 400 });
     }
 
     // Check verification token
-    if (user.verificationToken !== verificationToken) {
+    if (user.verification_token !== verificationToken) {
       // Increment failed attempt
-      await users.updateOne(
-        { _id: user._id },
-        { 
-          $set: { lastMnemonicAttempt: now },
-          $inc: { mnemonicAttempts: 1 }
-        }
-      );
+      await updateUserAuthFields(user.id, {
+        last_mnemonic_attempt: now,
+        mnemonic_attempts: (user.mnemonic_attempts || 0) + 1
+      });
       
-      const remainingAttempts = Math.max(0, MAX_ATTEMPTS - (user.mnemonicAttempts || 0) - 1);
+      const remainingAttempts = Math.max(0, MAX_ATTEMPTS - (user.mnemonic_attempts || 0) - 1);
       const error = remainingAttempts > 0 
         ? `Yanlış mnemonic kelimesi. Kalan deneme hakkınız: ${remainingAttempts}`
         : 'Çok fazla başarısız deneme. Lütfen daha sonra tekrar deneyin.';
@@ -114,24 +97,23 @@ export async function POST({ request, cookies }) {
       }, { status: 400 });
     }
 
-    // Hash calculation with timing-safe comparison
-    const encoder = new TextEncoder();
-    const inputHash = await crypto.subtle.digest('SHA-256', encoder.encode(word.trim().toLowerCase()));
-    const hashArray = Array.from(new Uint8Array(inputHash));
-    const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-    const isMatch = safeCompare(hashHex, user.mnemonicHashes[index]);
+    const normalizedMnemonic = mnemonicPhrase.trim().toLowerCase().split(/\s+/).filter(Boolean).join(' ');
+    const words = normalizedMnemonic ? normalizedMnemonic.split(' ') : [];
+    if (words.length !== 12) {
+      return json({ error: 'Geçersiz mnemonic formatı' }, { status: 400 });
+    }
+
+    // Verify mnemonic using argon2
+    const isMatch = await verify(user.mnemonic_hash, normalizedMnemonic);
 
     if (!isMatch) {
       // Increment failed attempt
-      await users.updateOne(
-        { _id: user._id },
-        { 
-          $set: { lastMnemonicAttempt: now },
-          $inc: { mnemonicAttempts: 1 }
-        }
-      );
+      await updateUserAuthFields(user.id, {
+        last_mnemonic_attempt: now,
+        mnemonic_attempts: (user.mnemonic_attempts || 0) + 1
+      });
       
-      const remainingAttempts = Math.max(0, MAX_ATTEMPTS - (user.mnemonicAttempts || 0) - 1);
+      const remainingAttempts = Math.max(0, MAX_ATTEMPTS - (user.mnemonic_attempts || 0) - 1);
       const error = remainingAttempts > 0 
         ? `Yanlış mnemonic kelimesi. Kalan deneme hakkınız: ${remainingAttempts}`
         : 'Çok fazla başarısız deneme. Lütfen daha sonra tekrar deneyin.';
@@ -147,19 +129,12 @@ export async function POST({ request, cookies }) {
     
     // Store the verification token in the user's session and reset attempts
     try {
-      await users.updateOne(
-        { _id: user._id },
-        { 
-          $set: { 
-            verificationToken: newVerificationToken,
-            verificationTokenExpiresAt: new Date(Date.now() + (5 * 60 * 1000)) // 5 minutes
-          },
-          $unset: {
-            lastMnemonicAttempt: 1,
-            mnemonicAttempts: 1
-          }
-        }
-      );
+      await updateUserAuthFields(user.id, {
+        verification_token: newVerificationToken,
+        verification_token_expires_at: new Date(Date.now() + (5 * 60 * 1000)), // 5 minutes
+        last_mnemonic_attempt: null,
+        mnemonic_attempts: 0
+      });
     } catch (err) {
       console.error('Error updating user token:', err);
       // Continue anyway since the verification was successful
@@ -175,13 +150,13 @@ export async function POST({ request, cookies }) {
     
     // More specific error handling
     if (error instanceof Error) {
-      if (error.name === 'BSONError') {
+      if (error.message.includes('invalid input syntax for uuid')) {
         return json({ 
           error: 'Geçersiz kullanıcı kimliği' 
         }, { status: 400 });
       }
       
-      if (error.name === 'MongoServerError') {
+      if (error.message.includes('connection')) {
         return json({ 
           error: 'Veritabanı hatası. Lütfen daha sonra tekrar deneyin.' 
         }, { status: 503 });

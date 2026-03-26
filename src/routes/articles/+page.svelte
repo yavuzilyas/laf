@@ -278,7 +278,7 @@
 <Navbar />
 <main class="flex flex-col min-h-screen">
     <!-- Main Content -->
-    <section class="container max-w-7xl mx-auto space-y-4 px-3 sm:px-6 py-6 sm:pt-10">
+    <section class="container max-w-7xl mx-auto space-y-4 px-3 sm:px-6 py-10">
         <div class="space-y-8 flex flex-col items-center">
             <div class="text-center space-y-3">
                 <div class="flex flex-col items-center gap-3">
@@ -289,7 +289,7 @@
                     <p class="text-sm  text-muted-foreground max-w-2xl">
                         {t('articles.subtitle')}
                     </p>
-                    <Button  onmouseenter={() => notebookPenIcon?.start()} onmouseleave={() => notebookPenIcon?.stop()} href="/write" size="sm" class="shrink-0">
+                    <Button size="xs"  onmouseenter={() => notebookPenIcon?.start()} onmouseleave={() => notebookPenIcon?.stop()} href="/write"  class="shrink-0">
                         <NotebookPenIcon loop="true" triggers={{ custom: true }}  bind:this={notebookPenIcon} class="w-4 h-4" />
                         {t('articles.writeArticle')}
                     </Button>

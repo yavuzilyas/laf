@@ -20,6 +20,7 @@ import { onMount, onDestroy } from 'svelte';
         import * as Command from '$lib/components/ui/command';
   import { CategoryTree } from '$lib/components/ui/category-tree';
   import { categoryTree } from '$lib/data/categories';
+  import UserSearch from '$lib/components/UserSearch.svelte';
 
 
   import { EdraEditor, EdraToolBar, EdraDragHandleExtended } from '$lib/components/edra/shadcn/index.js';
@@ -53,11 +54,9 @@ import { onMount, onDestroy } from 'svelte';
   let hydratedContentByLang = $state<Record<string, string>>({});
   let hydratedEditorByLang = $state<Record<string, any>>({});
   let newTag = $state('');
-  let showCollaboratorDialog = $state(false);
   let showVersionDialog = $state(false);
   let showCategoryDialog = $state(false);
-  let showDraftsDialog = $state(false);
-  let collaboratorEmail = $state('');
+  let selectedCollaborators = $state<Array<{ id: string; username: string; name?: string; surname?: string }>>([]);
 
   const availableLanguages = [
     { value: 'tr', label: 'Türkçe', flag: '🇹🇷' },
@@ -104,6 +103,12 @@ import { onMount, onDestroy } from 'svelte';
     tempCategory = articleData.category || '';
     tempSubcategory = articleData.subcategory || '';
     showCategoryDialog = true;
+  }
+
+  function handleCollaboratorChange(e: CustomEvent<{ users: typeof selectedCollaborators }>) {
+    selectedCollaborators = e.detail.users;
+    // Update article editor with collaborator IDs
+    articleEditor.updateMetadata('collaborators', selectedCollaborators.map(c => c.id));
   }
 
   function applyCategorySelection() {
@@ -202,6 +207,23 @@ import { onMount, onDestroy } from 'svelte';
 
     if (mode === 'edit' && article) {
       articleEditor.hydrate(article);
+      // Initialize selected collaborators from article data
+      if (article.collaborators && article.collaborators.length > 0) {
+        // Fetch collaborator user details
+        try {
+          const response = await fetch(`/api/users/batch`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ ids: article.collaborators })
+          });
+          if (response.ok) {
+            const users = await response.json();
+            selectedCollaborators = users;
+          }
+        } catch (error) {
+          console.error('Failed to fetch collaborator details:', error);
+        }
+      }
     }
 
     if (user && user.id) {
@@ -236,10 +258,10 @@ import {NotebookPenIcon} from 'svelte-animate-icons';
         </ScrollArea>
 
         <Dialog.Footer class="gap-2">
-          <Button variant="outline" onclick={() => showCategoryDialog = false}>
+          <Button size="xs" variant="outline" onclick={() => showCategoryDialog = false}>
             {rt()('common.cancel')}
           </Button>
-          <Button onclick={applyCategorySelection}>
+          <Button size="xs" onclick={applyCategorySelection}>
             {rt()('common.apply')}
           </Button>
         </Dialog.Footer>
@@ -255,6 +277,16 @@ import {NotebookPenIcon} from 'svelte-animate-icons';
           </h1>
           <p class="text-muted-foreground">{rt()('article.shareThoughts')}</p>
       </div>
+      
+      <!-- Honeypot field for spam protection - hidden from users -->
+      <input 
+        type="text" 
+        name="website" 
+        class="hidden" 
+        tabindex="-1" 
+        autocomplete="off"
+        aria-hidden="true"
+      />
 
       <div class="grid grid-re grid-cols-1 lg:grid-cols-9 gap-4">
         <div class="lg:col-span-2 space-y-4 sm:sticky md:top-12 sm:self-start md:max-h-[calc(100vh-8rem] overflow-x-hidden">
@@ -272,9 +304,8 @@ import {NotebookPenIcon} from 'svelte-animate-icons';
                   <div class="mt-2 space-y-2">
                     <img src={articleData.thumbnail} alt="thumbnail" class="w-full h-36 object-cover rounded-md border" />
                     <div class="flex gap-2">
-                      <Button size="sm" variant="outline" onclick={() => window.open(articleData.thumbnail, '_blank')}>{rt()('common.view')}</Button>
-                      <Button
-                        size="sm"
+                      <Button size="xs"  variant="outline" onclick={() => window.open(articleData.thumbnail, '_blank')}>{rt()('common.view')}</Button>
+                      <Button size="xs"
                         variant="destructive"
                         onclick={async () => {
                           const previousUrl = articleData.thumbnail;
@@ -390,7 +421,7 @@ import {NotebookPenIcon} from 'svelte-animate-icons';
                   </div>
 <Popover.Root>
   <Popover.Trigger class="w-fit">
-    <Button
+    <Button size="xs"
       variant="outline"
       role="combobox"
       class="h-9 w-[240px] justify-between overflow-x-hidden"
@@ -453,8 +484,8 @@ import {NotebookPenIcon} from 'svelte-animate-icons';
                   </div>
                   <div class="flex flex-wrap gap-2">
                     {#each availableLangs as lang}
-                      <Button
-                        size="sm"
+                      <Button size="xs"
+                        
                         variant={articleData.defaultLanguage === lang ? 'default' : 'outline'}
                         onclick={() => articleEditor.updateMetadata('defaultLanguage', lang)}
                       >
@@ -477,7 +508,7 @@ import {NotebookPenIcon} from 'svelte-animate-icons';
             <CardContent class="space-y-4">
               <div>
                 <Label class="text-sm font-medium">{rt()('article.category')}</Label>
-                <Button
+                <Button size="xs"
                   variant="outline"
                   class="w-full h-10 justify-start overflow-hidden"
                   onclick={openCategoryDialog}
@@ -510,7 +541,7 @@ import {NotebookPenIcon} from 'svelte-animate-icons';
                       }
                     }}
                   />
-                  <Button
+                  <Button size="xs"
                     variant="outline"
                     onclick={() => {
                       articleEditor.addTag(newTag);
@@ -550,7 +581,7 @@ import {NotebookPenIcon} from 'svelte-animate-icons';
               <div class="flex items-center gap-3">
                 <div class="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
                   <span class="text-sm font-medium">
-                    {user?.name ? user.name.charAt(0).toUpperCase() : (user?.nickname?.charAt(0)?.toUpperCase() ?? '?')}
+                    {user?.name ? user.name.charAt(0).toUpperCase() : (user?.username?.charAt(0)?.toUpperCase() ?? '?')}
                   </span>
                 </div>
                 <div>
@@ -560,32 +591,27 @@ import {NotebookPenIcon} from 'svelte-animate-icons';
                   <p class="text-sm text-muted-foreground">@{user?.nickname ?? 'guest'}</p>
                 </div>
               </div>
-              {#if articleData.collaborators.length > 0}
-                <div>
-                  <Label class="text-sm font-medium">{rt()('article.collaborators')}</Label>
-                  <div class="space-y-2 mt-2">
-                    {#each articleData.collaborators as collaboratorId}
-                      <div class="flex items-center justify-between">
-                        <span class="text-sm">Collaborator {collaboratorId}</span>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onclick={() => articleEditor.removeCollaborator(collaboratorId)}
-                        >
-                          <X class="w-4 h-4" />
-                        </Button>
-                      </div>
-                    {/each}
-                  </div>
-                  
+              
+              <div>
+                <Label class="text-sm font-medium">{rt()('article.addCollaborators')}</Label>
+                <div class="mt-2">
+                  <UserSearch 
+                    bind:selectedUsers={selectedCollaborators}
+                    on:change={handleCollaboratorChange}
+                  />
                 </div>
-              {/if}
+              </div>
 
             </CardContent>
           </Card>
                                   <Button class="w-full" onclick={publishArticle} disabled={articleEditor.isSaving}>
-            <Send class="w-4 h-4" />
-            {articleEditor.isSaving ? rt()('article.publishing') : rt()('article.publish')}
+            {#if articleEditor.isSaving}
+              <div class="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+              {rt()('article.publishing')}
+            {:else}
+              <Send class="w-4 h-4 mr-2" />
+              {rt()('article.publish')}
+            {/if}
           </Button>
         </div>
         <div class="lg:col-span-7">
@@ -651,88 +677,8 @@ import {NotebookPenIcon} from 'svelte-animate-icons';
       
     </div>
 
-    <Dialog.Root bind:open={showCollaboratorDialog}>
-      <Dialog.Content class="!max-w-fit">
-        <Dialog.Header>
-          <Dialog.Title class="flex items-center gap-2">
-            <Users class=" text-primary w-5 h-5" />
-            {rt()('article.addCollaborator')}
-          </Dialog.Title>
-          <Dialog.Description>
-            {rt()('article.collaboratorDescription')}
-          </Dialog.Description>
-        </Dialog.Header>
-
-        <div class="pt-2 ">
-          <div class="gap-2 flex flex-col">
-            <Label for="collaborator-email">{rt()('article.collaboratorEmail')}</Label>
-            <Input
-              id="collaborator-email"
-              bind:value={collaboratorEmail}
-              placeholder="user@example.com"
-              type="email"
-            />
-          </div>
-        </div>
-
-        <Dialog.Footer class="gap-2">
-          <Button variant="outline" onclick={() => showCollaboratorDialog = false}>
-            {rt()('common.cancel')}
-          </Button>
-          <Button onclick={addCollaborator} disabled={!collaboratorEmail.trim()}>
-            {rt()('article.addCollaborator')}
-          </Button>
-        </Dialog.Footer>
-      </Dialog.Content>
-    </Dialog.Root>
-
-    <Dialog.Root bind:open={showDraftsDialog}>
-      <Dialog.Content class="max-w-2xl max-h-[80vh]">
-        <Dialog.Header>
-          <Dialog.Title class="flex items-center gap-2">
-            <History class="w-5 h-5" />
-            {rt()('article.loadDraft')}
-          </Dialog.Title>
-          <Dialog.Description>
-            {rt()('article.versionDescription')}
-          </Dialog.Description>
-        </Dialog.Header>
-
-        <ScrollArea class="max-h-96">
-          <div class="space-y-2 py-4">
-            {#each articleEditor.drafts as d}
-              <div class="flex items-center justify-between p-3 border rounded-lg">
-                <div>
-                  <div class="font-medium">{d.title}</div>
-                  <div class="text-sm text-muted-foreground">
-                    {d.updatedAt ? new Date(d.updatedAt).toLocaleString() : ''}
-                  </div>
-                </div>
-                <div class="flex gap-2">
-                  <Button size="sm" onclick={() => openDraftById(d.id)}>
-                    {rt()('common.open')}
-                  </Button>
-                  <Button size="sm" variant="destructive" onclick={async () => { await articleEditor.deleteDraft(d.id); }}>
-                    {rt()('common.delete')}
-                  </Button>
-                </div>
-              </div>
-            {:else}
-              <div class="text-center py-8 text-muted-foreground">
-                {rt()('article.noVersions')}
-              </div>
-            {/each}
-          </div>
-        </ScrollArea>
-
-        <Dialog.Footer>
-          <Button variant="outline" onclick={() => showDraftsDialog = false}>
-            {rt()('common.close')}
-          </Button>
-        </Dialog.Footer>
-      </Dialog.Content>
-    </Dialog.Root>
-
+    
+    
     <Dialog.Root bind:open={showVersionDialog}>
       <Dialog.Content class="max-w-2xl max-h-[80vh]">
         <Dialog.Header>
@@ -763,10 +709,10 @@ import {NotebookPenIcon} from 'svelte-animate-icons';
                   {/if}
                 </div>
                 <div class="flex gap-2">
-                  <Button variant="outline" size="sm">
+                  <Button variant="outline" size="xs">
                     <Eye class="w-4 h-4" />
                   </Button>
-                  <Button variant="outline" size="sm">
+                  <Button variant="outline" size="xs">
                     {rt()('article.restore')}
                   </Button>
                 </div>
@@ -780,7 +726,7 @@ import {NotebookPenIcon} from 'svelte-animate-icons';
         </ScrollArea>
 
         <Dialog.Footer>
-          <Button variant="outline" onclick={() => showVersionDialog = false}>
+          <Button size="xs" variant="outline" onclick={() => showVersionDialog = false}>
             {rt()('common.close')}
           </Button>
         </Dialog.Footer>

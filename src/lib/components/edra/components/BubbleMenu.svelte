@@ -64,7 +64,9 @@
 		if (existingInstance) {
 			try {
 				editor.view.dom.removeEventListener('blur', existingInstance.handleBlur);
-				existingInstance.destroy();
+				if (typeof existingInstance.destroy === 'function') {
+					existingInstance.destroy();
+				}
 			} catch (e) {
 				console.warn('Error cleaning up existing bubble menu:', e);
 			}
@@ -116,7 +118,9 @@
 						editor.view.dom.removeEventListener('blur', instance.handleBlur);
 					}
 					
-					bubbleMenuInstance.destroy();
+					if (typeof bubbleMenuInstance.destroy === 'function') {
+						bubbleMenuInstance.destroy();
+					}
 				} catch (e) {
 					console.warn('Error cleaning up bubble menu:', e);
 				}
@@ -140,7 +144,7 @@
 				editor.view.dom.removeEventListener('blur', instance.handleBlur);
 			}
 			
-			if (bubbleMenuInstance && !bubbleMenuInstance.destroyed) {
+			if (bubbleMenuInstance && typeof bubbleMenuInstance.destroy === 'function') {
 				bubbleMenuInstance.destroy();
 			}
 		} catch (e) {

@@ -10,5 +10,13 @@ declare global {
 	}
 }
 
+declare module 'bcrypt' {
+	const bcrypt: {
+		hash: (data: string | Buffer, saltOrRounds: string | number) => Promise<string>;
+		compare: (data: string | Buffer, encrypted: string) => Promise<boolean>;
+	};
+	export default bcrypt;
+}
+
 
 export {};

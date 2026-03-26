@@ -4,6 +4,7 @@ import { derived, writable, type Writable } from 'svelte/store';
 import { showToast, showToastKey } from '$lib/hooks/toast';
 import type { NotificationRecord, TranslationObject } from '$lib/types/notification';
 import { t } from '$lib/stores/i18n.svelte';
+import { notificationPreferences, loadNotificationPreferences } from '$lib/stores/notification-preferences';
 
 const notificationsStore: Writable<NotificationRecord[]> = writable<NotificationRecord[]>([]);
 const unreadCountStore: Writable<number> = writable(0);
@@ -23,6 +24,9 @@ export const blockedActorIds = derived(blockedActorIdsStore, ($value: string[]) 
 
 export async function fetchNotifications(): Promise<void> {
 	if (!browser) return;
+
+	// Ensure notification preferences are loaded
+	loadNotificationPreferences();
 
 	try {
 		const res = await fetch('/api/notifications?page=1&pageSize=20', {
@@ -49,8 +53,68 @@ export async function fetchNotifications(): Promise<void> {
 			for (const item of items) {
 				if (!knownIds.has(item.id) && !item.read) {
 					const text = item.title || item.message;
+					
+					// Check notification preferences before showing
+					let shouldShowNotification = false;
+					let currentPreferences = {
+						follow: true,
+						like: true,
+						comment: true,
+						reply: true,
+						announcement: true,
+						emailNotifications: true,
+						pushNotifications: true,
+						messageSounds: true,
+						systemNotifications: true
+					};
+					
+					// Get current preferences
+					const unsubscribe = notificationPreferences.subscribe(pref => {
+						currentPreferences = pref;
+					});
+					unsubscribe();
+					
+					// Check if this notification type should be shown
+					switch (item.type) {
+						case 'follow':
+							shouldShowNotification = currentPreferences.follow;
+							break;
+						case 'like':
+							shouldShowNotification = currentPreferences.like;
+							break;
+						case 'comment':
+							shouldShowNotification = currentPreferences.comment;
+							break;
+						case 'reply':
+							shouldShowNotification = currentPreferences.reply;
+							break;
+						case 'announcement':
+							shouldShowNotification = currentPreferences.announcement;
+							break;
+						default:
+							shouldShowNotification = true;
+					}
+					
+					// If notification type is disabled, skip showing
+					if (!shouldShowNotification) {
+						continue;
+					}
+					
+					// Handle JSON strings
+					let processedText = text;
 					if (typeof text === 'string') {
-						showToast(text, 'info', 6000, {
+						try {
+							const parsed = JSON.parse(text);
+							if (parsed && typeof parsed === 'object' && parsed.key) {
+								processedText = parsed;
+							}
+						} catch {
+							// If parsing fails, keep as string
+						}
+					}
+					
+					if (typeof processedText === 'string') {
+						showToast(processedText, 'info', 6000, {
 							link: item.link || undefined
 						});
 					} else {
@@ -58,8 +122,8 @@ export async function fetchNotifications(): Promise<void> {
 						const processedValues: Record<string, string | number> = {};
 						
 						// First, process existing values (skip user values)
-						if (text.values) {
-							for (const [key, value] of Object.entries(text.values)) {
+						if (processedText.values) {
+							for (const [key, value] of Object.entries(processedText.values)) {
 								if (key === 'user' || key === 'user1' || key === 'user2') {
 									// Skip user values - we'll add them from actor/meta
 									continue;
@@ -71,10 +135,10 @@ export async function fetchNotifications(): Promise<void> {
 							}
 						}
 						
-						// Get the translation template to check what placeholders are needed
-						const translationTemplate = t(text.key);
+						// Get translation template to check what placeholders are needed
+						const translationTemplate = t(processedText.key);
 						
-						// Add user values from actor/meta based on what's needed in the template
+						// Add user values from actor/meta based on what's needed in template
 						if (translationTemplate.includes('{user}') && !processedValues.user) {
 							if (item.actor) {
 								processedValues.user = item.actor.nickname || item.actor.name || t('notifications.messages.unknownUser');
@@ -102,7 +166,7 @@ export async function fetchNotifications(): Promise<void> {
 							}
 						}
 						
-						const translatedText = t(text.key, processedValues);
+						const translatedText = t(processedText.key, processedValues);
 						showToast(translatedText, 'info', 6000, {
 							link: item.link || undefined
 						});

@@ -34,7 +34,7 @@
       <Button size="sm" href="/"><House/> {t('Homepage')}</Button>
       <Button size="sm" variant="outline" onclick="window.history.back()"><Search/> {t('Go Back')}</Button>
     </div>
-    <p class="text-xs text-muted-foreground">{t('aProblem')} <Button size="xs" variant="link" on:click={openReportDrawer}>{t('reportToHelpUs')}</Button></p>
+    <p class="text-xs text-muted-foreground">{t('aProblem')} <Button size="xs" variant="link" onclick={openReportDrawer}>{t('reportToHelpUs')}</Button></p>
     {#if browser}
       <ReportDrawer 
         bind:open={showReportDrawer}

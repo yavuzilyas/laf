@@ -4,25 +4,45 @@
 
   import Spotlight from "$lib/components/Spotlight.svelte";
 import { cn } from "$lib/utils";
-  import Timeline from "$lib/components/timeline/Timeline.svelte";
-  import Content1 from "$lib/components/timeline/Content1.svelte";
-  import Content2 from "$lib/components/timeline/Content2.svelte";
-  import Content3 from "$lib/components/timeline/Content3.svelte";
+  // import Timeline from "$lib/components/timeline/Timeline.svelte";
+  // import Content1 from "$lib/components/timeline/Content1.svelte";
+  // import Content2 from "$lib/components/timeline/Content2.svelte";
+  // import Content3 from "$lib/components/timeline/Content3.svelte";
+  // import Content4 from "$lib/components/timeline/Content4.svelte";
+  // import Content5 from "$lib/components/timeline/Content5.svelte";
+  // import Content6 from "$lib/components/timeline/Content6.svelte";
+  // import Content7 from "$lib/components/timeline/Content7.svelte";
 
-  let timelineData = [
-    {
-      title: "Svelte 5",
-      content: Content1,
-    },
-    {
-      title: "Early 2023",
-      content: Content2,
-    },
-    {
-      title: "Changelog",
-      content: Content3,
-    },
-  ];
+  // let timelineData = [
+  //   {
+  //     title: "1. Eğitim Aşaması",
+  //     content: Content1,
+  //   },
+  //   {
+  //     title: "2. Fikir Geliştirme",
+  //     content: Content2,
+  //   },
+  //   {
+  //     title: "3. Agitasyon",
+  //     content: Content3,
+  //   },
+  //   {
+  //     title: "4. Siyasi Eylem",
+  //     content: Content4,
+  //   },
+  //   {
+  //     title: "5. Ekonomik Direniş",
+  //     content: Content5,
+  //   },
+  //   {
+  //     title: "6. Kurumsal Değişim",
+  //     content: Content6,
+  //   },
+  //   {
+  //     title: "7. Toplumsal Devrim",
+  //     content: Content7,
+  //   },
+  // ];
   import { i18n, dativeSuffix, locativeSuffix } from '$lib/stores/i18n.svelte.js';
 
 </script>
@@ -43,11 +63,10 @@ import { cn } from "$lib/utils";
     >
       {i18n.t('MainPageDescription')}
     </p>
+    
   </div>
   
 
 </div>
-
-<Timeline {timelineData} />
 </main>
 <Footer />

@@ -33,7 +33,7 @@
   <Empty.Content>
     <div class="flex gap-2">
       <Button size="sm" href="/"><Home/> {t('Homepage')}</Button>
-      <Button size="sm" variant="outline" on:click={() => window.location.reload()}><RefreshCw/> {t('Try Again')}</Button>
+      <Button size="sm" variant="outline" onclick="window.history.back()"><RefreshCw/> {t('Try Again')}</Button>
     </div>
     <p class="text-xs text-muted-foreground">{t('aProblem')} <Button size="xs" variant="link" onclick={openReportDrawer}>{t('reportToHelpUs')}</Button></p>
     {#if browser}

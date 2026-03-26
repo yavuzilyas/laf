@@ -1,4 +1,4 @@
-/s<script lang="ts">
+<script lang="ts">
   import Navbar from '$lib/Navbar.svelte';
   import Footer from '$lib/Footer.svelte';
   import NotFound from "$lib/components/404.svelte";

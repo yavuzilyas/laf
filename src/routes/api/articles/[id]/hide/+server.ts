@@ -1,7 +1,6 @@
 // src/routes/api/articles/[id]/hide/+server.ts
 import { json } from '@sveltejs/kit';
-import { ObjectId } from 'mongodb';
-import { getArticlesCollection } from '$db/mongo';
+import { getArticleById, updateArticle } from '$db/queries';
 
 export async function POST({ params, request, locals }) {
   const user = (locals as any)?.user;
@@ -12,23 +11,13 @@ export async function POST({ params, request, locals }) {
   // if (!user) return json({ error: 'Unauthorized' }, { status: 401 });
 
   const { hidden } = await request.json(); // boolean: true/false
-  const articleId = new ObjectId(params.id);
-  // const userId = new ObjectId(user.id);
+  const articleId = params.id;
 
-  console.log('HIDE API - Article ID:', articleId.toString());
+  console.log('HIDE API - Article ID:', articleId);
   console.log('HIDE API - Hidden:', hidden);
 
-  const articles = await getArticlesCollection();
-
-  // TEMPORARY: Skip permission check for testing
-  // Makalenin var olup olmadığını ve kullanıcının sahibi olup olmadığını kontrol et
-  const article = await articles.findOne({
-    _id: articleId
-    // $or: [
-    //   { authorId: userId },
-    //   { 'author.id': userId.toString() }
-    // ]
-  });
+  // Find the article
+  const article = await getArticleById(articleId);
 
   console.log('HIDE API - Found article:', !!article);
 
@@ -36,19 +25,25 @@ export async function POST({ params, request, locals }) {
     return json({ error: 'Article not found' }, { status: 404 });
   }
 
-  // Makaleyi güncelle
-  await articles.updateOne(
-    { _id: articleId },
-    { $set: { hidden, updatedAt: new Date() } }
-  );
+  // Update the article
+  await updateArticle(articleId, {
+    is_hidden: hidden,
+    hidden_by: hidden && user?.id ? user.id : null,
+    hidden_at: hidden ? new Date() : null
+  });
 
   console.log('HIDE API - Update result:', 'success');
 
-  const updatedArticle = await articles.findOne({ _id: articleId });
+  const updatedArticle = await getArticleById(articleId);
 
   return json({
     success: true,
     hidden,
-    stats: updatedArticle?.stats || { likes: 0, dislikes: 0, comments: 0, views: 0 }
+    stats: {
+      likes: updatedArticle?.likes_count || 0,
+      dislikes: updatedArticle?.dislikes || 0,
+      comments: updatedArticle?.comments_count || 0,
+      views: updatedArticle?.views || 0
+    }
   });
 }

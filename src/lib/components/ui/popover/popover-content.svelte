@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { cn } from "$lib/utils.ts";
+	import { cn } from "$lib/utils";
 	import { Popover as PopoverPrimitive } from "bits-ui";
 
 	let {
@@ -25,5 +25,7 @@
 			className
 		)}
 		{...restProps}
-	/>
+	>
+		<slot />
+	</PopoverPrimitive.Content>
 </PopoverPrimitive.Portal>

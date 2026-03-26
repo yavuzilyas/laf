@@ -9,6 +9,14 @@ export const GET: RequestHandler = async ({ cookies }) => {
 		secure: false,
 		maxAge: 0
 	});
-	throw redirect(303, '/');
+	return new Response(
+		`<!doctype html><html><head><meta charset="utf-8"></head><body>
+		<script>
+		try { sessionStorage.removeItem('laf.mnemonicPhrase'); } catch (e) {}
+		window.location.replace('/');
+		</script>
+		</body></html>`,
+		{ headers: { 'content-type': 'text/html; charset=utf-8', 'cache-control': 'no-store' } }
+	);
 	
 };

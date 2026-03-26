@@ -1,6 +1,7 @@
 import { Editor, Node, mergeAttributes, type CommandProps, type NodeViewProps } from '@tiptap/core';
 import type { Component } from 'svelte';
 import { SvelteNodeViewRenderer } from 'svelte-tiptap';
+import { getFileSizeLimit } from '../../config/file-limits';
 
 export interface AudioPlaceholderOptions {
 	HTMLAttributes: Record<string, object>;
@@ -33,7 +34,8 @@ export const AudioPlaceholder = (
 				HTMLAttributes: {},
 				onDrop: () => {},
 				onDropRejected: () => {},
-				onEmbed: () => {}
+				onEmbed: () => {},
+				maxSize: getFileSizeLimit('audio')
 			};
 		},
 		parseHTML() {

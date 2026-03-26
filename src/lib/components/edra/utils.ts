@@ -2,6 +2,7 @@ import { browser } from '$app/environment';
 import type { Editor } from '@tiptap/core';
 import { Decoration, DecorationSet, type EditorView } from '@tiptap/pm/view';
 import { Node } from '@tiptap/pm/model';
+import { getFileSizeLimit, isFileSizeValid, getFileSizeError, formatFileSize } from './config/file-limits.js';
 
 /**
  * Check if the current browser is in mac or not
@@ -11,34 +12,54 @@ export const isMac = browser
 	: false;
 
 /**
- * Function to handle paste event of an image
+ * Function to handle paste event for media files
  * @param editor Editor - editor instance
- * @param maxSize number - max size of the image to be pasted in MB, default is 2MB
+ * @param customLimits Optional custom limits override
  */
-export function getHandlePaste(editor: Editor, maxSize: number = 2) {
+export function getHandlePaste(editor: Editor, customLimits?: Partial<Record<string, number>>) {
 	return (view: EditorView, event: ClipboardEvent) => {
 		const item = event.clipboardData?.items[0];
-
-		if (item?.type.indexOf('image') !== 0) {
-			return;
-		}
+		if (!item) return;
 
 		const file = item.getAsFile();
-		if (file === null || file.size === undefined) return;
-		const filesize = (file?.size / 1024 / 1024).toFixed(4);
+		if (!file || file.size === undefined) return;
 
-		if (filesize && Number(filesize) > maxSize) {
-			window.alert(`too large image! filesize: ${filesize} mb`);
+		// Determine media type from MIME type
+		let mediaType: 'image' | 'audio' | 'video' | 'file';
+		const mimeType = file.type.toLowerCase();
+
+		if (mimeType.startsWith('image/')) {
+			mediaType = 'image';
+		} else if (mimeType.startsWith('audio/')) {
+			mediaType = 'audio';
+		} else if (mimeType.startsWith('video/')) {
+			mediaType = 'video';
+		} else {
+			mediaType = 'file';
+		}
+
+		// Get appropriate size limit
+		const sizeLimit = customLimits?.[mediaType] || getFileSizeLimit(mediaType);
+
+		// Check file size
+		if (file.size > sizeLimit) {
+			const errorMessage = getFileSizeError(file, mediaType);
+			window.alert(errorMessage);
+			event.preventDefault();
 			return;
 		}
 
-		const reader = new FileReader();
-		reader.readAsDataURL(file);
-		// reader.onload = (e) => {
-		// 	if (e.target?.result) {
-		// 		editor.commands.setImage({ src: e.target.result as string });
-		// 	}
-		// };
+		// For now, only handle images in paste handler
+		// Other media types can be added as needed
+		if (mediaType === 'image') {
+			// Let the default handler process the image
+			return;
+		} else {
+			// Prevent default handling for other media types
+			// They can be handled by specific extensions if needed
+			event.preventDefault();
+			window.alert(`Pasting ${mediaType} files is not supported. Please use the media placeholder buttons to upload ${mediaType} files.`);
+		}
 	};
 }
 

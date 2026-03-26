@@ -324,13 +324,18 @@ class ArticleEditorStore {
 
     this._isSaving = true;
     try {
+      // Get honeypot field value
+      const honeypotField = document.querySelector('input[name="website"]') as HTMLInputElement;
+      const honeypotValue = honeypotField?.value || '';
+
       const response = await fetch('/api/articles/save', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           ...this._articleData,
           status: 'published',
-          publishedAt: new Date()
+          publishedAt: new Date(),
+          website: honeypotValue // Honeypot field for spam protection
         })
       });
 
@@ -338,12 +343,24 @@ class ArticleEditorStore {
         const result = await response.json();
         this._articleData.id = result.articleId || this._articleData.id;
         this._articleData.status = 'published';
+        // Clear honeypot field
+        if (honeypotField) honeypotField.value = '';
         return result;
+      } else if (response.status === 429) {
+        throw new Error('Too many articles created. Please wait before creating another article.');
+      } else {
+        const errorData = await response.json().catch(() => ({}));
+        const errorMessage = errorData.error || 'Failed to publish article';
+        if (errorData.reasons && Array.isArray(errorData.reasons)) {
+          throw new Error(`${errorMessage}: ${errorData.reasons.join(', ')}`);
+        } else {
+          throw new Error(errorMessage);
+        }
       }
       return false;
     } catch (error) {
       console.error('Failed to publish article:', error);
-      return false;
+      throw error;
     } finally {
       this._isSaving = false;
     }

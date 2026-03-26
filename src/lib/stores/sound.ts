@@ -1,6 +1,7 @@
 // src/lib/stores/sound.ts
 import { writable } from "svelte/store";
 import { browser } from '$app/environment';
+import { isIndividualSoundEnabled } from './sound-settings';
 
 type SoundFiles = {
   [key: string]: {
@@ -46,7 +47,10 @@ export const sounds: SoundFiles = {
     wav: "/sounds/alert_error-01.wav"
   },
   swift:{
-    wav: "/sounds/focus_change_large.wav"
+    wav: "/sounds/navigationpush.wav"
+  },
+  swift2:{
+    wav: "/sounds/navigationpop.wav"
   },
   refresh:{
     wav: "/sounds/ui_refresh-feed.wav"
@@ -105,13 +109,13 @@ export function playSound(key: string) {
   const ctx = getAudioCtx();
   if (!ctx || !bufferCache[key]) return;
 
-  soundEnabled.subscribe((enabled) => {
-    if (!enabled) return;
-    const source = ctx.createBufferSource();
-    source.buffer = bufferCache[key];
-    source.connect(ctx.destination);
-    source.start();
-  })();
+  // Only check individual sound settings (independent of global soundEnabled)
+  if (!isIndividualSoundEnabled(key)) return;
+  
+  const source = ctx.createBufferSource();
+  source.buffer = bufferCache[key];
+  source.connect(ctx.destination);
+  source.start();
 }
 
 export async function preloadSounds(sounds: Record<string, string>) {

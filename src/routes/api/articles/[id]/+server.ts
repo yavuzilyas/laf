@@ -1,7 +1,6 @@
 // src/routes/api/articles/[id]/+server.ts
 import { json } from '@sveltejs/kit';
-import { ObjectId } from 'mongodb';
-import { getArticlesCollection } from '$db/mongo';
+import { getArticleById, softDeleteArticle } from '$db/queries';
 import { resolve } from 'path';
 import { rm } from 'fs/promises';
 import { existsSync } from 'fs';
@@ -14,22 +13,12 @@ export async function DELETE({ params, locals }) {
   // TEMPORARY: Skip authentication for testing
   // if (!user) return json({ error: 'Unauthorized' }, { status: 401 });
 
-  const articleId = new ObjectId(params.id);
-  // const userId = new ObjectId(user.id);
+  const articleId = params.id;
 
-  console.log('DELETE API - Article ID:', articleId.toString());
+  console.log('DELETE API - Article ID:', articleId);
 
-  const articles = await getArticlesCollection();
-
-  // TEMPORARY: Skip permission check for testing
-  // Makalenin var olup olmadığını ve kullanıcının sahibi olup olmadığını kontrol et
-  const article = await articles.findOne({
-    _id: articleId
-    // $or: [
-    //   { authorId: userId },
-    //   { 'author.id': userId.toString() }
-    // ]
-  });
+  // Find the article
+  const article = await getArticleById(articleId);
 
   console.log('DELETE API - Found article:', !!article);
 
@@ -37,13 +26,9 @@ export async function DELETE({ params, locals }) {
     return json({ error: 'Article not found' }, { status: 404 });
   }
 
-  // Makaleyi soft delete yap (deletedAt field'ını ekle)
+  // Soft delete the article
   try {
-    // Soft delete the article
-    await articles.updateOne(
-      { _id: articleId },
-      { $set: { deletedAt: new Date(), updatedAt: new Date(), 'stats.comments': 0 } }
-    );
+    await softDeleteArticle(articleId);
 
     // Delete the entire article's upload directory if it exists
     const articleUploadsDir = resolve('static', 'uploads', 'articles', params.id);

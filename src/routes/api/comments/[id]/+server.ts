@@ -1,7 +1,6 @@
 // src/routes/api/comments/[id]/+server.ts
 import { json } from '@sveltejs/kit';
-import { ObjectId } from 'mongodb';
-import { getCommentsCollection, getArticlesCollection } from '$db/mongo';
+import { getComments, deleteComment, getArticles, updateArticle } from '$db/queries';
 
 export async function DELETE({ params, locals }) {
   const user = (locals as any)?.user;
@@ -11,21 +10,12 @@ export async function DELETE({ params, locals }) {
   // TEMPORARY: Skip authentication for testing
   // if (!user) return json({ error: 'Unauthorized' }, { status: 401 });
 
-  const commentId = new ObjectId(params.id);
-  // const userId = new ObjectId(user.id);
+  const commentId = params.id;
+  // const userId = user.id;
 
-  const comments = await getCommentsCollection();
-  const articles = await getArticlesCollection();
-
-  // TEMPORARY: Skip permission check for testing
-  // Yorumun var olup olmadığını ve kullanıcının sahibi olup olmadığını kontrol et
-  const comment = await comments.findOne({
-    _id: commentId
-    // $or: [
-    //   { userId: userId },
-    //   { 'author.id': userId.toString() }
-    // ]
-  });
+  // Get comment
+  const commentData = await getComments({ id: commentId });
+  const comment = commentData[0];
 
   console.log('COMMENT DELETE API - Found comment:', !!comment);
 
@@ -33,18 +23,18 @@ export async function DELETE({ params, locals }) {
     return json({ error: 'Comment not found' }, { status: 404 });
   }
 
-  // Yorumu soft delete yap (deletedAt field'ını ekle)
-  await comments.updateOne(
-    { _id: commentId },
-    { $set: { deletedAt: new Date(), updatedAt: new Date() } }
-  );
+  // Yorumu soft delete yap
+  await deleteComment(commentId);
 
   // Article'ın comment count'ını azalt
-  if (comment.articleId) {
-    await articles.updateOne(
-      { _id: comment.articleId },
-      { $inc: { 'stats.comments': -1 } }
-    );
+  if (comment?.article_id) {
+    const articles = await getArticles({ id: comment.article_id });
+    if (articles.length > 0) {
+      const article = articles[0];
+      await updateArticle(comment.article_id, { 
+        comments_count: Math.max(0, (article.comments_count || 0) - 1) 
+      });
+    }
   }
 
   return json({ success: true, message: 'Comment deleted successfully' });

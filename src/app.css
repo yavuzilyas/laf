@@ -16,6 +16,8 @@ body {
   overflow: auto;
 }
 @custom-variant dark (&:is(.dark *));
+@custom-variant dark-highcontrast (&:is(.dark.highcontrast *));
+@custom-variant light-highcontrast (&:is(.light.highcontrast *));
 .theme-transition {
   transition-property: background-color, color, border-color, fill, stroke;
   transition-duration: 4s; /* 4 saniye */
@@ -344,4 +346,157 @@ body{
       opacity: 1;
     }
   }
+}
+
+/* High Contrast Mode Styles */
+.dark.highcontrast {
+  --background: oklch(0.09 0 0);
+  --foreground: oklch(1 0 0);
+  --card: oklch(0.12 0 0);
+  --card-foreground: oklch(1 0 0);
+  --popover: oklch(0.12 0 0);
+  --popover-foreground: oklch(1 0 0);
+  --primary: oklch(1 0 0);
+  --primary-foreground: oklch(0.09 0 0);
+  --secondary: oklch(0.18 0 0);
+  --secondary-foreground: oklch(1 0 0);
+  --muted: oklch(0.15 0 0);
+  --muted-foreground: oklch(0.85 0 0);
+  --accent: oklch(0.22 0 0);
+  --accent-foreground: oklch(1 0 0);
+  --destructive: oklch(0.7 0.25 27.325);
+  --destructive-foreground: oklch(1 0 0);
+  --border: oklch(0.35 0 0);
+  --input: oklch(0.12 0 0);
+  --ring: oklch(1 0 0);
+  /* Chart colors with higher contrast */
+  --chart-1: oklch(0.7 0.25 264.376);
+  --chart-2: oklch(0.8 0.2 162.48);
+  --chart-3: oklch(0.85 0.22 70.08);
+  --chart-4: oklch(0.75 0.3 303.9);
+  --chart-5: oklch(0.8 0.28 16.439);
+  /* Theme colors from normal CSS */
+  --hard-primary: #fac800;
+  --sidebar: oklch(0.09 0 0);
+  --sidebar-foreground: oklch(1 0 0);
+  --sidebar-primary: oklch(1 0 0);
+  --sidebar-primary-foreground: oklch(0.09 0 0);
+  --sidebar-accent: oklch(0.22 0 0);
+  --sidebar-accent-foreground: oklch(1 0 0);
+  --sidebar-border: oklch(0.35 0 0);
+  --sidebar-ring: oklch(1 0 0);
+}
+
+.light.highcontrast {
+  --background: oklch(0.98 0 0);
+  --foreground: oklch(0.05 0 0);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.05 0 0);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.05 0 0);
+  --primary: oklch(0.05 0 0);
+  --primary-foreground: oklch(0.98 0 0);
+  --secondary: oklch(0.92 0 0);
+  --secondary-foreground: oklch(0.05 0 0);
+  --muted: oklch(0.94 0 0);
+  --muted-foreground: oklch(0.15 0 0);
+  --accent: oklch(0.88 0 0);
+  --accent-foreground: oklch(0.05 0 0);
+  --destructive: oklch(0.5 0.25 27.325);
+  --destructive-foreground: oklch(1 0 0);
+  --border: oklch(0.65 0 0);
+  --input: oklch(0.96 0 0);
+  --ring: oklch(0.05 0 0);
+  /* Chart colors with higher contrast */
+  --chart-1: oklch(0.4 0.25 41.116);
+  --chart-2: oklch(0.4 0.15 184.704);
+  --chart-3: oklch(0.25 0.1 227.392);
+  --chart-4: oklch(0.6 0.22 84.429);
+  --chart-5: oklch(0.55 0.21 70.08);
+  /* Theme colors from normal CSS */
+  --hard-primary: #fac800;
+  --sidebar: oklch(0.98 0 0);
+  --sidebar-foreground: oklch(0.05 0 0);
+  --sidebar-primary: oklch(0.05 0 0);
+  --sidebar-primary-foreground: oklch(0.98 0 0);
+  --sidebar-accent: oklch(0.88 0 0);
+  --sidebar-accent-foreground: oklch(0.05 0 0);
+  --sidebar-border: oklch(0.65 0 0);
+  --sidebar-ring: oklch(0.05 0 0);
+}
+
+/* Enhanced high contrast borders and focus states */
+.highcontrast button,
+.highcontrast .btn,
+.highcontrast input,
+.highcontrast select,
+.highcontrast textarea {
+  border-width: 2px !important;
+  border-color: var(--border) !important;
+  
+}
+
+.highcontrast button:focus,
+.highcontrast .btn:focus,
+.highcontrast input:focus,
+.highcontrast select:focus,
+.highcontrast textarea:focus {
+  outline: 3px solid var(--ring) !important;
+  outline-offset: 2px !important;
+}
+
+.highcontrast .text-muted-foreground {
+  color: var(--muted-foreground) !important;
+  font-weight: 500 !important;
+}
+
+/* Fix dialog background in high contrast mode */
+.highcontrast [data-slot="dialog-content"] {
+  background-color: var(--background) !important;
+}
+
+.highcontrast [data-slot="dialog-overlay"] {
+  background-color: rgba(0, 0, 0, 0.8) !important;
+}
+
+.light.highcontrast [data-slot="dialog-overlay"] {
+  background-color: rgba(255, 255, 255, 0.8) !important;
+}
+
+/* Disable blur, transparency, and shadow effects in high contrast mode */
+.highcontrast {
+  /* Remove all blur effects */
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  filter: none !important;
+}
+
+.highcontrast *,
+.highcontrast *::before,
+.highcontrast *::after {
+  /* Remove shadows */
+  box-shadow: none !important;
+  text-shadow: none !important;
+  filter: none !important;
+  
+  /* Remove blur effects */
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  
+  /* Remove transparency */
+  opacity: 1 !important;
+}
+
+.highcontrast [data-slot="dialog-overlay"] {
+  background-color: rgb(0, 0, 0) !important;
+}
+
+.light.highcontrast [data-slot="dialog-overlay"] {
+  background-color: rgb(255, 255, 255) !important;
+}
+
+.highcontrast [data-slot="dialog-content"] {
+  background-color: var(--background) !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
 }

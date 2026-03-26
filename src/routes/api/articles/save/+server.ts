@@ -1,11 +1,140 @@
 // src/routes/api/articles/save/+server.ts
 import { json } from '@sveltejs/kit';
-import { ObjectId } from 'mongodb';
-import { getArticlesCollection, getDraftsCollection, getVersionsCollection, getUsersCollection } from '$db/mongo';
+import { getArticles, createArticle, updateArticle, getArticleById, getUsers, upsertDraft, createVersion, countVersions, deleteDraft } from '$db/queries';
 import { slugify } from '$lib/utils/slugify';
 import { rm } from 'fs/promises';
 import { resolve } from 'path';
-import { notifyNewArticle } from '$lib/server/notifications';
+import { notifyNewArticle, notifyModeratorsNewArticle } from '$lib/server/notifications-pg';
+
+// Rate limiting storage for article creation
+const articleRateLimitStore = new Map<string, { count: number; resetTime: number }>();
+
+// Spam detection patterns for articles
+const articleSpamPatterns = [
+  /\b(buy|sell|cheap|free|discount|offer|deal|price|click|here|now|urgent|act|fast|quick)\b/gi,
+  /\b(http|www|\.com|\.net|\.org|\.info|\.biz|link|url|site|website)\b/gi,
+  /\b(money|cash|dollar|bitcoin|crypto|investment|profit|income|earn)\b/gi,
+  /\b(viagra|cialis|casino|poker|bet|gambling|lottery)\b/gi,
+  /\b(weight|loss|diet|pill|fat|burn|slim)\b/gi,
+  /([a-zA-Z])\1{3,}/g, // Repeated characters
+  /\b([a-zA-Z])\b(?:\s+\1\b){2,}/g, // Repeated words
+];
+
+const profanityList = [
+  'fuck', 'shit', 'ass', 'bitch', 'damn', 'hell', 'cunt', 'dick', 'pussy',
+  'whore', 'slut', 'bastard', 'idiot', 'stupid', 'moron', 'retard'
+];
+
+function checkArticleRateLimit(userId: string, limit: number = 3, windowMs: number = 3600000): boolean {
+  const now = Date.now();
+  const key = `article:${userId}`;
+  const record = articleRateLimitStore.get(key);
+
+  if (!record || now > record.resetTime) {
+    articleRateLimitStore.set(key, { count: 1, resetTime: now + windowMs });
+    return true;
+  }
+
+  if (record.count >= limit) {
+    return false;
+  }
+
+  record.count++;
+  return true;
+}
+
+function detectArticleSpam(article: any): { isSpam: boolean; reasons: string[] } {
+  const reasons: string[] = [];
+  
+  // Check all translations for spam
+  const translations = article.translations || {};
+  for (const [lang, translation] of Object.entries(translations)) {
+    if (typeof translation !== 'object' || !translation) continue;
+    
+    let titleText = translation.title || '';
+    let excerptText = translation.excerpt || '';
+    let contentText = '';
+    
+    // Extract text from TipTap JSON content
+    if (translation.content) {
+      contentText = extractTextFromContent(translation.content);
+    }
+    
+    const combinedText = `${titleText} ${excerptText} ${contentText}`.toLowerCase();
+    
+    // Check for spam patterns
+    for (const pattern of articleSpamPatterns) {
+      if (pattern.test(combinedText)) {
+        reasons.push('Contains spam keywords');
+        break;
+      }
+    }
+    
+    // Check for profanity
+    for (const word of profanityList) {
+      if (combinedText.includes(word)) {
+        reasons.push('Contains inappropriate language');
+        break;
+      }
+    }
+    
+    // Check length limits
+    if (titleText.length < 5) {
+      reasons.push('Title too short');
+    } else if (titleText.length > 200) {
+      reasons.push('Title too long');
+    }
+    
+    if (contentText.length < 50) {
+      reasons.push('Content too short');
+    } else if (contentText.length > 10000) {
+      reasons.push('Content too long');
+    }
+    
+    // Check for excessive repetition
+    const words = contentText.split(/\s+/);
+    const uniqueWords = new Set(words.map(w => w.toLowerCase()));
+    if (words.length > 20 && uniqueWords.size < words.length * 0.4) {
+      reasons.push('Excessive repetition');
+    }
+    
+    // Check for too many URLs
+    const urlMatches = combinedText.match(/https?:\/\/[^\s]+/g) || [];
+    if (urlMatches.length > 5) {
+      reasons.push('Too many URLs');
+    }
+    
+    // If we found spam, no need to check other translations
+    if (reasons.length > 0) break;
+  }
+  
+  return {
+    isSpam: reasons.length > 0,
+    reasons
+  };
+}
+
+function extractTextFromContent(content: any): string {
+  if (!content || typeof content !== 'object') return '';
+  
+  let text = '';
+  
+  function traverse(node: any) {
+    if (typeof node === 'string') {
+      text += node + ' ';
+    } else if (node && typeof node === 'object') {
+      if (node.text) {
+        text += node.text + ' ';
+      }
+      if (node.content && Array.isArray(node.content)) {
+        node.content.forEach(traverse);
+      }
+    }
+  }
+  
+  traverse(content);
+  return text.trim();
+}
 
 export async function POST({ request, locals }) {
     const user = (locals as any)?.user;
@@ -110,14 +239,32 @@ async function cleanupUnusedMedia(existing: any, updated: any, articleId: string
     const data = await request.json();
     
     try {
-        const articles = await getArticlesCollection();
-        const drafts = await getDraftsCollection();
-        const versions = await getVersionsCollection();
-        const users = await getUsersCollection();
+        // Rate limiting check for article creation
+        if (!checkArticleRateLimit(user.id)) {
+            return json({ 
+                error: 'Too many articles created. Please wait before creating another article.' 
+            }, { status: 429 });
+        }
+
+        // Honeypot check for bots
+        if (data.website && data.website.trim() !== '') {
+            return json({ error: 'Spam detected' }, { status: 400 });
+        }
+
+        // Spam detection
+        const spamCheck = detectArticleSpam(data);
+        if (spamCheck.isSpam) {
+            console.log('Article spam detected from user', user.id, ':', spamCheck.reasons);
+            return json({ 
+                error: 'Article appears to be spam',
+                reasons: spamCheck.reasons 
+            }, { status: 400 });
+        }
 
         // Get user's role
-        const userData = await users.findOne({ _id: new ObjectId(user.id) });
-        const userRole = userData?.role || 'user';
+        const userData = await getUsers({ id: user.id });
+        const userRecord = userData[0];
+        const userRole = userRecord?.role || 'user';
         const isPrivileged = userRole === 'admin' || userRole === 'moderator';
 
         // Check article limit for non-privileged users
@@ -126,13 +273,17 @@ async function cleanupUnusedMedia(existing: any, updated: any, articleId: string
             const startOfDay = new Date();
             startOfDay.setHours(0, 0, 0, 0);
             
-            const publishedToday = await articles.countDocuments({
-                'authorId': new ObjectId(user.id),
-                'status': 'published',
-                'createdAt': { $gte: startOfDay }
+            // Get all articles by user and filter manually for today
+            const userArticles = await getArticles({ 
+                author_id: user.id 
             });
+            
+            const publishedToday = userArticles.filter((article: any) => 
+                article.status === 'published' && 
+                new Date(article.created_at) >= startOfDay
+            );
 
-            if (publishedToday >= 2) {
+            if (publishedToday.length >= 2) {
                 return json({ 
                     error: 'Günlük makale yayınlama limitinize ulaştınız. Günde en fazla 2 makale yayınlayabilirsiniz.' 
                 }, { status: 403 });
@@ -151,32 +302,44 @@ async function cleanupUnusedMedia(existing: any, updated: any, articleId: string
         // Slug kontrolü ve oluşturma (dil bazlı)
         for (const [lang, translation] of Object.entries<any>(data.translations || {})) {
             if (translation.title && !translation.slug) {
-                translation.slug = slugify(translation.title) + `-${lang}`;
+                translation.slug = slugify(translation.title);
             }
 
-            // Slug benzersizlik kontrolü
+            // Slug benzersizlik kontrolü - check if slug exists for this language
             if (translation.slug) {
-                const existing = await articles.findOne({
-                    [`translations.${lang}.slug`]: translation.slug,
-                    _id: (data._id || data.id) ? { $ne: new ObjectId(data._id || data.id) } : { $exists: true }
+                const baseSlug = translation.slug;
+                const existingArticles = await getArticles({ 
+                    slug: baseSlug, 
+                    language: lang 
                 });
+                
+                // Filter out the current article if updating
+                const existing = existingArticles.find((a: any) => a.id !== (data._id || data.id));
 
+                // Only add unique suffix if there's a duplicate
                 if (existing) {
-                    translation.slug = `${translation.slug}-${Date.now()}`;
+                    translation.slug = `${baseSlug}-${Date.now()}`;
                 }
             }
         }
 
         const articleData = {
-            ...data,
-            authorId: new ObjectId(user.id),
-            updatedAt: new Date(),
-            stats: data.stats || { views: 0, likes: 0, comments: 0 },
-            // Store the original status for reference
-            originalStatus: data.status,
+            translations: data.translations || {},
+            category: data.category || null,
+            subcategory: data.subcategory || null,
+            tags: data.tags || [],
+            thumbnail: data.thumbnail || null,
+            collaborators: data.collaborators || [],
+            status: data.status || 'draft',
+            default_language: data.defaultLanguage || 'tr',
+            views: data.stats?.views || 0,
+            likes_count: data.stats?.likes || 0,
+            comments_count: data.stats?.comments || 0,
+            author_id: user.id,
+            published_at: data.status === 'published' ? new Date() : data.published_at,
             // Store reviewer info if status was changed to pending
             ...(data.status === 'pending' && !isPrivileged && {
-                pendingReview: {
+                pending_review: {
                     requestedAt: new Date(),
                     status: 'pending',
                     reviewerId: null,
@@ -186,65 +349,52 @@ async function cleanupUnusedMedia(existing: any, updated: any, articleId: string
             })
         };
 
-        let result;
-        let articleId;
+        // Store original status for reference (not saved to DB)
+        const originalStatus = data.status;
+
+        let articleId: string;
 
         const existingId = data._id || data.id;
         let existingArticle: any = null;
         if (existingId) {
             // Güncelleme
-            articleId = new ObjectId(existingId);
-            existingArticle = await articles.findOne({ _id: articleId });
-            await articles.updateOne(
-                { _id: articleId },
-                { $set: articleData }
-            );
+            articleId = existingId;
+            existingArticle = await getArticleById(articleId);
+            await updateArticle(articleId, articleData);
         } else {
             // Yeni makale
-            articleData.createdAt = new Date();
-            result = await articles.insertOne(articleData);
-            articleId = result.insertedId;
+            const result = await createArticle(articleData);
+            articleId = result.id;
         }
 
         // Taslak kaydetme
         if (data.status === 'draft') {
-            await drafts.updateOne(
-                { articleId, authorId: new ObjectId(locals.user.id) },
-                { 
-                    $set: { 
-                        data: articleData,
-                        lastSaved: new Date(),
-                        hasUnpublishedChanges: true
-                    } 
-                },
-                { upsert: true }
-            );
+            await upsertDraft(articleId, user.id, {
+                data: articleData,
+                has_unpublished_changes: true
+            });
         } else {
             // Yayınlama - versiyon kaydet
-            const versionCount = await versions.countDocuments({ articleId });
-            await versions.insertOne({
-                articleId,
-                versionNumber: versionCount + 1,
+            const versionCount = await countVersions(articleId);
+            await createVersion({
+                articleId: articleId,
                 data: articleData,
-                createdAt: new Date(),
-                authorId: new ObjectId(user.id)
+                authorId: user.id,
+                changeNote: `Version ${versionCount + 1}`
             });
 
             // Taslağı temizle
-            await drafts.deleteOne({ articleId });
+            await deleteDraft(articleId);
 
-            await cleanupUnusedMedia(existingArticle, articleData, articleId.toString());
+            await cleanupUnusedMedia(existingArticle, articleData, articleId);
             
             // Send notifications to followers if this is a new published article
-            if (!existingId && articleData.originalStatus === 'published') {
-              const users = await getUsersCollection();
-              const author = await users.findOne(
-                { _id: new ObjectId(user.id) },
-                { projection: { name: 1, nickname: 1 } }
-              );
+            if (!existingId && originalStatus === 'published') {
+              const authorData = await getUsers({ id: user.id });
+              const author = authorData[0];
               
               if (author) {
-                const defaultLang = articleData.defaultLanguage || 'tr';
+                const defaultLang = articleData.default_language || 'tr';
                 const title = articleData.translations?.[defaultLang]?.title || 'Yeni Makale';
                 
                 await notifyNewArticle({
@@ -252,16 +402,40 @@ async function cleanupUnusedMedia(existing: any, updated: any, articleId: string
                   articleSlug: articleData.translations?.[defaultLang]?.slug,
                   authorId: user.id,
                   articleTitle: title,
-                  authorName: author.nickname || author.name || 'Bir kullanıcı'
+                  authorName: author.username || author.name || 'Bir kullanıcı'
                 });
+              }
+            }
+
+            // Send notifications to moderators if this is a new article needing review
+            if (!existingId && (data.status === 'pending' || data.status === 'published')) {
+              const authorData = await getUsers({ id: user.id });
+              const author = authorData[0];
+              
+              if (author) {
+                const defaultLang = articleData.default_language || 'tr';
+                const title = articleData.translations?.[defaultLang]?.title || 'Yeni Makale';
+                
+                try {
+                  await notifyModeratorsNewArticle({
+                    articleId: articleId,
+                    articleSlug: articleData.translations?.[defaultLang]?.slug,
+                    authorId: user.id,
+                    articleTitle: title,
+                    authorName: author.username || author.name || 'Bir kullanıcı'
+                  });
+                } catch (notificationError) {
+                  console.error('Failed to send notification to moderators:', notificationError);
+                  // Don't fail the request if notification fails
+                }
               }
             }
         }
 
         return json({
             success: true,
-            articleId: articleId.toString(),
-            slug: articleData.translations?.[articleData.defaultLanguage as string]?.slug
+            articleId: articleId,
+            slug: articleData.translations?.[articleData.default_language as string]?.slug
         });
 
     } catch (error) {
