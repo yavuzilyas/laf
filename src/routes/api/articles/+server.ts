@@ -2,7 +2,6 @@ import { json } from '@sveltejs/kit';
 import { getArticles } from '$db/queries';
 
 export async function GET({ url, locals }) {
-));
   
   try {
     const user = (locals as any)?.user;
@@ -116,7 +115,6 @@ export async function GET({ url, locals }) {
       totalPages: Math.ceil(total / limit)
     };
     
-);
     return json(result);
 
   } catch (error) {

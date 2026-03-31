@@ -8,6 +8,8 @@ WORKDIR /app
 # lock ve package önce
 COPY package.json pnpm-lock.yaml ./
 
+RUN npm install -g npm@11.12.1
+
 # bağımlılıklar
 RUN pnpm install --frozen-lockfile
 
