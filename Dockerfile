@@ -18,9 +18,10 @@ COPY . .
 
 # build için dummy env değerleri (runtime'da gerçek değerler kullanılır)
 ENV DATABASE_URL=postgresql://laf_user:WdYsA6HfI06AxmUbUMNQ@laf-db-kuli76:5432/laf_app
-ENV NODE_OPTIONS="--max-old-space-size=2048"
+ENV NODE_OPTIONS="--max-old-space-size=8192"
 
-# build
+# build (memory optimizasyonu için worker'ları devre dışı bırak)
+ENV VITE_NODE_OPTIONS="--max-old-space-size=8192"
 RUN npx svelte-kit sync
 RUN pnpm build
 

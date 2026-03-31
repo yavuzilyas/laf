@@ -5,6 +5,13 @@ export default defineConfig({
 	plugins: [sveltekit()],
 	clearScreen: true,
 	logLevel: 'error',
+	build: {
+		rollupOptions: {
+			maxParallelFileOps: 2
+		},
+		sourcemap: false,
+		minify: 'esbuild'
+	},
 	server: {
 		host: '0.0.0.0',
 		port: 5173,
