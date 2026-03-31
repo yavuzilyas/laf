@@ -38,6 +38,7 @@
     import { Motion, useMotionValue, useMotionTemplate } from "svelte-motion";
     import { browser } from '$app/environment';
     import ReportDrawer from "$lib/components/ReportDrawer.svelte";
+    import ArticleRecommendation from "$lib/components/ArticleRecommendation.svelte";
     import * as AlertDialog from "$lib/components/ui/alert-dialog";
     import * as Dialog from "$lib/components/ui/dialog";
     import { ScrollArea } from "$lib/components/ui/scroll-area";
@@ -2995,6 +2996,16 @@
                     {/if}
                 </div>
             </div>
+
+            <!-- Similar Articles Recommendation -->
+            {#if data.similarArticles && data.similarArticles.length > 0}
+                <div class="mt-16">
+                    <ArticleRecommendation 
+                        articles={data.similarArticles} 
+                        title={t('articles.similarArticles') || 'Benzer Makaleler'}
+                    />
+                </div>
+            {/if}
         </article>
     {/if}
 </main>

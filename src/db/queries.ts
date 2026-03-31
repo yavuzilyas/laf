@@ -1982,3 +1982,178 @@ export const createMessage = async (data: {
     const result = await query(sql, [id, data.senderId, data.receiverId, data.content]);
     return result.rows[0];
 };
+
+// ==================== ARTICLE RECOMMENDATIONS ====================
+
+// Helper function to fetch collaborator details
+const getCollaboratorDetails = async (collaboratorIds: string[]): Promise<Array<{
+    id: string;
+    name: string;
+    nickname: string;
+    avatar?: string;
+}>> => {
+    if (!collaboratorIds || collaboratorIds.length === 0) return [];
+    
+    const sql = `
+        SELECT id, username, name, surname, nickname, avatar_url
+        FROM users
+        WHERE id = ANY($1)
+    `;
+    
+    const result = await query(sql, [collaboratorIds]);
+    return result.rows.map((row: any) => ({
+        id: row.id,
+        name: row.name || row.username || 'Unknown',
+        nickname: row.nickname || row.username || 'user',
+        avatar: row.avatar_url
+    }));
+};
+
+// Get popular articles based on engagement (likes + comments + views)
+export const getPopularArticles = async (limit: number = 3, excludeId?: string) => {
+    let sql = `
+        SELECT a.*, 
+               u.username as author_name, 
+               u.avatar_url as author_avatar,
+               u.name as author_full_name,
+               u.surname as author_surname,
+               u.nickname as author_nickname
+        FROM articles a
+        JOIN users u ON a.author_id = u.id
+        WHERE a.status = 'published' 
+        AND a.deleted_at IS NULL
+        AND a.is_hidden = FALSE
+    `;
+    const params: any[] = [];
+    
+    if (excludeId) {
+        sql += ` AND a.id <> $${params.length + 1}`;
+        params.push(excludeId);
+    }
+    
+    sql += `
+        ORDER BY (COALESCE(a.likes_count, 0) + COALESCE(a.comments_count, 0) + COALESCE(a.views, 0)) DESC
+        LIMIT $${params.length + 1}
+    `;
+    params.push(limit);
+    
+    const result = await query(sql, params);
+    
+    // Fetch collaborator details for each article
+    const articlesWithCollaborators = await Promise.all(
+        result.rows.map(async (row: any) => {
+            const collaboratorIds = row.collaborators || [];
+            const collaboratorDetails = await getCollaboratorDetails(collaboratorIds);
+            
+            return {
+                ...row,
+                id: row.id,
+                slug: row.translations?.[row.default_language]?.slug || row.slug || `article-${row.id}`,
+                title: row.translations?.[row.default_language]?.title || row.title || 'Untitled',
+                excerpt: row.translations?.[row.default_language]?.excerpt || 
+                         (row.translations?.[row.default_language]?.content?.substring(0, 200) + '...') || 
+                         (row.content?.substring(0, 200) + '...') || '',
+                author: {
+                    id: row.author_id,
+                    name: row.author_name || row.author_full_name || 'Unknown',
+                    avatar: row.author_avatar,
+                    nickname: row.author_nickname || row.author_name
+                },
+                author_nickname: row.author_nickname || row.author_name,
+                publishedAt: row.published_at,
+                readTime: Math.ceil((row.translations?.[row.default_language]?.content?.length || row.content?.length || 0) / 1000) || 5,
+                category: row.category,
+                coverImage: row.thumbnail,
+                views: row.views || 0,
+                likes: row.likes_count || 0,
+                comments: row.comments_count || 0,
+                dislikes: row.dislikes || 0,
+                collaborators: collaboratorDetails
+            };
+        })
+    );
+    
+    return articlesWithCollaborators;
+};
+
+// Get similar articles based on category and tags
+export const getSimilarArticles = async (articleId: string, category: string, tags: string[], limit: number = 3) => {
+    let sql = `
+        SELECT a.*, 
+               u.username as author_name, 
+               u.avatar_url as author_avatar,
+               u.name as author_full_name,
+               u.surname as author_surname,
+               u.nickname as author_nickname
+        FROM articles a
+        JOIN users u ON a.author_id = u.id
+        WHERE a.status = 'published' 
+        AND a.deleted_at IS NULL
+        AND a.is_hidden = FALSE
+        AND a.id <> $1
+    `;
+    const params: any[] = [articleId];
+    
+    // Category match is weighted more heavily
+    if (category) {
+        sql += ` AND (a.category = $${params.length + 1}`;
+        params.push(category);
+        
+        // Also include articles with matching tags
+        if (tags && tags.length > 0) {
+            sql += ` OR a.tags && $${params.length + 1}`;
+            params.push(tags);
+        }
+        sql += `)`;
+    }
+    
+    sql += `
+        ORDER BY 
+            CASE WHEN a.category = $${params.length + 1} THEN 2 ELSE 0 END +
+            CASE WHEN a.tags && $${params.length + 2} THEN 1 ELSE 0 END +
+            (COALESCE(a.likes_count, 0) + COALESCE(a.comments_count, 0)) * 0.1
+        DESC
+        LIMIT $${params.length + 3}
+    `;
+    params.push(category);
+    params.push(tags && tags.length > 0 ? tags : []);
+    params.push(limit);
+    
+    const result = await query(sql, params);
+    
+    // Fetch collaborator details for each article
+    const articlesWithCollaborators = await Promise.all(
+        result.rows.map(async (row: any) => {
+            const collaboratorIds = row.collaborators || [];
+            const collaboratorDetails = await getCollaboratorDetails(collaboratorIds);
+            
+            return {
+                ...row,
+                id: row.id,
+                slug: row.translations?.[row.default_language]?.slug || row.slug || `article-${row.id}`,
+                title: row.translations?.[row.default_language]?.title || row.title || 'Untitled',
+                excerpt: row.translations?.[row.default_language]?.excerpt || 
+                         (row.translations?.[row.default_language]?.content?.substring(0, 200) + '...') || 
+                         (row.content?.substring(0, 200) + '...') || '',
+                author: {
+                    id: row.author_id,
+                    name: row.author_name || row.author_full_name || 'Unknown',
+                    avatar: row.author_avatar,
+                    nickname: row.author_nickname || row.author_name
+                },
+                author_nickname: row.author_nickname || row.author_name,
+                publishedAt: row.published_at,
+                readTime: Math.ceil((row.translations?.[row.default_language]?.content?.length || row.content?.length || 0) / 1000) || 5,
+                category: row.category,
+                coverImage: row.thumbnail,
+                views: row.views || 0,
+                likes: row.likes_count || 0,
+                comments: row.comments_count || 0,
+                dislikes: row.dislikes || 0,
+                collaborators: collaboratorDetails
+            };
+        })
+    );
+    
+    return articlesWithCollaborators;
+};

@@ -3,6 +3,9 @@
   import Loader from '$lib/components/load.svelte';
   import { getPageSEO, generateSEOMeta, generateBreadcrumbs } from '$lib/utils/seo.js';
   import { t, getCurrentLocale } from '$lib/stores/i18n.svelte.js';
+  import { page } from '$app/stores';
+
+  let { data } = $props();
 
   const seo = getPageSEO('home');
   const meta = generateSEOMeta({
@@ -56,5 +59,5 @@
 
 <main>
   <slot />
-  <App />
+  <App {data} />
 </main>

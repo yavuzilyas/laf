@@ -253,7 +253,7 @@ import { HandCoinsIcon } from 'svelte-animate-icons';
     }
 </script>
 
-<section id="donations" class="px-4 py-12 sm:max-w-5/7 flex flex-col mx-auto gap-10">
+<section id="donations" class="px-4 py-12 lg:max-w-5/7 flex flex-col mx-auto gap-10">
 
   <!-- Header Section -->
   <div class="text-center">
@@ -416,7 +416,7 @@ import { HandCoinsIcon } from 'svelte-animate-icons';
       {/if}
 
 
-  <MagicCard class="p-3 sm:p-6 rounded-xl">
+  <MagicCard class="p-4 sm:p-6 rounded-xl">
     <CardHeader>
       <CardTitle class="flex items-center gap-2">
                         <img src={xmr} alt="XMR" class="w-9 h-9"/>
@@ -429,28 +429,26 @@ import { HandCoinsIcon } from 'svelte-animate-icons';
     <CardContent class="space-y-4 mt-4">
       <div>
         <h3 class="font-semibold mb-2">{t('donations.walletAddress')}</h3>
-        <div class="flex flex-col sm:flex-row items-start sm:items-center gap-3 p-3 bg-muted rounded-lg">
+        <div class="flex flex-col p-2 sm:flex-row items-start sm:items-center gap-3 bg-muted rounded-lg">
           <code class="text-sm flex-1 font-mono break-all">{walletAddress}</code>
           <div class="flex items-center gap-2 w-full sm:w-auto">
             <Button 
               variant="outline" 
-              size="sm"
+              size="icon"
               onclick={() => copyToClipboard(walletAddress)}
               title={t('donations.copyAddress')}
               class="flex-1 sm:flex-none"
             >
-              <Copy class="w-4 h-4 sm:mr-2" />
-              <span class="hidden sm:inline">{t('donations.copyAddress')}</span>
+              <Copy class="w-4 h-4" />
             </Button>
             <Button 
               variant="default" 
-              size="sm"
+              size="icon"
               onclick={() => showWalletDialog = true}
               title={t('donations.selectWallet')}
               class="flex-1 sm:flex-none"
             >
-              <ExternalLink class="w-4 h-4 sm:mr-2" />
-              <span class="hidden sm:inline">{t('donations.openInWallet')}</span>
+              <ExternalLink class="w-4 h-4" />
             </Button>
           </div>
         </div>
@@ -556,7 +554,39 @@ import { HandCoinsIcon } from 'svelte-animate-icons';
     </CardContent>
   </MagicCard>
 
-  <MagicCard class="p-3 sm:p-6 rounded-xl">
+  <!-- Monero Hakkında Bilgi Kartı -->
+  <MagicCard class="p-4 sm:p-6 rounded-xl">
+    <CardHeader class="w-full flex-col justify-center">
+      <CardTitle class="text-4xl text-primary font-bold flex flex-row justify-center items-center gap-3">
+        <div bind:this={moneroContainer} class="w-34 h-full"></div>
+        {t('donations.monero.whatIs')}
+      </CardTitle>
+    </CardHeader>
+    <CardContent class="space-y-4">
+      <p class="text-foreground/90">
+        {t('donations.monero.description')}
+      </p>
+      
+      <div class="space-y-2">
+        <h3 class="font-semibold text-lg">{t('donations.monero.featuresTitle')}</h3>
+        <ul class="list-disc pl-5 space-y-1 list-inside">
+          <li><span class="font-medium">{t('donations.monero.privacy')}</span> {t('donations.monero.privacyDesc')}</li>
+          <li><span class="font-medium">{t('donations.monero.security')}</span> {t('donations.monero.securityDesc')}</li>
+          <li><span class="font-medium">{t('donations.monero.fungibility')}</span> {t('donations.monero.fungibilityDesc')}</li>
+          <li><span class="font-medium">{t('donations.monero.decentralized')}</span> {t('donations.monero.decentralizedDesc')}</li>
+        </ul>
+      </div>
+
+      <div class="bg-muted/50 p-4 rounded-lg">
+        <h4 class="font-semibold mb-2">{t('donations.monero.howToGet')}</h4>
+        <p class="text-sm text-foreground/80">
+          {t('donations.monero.walletInfo')} 
+          <a href="https://www.getmonero.org/get-started/what-is-monero/" target="_blank" rel="noopener noreferrer" class="text-primary hover:underline font-medium">{t('Information')}</a>
+        </p>
+      </div>
+    </CardContent>
+  </MagicCard>
+  <MagicCard class="p-4 sm:p-6 rounded-xl">
     <CardHeader>
       <CardTitle class="flex items-center gap-2">
         <TrendingUp class="w-5 h-5" />
@@ -654,38 +684,6 @@ import { HandCoinsIcon } from 'svelte-animate-icons';
   <!-- Monero Badges Section -->
   <MoneroBadges />
 
-  <!-- Monero Hakkında Bilgi Kartı -->
-  <MagicCard class="p-3 sm:p-6 rounded-xl">
-    <CardHeader class="w-full flex-col justify-center">
-      <CardTitle class="text-4xl text-primary font-bold flex flex-row justify-center items-center gap-3">
-        <div bind:this={moneroContainer} class="w-34 h-full"></div>
-        {t('donations.monero.whatIs')}
-      </CardTitle>
-    </CardHeader>
-    <CardContent class="space-y-4">
-      <p class="text-foreground/90">
-        {t('donations.monero.description')}
-      </p>
-      
-      <div class="space-y-2">
-        <h3 class="font-semibold text-lg">{t('donations.monero.featuresTitle')}</h3>
-        <ul class="list-disc pl-5 space-y-1 list-inside">
-          <li><span class="font-medium">{t('donations.monero.privacy')}</span> {t('donations.monero.privacyDesc')}</li>
-          <li><span class="font-medium">{t('donations.monero.security')}</span> {t('donations.monero.securityDesc')}</li>
-          <li><span class="font-medium">{t('donations.monero.fungibility')}</span> {t('donations.monero.fungibilityDesc')}</li>
-          <li><span class="font-medium">{t('donations.monero.decentralized')}</span> {t('donations.monero.decentralizedDesc')}</li>
-        </ul>
-      </div>
-
-      <div class="bg-muted/50 p-4 rounded-lg">
-        <h4 class="font-semibold mb-2">{t('donations.monero.howToGet')}</h4>
-        <p class="text-sm text-foreground/80">
-          {t('donations.monero.walletInfo')} 
-          <a href="https://www.getmonero.org/downloads/" target="_blank" rel="noopener noreferrer" class="text-primary hover:underline font-medium">{t('donations.monero.walletLink')}</a>
-        </p>
-      </div>
-    </CardContent>
-  </MagicCard>
 </section>
 
 <!-- Monero Wallet Dialog -->

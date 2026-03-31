@@ -63,6 +63,10 @@
   let isMounted = $state(false);
   let isVisible = $state(false);
 
+  // Keyboard navigation state
+  let selectedIndex = $state(-1);
+  let selectableItems = $state<HTMLElement[]>([]);
+
   // Debounce search
   let searchTimeout: number | null = null;
   
@@ -73,9 +77,13 @@
       // Small delay to allow for the element to be added to the DOM
       setTimeout(() => {
         isVisible = true;
+        // Reset selection and update items after dropdown is visible
+        selectedIndex = -1;
+        updateSelectableItems();
       }, 10);
     } else {
       isVisible = false;
+      selectedIndex = -1;
       // Wait for the exit animation to complete before unmounting
       if (isMounted) {
         const timer = setTimeout(() => {
@@ -200,10 +208,13 @@
     };
   });
   
-  // Cleanup on component destroy
-  onDestroy(() => {
-    if (searchTimeout) {
-      clearTimeout(searchTimeout);
+  // Update selectable items when article suggestions change
+  $effect(() => {
+    if (isVisible && popoverRef) {
+      // Small delay to ensure DOM is updated
+      setTimeout(() => {
+        updateSelectableItems();
+      }, 50);
     }
   });
   
@@ -239,15 +250,64 @@
   };
 
   const handleKeydown = (event: KeyboardEvent) => {
+    const items = selectableItems;
+    
     if (event.key === 'Enter') {
       event.preventDefault();
-      handleSearch();
+      if (selectedIndex >= 0 && items[selectedIndex]) {
+        // Click the selected item
+        items[selectedIndex].click();
+      } else {
+        handleSearch();
+      }
     } else if (event.key === 'Escape') {
       showDropdown = false;
-      // Blur input if it exists and has blur method
+      selectedIndex = -1;
       if (inputRef && typeof inputRef.blur === 'function') {
         inputRef.blur();
       }
+    } else if (event.key === 'ArrowDown') {
+      event.preventDefault();
+      if (!showDropdown) {
+        showDropdown = true;
+      }
+      if (items.length > 0) {
+        selectedIndex = (selectedIndex + 1) % items.length;
+        // Keep focus on input, just scroll the item into view
+        items[selectedIndex]?.scrollIntoView({ block: 'nearest' });
+      }
+    } else if (event.key === 'ArrowUp') {
+      event.preventDefault();
+      if (!showDropdown) {
+        showDropdown = true;
+      }
+      if (items.length > 0) {
+        selectedIndex = selectedIndex <= 0 ? items.length - 1 : selectedIndex - 1;
+        // Keep focus on input, just scroll the item into view
+        items[selectedIndex]?.scrollIntoView({ block: 'nearest' });
+      }
+    } else if (event.key === 'Tab') {
+      // Tab navigates through items without moving focus from input
+      if (showDropdown && items.length > 0) {
+        event.preventDefault();
+        selectedIndex = (selectedIndex + 1) % items.length;
+        items[selectedIndex]?.scrollIntoView({ block: 'nearest' });
+      }
+    }
+  };
+
+  // Helper to check if an item at given global index is selected
+  const isSelected = (index: number) => selectedIndex === index;
+  
+  // Track the current item index across all sections
+  let currentItemIndex = $state(-1);
+
+  // Function to collect all selectable items
+  const updateSelectableItems = () => {
+    if (popoverRef) {
+      // Get all interactive elements in the popover
+      const links = popoverRef.querySelectorAll('a[href], button:not([disabled])');
+      selectableItems = Array.from(links) as HTMLElement[];
     }
   };
 
@@ -342,15 +402,7 @@
           showDropdown = true;
         }
       }}
-      onkeydown={(e) => {
-        if (e.key === 'Enter') {
-          e.preventDefault();
-          handleSearch();
-        } else if (e.key === 'Escape') {
-          showDropdown = false;
-          inputRef?.blur();
-        }
-      }}
+      onkeydown={(e) => handleKeydown(e)}
       onblur={() => {
         // Small delay to allow click events on popover content
         setTimeout(() => {
@@ -397,17 +449,18 @@
                 {t('articles.search.article_suggestions')}
               </h3>
               <div class="mt-1 space-y-1">
-                {#each articleSuggestions as article (article.id)}
+                {#each articleSuggestions as article, articleIdx (article.id)}
                   {#if article.slug}
                     <a 
                       href={`/article/${article.slug}`}
                       data-sveltekit-preload-data={article.slug ? 'hover' : false}
-                      class="flex flex-col gap-1 rounded-md px-2 py-1.5 text-sm hover:bg-accent hover:text-accent-foreground cursor-pointer transition-colors"
+                      class="flex flex-col gap-1 rounded-md px-2 py-1.5 text-sm hover:bg-accent hover:text-accent-foreground cursor-pointer transition-colors {isSelected(articleIdx) ? 'bg-accent text-accent-foreground ring-2 ring-primary/30' : ''}"
                       on:click|preventDefault={() => {
                         if (article.slug) {
                           goto(`/article/${article.slug}`);
                         }
                       }}
+                    
                     >
                       <span class="font-medium">{article.title}</span>
                       {#if article.author?.name}
@@ -438,9 +491,10 @@
                 {t('articles.search.recentSearches')}
               </div>
               <div class="space-y-1">
-                {#each filteredRecentSearches.slice(0, 5) as recent}
+                {#each filteredRecentSearches.slice(0, 5) as recent, recentIdx}
+                  {@const globalIdx = articleSuggestions.length + recentIdx}
                   <button
-                    class="flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-left text-xs hover:bg-accent hover:text-accent-foreground"
+                    class="flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-left text-xs hover:bg-accent hover:text-accent-foreground {isSelected(globalIdx) ? 'bg-accent text-accent-foreground ring-2 ring-primary/30' : ''}"
                     on:mousedown|preventDefault
                     on:click|preventDefault={() => handleSuggestionClick({ type: 'recent', value: recent })}
                   >
@@ -454,17 +508,20 @@
 
           <!-- Filtered Suggestions -->
           {#if filteredSuggestions.length > 0}
-            {#each Object.entries(groupedSuggestions) as [type, items]}
+            {@const suggestionsStartIndex = articleSuggestions.length + filteredRecentSearches.length}
+            {#each Object.entries(groupedSuggestions) as [type, items], groupIdx}
               {#if items.length > 0}
+                {@const groupStartIndex = suggestionsStartIndex + Object.values(groupedSuggestions).slice(0, groupIdx).flat().length}
                 <div class="mb-3">
                   <div class="flex items-center gap-2 px-2 py-1 text-xs font-medium text-muted-foreground">
-                    <svelte:component this={getSuggestionIcon(type)} class="h-3 w-3" />
-                    {getSuggestionLabel(type)}
+                    <svelte:component this={getSuggestionIcon(type as SearchSuggestion['type'])} class="h-3 w-3" />
+                    {getSuggestionLabel(type as SearchSuggestion['type'])}
                   </div>
                   <div class="space-y-1">
-                    {#each items.slice(0, 5) as suggestion}
+                    {#each items.slice(0, 5) as suggestion, idx}
+                      {@const globalIdx = groupStartIndex + idx}
                       <button
-                        class="flex w-full items-center justify-between rounded-sm px-2 py-1.5 text-left text-xs hover:bg-accent hover:text-accent-foreground"
+                        class="flex w-full items-center justify-between rounded-sm px-2 py-1.5 text-left text-xs hover:bg-accent hover:text-accent-foreground {isSelected(globalIdx) ? 'bg-accent text-accent-foreground ring-2 ring-primary/30' : ''}"
                         on:mousedown|preventDefault
                         on:click|preventDefault={() => handleSuggestionClick(suggestion)}
                       >
@@ -506,9 +563,10 @@
       {/if}
       <!-- Search Action -->
       {#if searchQuery}
+        {@const searchButtonIdx = articleSuggestions.length + filteredRecentSearches.length + filteredSuggestions.length}
         <div class="border-t p-2">
           <button
-            class="flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-left text-xs font-medium hover:bg-accent hover:text-accent-foreground"
+            class="flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-left text-xs font-medium hover:bg-accent hover:text-accent-foreground {isSelected(searchButtonIdx) ? 'bg-accent text-accent-foreground ring-2 ring-primary/30' : ''}"
             on:click={(e) => {
               e.preventDefault();
               handleSearch();

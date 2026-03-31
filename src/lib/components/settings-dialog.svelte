@@ -20,19 +20,19 @@
 	import ShowMnemonicDrawer from "$lib/components/ShowMnemonicDrawer.svelte";
 	import PasswordVerificationPopup from "$lib/components/PasswordVerificationPopup.svelte";
 	import { showToast } from "$lib/hooks/toast";
-  import Loader from "@lucide/svelte/icons/loader";
-      import { t, tJoin, tMany } from '$lib/stores/i18n.svelte.js';
-	   import { playSound } from "$lib/stores/sound"; 
+    import Loader from "@lucide/svelte/icons/loader";
+    import { t, tJoin, tMany } from '$lib/stores/i18n.svelte.js';
+	import { playSound } from "$lib/stores/sound"; 
 	import { mnemonicPhraseStore, clearMnemonicPhrase, setMnemonicPhrase } from '$lib/stores/mnemonic';
-  import { ScrollArea } from '$lib/components/ui/scroll-area';
+    import { ScrollArea } from '$lib/components/ui/scroll-area';
 	import { toggleMode } from "mode-watcher";
 	import { highContrast } from "$lib/stores/highcontrast.js";
 	import { individualSoundSettings, toggleIndividualSound, setAllIndividualSounds } from "$lib/stores/sound-settings.js";
 	import { sounds } from "$lib/stores/sound.js";
 	import * as AlertDialog from "$lib/components/ui/alert-dialog/index.js";
 	import { createEventDispatcher } from 'svelte';
-  import { notificationPreferences, toggleNotificationType, toggleGeneralSetting, setAllNotifications, saveNotificationPreferences, loadNotificationPreferences, type NotificationPreferences } from "$lib/stores/notification-preferences";
-  import LanguageSelector from "./LanguageSelector.svelte";
+    import { notificationPreferences, toggleNotificationType, toggleGeneralSetting, setAllNotifications, saveNotificationPreferences, loadNotificationPreferences, type NotificationPreferences } from "$lib/stores/notification-preferences";
+    import LanguageSelector from "./LanguageSelector.svelte";
 
 	// Import default preferences for initialization
 	const defaultPreferences = {
@@ -371,7 +371,7 @@
 	// Actually regenerate mnemonic after verification
 	async function doRegenerateMnemonic() {
 		if (!verificationToken) {
-			showToast("Doğrulama gerekli", "error");
+			showToast(t('VerificationIsRequired'), "error");
 			return;
 		}
 
@@ -428,7 +428,7 @@
 	// Hesap silme işlemi
 	async function deleteAccount() {
 		if (!verificationToken) {
-			showToast("Doğrulama gerekli", "error");
+			showToast(t('VerificationIsRequired'), "error");
 			return;
 		}
 
@@ -451,10 +451,10 @@
 				}, 2000);
 			} else {
 				const data = await res.json();
-				showToast(data.error || "Hesap silinirken bir hata oluştu", "error");
+				showToast(data.error || t('AccountDeleteError'), "error");
 			}
 		} catch (error) {
-			showToast("Bağlantı hatası", "error");
+			showToast(t('NetworkError'), "error");
 		} finally {
 			isDeletingAccount = false;
 		}
@@ -931,14 +931,7 @@ function handleOpenChange(newOpen: boolean) {
 											/>
 										</div>
 									</div>
-								</div>
-								
-								<Separator class="my-4"/>
-								
-								<!-- Detailed Notification Types -->
-								<div class="space-y-4">
-									<Label class="text-sm font-medium">{t('NotificationTypes')}</Label>
-									
+						
 									<div class="grid grid-cols-1 md:grid-cols-2 gap-3">
 										<div class="flex items-center justify-between py-3 px-4 rounded-lg border">
 											<Label for="follow-notifications" class="cursor-pointer text-xs">{t('FollowNotifications')}</Label>
@@ -1063,8 +1056,8 @@ function handleOpenChange(newOpen: boolean) {
 	bind:openVerif={showPasswordVerification}
 	onVerified={handlePasswordVerified}
 	onCancel={handlePasswordCancel}
-	title="Doğrulama Gerekli"
-	description="İşleme devam etmek için hesap şifrenizi doğrulamanız gerekiyor."
+	title={t('VerificationIsRequired')}
+	description={t('EnterYourPassword')}
 />
 
 <!-- Mnemonic Doğrulama Popup'ı -->

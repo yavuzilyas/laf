@@ -47,16 +47,19 @@ import { cn } from "$lib/utils";
   // ];
   import { t, dativeSuffix, locativeSuffix } from '$lib/stores/i18n.svelte.js';
   import DonationsSection from '$lib/components/donations-section.svelte';
+  import ArticleRecommendation from '$lib/components/ArticleRecommendation.svelte';
   import DitheredImageSlider from '$lib/components/magic/dithered-image-slider.svelte';
   import logo from '$lib/assets/laf1.svg';
   import ContactForm from '$lib/components/ContactForm.svelte';
+
+  let { data } = $props();
 
   const sliderImages = Object.keys(import.meta.glob('/static/government-is-violence/*.{jpg,jpeg,png,webp,avif}')).map(path => path.replace(/^\/static/, ''));
 
 </script>
 
 <Navbar />
-<main class="w-full h-full">
+<main class="w-full h-full flex flex-col gap-12">
   <div class="h-[95vh] sm:h-[99vh] w-full  mt-7.5 sm:mt-5  mb-12 flex flex-col items-center justify-center  antialiased bg-grid-white/[0.02] relative overflow-hidden"
 >
       <DitheredImageSlider  images={sliderImages} />    
@@ -105,10 +108,19 @@ import { cn } from "$lib/utils";
   </div>
 </section>
 
-<DonationsSection />
-
+<!-- Popular Articles Section -->
+{#if data.popularArticles && data.popularArticles.length > 0}
+  <section class="w-full py-12 px-4 sm:px-6 lg:px-8 ">
+    <div class="max-w-7xl mx-auto">
+      <ArticleRecommendation 
+        articles={data.popularArticles} 
+        title={t('articles.popularArticles') || 'Popüler Makaleler'}
+      />
+    </div>
+  </section>
+{/if}
 <!-- Contact Section - Modern Form Design -->
-<div>
+<div class="px-4 sm:px-6 lg:px-8">
   <div class="text-center mb-10">
               <ContactRoundIcon triggers={{ hover: false }} duration={2500} animationState="loading" size={48} class="text-primary" />
 
@@ -120,5 +132,8 @@ import { cn } from "$lib/utils";
 
   <ContactForm />
 </div>
+<DonationsSection />
+
+
 </main>
 <Footer />

@@ -54,7 +54,7 @@
       });
 
       const data = await res.json().catch(e => {
-        return { error: 'Geçersiz yanıt formatı' };
+        return { error: t('InvalidResponseFormat') };
       });
       
 
@@ -62,7 +62,7 @@
         if (data.verificationToken) {
           verificationToken = data.verificationToken;
         }
-        showToast(data.message || 'Doğrulama başarılı', "success");
+        showToast(data.message || t('VerificationSuccessful'), "success");
         openVerif = false;
         onVerified(verificationToken);
         resetState();
@@ -70,7 +70,7 @@
         handleVerificationError(data);
       }
     } catch (error) {
-      showToast('Doğrulama sırasında bir hata oluştu. Lütfen tekrar deneyin.', "error");
+      showToast(t('VerificationError'), "error");
     } finally {
       loading = false;
     }
@@ -78,11 +78,11 @@
 
   function handleVerificationError(data: any) {
     if (data.reset) {
-      if (errorMessage !== (data.error || 'Çok fazla başarısız deneme. Lütfen tekrar deneyin.')) {
+      if (errorMessage !== (data.error || t('TooManyFailedAttempts'))) {
         errorMessageExiting = false;
         errorMessageKey++;
       }
-      errorMessage = data.error || 'Çok fazla başarısız deneme. Lütfen tekrar deneyin.';
+      errorMessage = data.error || t('TooManyFailedAttempts');
       setTimeout(() => {
         openVerif = false;
         onCancel();
@@ -92,7 +92,7 @@
       attemptCount++;
       remainingAttempts = 3 - attemptCount;
       password = "";
-      const errorMsg = data.error || 'Yanlış şifre. Kalan deneme hakkınız: ' + remainingAttempts;
+      const errorMsg = data.error || t('WrongPasswordRemainingAttempts') + ' ' + remainingAttempts;
       if (errorMessage !== errorMsg) {
         errorMessageExiting = false;
         errorMessageKey++;

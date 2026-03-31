@@ -11,18 +11,11 @@
         <div class="flex gap-3 md:gap-0 md:flex-row  items-center justify-around">
           <div class="text-xs flex flex-row justify-center items-center gap-4 ">
 
-          <Tooltip.Provider>
-            <Tooltip.Root>
-              <Tooltip.Trigger>   
+          
 <div class="flex flex-row justify-center items-center">
     <img class="w-10 h-full"src={logo} alt="LAF">
 <LottieText />
-</div>              </Tooltip.Trigger>
-            <Tooltip.Content>
-              <p>{t('GoToHomePage')}</p>
-            </Tooltip.Content>
-          </Tooltip.Root>
-        </Tooltip.Provider>
+</div>              
           </div>
 
           <p class="font-semibold sm:max-w-full text-[0.7rem] sm:text-sm text-hard-primary">{t('FooterQuote-1')}<br>{t('FooterQuote-2')}</p>

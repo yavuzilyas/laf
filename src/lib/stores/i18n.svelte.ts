@@ -47,14 +47,20 @@ class I18nStore {
 
   constructor(config: I18nConfig) {
     this._config = config;
-    this._currentLocale = config.defaultLocale;
     
-    // Browser'da localStorage'dan dil tercihini yükle
+    // Browser'da localStorage'dan dil tercihini yükle, yoksa tarayıcı dilini kullan
     if (browser) {
       const savedLocale = localStorage.getItem('locale');
       if (savedLocale && config.availableLocales.includes(savedLocale)) {
         this._currentLocale = savedLocale;
+      } else {
+        // Tarayıcı dilini kontrol et - Türkçe ise 'tr', değilse 'en'
+        const browserLang = navigator.language || navigator.languages?.[0] || 'en';
+        const isTurkish = browserLang.toLowerCase().startsWith('tr');
+        this._currentLocale = isTurkish ? 'tr' : 'en';
       }
+    } else {
+      this._currentLocale = config.defaultLocale;
     }
   }
 

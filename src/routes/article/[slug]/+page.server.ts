@@ -1,7 +1,7 @@
 // src/routes/article/[slug]/+page.server.ts
 import type { PageServerLoad } from './$types';
 import { error, redirect } from '@sveltejs/kit';
-import { getArticleBySlug, getArticleById, getArticles, incrementArticleViews, getUsers, getBlockedUsers, getFollows } from '$db/queries';
+import { getArticleBySlug, getArticleById, getArticles, incrementArticleViews, getUsers, getBlockedUsers, getFollows, getSimilarArticles } from '$db/queries';
 
 const toSerializableId = (value: unknown) => {
   if (!value) return value;
@@ -297,6 +297,14 @@ export const load: PageServerLoad = async ({ params, locals }) => {
     }
   }
 
+  // Load similar articles based on category and tags
+  const similarArticles = await getSimilarArticles(
+    article.id,
+    article.category,
+    article.tags || [],
+    3
+  );
+
   // Create a serializable article object
   const serializedArticle = {
     _id: article.id,
@@ -342,6 +350,7 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 
   return {
     article: serializedArticle,
+    similarArticles,
     collaborators,
     collaboratorProfiles,
     profileUser: safeProfileUser,
