@@ -15,6 +15,7 @@ RUN pnpm install --frozen-lockfile
 COPY . .
 
 # build
+RUN npx svelte-kit sync
 RUN pnpm build
 
 EXPOSE 3000
