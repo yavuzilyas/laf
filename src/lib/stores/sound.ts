@@ -2,6 +2,7 @@
 import { writable } from "svelte/store";
 import { browser } from '$app/environment';
 import { isIndividualSoundEnabled } from './sound-settings';
+import { get } from 'svelte/store';
 
 type SoundFiles = {
   [key: string]: {
@@ -109,7 +110,8 @@ export function playSound(key: string) {
   const ctx = getAudioCtx();
   if (!ctx || !bufferCache[key]) return;
 
-  // Only check individual sound settings (independent of global soundEnabled)
+  // Check global sound enabled state (dropdown toggle) AND individual sound settings
+  if (!get(soundEnabled)) return;
   if (!isIndividualSoundEnabled(key)) return;
   
   const source = ctx.createBufferSource();

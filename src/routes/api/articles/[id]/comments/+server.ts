@@ -250,8 +250,12 @@ export async function POST({ params, request, locals }) {
   const user = (locals as any)?.user;
   if (!user) return json({ error: 'Unauthorized' }, { status: 401 });
 
-  // Rate limiting check
-  if (!checkRateLimit(user.id)) {
+  // Check if user is admin or moderator
+  const userRole = user.role?.toLowerCase();
+  const isPrivileged = userRole === 'admin' || userRole === 'moderator';
+
+  // Rate limiting check (skip for privileged users)
+  if (!isPrivileged && !checkRateLimit(user.id)) {
     return json({ error: 'Too many comments. Please wait before posting again.' }, { status: 429 });
   }
 
@@ -267,14 +271,16 @@ export async function POST({ params, request, locals }) {
   
   if (content === undefined || content === null) return json({ error: 'Empty' }, { status: 400 });
 
-  // Spam detection
-  const spamCheck = detectSpam(content);
-  if (spamCheck.isSpam) {
-    console.log('Spam detected from user', user.id, ':', spamCheck.reasons);
-    return json({ 
-      error: 'Comment appears to be spam', 
-      reasons: spamCheck.reasons 
-    }, { status: 400 });
+  // Spam detection (skip for privileged users)
+  if (!isPrivileged) {
+    const spamCheck = detectSpam(content);
+    if (spamCheck.isSpam) {
+      console.log('Spam detected from user', user.id, ':', spamCheck.reasons);
+      return json({ 
+        error: 'Comment appears to be spam', 
+        reasons: spamCheck.reasons 
+      }, { status: 400 });
+    }
   }
 
   const articles = await getArticles({ id: params.id });

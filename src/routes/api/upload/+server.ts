@@ -12,6 +12,7 @@ export async function POST({ request, locals }) {
   const file = form.get('file') as File | null;
   const folder = (form.get('folder') as string) || 'image';
   const articleIdRaw = form.get('articleId') as string | null;
+  const commentIdRaw = form.get('commentId') as string | null;
   const uploadType = (form.get('type') as string | null) || undefined;
   const previousUrl = (form.get('previousUrl') as string | null) || undefined;
 
@@ -41,12 +42,19 @@ export async function POST({ request, locals }) {
   const ext = extname(file.name) || '.bin';
   const fileName = `${Date.now()}-${Math.random().toString(36).slice(2)}${ext}`;
   const safeArticleId = articleIdRaw ? articleIdRaw.replace(/[^a-zA-Z0-9-_]/g, '') : null;
+  const safeCommentId = commentIdRaw ? commentIdRaw.replace(/[^a-zA-Z0-9-_]/g, '') : null;
+
+  const rawNickname = typeof user.nickname === 'string' && user.nickname.trim().length
+    ? user.nickname
+    : (user.id?.toString?.() ?? 'user');
+  const safeUserId = slugify(rawNickname) || 'user';
 
   const baseUploadsDir = resolve('static', 'uploads');
   let dir: string;
   let publicBase: string;
 
   if (safeArticleId) {
+    // Article uploads go to user's article folder: /uploads/users/{userId}/articles/{articleId}/{type}/
     const section = (() => {
       if (uploadType) {
         switch (uploadType) {
@@ -68,24 +76,28 @@ export async function POST({ request, locals }) {
       if (type.startsWith('video/')) return 'videos';
       return 'photos';
     })();
-    const articleBaseDir = resolve(baseUploadsDir, 'articles', safeArticleId);
-    await Promise.all([
-      mkdir(resolve(articleBaseDir, 'thumbnail'), { recursive: true }),
-      mkdir(resolve(articleBaseDir, 'sounds'), { recursive: true }),
-      mkdir(resolve(articleBaseDir, 'photos'), { recursive: true }),
-      mkdir(resolve(articleBaseDir, 'videos'), { recursive: true }),
-      mkdir(resolve(articleBaseDir, 'files'), { recursive: true })
-    ]);
+    const articleBaseDir = resolve(baseUploadsDir, 'users', safeUserId, 'articles', safeArticleId);
+    // Only create the folder for the actual file type being uploaded
     dir = resolve(articleBaseDir, section);
-    publicBase = `/uploads/articles/${safeArticleId}/${section}`;
+    publicBase = `/uploads/users/${safeUserId}/articles/${safeArticleId}/${section}`;
+  } else if (safeCommentId) {
+    // Comment uploads go to user's comment folder: /uploads/users/{userId}/comments/{commentId}/{type}/
+    const section = (() => {
+      if (type.startsWith('audio/')) return 'sounds';
+      if (type.startsWith('video/')) return 'videos';
+      return 'photos';
+    })();
+    dir = resolve(baseUploadsDir, 'users', safeUserId, 'comments', safeCommentId, section);
+    publicBase = `/uploads/users/${safeUserId}/comments/${safeCommentId}/${section}`;
   } else {
-    const rawNickname = typeof user.nickname === 'string' && user.nickname.trim().length
-      ? user.nickname
-      : (user.id?.toString?.() ?? 'user');
-    const safeUserId = slugify(rawNickname) || 'user';
-    const safeFolder = folder.replace(/[^a-zA-Z0-9-_]/g, '').toLowerCase() || 'misc';
-    dir = resolve(baseUploadsDir, 'users', safeUserId, safeFolder);
-    publicBase = `/uploads/users/${safeUserId}/${safeFolder}`;
+    // Generic uploads (e.g., comments) go to user's comments folder: /uploads/users/{userId}/comments/{type}/
+    const section = (() => {
+      if (type.startsWith('audio/')) return 'sounds';
+      if (type.startsWith('video/')) return 'videos';
+      return 'photos';
+    })();
+    dir = resolve(baseUploadsDir, 'users', safeUserId, 'comments', section);
+    publicBase = `/uploads/users/${safeUserId}/comments/${section}`;
   }
 
   await mkdir(dir, { recursive: true });

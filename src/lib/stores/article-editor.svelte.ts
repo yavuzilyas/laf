@@ -57,6 +57,10 @@ class ArticleEditorStore {
     return this._collaborationStates;
   }
 
+  get isPublished() {
+    return this._articleData.status === 'published';
+  }
+
   get versions() {
     return this._versions;
   }
@@ -241,15 +245,20 @@ class ArticleEditorStore {
     }
 
     const originalStatus = this._articleData.status;
-    const saved = await this.saveDraft();
 
-    this._articleData.status = originalStatus;
+    try {
+      const saved = await this.saveDraft();
 
-    if (!saved || !this._articleData.id) {
-      throw new Error('Unable to establish article identifier');
+      if (!saved || !this._articleData.id) {
+        throw new Error('Unable to establish article identifier');
+      }
+
+      return this._articleData.id;
+    } catch (error) {
+      throw error;
+    } finally {
+      this._articleData.status = originalStatus;
     }
-
-    return this._articleData.id;
   }
 
   get articleId() {
@@ -299,10 +308,9 @@ class ArticleEditorStore {
         this._articleData.id = result.articleId || this._articleData.id;
         return true;
       }
-      return false;
-    } catch (error) {
-      console.error('Failed to save draft:', error);
-      return false;
+      const errorData = await response.json().catch(() => ({}));
+      const errorMessage = errorData.error || `Server error: ${response.status}`;
+      throw new Error(errorMessage);
     } finally {
       this._isSaving = false;
     }

@@ -4,6 +4,7 @@
 	import type { NodeViewProps } from '@tiptap/core';
 	import { cn } from '$lib/utils.js';
 	import { Button, buttonVariants } from '$lib/components/ui/button/index.js';
+	import { articleEditor } from '$lib/stores/article-editor.svelte.js';
 
 	import AlignCenter from '@lucide/svelte/icons/align-center';
 	import AlignLeft from '@lucide/svelte/icons/align-left';
@@ -147,9 +148,13 @@
 		window.removeEventListener('mouseup', endResize);
 		window.removeEventListener('touchmove', handleTouchMove);
 		window.removeEventListener('touchend', handleTouchEnd);
-		
+
 		// Delete file from server when node is destroyed (e.g., keyboard deletion)
-		deleteFromServer(initialSrc);
+		// But only if we're in article editor context AND the article wasn't just published
+		const isArticleEditorContext = !!articleEditor.articleId;
+		if (isArticleEditorContext && !articleEditor.isPublished) {
+			deleteFromServer(initialSrc);
+		}
 	});
 </script>
 

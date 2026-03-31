@@ -48,11 +48,11 @@
 {#if showLoader}
   <div
     class="fixed p-10 inset-0 z-500 w-18 h-18 flex flex-col items-center mx-auto mt-10 border justify-center rounded-xl bg-background/33 backdrop-filter backdrop-blur-sm"
-    out:fade={{ duration: 500 }}
+    out:fade={{ duration: 175 }}
   >
     <!-- 1️⃣ Logo + çark (opacity ile gizleniyor) -->
     <div
-      class="flex flex-col items-center justify-center absolute transition-opacity duration-500"
+      class="flex flex-col items-center justify-center absolute transition-opacity duration-175"
       style="opacity: {spinnerVisible ? 1 : 0};"
     >
       <Loader size="32" class="text-primary animate-spin" />
@@ -61,7 +61,7 @@
     <!-- 2️⃣ Lottie (opacity ile gösteriliyor) -->
     <div
       bind:this={lottieContainer}
-      class="w-23.5 h-23.5 transition-opacity duration-500"
+      class="w-23.5 h-23.5 transition-opacity duration-175"
       style="opacity: {showLottie ? 1 : 0};"
     ></div>
   </div>

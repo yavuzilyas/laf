@@ -726,18 +726,19 @@
         }
     };
 
-    const handleSaveProfile = async () => {
+    const handleSaveProfile = async (formData?: any) => {
         isSaving = true;
         try {
+            const dataToSave = formData || profileData;
             const response = await fetch('/api/profile/update', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(profileData)
+                body: JSON.stringify(dataToSave)
             });
 
             if (response.ok) {
                 isEditing = false;
-                profileUser = { ...profileUser, ...profileData };
+                profileUser = { ...profileUser, ...dataToSave };
             } else {
                 console.error('Failed to update profile');
             }
@@ -1875,6 +1876,47 @@
     let mouseX = browser ? useMotionValue(0) : { set: () => {} };
     let mouseY = browser ? useMotionValue(0) : { set: () => {} };
     let background = browser && mouseX && mouseY ? useMotionTemplate`radial-gradient(200px circle at ${mouseX}px ${mouseY}px, rgba(51, 51, 51, 0.4), transparent 80%)` : '';
+
+    // Share functionality
+    let showShareMenu = $state(false);
+    let shareMenuRef = $state<HTMLDivElement | null>(null);
+
+    async function handleShare() {
+        const shareUrl = typeof window !== 'undefined' ? window.location.href : '';
+        const shareTitle = article?.title || 'LAF Article';
+        
+        // Try native Web Share API first
+        if (typeof navigator !== 'undefined' && navigator.share) {
+            try {
+                await navigator.share({
+                    title: shareTitle,
+                    url: shareUrl
+                });
+                showToast(t('articles.share.title'), 'success');
+                return;
+            } catch (err: any) {
+                if (err.name !== 'AbortError') {
+                    console.error('Share failed:', err);
+                }
+            }
+        }
+        
+        // Fallback: copy to clipboard
+        try {
+            await navigator.clipboard.writeText(shareUrl);
+            showToast(t('articles.share.linkCopied'), 'success');
+        } catch (err) {
+            console.error('Copy failed:', err);
+            showToast(t('articles.share.shareError'), 'error');
+        }
+    }
+
+    // Close share menu when clicking outside
+    function handleClickOutside(event: MouseEvent) {
+        if (shareMenuRef && !shareMenuRef.contains(event.target as Node)) {
+            showShareMenu = false;
+        }
+    }
 </script>
 
 <svelte:head>
@@ -1913,21 +1955,21 @@
 <main class="min-h-screen bg-background">
     {#if !article}
         <div class="container mx-auto px-4 py-12 text-center">
-            <h1 class="text-2xl font-bold mb-4">Makale Bulunamadı</h1>
-            <p class="text-muted-foreground mb-6">Aradığınız makale mevcut değil veya kaldırılmış olabilir.</p>
-            <Button size="sm" href="/articles">Makalelere Dön</Button>
+            <h1 class="text-2xl font-bold mb-4">{t('articles.noArticles')}</h1>
+            <p class="text-muted-foreground mb-6">{t('articles.noArticlesDescription')}</p>
+            <Button size="sm" href="/articles">{t('articles.allArticles')}</Button>
         </div>
     {:else}
         <article class="container mx-auto px-4 py-12 max-w-5xl">
             <div class="mb-6 flex flex-row gap-2 justify-between items-center">
                 <Button variant="outline" size="xs" href="/articles">
                     <ArrowLeftIcon triggers={{ hover: false }} animationState="loading" duration={2000}/>
-                    Makalelere Dön
+                    {t('articles.backToArticles')}
                 </Button>
                 <div class="flex flex-row items-center gap-2">
                     {#if article.availableTranslations}
                         <span class="text-xs text-muted-foreground flex items-center gap-1">
-                            <Languages class="w-4 h-4" /> Diller:
+                            <Languages class="w-4 h-4" /> {t('articles.languages')}:
                         </span>
                         {#each Object.keys(article.availableTranslations) as lang}
                             <Button
@@ -1954,27 +1996,27 @@
                         <DropdownMenu.Content align="end" class="w-48">
                             <DropdownMenu.Item onclick={() => showReportDrawer = true} class="text-destructive">
                                 <BadgeAlertIcon triggers={{ hover: false }} animationState="loading" duration={3000} loop={true} class="mr-2 h-4 w-4" />
-                                Bildir
+                                {t('articles.comments.report')}
                             </DropdownMenu.Item>
                             {#if isArticleOwner()}
                                 <DropdownMenu.Separator />
                                 <DropdownMenu.Item onclick={onDeleteArticle}>
                                     <BookMinusIcon triggers={{ hover: false }} animationState="loading" duration={3000} loop={true} class="mr-2 h-4 w-4" />
-                                    Kaldır
+                                    {t('articles.comments.delete')}
                                 </DropdownMenu.Item>
                                 <DropdownMenu.Item onclick={onEditArticle}>
                                     <NotebookPenIcon triggers={{ hover: false }} animationState="loading" duration={3000} loop={true} class="mr-2 h-4 w-4" />
-                                    Düzenle
+                                    {t('articles.comments.edit')}
                                 </DropdownMenu.Item>
                                 {#if articleHidden}
                                     <DropdownMenu.Item onclick={onShowArticle}>
                                         <Eye class="mr-2 h-4 w-4" />
-                                        Göster
+                                        {t('articles.comments.show')}
                                     </DropdownMenu.Item>
                                 {:else}
                                     <DropdownMenu.Item onclick={onHideArticle}>
                                         <EyeOffIcon triggers={{ hover: false }} class="mr-2 h-4 w-4" />
-                                        Gizle
+                                        {t('articles.comments.hide')}
                                     </DropdownMenu.Item>
                                 {/if}
                             {/if}
@@ -2064,7 +2106,7 @@
                         {#if collaborators.length > 0}
                             <div class="flex items-center gap-1 text-xs">
                                 <Users class="w-3 h-3" />
-                                <span>+{collaborators.length} yazar</span>
+                                <span>+{collaborators.length} {t('articles.author')}</span>
                             </div>
                         {/if}
                     </div>
@@ -2076,7 +2118,7 @@
 
                     <div class="flex items-center gap-1">
                         <Clock class="w-4 h-4" />
-                        <span>{calculateReadTime(article.content)} dk okuma</span>
+                        <span>{calculateReadTime(article.content)} {t('articles.readTime')}</span>
                     </div>
                 </div>
 
@@ -2090,7 +2132,7 @@
                                 </div>
                             </Tooltip.Trigger>
                             <Tooltip.Content>
-                                <p>{(article.stats?.views ?? 0).toLocaleString()} görüntüleme</p>
+                                <p>{(article.stats?.views ?? 0).toLocaleString()} {t('articles.stats.view')}</p>
                             </Tooltip.Content>
                         </Tooltip.Root>
                     </Tooltip.Provider>
@@ -2120,7 +2162,7 @@
                                     </Motion>
                                 </Tooltip.Trigger>
                                 <Tooltip.Content>
-                                    <p>{likesCount.toLocaleString()} beğeni</p>
+                                    <p>{likesCount.toLocaleString()} {t('articles.stats.like')}</p>
                                 </Tooltip.Content>
                             </Tooltip.Root>
                         </Tooltip.Provider>
@@ -2149,7 +2191,7 @@
                                     </Motion>
                                 </Tooltip.Trigger>
                                 <Tooltip.Content>
-                                    <p>{dislikesCount.toLocaleString()} beğenmeme</p>
+                                    <p>{dislikesCount.toLocaleString()} {t('articles.stats.dislike')}</p>
                                 </Tooltip.Content>
                             </Tooltip.Root>
                         </Tooltip.Provider>
@@ -2164,15 +2206,22 @@
                                 </div>
                             </Tooltip.Trigger>
                             <Tooltip.Content>
-                                <p>{(article.stats?.comments ?? 0).toLocaleString()} yorum</p>
+                                <p>{(article.stats?.comments ?? 0).toLocaleString()} {t('articles.stats.comment')}</p>
                             </Tooltip.Content>
                         </Tooltip.Root>
                     </Tooltip.Provider>
                     
-                    <Button variant="ghost" size="sm" class="ml-auto">
-                        <Share2 class="w-4 h-4" />
-                        Paylaş
-                    </Button>
+                    <div class="relative" bind:this={shareMenuRef}>
+                        <Button 
+                            variant="ghost" 
+                            size="sm" 
+                            class="ml-auto"
+                            onclick={handleShare}
+                        >
+                            <Share2 class="w-4 h-4" />
+                            {t('Share')}
+                        </Button>
+                    </div>
                 </div>
             </header>
 
@@ -2188,7 +2237,7 @@
 
             {#if article.tags && article.tags.length > 0}
                 <div class="my-8 pt-8">
-                    <h3 class="text-sm font-medium text-muted-foreground mb-3">Etiketler</h3>
+                    <h3 class="text-sm font-medium text-muted-foreground mb-3">{t('article.tags')}</h3>
                     <div class="flex flex-wrap gap-2">
                         {#each article.tags as tag}
                             <Badge variant="outline">#{tag}</Badge>
@@ -2202,7 +2251,7 @@
                 <div class="my-8 pt-8">
                     <h3 class="text-lg font-semibold mb-4 flex items-center gap-2">
                         <Users class="w-5 h-5" />
-                        Yazarlar ({1 + collaborators.length})
+                        {t('articles.authors')} ({1 + collaborators.length})
                     </h3>
                     <div class="space-y-8">
                         <!-- Ana Yazar -->
@@ -2339,7 +2388,7 @@
             <div class="mt-12">
                 <div class="flex flex-col items-center justify-center mb-6 gap-1">
                     <MessageSquareIcon size={36} triggers={{ hover: false }} duration={2500} animationState="loading" class="text-primary" />
-                    <h2 class="text-lg font-bold">{t('Comments')}</h2>
+                    <h2 class="text-lg font-bold">{t('articles.comments.title')}</h2>
                 </div>
                 
                 <!-- Comment Form -->
@@ -2353,7 +2402,7 @@
                             content={newComment}
                             class="min-h-[140px]"
                             onUpdate={onCommentEditorUpdate}
-                            placeholder={t('WriteYourComment')}
+                            placeholder={t('articles.comments.writeComment')}
                         />
                     </div>
                     <div class="flex justify-end mt-2">
@@ -2362,10 +2411,10 @@
                         disabled={isCommentEmpty(newComment) || postingComment}
                     >
                         {#if postingComment}
-                                       <Loader class="animate-spin" />
-                            Gönderiliyor...
+                            <Loader class="animate-spin" />
+                            {t('articles.comments.sending')}
                         {:else}
-                            Yorum Yap
+                            {t('articles.comments.postComment')}
                         {/if}
                     </Button>
                     </div>
@@ -2375,11 +2424,11 @@
                 <div class="space-y-6">
                     {#if loadingComments}
                         <div class="text-center py-8">
-                            <p class="text-muted-foreground">Yorumlar yükleniyor...</p>
+                            <p class="text-muted-foreground">{t('articles.comments.loading')}</p>
                         </div>
                     {:else if comments.length === 0}
                         <div class="text-center py-8">
-                            <p class="text-muted-foreground">Henüz yorum yapılmamış. İlk yorumu siz yapın!</p>
+                            <p class="text-muted-foreground">{t('articles.comments.empty')}</p>
                         </div>
                     {:else}
                         {#each comments as comment (comment.id)}
@@ -2423,7 +2472,7 @@
                                                 <span class="font-medium">
                                                     {comment.author?.name && comment.author?.surname 
                                                         ? `${comment.author.name} ${comment.author.surname}`
-                                                        : comment.author?.nickname || 'Anonim'}
+                                                        : comment.author?.nickname || t('articles.comments.anonymous')}
                                                 </span>
                                                                                     </a>
         <ScrollArea orientation="horizontal" class="max-w-3/4">
@@ -2431,13 +2480,13 @@
             
                                             <span class="text-xs truncate text-muted-foreground italic">{formatTimeAgo(comment.createdAt)}</span>
                                             {#if comment.metadata?.edited}
-                                                <span class="text-xs truncate text-muted-foreground italic">(düzenlenmiştir)</span>
+                                                <span class="text-xs truncate text-muted-foreground italic">({t('articles.comments.edited')})</span>
                                             {/if}
                                             {#if comment.hidden}
-                                                <span class="text-xs truncate text-orange-600 italic">(gizli)</span>
+                                                <span class="text-xs truncate text-orange-600 italic">({t('articles.comments.hidden')})</span>
                                             {/if}
                                             {#if comment.reportCount > 0}
-                                                <span class="text-xs truncate text-red-600 italic">(bildirildi)</span>
+                                                <span class="text-xs truncate text-red-600 italic">({t('articles.comments.reported')})</span>
                                             {/if} </div>
                                             </ScrollArea>
                                         </div>
@@ -2453,18 +2502,18 @@
                                                         content={editingContent || emptyDoc}
                                                         class="min-h-[100px] rounded-lg h-min text-sm"
                                                         onUpdate={onEditingEditorUpdate}
-                                                        placeholder="Yorumunuzu düzenleyin..."
+                                                        placeholder={t('articles.comments.editPlaceholder')}
                                                     />
                                                     <div class="flex justify-end gap-2 mt-2">
                                                         <Button variant="ghost" size="sm" onclick={cancelEditComment}>
-                                                            İptal
+                                                            {t('articles.comments.cancel')}
                                                         </Button>
                                                         <Button
                                                             size="sm"
                                                             onclick={saveEditedComment}
                                                             disabled={isCommentEmpty(editingContent)}
                                                         >
-                                                            Kaydet
+                                                            {t('articles.comments.save')}
                                                         </Button>
                                                     </div>
                                                 </div>
@@ -2472,7 +2521,7 @@
                                                 <EdraEditor content={comment.content} editable={false} />
                                             {/if}
                                         </div>
-                                        <Separator class="my-4"/>
+                                        <Separator />
 
                                         <div class="flex items-center gap-4">
                                             <Button 
@@ -2509,19 +2558,19 @@
                                                     {formatNumber(comment.dislikes || 0)}
                                                 </span>
                                             </Button>
-                                            <Button
-                                                    variant="ghost"
-                                                    size="sm"
-                                                    class="h-7 gap-1"
-                                                    onclick={() => { 
-                                                        replyingTo = replyingTo === comment.id ? null : comment.id; 
-                                                        if (!replyContents[comment.id]) replyContents[comment.id] = emptyDoc;
-                                                    }}
-                                                    disabled={postingComment}
-                                                >
-                                                    <MessageCircle class="w-3 h-3" />
-                                                    <span class="text-xs">Yanıtla</span>
-                                                </Button>
+                                                    <Button
+                                                            variant="ghost"
+                                                            size="sm"
+                                                            class="h-7 gap-1"
+                                                            onclick={() => { 
+                                                                replyingTo = replyingTo === comment.id ? null : comment.id; 
+                                                                if (!replyContents[comment.id]) replyContents[comment.id] = emptyDoc;
+                                                            }}
+                                                            disabled={postingComment}
+                                                        >
+                                                            <MessageCircle class="w-3 h-3" />
+                                                            <span class="text-xs">{t('articles.comments.reply')}</span>
+                                                        </Button>
                                             <DropdownMenu.Root>
                                                 <DropdownMenu.Trigger asChild>
                                                     <Button variant="ghost" size="sm" class="h-8 w-8 p-0">
@@ -2531,28 +2580,28 @@
                                                 <DropdownMenu.Content align="end" class="w-48">
                                                     <DropdownMenu.Item onclick={() => reportComment(comment.id)}>
                                                         <BadgeAlertIcon triggers={{ hover: false }} animationState="loading" duration={3000} loop={true} class="mr-2 h-4 w-4" />
-                                                        Bildir
+                                                        {t('articles.comments.report')}
                                                     </DropdownMenu.Item>
                                                     {#if isCommentOwner(comment)}
                                                         <DropdownMenu.Separator />
                                                         <DropdownMenu.Item onclick={() => editComment(comment.id)}>
-                                                            <NotebookPenIcon triggers={{ hover: false }} animationState="loading" duration={3000} loop={true} class="mr-2 h-4 w-4" />
-                                                            Düzenle
-                                                        </DropdownMenu.Item>
+                                                        <NotebookPenIcon triggers={{ hover: false }} animationState="loading" duration={3000} loop={true} class="mr-2 h-4 w-4" />
+                                                        {t('articles.comments.edit')}
+                                                    </DropdownMenu.Item>
                                                         <DropdownMenu.Item onclick={() => deleteComment(comment.id)}>
-                                                            <BookMinusIcon triggers={{ hover: false }} animationState="loading" duration={3000} loop={true} class="mr-2 h-4 w-4" />
-                                                            Sil
-                                                        </DropdownMenu.Item>
+                                                        <BookMinusIcon triggers={{ hover: false }} animationState="loading" duration={3000} loop={true} class="mr-2 h-4 w-4" />
+                                                        {t('articles.comments.delete')}
+                                                    </DropdownMenu.Item>
                                                         {#if comment.hidden}
-                                                            <DropdownMenu.Item onclick={() => hideComment(comment.id)}>
-                                                                <Eye class="mr-2 h-4 w-4" />
-                                                                Göster
-                                                            </DropdownMenu.Item>
+                                                        <DropdownMenu.Item onclick={() => hideComment(comment.id)}>
+                                                            <Eye class="mr-2 h-4 w-4" />
+                                                            {t('articles.comments.show')}
+                                                        </DropdownMenu.Item>
                                                         {:else}
-                                                            <DropdownMenu.Item onclick={() => hideComment(comment.id)}>
-                                                                <EyeOffIcon triggers={{ hover: false }} animationState="loading" duration={3000} loop={true} class="mr-2 h-4 w-4" />
-                                                                Gizle
-                                                            </DropdownMenu.Item>
+                                                        <DropdownMenu.Item onclick={() => hideComment(comment.id)}>
+                                                            <EyeOffIcon triggers={{ hover: false }} animationState="loading" duration={3000} loop={true} class="mr-2 h-4 w-4" />
+                                                            {t('articles.comments.hide')}
+                                                        </DropdownMenu.Item>
                                                         {/if}
                                                     {/if}
                                                 </DropdownMenu.Content>
@@ -2572,34 +2621,34 @@
                                                             content={replyContents[comment.id] || emptyDoc}
                                                             class="min-h-[100px] rounded-lg h-min text-sm"
                                                             onUpdate={() => onReplyEditorUpdate(comment.id)}
-                                                            placeholder="Yanıtınızı yazın..."
+                                                            placeholder={t('articles.comments.replyPlaceholder')}
                                                         />
                                                     </div>
                                                 {/key}
                                                 <div class="flex justify-end gap-2 mt-2">
                                                     <Button
-                                                        variant="ghost"
-                                                        size="sm"
-                                                        onclick={() => { 
-                                                            replyingTo = null; 
-                                                            delete replyContents[comment.id]; 
-                                                            delete replyEditors[comment.id]; 
-                                                        }}
-                                                    >
-                                                        İptal
-                                                    </Button>
+                                                            variant="ghost"
+                                                            size="sm"
+                                                            onclick={() => { 
+                                                                replyingTo = null; 
+                                                                delete replyContents[comment.id]; 
+                                                                delete replyEditors[comment.id]; 
+                                                            }}
+                                                        >
+                                                            {t('articles.comments.cancel')}
+                                                        </Button>
                                                     <Button
-                                                        size="sm"
-                                                        onclick={() => postReply(comment.id)}
-                                                        disabled={isCommentEmpty(replyContents[comment.id]) || postingReply[comment.id] || postingComment}
-                                                    >
-                                                        {#if postingReply[comment.id]}
-                                                            <div class="animate-spin rounded-full h-3 w-3 border-b-2 border-white mr-1"></div>
-                                                            Gönderiliyor...
-                                                        {:else}
-                                                            Yanıtla
-                                                        {/if}
-                                                    </Button>
+                                                            size="sm"
+                                                            onclick={() => postReply(comment.id)}
+                                                            disabled={isCommentEmpty(replyContents[comment.id]) || postingReply[comment.id] || postingComment}
+                                                        >
+                                                            {#if postingReply[comment.id]}
+                                                                <div class="animate-spin rounded-full h-3 w-3 border-b-2 border-white mr-1"></div>
+                                                                {t('articles.comments.sending')}
+                                                            {:else}
+                                                                {t('articles.comments.reply')}
+                                                            {/if}
+                                                        </Button>
                                                 </div>
                                             </div>
                                         {/if}
@@ -2645,24 +2694,24 @@
                                                                 </AvatarFallback>
                                                             </Avatar>
                                                         </div>
-                                                        </a>
+                                                    </a>
                                                                                                     <a href="/{getAuthorIdentifier(reply.author)}">
                                                                 <span class="font-medium text-sm">
                                                                     {reply.author?.name && reply.author?.surname 
                                                                         ? `${reply.author.name} ${reply.author.surname}`
-                                                                        : reply.author?.nickname || 'Anonim'}
+                                                                        : reply.author?.nickname || t('articles.comments.anonymous')}
                                                                 </span>
 </a>        <ScrollArea orientation="horizontal" class="max-w-3/4">
           <div class="flex flex-row gap-2 pb-1.5">
                                                                 <span class="text-xs text-muted-foreground">{formatTimeAgo(reply.createdAt)}</span>
                                                                 {#if reply.metadata?.edited}
-                                                                    <span class="text-xs text-muted-foreground italic">(düzenlenmiştir)</span>
+                                                                    <span class="text-xs text-muted-foreground italic">({t('articles.comments.edited')})</span>
                                                                 {/if}
                                                                 {#if reply.hidden}
-                                                                    <span class="text-xs text-orange-600 italic">(gizli)</span>
+                                                                    <span class="text-xs text-orange-600 italic">({t('articles.comments.hidden')})</span>
                                                                 {/if}
                                                                 {#if reply.reportCount > 0}
-                                                                    <span class="text-xs text-red-600 italic">(bildirildi)</span>
+                                                                    <span class="text-xs text-red-600 italic">({t('articles.comments.reported')})</span>
                                                                 {/if}                                               </div></ScrollArea>
                                                             </div>
                                                             <Separator />
@@ -2677,19 +2726,19 @@
                                                                             content={editingContent || emptyDoc}
                                                                             class="min-h-[100px] rounded-lg h-min text-sm"
                                                                             onUpdate={onEditingEditorUpdate}
-                                                                            placeholder="Yorumunuzu düzenleyin..."
+                                                                            placeholder={t('articles.comments.editPlaceholder')}
                                                                         />
                                                                         <div class="flex justify-end gap-2 mt-2">
                                                                             <Button variant="ghost" size="sm" onclick={cancelEditComment}>
-                                                                                İptal
-                                                                            </Button>
-                                                                            <Button
-                                                                                size="sm"
-                                                                                onclick={saveEditedComment}
-                                                                                disabled={isCommentEmpty(editingContent)}
-                                                                            >
-                                                                                Kaydet
-                                                                            </Button>
+                                                                            {t('articles.comments.cancel')}
+                                                                        </Button>
+                                                                        <Button
+                                                                            size="sm"
+                                                                            onclick={saveEditedComment}
+                                                                            disabled={isCommentEmpty(editingContent)}
+                                                                        >
+                                                                            {t('articles.comments.save')}
+                                                                        </Button>
                                                                         </div>
                                                                     </div>
                                                                 {:else}
@@ -2743,7 +2792,7 @@
                                                                     }}
                                                                 >
                                                                     <MessageCircle class="w-3 h-3" />
-                                                                    <span class="text-xs">Yanıtla</span>
+                                                                    <span class="text-xs">{t('articles.comments.reply')}</span>
                                                                 </Button>
                                                                 <DropdownMenu.Root>
                                                                     <DropdownMenu.Trigger asChild>
@@ -2754,27 +2803,27 @@
                                                                     <DropdownMenu.Content align="end" class="w-48">
                                                                         <DropdownMenu.Item onclick={() => reportComment(reply.id)}>
                                                                             <BadgeAlertIcon triggers={{ hover: false }} animationState="loading" duration={3000} loop={true} class="mr-2 h-4 w-4" />
-                                                                            Bildir
+                                                                            {t('articles.comments.report')}
                                                                         </DropdownMenu.Item>
                                                                         {#if isCommentOwner(reply)}
                                                                             <DropdownMenu.Separator />
                                                                             <DropdownMenu.Item onclick={() => editComment(reply.id)}>
                                                                                 <NotebookPenIcon triggers={{ hover: false }} animationState="loading" duration={3000} loop={true} class="mr-2 h-4 w-4" />
-                                                                                Düzenle
+                                                                                {t('articles.comments.edit')}
                                                                             </DropdownMenu.Item>
                                                                             <DropdownMenu.Item onclick={() => deleteComment(reply.id)}>
                                                                                 <BookMinusIcon triggers={{ hover: false }} animationState="loading" duration={3000} loop={true} class="mr-2 h-4 w-4" />
-                                                                                Sil
+                                                                                {t('articles.comments.delete')}
                                                                             </DropdownMenu.Item>
                                                                             {#if reply.hidden}
                                                                                 <DropdownMenu.Item onclick={() => hideComment(reply.id)}>
                                                                                     <Eye class="mr-2 h-4 w-4" />
-                                                                                    Göster
+                                                                                    {t('articles.comments.show')}
                                                                                 </DropdownMenu.Item>
                                                                             {:else}
                                                                                 <DropdownMenu.Item onclick={() => hideComment(reply.id)}>
                                                                                     <EyeOffIcon triggers={{ hover: false }} animationState="loading" duration={3000} loop={true} class="mr-2 h-4 w-4" />
-                                                                                    Gizle
+                                                                                    {t('articles.comments.hide')}
                                                                                 </DropdownMenu.Item>
                                                                             {/if}
                                                                         {/if}
@@ -2795,7 +2844,7 @@
                                                                                 content={replyContents[reply.id] || emptyDoc}
                                                                                 class="min-h-[80px] h-min rounded-lg text-sm"
                                                                                 onUpdate={() => onReplyEditorUpdate(reply.id)}
-                                                                                placeholder="Yanıtınızı yazın..."
+                                                                                placeholder={t('articles.comments.replyPlaceholder')}
                                                                             />
                                                                         </div>
                                                                     {/key}
@@ -2809,14 +2858,14 @@
                                                                                 delete replyEditors[reply.id]; 
                                                                             }}
                                                                         >
-                                                                            İptal
+                                                                            {t('articles.comments.cancel')}
                                                                         </Button>
                                                                         <Button
                                                                             size="sm"
                                                                             onclick={() => postReply(reply.id)}
                                                                             disabled={isCommentEmpty(replyContents[reply.id])}
                                                                         >
-                                                                            Yanıtla
+                                                                            {t('articles.comments.reply')}
                                                                         </Button>
                                                                     </div>
                                                                 </div>
@@ -2832,7 +2881,7 @@
                                                                         onclick={() => openNestedDialog(reply, replyLevel, comment.id)}
                                                                     >
                                                                         <MessageCircle class="w-3 h-3 mr-1" />
-                                                                        {reply.replies.length} yanıtı göster
+                                                                        {t('articles.comments.showReplies', { count: reply.replies.length })}
                                                                     </Button>
                                                                 </div>
                                                             {/if}
@@ -3131,13 +3180,13 @@
         <Dialog.Header>
             <Dialog.Title class="flex items-center gap-2">
                 <MessageCircle class="w-5 h-5" />
-                Yanıtlar
+                {t('articles.replies')}
             </Dialog.Title>
             {#if dialogParentComment}
                 <Dialog.Description class="text-sm text-muted-foreground">
                     {dialogParentComment.author?.name && dialogParentComment.author?.surname 
                         ? `${dialogParentComment.author.name} ${dialogParentComment.author.surname}`
-                        : dialogParentComment.author?.nickname || 'Anonim'} kullanıcısının yanıtına devam ediyor
+                        : dialogParentComment.author?.nickname || t('articles.comments.anonymous')} {t('articles.replyingTo')}
                 </Dialog.Description>
             {/if}
         </Dialog.Header>
@@ -3291,7 +3340,7 @@
                                                                     }}
                                                                 >
                                                                     <MessageCircle class="w-3 h-3" />
-                                                                    <span class="text-xs">Yanıtla</span>
+                                                                    <span class="text-xs">{t('articles.comments.reply')}</span>
                                                                 </Button>
                                                                 <DropdownMenu.Root>
                                                                     <DropdownMenu.Trigger asChild>
@@ -3349,7 +3398,7 @@
                                                                                 content={replyContents[comment.id] || emptyDoc}
                                                                                 class="min-h-[80px] h-min rounded-lg text-sm"
                                                                                 onUpdate={() => onReplyEditorUpdate(comment.id)}
-                                                                                placeholder="Yanıtınızı yazın..."
+                                                                                placeholder={t('articles.comments.replyPlaceholder')}
                                                                             />
                                                                         </div>
                                                                     {/key}

@@ -13,7 +13,7 @@
 	import { Label } from "$lib/components/ui/label/index.js";
 	import { Switch } from "$lib/components/ui/switch/index.js";
 	import { Input } from "$lib/components/ui/input/index.js";
-	import { HandCoins, FileBadge, Construction, Cog, LogIn, CirclePlus, UserCircleIcon, LayoutGridIcon, TrashIcon, BellIcon, LogOutIcon, LogInIcon, UserRound, Hand, KeyRound, RefreshCw, Eye, EyeOff, Sun, Moon } from "@lucide/svelte";
+	import { Construction, Cog, LogIn, UserCircleIcon, LayoutGridIcon, TrashIcon, BellIcon, LogOutIcon, LogInIcon, Hand, KeyRound, RefreshCw, Eye, EyeOff, Sun, Moon } from "@lucide/svelte";
 	import * as Tabs from "$lib/components/ui/vertical-tabs/index.js";
 	import Circle from "./Circle.svelte";
 	import MnemonicVerificationPopup from "$lib/components/MnemonicVerificationPopup.svelte";
@@ -60,6 +60,10 @@
 	// Notification preferences state from store
 	let currentNotificationPreferences = $state<NotificationPreferences>(defaultPreferences);
 
+	// Hide profile state
+	let isProfileHidden = $state(false);
+	let isTogglingHideProfile = $state(false);
+
 	// Sync with stores
 	$effect(() => {
 		isHighContrast = $highContrast;
@@ -67,10 +71,59 @@
 		currentNotificationPreferences = $notificationPreferences;
 	});
 
-	// Initialize notification preferences on component mount
+	// Initialize notification preferences and hide profile status on component mount
 	$effect(() => {
 		loadNotificationPreferences();
+		loadHideProfileStatus();
 	});
+
+	// Load hide profile status from server
+	async function loadHideProfileStatus() {
+		try {
+			const response = await fetch('/api/account/hide', {
+				method: 'GET',
+				credentials: 'include'
+			});
+			if (response.ok) {
+				const data = await response.json();
+				isProfileHidden = data.isHidden;
+			}
+		} catch (error) {
+			console.error('Error loading hide profile status:', error);
+		}
+	}
+
+	// Toggle hide profile
+	async function toggleHideProfile() {
+		if (isTogglingHideProfile) return;
+		
+		isTogglingHideProfile = true;
+		const newValue = !isProfileHidden;
+		
+		try {
+			const response = await fetch('/api/account/hide', {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json'
+				},
+				body: JSON.stringify({ isHidden: newValue }),
+				credentials: 'include'
+			});
+			
+			if (response.ok) {
+				isProfileHidden = newValue;
+				showToast(newValue ? t('ProfileHidden') : t('ProfileUnhidden'), 'success');
+			} else {
+				const error = await response.json();
+				showToast(error.error || t('FailedToUpdateProfile'), 'error');
+			}
+		} catch (error) {
+			console.error('Error toggling hide profile:', error);
+			showToast(t('NetworkError'), 'error');
+		} finally {
+			isTogglingHideProfile = false;
+		}
+	}
 
 	// Toggle high contrast mode
 	function toggleHighContrast() {
@@ -145,11 +198,6 @@
 	}
 
 	const settingsData = $derived({
-		account: [
-			{ name: tJoin(['MyPlus']), value:"account", icon: CirclePlus },
-			{ name: tJoin(['MyDonations']), value:"donations", icon: HandCoins },
-			{ name: tJoin(['MyAwards']), value:"awards", icon: FileBadge },
-		],
 		settings: [
 			{ name: t('Interface'), value:"interface", icon: PaintbrushIcon },
 			{ name: t('Messages'), value:"messages", icon: MessageCircleIcon },
@@ -503,24 +551,6 @@ function handleOpenChange(newOpen: boolean) {
 				<Sidebar.Root class="w-64 border-r">
 					<Sidebar.Content class="overflow-y-auto h-full" data-slot="content">
 						<Sidebar.Group>
-							<Sidebar.GroupLabel class="flex flex-row gap-2 font-bold text-secondary-foreground"><UserRound class="text-primary"size={28} />{t('MyAccount')}</Sidebar.GroupLabel>
-							<Sidebar.GroupContent>
-								<Sidebar.Menu>
-									{#each settingsData.account as hesapItem (hesapItem.value)}
-										<Sidebar.MenuItem>
-											<Sidebar.MenuButton>
-												{#snippet child({ props })}
-													<Tabs.List>
-														<Tabs.Trigger value={hesapItem.value} {...props}><hesapItem.icon class="w-4 h-4 mr-2"/>{hesapItem.name}</Tabs.Trigger>
-													</Tabs.List>
-												{/snippet}
-											</Sidebar.MenuButton>
-										</Sidebar.MenuItem>
-									{/each}
-								</Sidebar.Menu>
-							</Sidebar.GroupContent>
-						</Sidebar.Group>
-						<Sidebar.Group>
 							<Sidebar.GroupLabel class="flex flex-row gap-2 font-bold text-secondary-foreground"><Cog class="text-primary"size={28} />{t('Settings')}</Sidebar.GroupLabel>
 							<Sidebar.GroupContent>
 								<Sidebar.Menu>
@@ -715,7 +745,12 @@ function handleOpenChange(newOpen: boolean) {
                 </div>
                 <div class="flex items-center justify-between py-3 px-4 rounded-lg border">
                   <Label for="hide-profile" class="cursor-pointer text-xs">{t('HideTheProfile')}</Label>
-                  <Switch id="hide-profile" />
+                  <Switch 
+                    id="hide-profile" 
+                    checked={isProfileHidden}
+                    disabled={isTogglingHideProfile}
+                    onclick={toggleHideProfile}
+                  />
                 </div>
               </div>
               <div class="border-t pt-6">
@@ -1017,74 +1052,6 @@ function handleOpenChange(newOpen: boolean) {
 								<LanguageSelector />
 
 								
-							</div>
-						</main>
-					</ScrollArea>
-				</Tabs.Content>
-        
-				<!-- Account Tabs -->
-				<Tabs.Content value="account">
-					<ScrollArea orientation="vertical" class="h-full">
-						<header class="flex h-16 shrink-0 items-center gap-2 transition-[width,height] ease-linear group-has-[[data-collapsible=icon]]/sidebar-wrapper:h-12 border-b">
-							<div class="flex items-center gap-2 px-6">
-								<Breadcrumb.Root>
-									<Breadcrumb.List>
-										<Breadcrumb.Item class="hidden md:block">
-											<Breadcrumb.Link href="">{tJoin(['MyPlus'])}</Breadcrumb.Link>
-										</Breadcrumb.Item>
-									</Breadcrumb.List>
-								</Breadcrumb.Root>
-							</div>
-						</header>
-						<main class="flex h-full flex-1 flex-col py-6 px-10">
-							<div class="text-center space-y-4">
-								<p class="text-lg font-semibold">{tJoin(['MyPlus'])}</p>
-								<p class="text-sm text-muted-foreground">{t('UpgradeToPremium')}</p>
-								<Button class="mt-4">{t('UpgradeNow')}</Button>
-							</div>
-						</main>
-					</ScrollArea>
-				</Tabs.Content>
-        
-				<Tabs.Content value="donations">
-					<ScrollArea orientation="vertical" class="h-full">
-						<header class="flex h-16 shrink-0 items-center gap-2 transition-[width,height] ease-linear group-has-[[data-collapsible=icon]]/sidebar-wrapper:h-12 border-b">
-							<div class="flex items-center gap-2 px-6">
-								<Breadcrumb.Root>
-									<Breadcrumb.List>
-										<Breadcrumb.Item class="hidden md:block">
-											<Breadcrumb.Link href="">{tJoin(['MyDonations'])}</Breadcrumb.Link>
-										</Breadcrumb.Item>
-									</Breadcrumb.List>
-								</Breadcrumb.Root>
-							</div>
-						</header>
-						<main class="flex h-full flex-1 flex-col py-6 px-10">
-							<div class="text-center space-y-4">
-								<p class="text-lg font-semibold">{tJoin(['MyDonations'])}</p>
-								<p class="text-sm text-muted-foreground">{t('NoDonationsYet')}</p>
-							</div>
-						</main>
-					</ScrollArea>
-				</Tabs.Content>
-        
-								<Tabs.Content value="awards">
-					<ScrollArea orientation="vertical" class="h-full">
-						<header class="flex h-16 shrink-0 items-center gap-2 transition-[width,height] ease-linear group-has-[[data-collapsible=icon]]/sidebar-wrapper:h-12 border-b">
-							<div class="flex items-center gap-2 px-6">
-								<Breadcrumb.Root>
-									<Breadcrumb.List>
-										<Breadcrumb.Item class="hidden md:block">
-											<Breadcrumb.Link href="">{tJoin(['MyAwards'])}</Breadcrumb.Link>
-										</Breadcrumb.Item>
-									</Breadcrumb.List>
-								</Breadcrumb.Root>
-							</div>
-						</header>
-						<main class="flex h-full flex-1 flex-col py-6 px-10">
-							<div class="text-center space-y-4">
-								<p class="text-lg font-semibold">{tJoin(['MyAwards'])}</p>
-								<p class="text-sm text-muted-foreground">{t('NoAwardsYet')}</p>
 							</div>
 						</main>
 					</ScrollArea>

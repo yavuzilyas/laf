@@ -156,7 +156,7 @@
             {:else if article.status === 'draft'}
               <Badge variant="outline">{t('articles.status.draft')}</Badge>
             {:else if article.status === 'published'}
-              <Badge variant="default">No flaws</Badge>
+              <Badge variant="default">{t('articles.status.noFlaws')}</Badge>
             {/if}
           </div>
           <p class="mt-2 text-muted-foreground leading-relaxed">
@@ -545,7 +545,7 @@
                 </div>
               </Tooltip.Trigger>
               <Tooltip.Content>
-                <p>{article.views.toLocaleString()} görüntüleme</p>
+                <p>{article.views.toLocaleString()} {t('articles.stats.view')}</p>
               </Tooltip.Content>
             </Tooltip.Root>
           </Tooltip.Provider>
@@ -559,7 +559,7 @@
                 </div>
               </Tooltip.Trigger>
               <Tooltip.Content>
-                <p>{article.comments.toLocaleString()} yorum</p>
+                <p>{article.comments.toLocaleString()} {t('articles.stats.comment')}</p>
               </Tooltip.Content>
             </Tooltip.Root>
           </Tooltip.Provider>
@@ -573,7 +573,7 @@
                 </div>
               </Tooltip.Trigger>
               <Tooltip.Content>
-                <p>{article.likes.toLocaleString()} beğeni</p>
+                <p>{article.likes.toLocaleString()} {t('articles.stats.like')}</p>
               </Tooltip.Content>
             </Tooltip.Root>
           </Tooltip.Provider>
@@ -587,7 +587,7 @@
                 </div>
               </Tooltip.Trigger>
               <Tooltip.Content>
-                <p>{(article.dislikes || 0).toLocaleString()} beğenmeme</p>
+                <p>{(article.dislikes || 0).toLocaleString()} {t('articles.stats.dislike')}</p>
               </Tooltip.Content>
             </Tooltip.Root>
           </Tooltip.Provider>

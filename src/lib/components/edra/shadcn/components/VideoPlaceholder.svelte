@@ -3,6 +3,7 @@
 	import type { NodeViewProps } from '@tiptap/core';
 	import { t } from '$lib/stores/i18n.svelte';
 	import { getFileSizeLimit, isFileSizeValid, getFileSizeError } from '../../config/file-limits.js';
+	import { articleEditor } from '$lib/stores/article-editor.svelte.js';
 
 	const { editor }: NodeViewProps = $props();
 	import Video from '@lucide/svelte/icons/video';
@@ -26,6 +27,14 @@
 		const fd = new FormData();
 		fd.append('file', file);
 		fd.append('folder', 'videos');
+		
+		// Add articleId if available (for article editor context)
+		const articleId = articleEditor.articleId;
+		if (articleId) {
+			fd.append('articleId', articleId);
+			fd.append('type', 'videos');
+		}
+
 		const res = await fetch('/api/upload', { method: 'POST', body: fd });
 		const data = await res.json();
 		if (!res.ok) {

@@ -1,5 +1,12 @@
 <script lang="ts">
       let isOpen = $state(false);
+      let mounted = $state(false);
+  import { onMount } from 'svelte';
+
+  onMount(() => {
+    mounted = true;
+    isOpen = false;
+  });
 
   import {Menu, Expand, Shrink, Volume2, VolumeOff} from "@lucide/svelte";
   import { Motion, useAnimation } from "svelte-motion";
@@ -129,7 +136,8 @@ function handleItemClick(item: any) {
   use:motion
   class={cn(
     "absolute flex flex-col gap-1.5 right-0 top-full mt-4 sm:mt-3 z-[60] w-fit  px-3.5 py-2 !bg-background/44  origin-top-right  border !backdrop-blur-sm rounded-xl  ",
-    isOpen ? "pointer-events-auto" : "pointer-events-none"
+    isOpen ? "pointer-events-auto" : "pointer-events-none",
+    !mounted && "opacity-0"
   )}
 >
 

@@ -6,7 +6,7 @@
 import SettingsDialog from "$lib/components/settings-dialog.svelte";
 import NotificationDialog from "$lib/components/NotificationDialog.svelte";
 import A from "$lib/components/ui/a.svelte";
-
+import { ScrollProgress } from "$lib/components/magic/scroll-progress";
     import {HandCoins, BadgeInfo, Cog, BellIcon,LogOutIcon, LogInIcon, UserRound, Shield } from "@lucide/svelte";
   import logo from '$lib/assets/laf1.svg';
       import { t, tJoin, tMany, dativeSuffix } from '$lib/stores/i18n.svelte.js';
@@ -42,7 +42,6 @@ import A from "$lib/components/ui/a.svelte";
   // Reaktif menu array'i - dil değiştiğinde otomatik güncellenir
   let menu = $derived([
     { isconstruction: "false", name: t('Articles'), href: "/articles" },
-    { isconstruction: "true", name: t('Lexicon'), href: "/lugath" },
     // { isconstruction: "true", name: t('Bicorpus'), href: "bicorpus" },
     // { isconstruction: "true", name: t('Tacicat'), href: "tacicat" },
   ]);
@@ -140,6 +139,13 @@ import A from "$lib/components/ui/a.svelte";
     openSettings = true;
 
   }
+
+  function scrollToDonations() {
+    const element = document.getElementById('donations');
+    if (element) {
+      element.scrollIntoView({ behavior: 'smooth' });
+    }
+  }
  import { playSound } from "$lib/stores/sound"; // 🔥 ekle
  let prevOpen = openSettings;
 
@@ -176,16 +182,14 @@ import A from "$lib/components/ui/a.svelte";
     { icon: Cog, name: t('Settings'), onClick: handleSettingsClick },
     { icon: BellIcon, name: t('Notifications'), onClick: openNotificationsDialog, badge: unreadTotal },
     ...(isModerator ? [{ icon: Shield, name: t('Moderation'), href: "/moderation" }] : []),
-    { icon: HandCoins, name: t('Donate'), href: "/fundraiser" },
-    { icon: BadgeInfo, name: t('Help'), href: "/help" },
+    { icon: HandCoins, name: t('Donate'), onClick: () => scrollToDonations() },
     { icon: LogOutIcon, name: t('Logout'), href: '/logout', customStyle: "!text-red-500"},
   ]);
 
   // Reaktif logged-out items - dil değiştiğinde otomatik güncellenir
   const baseLoggedOut = $derived<MenuItem[]>([
     { icon: LogInIcon, name: t('Login'), href: "/login" },
-    { icon: HandCoins, name: t('Donations'), href: "/fundraiser" },
-    { icon: BadgeInfo, name: t('Help'), href: "/help" },
+    { icon: HandCoins, name: t('Donations'), onClick: () => scrollToDonations() },
   ]);
 
   // Locale-aware login path: /giris for tr, /login otherwise
@@ -202,7 +206,6 @@ import A from "$lib/components/ui/a.svelte";
     }
   }); 
 
-import HammerLottie from "$lib/components/hammerIcon.svelte";
 </script>
 <SettingsDialog bind:open={openSettings} on:close={() => openSettings = false} />
 <NotificationDialog
@@ -236,21 +239,6 @@ import HammerLottie from "$lib/components/hammerIcon.svelte";
       <div class="py-2 max-w-50 sm:p-0 sm:max-w-full overflow-auto flex text-secondary-foreground space-x-4 text-xs">
         {#each menu as item}
 
-{#if item.isconstruction == "true"}
-            <Tooltip.Provider>
-  <Tooltip.Root>
-    <Tooltip.Trigger>
-      <A href={item.href} class="text-shadow-xs text-shadow-background/44 text-secondary-foreground/75 group flex items-center gap-0.5 font-bold cursor-pointer"><HammerLottie />{item.name}
-      </A>
-      </Tooltip.Trigger>
-    <Tooltip.Content class="align-center text-center flex items-center gap-1.5">
-        <p class="text-secondary-foreground group flex items-center gap-0.5 font-bold cursor-pointer">
-        {item.name} 
-        </p><span class="text-secondary-foreground font-medium"> {t('DevelopmentStage')}</span>
-    </Tooltip.Content>
-  </Tooltip.Root>
-</Tooltip.Provider>
-{:else}
             <Tooltip.Provider>
   <Tooltip.Root>
     <Tooltip.Trigger>
@@ -264,7 +252,6 @@ import HammerLottie from "$lib/components/hammerIcon.svelte";
     </Tooltip.Content>
   </Tooltip.Root>
 </Tooltip.Provider>
-{/if}
 
 
         {/each}
@@ -275,3 +262,4 @@ import HammerLottie from "$lib/components/hammerIcon.svelte";
     </div>
   </div>
 </nav> 
+<ScrollProgress />

@@ -335,8 +335,6 @@ export const getArticles = async (filters: any = {}) => {
     if (filters.search) {
         conditions.push(`(
             a.translations::text ILIKE $${params.length + 1}
-            OR a.title ILIKE $${params.length + 1}
-            OR a.content ILIKE $${params.length + 1}
             OR a.category ILIKE $${params.length + 1}
             OR a.subcategory ILIKE $${params.length + 1}
         )`);
@@ -1752,4 +1750,214 @@ export const getTopDonors = async (limit: number = 10) => {
         totalAmount: parseFloat(row.total_amount),
         donationCount: parseInt(row.donation_count)
     }));
+};
+
+// ==================== CONTACT MESSAGES QUERIES ====================
+
+export interface ContactMessageFilters {
+    status?: 'pending' | 'read' | 'responded' | 'archived';
+    subject?: string;
+    userId?: string;
+    limit?: number;
+    offset?: number;
+}
+
+export const getContactMessages = async (filters: ContactMessageFilters = {}) => {
+    const conditions: string[] = [];
+    const params: any[] = [];
+    let paramIndex = 1;
+
+    if (filters.status) {
+        conditions.push(`cm.status = $${paramIndex}`);
+        params.push(filters.status);
+        paramIndex++;
+    }
+
+    if (filters.subject) {
+        conditions.push(`cm.subject = $${paramIndex}`);
+        params.push(filters.subject);
+        paramIndex++;
+    }
+
+    if (filters.userId) {
+        conditions.push(`cm.user_id = $${paramIndex}`);
+        params.push(filters.userId);
+        paramIndex++;
+    }
+
+    const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
+
+    const sql = `
+        SELECT 
+            cm.id,
+            cm.user_id,
+            cm.user_email,
+            cm.user_nickname,
+            cm.user_username,
+            cm.name,
+            cm.subject,
+            cm.message,
+            cm.ip_address,
+            cm.user_agent,
+            cm.status,
+            cm.reviewed_by,
+            cm.reviewed_at,
+            cm.response,
+            cm.responded_by,
+            cm.responded_at,
+            cm.honeypot_filled,
+            cm.created_at,
+            cm.updated_at,
+            reviewer.username as reviewer_username,
+            reviewer.nickname as reviewer_nickname,
+            responder.username as responder_username,
+            responder.nickname as responder_nickname
+        FROM contact_messages cm
+        LEFT JOIN users reviewer ON cm.reviewed_by = reviewer.id
+        LEFT JOIN users responder ON cm.responded_by = responder.id
+        ${whereClause}
+        ORDER BY cm.created_at DESC
+        LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
+    `;
+
+    params.push(filters.limit || 50);
+    params.push(filters.offset || 0);
+
+    const result = await query(sql, params);
+    return result.rows;
+};
+
+export const getContactMessagesCount = async (filters: ContactMessageFilters = {}) => {
+    const conditions: string[] = [];
+    const params: any[] = [];
+    let paramIndex = 1;
+
+    if (filters.status) {
+        conditions.push(`status = $${paramIndex}`);
+        params.push(filters.status);
+        paramIndex++;
+    }
+
+    if (filters.subject) {
+        conditions.push(`subject = $${paramIndex}`);
+        params.push(filters.subject);
+        paramIndex++;
+    }
+
+    if (filters.userId) {
+        conditions.push(`user_id = $${paramIndex}`);
+        params.push(filters.userId);
+        paramIndex++;
+    }
+
+    const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
+
+    const sql = `SELECT COUNT(*) as count FROM contact_messages ${whereClause}`;
+    const result = await query(sql, params);
+    return parseInt(result.rows[0].count);
+};
+
+export const createContactMessage = async (data: {
+    userId: string;
+    name: string;
+    subject: string;
+    message: string;
+    ipAddress?: string;
+    userAgent?: string;
+    honeypot?: string;
+}) => {
+    const sql = `
+        INSERT INTO contact_messages (
+            user_id, name, subject, message, ip_address, user_agent, honeypot_filled
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7)
+        RETURNING *
+    `;
+    const result = await query(sql, [
+        data.userId,
+        data.name,
+        data.subject,
+        data.message,
+        data.ipAddress || null,
+        data.userAgent || null,
+        !!data.honeypot && data.honeypot.trim() !== ''
+    ]);
+    return result.rows[0];
+};
+
+export const updateContactMessageStatus = async (
+    messageId: string,
+    status: 'pending' | 'read' | 'responded' | 'archived',
+    reviewedBy?: string
+) => {
+    const sql = `
+        UPDATE contact_messages 
+        SET 
+            status = $1,
+            reviewed_by = $2,
+            reviewed_at = CASE WHEN $2 IS NOT NULL THEN NOW() ELSE reviewed_at END,
+            updated_at = NOW()
+        WHERE id = $3
+        RETURNING *
+    `;
+    const result = await query(sql, [status, reviewedBy || null, messageId]);
+    return result.rows[0];
+};
+
+export const respondToContactMessage = async (
+    messageId: string,
+    response: string,
+    respondedBy: string
+) => {
+    const sql = `
+        UPDATE contact_messages 
+        SET 
+            response = $1,
+            responded_by = $2,
+            responded_at = NOW(),
+            status = 'responded',
+            updated_at = NOW()
+        WHERE id = $3
+        RETURNING *
+    `;
+    const result = await query(sql, [response, respondedBy, messageId]);
+    return result.rows[0];
+};
+
+export const deleteContactMessage = async (messageId: string) => {
+    const sql = 'DELETE FROM contact_messages WHERE id = $1 RETURNING *';
+    const result = await query(sql, [messageId]);
+    return result.rows[0];
+};
+
+export const getContactMessageById = async (messageId: string) => {
+    const sql = `
+        SELECT 
+            cm.*,
+            reviewer.username as reviewer_username,
+            reviewer.nickname as reviewer_nickname,
+            responder.username as responder_username,
+            responder.nickname as responder_nickname
+        FROM contact_messages cm
+        LEFT JOIN users reviewer ON cm.reviewed_by = reviewer.id
+        LEFT JOIN users responder ON cm.responded_by = responder.id
+        WHERE cm.id = $1
+    `;
+    const result = await query(sql, [messageId]);
+    return result.rows[0] || null;
+};
+
+// Messages (Private/DM)
+export const createMessage = async (data: {
+    senderId: string;
+    receiverId: string;
+    content: string;
+}) => {
+    const id = uuidv4();
+    const sql = `
+        INSERT INTO messages (id, sender_id, receiver_id, content, created_at, is_read)
+        VALUES ($1, $2, $3, $4, NOW(), FALSE)
+        RETURNING *
+    `;
+    const result = await query(sql, [id, data.senderId, data.receiverId, data.content]);
+    return result.rows[0];
 };

@@ -8,14 +8,191 @@
 	"GoToHomePage": "Ana sayfaya git.",
   "ClearInThisSession" : "Bu oturumdan sil",
 	"goto": "git.",
+  "lafFull": "Liberteryen Anarşist Faaliyet",
+    "firstPart": "devlet",
+  "secondPart": "şiddettir.",
 	"MainPageDescription": "Anarşist, liberteryen eylem ve entelektüel bilgi paylaşım platformu",
 	"DevelopmentStage": "imar merhalesindedir.",
+	"whoWeAre": "Biz Kimiz?",
+	"whoWeAreDescription": "Liberteryen anarşist faaliyet, Türkiye'de ekstrem olarak adlandırılan pozisyonlarda emek mücadelesi ve devletle halkın çatışması meselesinde daima ezilenin yanında olmayı seçen ve bundan ötürü haddizatında bedel ödemiş, çürük ve külüstür bir yıkım sistemini optimist bir radikalizmle dönüştürme ateşiyle yanıp tutuşan bir politik eylem ve fikir platformudur",
+	"ourGoal": "Hedefimiz",
+	"ourGoalDescription": "Liberter Anarşist Faaliyet; Türkiye`deki üstten organize edilmiş, liberteryen gençliğin önünü tıkayan, sistematik bir şekilde anti-özgürlükçü ajandalarla hareket eden liberal-liberteryen platformlara karşı örgütlenen tutarlı ve ilkeli bir eylem ve fikir platformudur. Türkiye`de dışsal fon yoluyla satın almaya ve pasifize etmeye çalışan çürük liberal siyasetten bıkmış, bunun yeniden organize edilebileceğini, ve organize edilmesi gerektiğini şiar edinmiş, tamamen bağımsız bir hür düşünce taraftarı gençlik hareketi tarafından platformize edilen LAF, eski ismiyle Liberteryen Gençlik`in ideolojik gerekçe ve misyon etrafında yeniden şekillendirilmesi sayesinde başladı; her zaman için yaşayan damarı bir iflah olmaz ekstremizm ve radikalizm, siyasal realizm, ve fırsatçılık karşıtlığıydı. LAF`ın temel misyonu, Türkiye`de ihtiyaç duyulan ve gençlik kitlelerinde de çokça karşılık bulan liberteryen düşünceyi, siyasal realist bir çerçevede geniş halk kitlelerine tanıtmak, ve bastırılmış, kaybedecek fazla bir şeyi olmayan ama kazanacak çok şeyi olan bir çalışan kesimin gerçek derdini en azından çözümleyebilme ve bir geniş sınıf bilinci oluşturabilmedir.",
+	"whyAnarchoCapitalism": "Neden Anarko Kapitalizm?",
+	"whyAnarchoCapitalismDescription": "Binyıllardır köleleştirme, aşağılama, âtılaştırma, dejenerasyon ve kitle katliamlarıyla kendisini göstermiş; geniş halk için yoksulluk ve sefalet, politik çıkar mekanizmalarında itaat ve ahlaksızlığı üretmiş bir şiddet tekeli olan devletin yarattığı kurumsal baskı ve verimsizlik mekanizmaları, hiyerarşiler ve sosyokültürel çürümeyi reddeden ve buna bir alternatifin mümkün olduğunu, yalnızca mümkün değil gerekli olduğunu savunan bir ideoloji olarak anarko kapitalizm; eğer benimsenilesice değilse, bu kadar derin bir perspektif ve insanoğlunun varoluşu, medeniyeti ve geleceği hakkında çoklu bir anlayış katan bir ideoloji sınıf savaşındaki konumumuzu indikte etmeye yeterli değilse, başka ne bu işlevi görebilir şaibelidir.",
+	"contact": "İletişim",
+	"contactDescription": "Bizimle iletişime geçmek için aşağıdaki formu doldurun.",
+	"help": {
+		"title": "Yardım - LAF",
+		"description": "Yardım merkezi ve sıkça sorulan sorular",
+		"faqTitle": "Sıkça Sorulan Sorular",
+		"contactTitle": "Bize Ulaşın",
+		"faq": {
+			"createAccount": {
+				"question": "Hesabımı nasıl oluştururum?",
+				"answer": "Ana sayfadaki 'Kayıt Ol' butonuna tıklayın, gerekli bilgileri doldurun ve e-posta adresinizi doğrulayın."
+			},
+			"forgotPassword": {
+				"question": "Şifremi unuttum, ne yapmalıyım?",
+				"answer": "Giriş sayfasındaki 'Şifremi Unuttum' bağlantısına tıklayın ve e-posta adresinizi girin. Şifre sıfırlama bağlantısı e-posta adresinize gönderilecektir."
+			},
+			"editProfile": {
+				"question": "Profilimi nasıl düzenleyebilirim?",
+				"answer": "Ayarlar menüsünden 'Profil Ayarları' seçeneğine gidin. Burada adınızı, profil fotoğrafınızı ve diğer bilgilerinizi güncelleyebilirsiniz."
+			},
+			"twoFactor": {
+				"question": "İki faktörlü kimlik doğrulamayı nasıl etkinleştirebilirim?",
+				"answer": "Güvenlik ayarlarından 'İki Faktörlü Kimlik Doğrulama' seçeneğini bulun ve adımları takip edin. Kimlik doğrulama uygulaması ile QR kodu tarayın."
+			},
+			"createContent": {
+				"question": "İçerik nasıl oluşturabilirim?",
+				"answer": "Ana menüdeki 'Yaz' butonuna tıklayın. Metin düzenleyiciyi kullanarak içerik oluşturabilir, medya ekleyebilir ve yayınlamadan önce önizleme yapabilirsiniz."
+			},
+			"collaborate": {
+				"question": "Diğer kullanıcılarla nasıl işbirliği yapabilirim?",
+				"answer": "İçerik sayfasında 'Paylaş' butonunu kullanarak diğer kullanıcıları davet edebilirsiniz. Gerçek zamanlı düzenleme ve yorum özelliklerini kullanabilirsiniz."
+			}
+		}
+	},
+	"contactForm": {
+		"title": "Bize Ulaşın",
+		"subtitle": "Görüşlerinizi, önerilerinizi veya sorularınızı bizimle paylaşın",
+		"name": "İsim",
+		"namePlaceholder": "Adınızı girin",
+		"subject": "Konu",
+		"subjectPlaceholder": "Konu seçin",
+		"subjects": {
+			"general": "Genel Bilgi",
+			"feedback": "Geri Bildirim",
+			"collaboration": "İşbirliği",
+			"report": "Bildirim",
+			"other": "Diğer"
+		},
+		"message": "Mesaj",
+		"messagePlaceholder": "Mesajınızı buraya yazın...",
+		"submit": "Gönder",
+		"sending": "Gönderiliyor...",
+		"success": "Mesajınız başarıyla gönderildi!",
+		"error": "Bir hata oluştu. Lütfen tekrar deneyin.",
+		"loginRequired": "Giriş Gerekli",
+		"loginPrompt": "Formu kullanabilmek için giriş yapmalısınız. Veya doğrudan e-posta ile ulaşabilirsiniz.",
+		"errors": {
+			"fillAllFields": "Lütfen tüm alanları doldurun",
+			"nameTooLong": "İsim çok uzun (max 100 karakter)",
+			"messageTooLong": "Mesaj çok uzun (max 2000 karakter)",
+			"rateLimit": "Çok fazla mesaj gönderdiniz. Lütfen 1 saat sonra tekrar deneyin.",
+			"unauthorized": "Bu işlem için giriş yapmalısınız"
+		}
+	},
 	"ThePage": "sayfası.",
 	"Articles": "Makale",
 	"Lexicon": "Lügat",
 	"Tacicat": "Tahkikat",
 	"Bicorpus": "Külliyât",
 	"Donations": "Bağışlar",
+	"donations": {
+		"title": "Bağış",
+		"description": "LAF`ın fonlamacılığı ve fonu şiddetle reddetmesi nedeniyle bir sabit gelir kaynağı yok, ve gönüllü küçük insanların bağışladığı, küçük miktarlar sayesinde kendisini sürdürüyor. O yüzden bağımsız özgürlükçü fikir ve eyleme sizde katkıda bulunmak istiyorsanız: ",
+		"joinCommunity": "Topluluğumuza Katıl",
+		"joinDiscord": "Discord'a Katıl",
+		"joinTelegram": "Telegram'a Katıl",
+		"noDonations": "Henüz bağış yapılmamış",
+		"makeDonation": "Bağış Yap",
+		"makeDonationDescription": "Platformumuza destek olmak için aşağıdaki bilgileri kullanabilirsiniz",
+		"walletAddress": "Cüzdan Adresi",
+		"copyAddress": "Adresi Kopyala",
+		"copySuccess": "Cüzdan adresi kopyalandı!",
+		"copyError": "Kopyalama başarısız oldu",
+		"openInWallet": "Cüzdanda aç",
+		"selectWallet": "Monero Cüzdanını Seç",
+		"closeForm": "Formu Kapat",
+		"iDonated": "Bağış Yaptım",
+		"enterDonationInfo": "Bağış Bilgilerini Girin",
+		"amount": "Bağış Tutarı (XMR)",
+		"amountPlaceholder": "0.5",
+		"txid": "İşlem Kimliği (TXID)",
+		"txidPlaceholder": "txid...",
+		"date": "Bağış Tarihi ve Saati",
+		"message": "Mesaj (İsteğe bağlı)",
+		"messagePlaceholder": "Bir mesajınız varsa yazın...",
+		"approvalNotice": "Bağışınız moderatör onayından sonra listelenecektir",
+		"submitting": "Gönderiliyor...",
+		"submitDonation": "Bağış Bildir",
+		"donationInfo": "Bağış Bilgileri",
+		"acceptedCurrency": "Monero (XMR) kabul edilmektedir",
+		"minimumAmount": "Minimum bağış miktarı: 0.001 XMR",
+		"usage": "Bağışlarınız projenin geliştirilmesi için kullanılır",
+		"transparency": "Tüm bağışlar şeffaf bir şekilde kaydedilir",
+		"whyDonate": "Neden Bağış Yapmalısınız?",
+		"whyDonate1": "Özgürlük fikirlerini desteklemek için",
+		"whyDonate2": "Platformun bağımsız kalmasını sağlamak için",
+		"whyDonate3": "İçerik kalitesini artırmak için",
+		"whyDonate4": "Topluluğun büyümesine katkıda bulunmak için",
+		"topDonors": "En Çok Bağış Yapanlar",
+		"topDonorsDescription": "Platformumuza en çok destek olan kullanıcılar",
+		"rank": "Sıra",
+		"user": "Kullanıcı",
+		"totalDonation": "Toplam Bağış",
+		"donationCount": "Bağış Sayısı",
+		"anonymous": "Anonim",
+		"timeAgo": {
+			"minutes": "dakika önce",
+			"hours": "saat önce",
+			"days": "gün önce"
+		},
+		"monero": {
+			"whatIs": "Nedir?",
+			"description": "Monero, gizlilik odaklı bir kripto paradır. İşlemleriniz tamamen anonim ve takip edilemez şekilde gerçekleşir. Geleneksel kripto paralardan farklı olarak, Monero'da gönderen, alıcı ve işlem tutarı tamamen şifrelenmiştir.",
+			"featuresTitle": "Monero'nun Temel Özellikleri:",
+			"privacy": "Gizlilik:",
+			"privacyDesc": "Tüm işlemler varsayılan olarak özeldir.",
+			"security": "Güvenlik:",
+			"securityDesc": "Kriptografik tekniklerle güçlendirilmiş güvenlik.",
+			"fungibility": "Takas Edilebilirlik:",
+			"fungibilityDesc": "Her XMR birbirine eşdeğerdir, kara listeleme yoktur.",
+			"decentralized": "Merkeziyetsiz:",
+			"decentralizedDesc": "Açık kaynak kodlu ve topluluk tarafından yönetilir.",
+			"howToGet": "Monero Cüzdanı Nasıl Alınır?",
+			"walletInfo": "Monero cüzdanı oluşturmak için resmi web sitesini ziyaret edebilirsiniz:",
+			"walletLink": "getmonero.org/downloads"
+		},
+		"errors": {
+			"fillRequired": "Lütfen tüm zorunlu alanları doldurun",
+			"amountPositive": "Bağış tutarı sıfırdan büyük olmalıdır",
+			"submitError": "Bağış kaydedilirken bir hata oluştu",
+			"submitFailed": "Bağış kaydedilemedi"
+		},
+		"success": {
+			"submitted": "Bağış talebiniz başarıyla gönderildi! Onay bekleniyor."
+		},
+		"badges": {
+			"title": "Bağış Rozetleri",
+			"subtitle": "Monero bağışlarınıza özel rozetler kazanın ve topluluğa katkılarınızı gösterin.",
+			"bastiat": {
+				"name": "Bastiat",
+				"description": "Bağışçı",
+				"requirement": "Bağış yapan kullanıcı",
+				"fullTitle": "Bastiat Rozeti",
+				"criteria": "Kazanma Kriteri"
+			},
+			"ludwig": {
+				"name": "Ludwig",
+				"description": "Destekçi bağışçı",
+				"requirement": "1-10 XMR bağış yapan kullanıcı",
+				"fullTitle": "Ludwig Rozeti",
+				"criteria": "Kazanma Kriteri"
+			},
+			"murray": {
+				"name": "Murray",
+				"description": "Anarşist sponsor",
+				"requirement": "10+ XMR bağış yapan kullanıcı",
+				"fullTitle": "Murray Rozeti",
+				"criteria": "Kazanma Kriteri"
+			}
+		},
+		"badgeHolders": "Rozet Sahipleri",
+		"noBadgeHolders": "Henüz bu rozete sahip kullanıcı yok",
+		"donations": "bağış"
+	},
 	"Login": "Giriş",
 	"Logout": "Çıkış",
 	"NotFound": "Bulunamadı",
@@ -91,6 +268,24 @@
 			"mnemonicVerified": "Silsile doğrulaması başarılı.",
       "passwordCopied": "Şifre kopyalandı!"
 		},
+		"forgot": {
+			"title": "Şifremi Unuttum",
+			"step1Description": "Kullanıcı adınızı veya e-postanızı girin",
+			"step2Description": "Hesabınızı kurtarmak için 12 kelimelik mnemonic silsilenizi girin",
+			"step3Description": "Yeni şifrenizi girin",
+			"verifyMnemonic": "Mnemonic Doğrulama",
+			"newPassword": "Yeni Şifre",
+			"attemptsRemaining": "deneme hakkınız kaldı",
+			"errors": {
+				"userNotFound": "Kullanıcı bulunamadı",
+				"mnemonicRequired": "Bu hesap için mnemonic bulunamadı",
+				"maxAttemptsReached": "Çok fazla deneme yaptınız. Lütfen daha sonra tekrar deneyin."
+			},
+			"success": {
+				"mnemonicVerified": "Mnemonic doğrulandı",
+				"passwordReset": "Şifreniz başarıyla değiştirildi"
+			}
+		},
 		"password": {
 			"veryWeak": "Çok zayıf",
 			"weak": "Zayıf",
@@ -126,7 +321,9 @@
 			"tag": "Etiket",
 			"category": "Kategori",
 			"recentSearches": "Son Aramalar",
+			"article_suggestions": "Makale Önerileri",
 			"noSuggestions": "Öneri bulunamadı",
+			"typeForSearch": "Aramak için yazın",
 			"searchFor": "Şunu ara",
 			"searchingFor": "Aranan",
 			"clear": "Temizle"
@@ -140,16 +337,84 @@
       "language": "Dil",
       "category": "Kategori",
       "type": "Tür",
+      "author": "Yazar",
+      "tags": "Etiketler",
+      "nickname": "Yazar Kullanıcı Adı",
+      "nicknamePlaceholder": "Kullanıcı adı ara...",
+      "following": "Takip ettiklerim",
+      "followingHint": "Sadece takip ettiğin yazarları göster",
       "selectLanguage": "Dil seçin",
       "selectCategory": "Kategori seçin",
       "selectType": "Tür seçin",
       "selectDate": "Tarih aralığı seçin",
+      "selectAuthor": "Yazar seçin",
       "allLanguages": "Tüm diller",
       "allCategories": "Tüm kategoriler",
       "allTypes": "Tüm türler",
+      "allAuthors": "Tüm yazarlar",
       "allTime": "Tüm zamanlar",
-      "following": "Takip ettiklerim",
-      "followingHint": "Sadece takip ettiğin yazarları göster"
+      "sortBy": "Sıralama",
+      "selectSort": "Sıralama seçin"
+    },
+    "status": {
+      "pending": "Onay Bekliyor",
+      "draft": "Taslak",
+      "published": "Yayınlandı",
+      "noFlaws": "No flaws",
+      "rejected": "Reddedildi"
+    },
+    "stats": {
+      "views": "görüntüleme",
+      "view": "görüntüleme",
+      "likes": "beğeni",
+      "like": "beğeni",
+      "dislikes": "beğenmeme",
+      "dislike": "beğenmeme",
+      "comments": "yorum",
+      "comment": "yorum"
+    },
+    "comments": {
+      "title": "Yorumlar",
+      "writeComment": "Yorum yaz",
+      "postComment": "Yorum Yap",
+      "postReply": "Yanıtla",
+      "reply": "Yanıtla",
+      "replies": "yanıt",
+      "showReplies": "{count} yanıtı göster",
+      "cancel": "İptal",
+      "save": "Kaydet",
+      "delete": "Sil",
+      "edit": "Düzenle",
+      "report": "Bildir",
+      "hide": "Gizle",
+      "show": "Göster",
+      "loading": "Yorumlar yükleniyor...",
+      "empty": "Henüz yorum yapılmamış. İlk yorumu siz yapın!",
+      "anonymous": "Anonim",
+      "edited": "(düzenlendi)",
+      "hidden": "(gizli)",
+      "reported": "(bildirildi)",
+      "sending": "Gönderiliyor...",
+      "editPlaceholder": "Yorumunuzu düzenleyin...",
+      "replyPlaceholder": "Yanıtınızı yazın...",
+      "loginRequiredForReactions": "Tepki vermek için giriş yapın"
+    },
+    "authors": "Yazarlar",
+    "author": "yazar",
+    "share": "Paylaş",
+    "readTime": "dk okuma",
+    "unknownUser": "Bilinmeyen Kullanıcı",
+    "pendingApproval": "Bu makale onay bekliyor",
+    "backToArticles": "Makalelere Dön",
+    "languages": "Diller",
+    "replies": "Yanıtlar",
+    "replyingTo": "yanıtına devam ediyor",
+    "showReplies": "yanıtı göster",
+    "share": {
+      "title": "Paylaş",
+      "copyLink": "Bağlantıyı Kopyala",
+      "linkCopied": "Bağlantı kopyalandı!",
+      "shareError": "Paylaşım başarısız oldu"
     }
   },
   "article": {
@@ -589,7 +854,14 @@
       "newArticleForReview": "İnceleme için yeni makale: {title}",
       "newArticleForReviewMessage": "{author} \"{title}\" başlıklı makaleyi incelemeye gönderdi.",
       "newDonation": "Yeni bağış: {amount} TL",
-      "newDonationMessage": "{donor} {amount} TL bağış yaptı."
+      "newDonationMessage": "{donor} {amount} TL bağış yaptı.",
+      "contactMessageRead": "İletişim mesajınız okundu",
+      "contactMessageReadMessage": "\"{subject}\" konulu mesajınız ekibimiz tarafından incelendi.",
+      "contactMessageResponded": "İletişim mesajınıza yanıt var",
+      "contactMessageRespondedMessage": "\"{subject}\" konulu mesajınıza yanıt verildi.",
+      "contactMessageRespondedWithMessage": "\"{subject}\" yanıtı: {response}",
+      "contactMessageArchived": "İletişim mesajınız arşivlendi",
+      "contactMessageArchivedMessage": "\"{subject}\" konulu mesajınız arşivlendi."
     }
   },
 
@@ -4981,6 +5253,26 @@
     "rejectReasonTitle": "Red mesajı gönder",
     "rejectReasonDescription": "Bu mesaj yazara bildirim olarak gönderilecektir.",
     "rejectReasonLabel": "Mesaj",
-    "rejectReasonPlaceholder": "Neden reddettiğinizi açıklayın..."
+    "rejectReasonPlaceholder": "Neden reddettiğinizi açıklayın...",
+    "contactMessages": "İletişim Mesajları",
+    "contactMessage": "İletişim Mesajı",
+    "noContactMessages": "Henüz mesaj yok",
+    "contactMessageActions": "İletişim Mesajı İşlemleri",
+    "markAsRead": "Okundu olarak işaretle",
+    "respond": "Yanıtla",
+    "archive": "Arşivle",
+    "unarchive": "Arşivden çıkar",
+    "messageDeleted": "Mesaj silindi",
+    "messageUpdated": "Mesaj durumu güncellendi",
+    "responseSent": "Yanıt gönderildi",
+    "generalInfo": "Genel Bilgi",
+    "feedback": "Geri Bildirim",
+    "collaboration": "İşbirliği",
+    "report": "Bildirim",
+    "other": "Diğer",
+    "pending": "Beklemede",
+    "read": "Okundu",
+    "responded": "Yanıtlandı",
+    "archived": "Arşivlendi"
   }
 }

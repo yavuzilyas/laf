@@ -1,6 +1,7 @@
 <script lang="ts">
 	import * as Chart from "$lib/components/ui/chart/index.js";
 	import * as Card from "$lib/components/ui/card/index.js";
+	import { MagicCard } from "$lib/components/magic/magic-card";
 	import * as Select from "$lib/components/ui/select/index.js";
 	import * as ToggleGroup from "$lib/components/ui/toggle-group/index.js";
 	import { scaleUtc } from "d3-scale";
@@ -57,15 +58,15 @@
 					groupBy = "year";
 					break;
 				case "365d":
-					fromDate = new Date(now.getFullYear() - 1, now.getMonth(), now.getDate());
+					fromDate = new Date(now.getTime() - 365 * 24 * 60 * 60 * 1000);
 					groupBy = "month";
 					break;
 				case "180d":
-					fromDate = new Date(now.getFullYear(), now.getMonth() - 6, now.getDate());
+					fromDate = new Date(now.getTime() - 180 * 24 * 60 * 60 * 1000);
 					groupBy = "month";
 					break;
 				case "90d":
-					fromDate = new Date(now.getFullYear(), now.getMonth() - 3, now.getDate());
+					fromDate = new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000);
 					groupBy = "month";
 					break;
 				case "30d":
@@ -132,7 +133,8 @@
 	} satisfies Chart.ChartConfig;
 </script>
 
-<Card.Root class="@container/card">
+<MagicCard class="@container/card rounded-xl p-6">
+	<div>
 	<Card.Header>
 		<Card.Title>Bağış Grafiği</Card.Title>
 		<Card.Description>
@@ -293,4 +295,5 @@
 			</Chart.Container>
 		{/if}
 	</Card.Content>
-</Card.Root>
+	</div>
+</MagicCard>

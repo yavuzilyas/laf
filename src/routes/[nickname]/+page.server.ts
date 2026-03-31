@@ -72,7 +72,15 @@ export const load: PageServerLoad = async ({ params, locals }: any) => {
 		throw error(404, 'User not found');
 	}
 
+	// Check if profile is hidden and viewer is not authorized
 	const viewerId = locals.user?.id;
+	const isModeratorOrAdmin = locals.user?.role === 'moderator' || locals.user?.role === 'admin';
+	const isOwnProfile = viewerId === profileUser.id;
+	
+	if (profileUser.is_hidden && !isOwnProfile && !isModeratorOrAdmin) {
+		throw error(403, 'Profile is hidden');
+	}
+
 	const viewerObjectId = viewerId;
 
 	// Get viewer data for blocking information
@@ -96,8 +104,8 @@ export const load: PageServerLoad = async ({ params, locals }: any) => {
 	const profileAvatar = profileUser.avatar_url || '';
 
 	// Get user's articles (both authored and collaborated)
-	const isModeratorOrAdmin = locals.user?.role === 'moderator' || locals.user?.role === 'admin';
-	const isViewingOwnProfile = locals.user?.id === profileUser.id;
+	// isModeratorOrAdmin and isOwnProfile are already declared above
+	const isViewingOwnProfile = isOwnProfile;
 
 	// Build queries for authored and collaborated articles
 	const authoredFilters: any = {
@@ -248,10 +256,7 @@ export const load: PageServerLoad = async ({ params, locals }: any) => {
 	const totalLikes = processedArticles.reduce((sum, article) => sum + (article.likes || 0), 0);
 	const totalComments = processedArticles.reduce((sum, article) => sum + (article.comments || 0), 0);
 
-	// Check if viewing own profile
-	const isOwnProfile = locals.user && profileUser.id && 
-	    (locals.user.id === profileUser.id || 
-	     locals.user.username?.toLowerCase() === profileUser.username?.toLowerCase());
+	// isOwnProfile and isModeratorOrAdmin are already declared above
 
 	// Get user badges
 	const userBadges = await getUserBadges(profileUser.id);

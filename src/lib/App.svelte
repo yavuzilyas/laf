@@ -1,6 +1,8 @@
-<script>
+<script lang="ts">
   import Navbar from "$lib/Navbar.svelte";
     import Footer from "$lib/Footer.svelte";
+  import { MorphingText } from '$lib/components/magic/morphing-text';
+    import {ContactRoundIcon} from 'svelte-animate-icons';
 
   import Spotlight from "$lib/components/Spotlight.svelte";
 import { cn } from "$lib/utils";
@@ -43,30 +45,80 @@ import { cn } from "$lib/utils";
   //     content: Content7,
   //   },
   // ];
-  import { i18n, dativeSuffix, locativeSuffix } from '$lib/stores/i18n.svelte.js';
+  import { t, dativeSuffix, locativeSuffix } from '$lib/stores/i18n.svelte.js';
+  import DonationsSection from '$lib/components/donations-section.svelte';
+  import DitheredImageSlider from '$lib/components/magic/dithered-image-slider.svelte';
+  import logo from '$lib/assets/laf1.svg';
+  import ContactForm from '$lib/components/ContactForm.svelte';
+
+  const sliderImages = Object.keys(import.meta.glob('/static/government-is-violence/*.{jpg,jpeg,png,webp,avif}')).map(path => path.replace(/^\/static/, ''));
 
 </script>
 
 <Navbar />
 <main class="w-full h-full">
-  <div class="md:h-[30rem] w-full  flex flex-col md:items-center md:justify-center  antialiased bg-grid-white/[0.02] relative overflow-hidden"
+  <div class="h-[95vh] sm:h-[99vh] w-full  mt-7.5 sm:mt-5  mb-12 flex flex-col items-center justify-center  antialiased bg-grid-white/[0.02] relative overflow-hidden"
 >
-  <Spotlight class="-top-3 left-1 md:left-40 md:-top-8" fill="white" />
-  <div class=" max-w-8xl mx-auto  relative z-10 w-full px-2 pt-12 md:p-4">
-    <h1
-      class="text-3xl md:text-7xl md:h-38 font-bold text-center bg-clip-text text-transparent bg-gradient-to-b from-hard-primary to-hard-primary/50 bg-opacity-50"
-    >
-      Liberteryen Anarşist<br />  Faaliyet.
-    </h1>
-    <p
-      class="mt-2 md:mt-4 font-bold text-sm md:text-base text-secondary-foreground/66 max-w-lg text-center mx-auto"
-    >
-      {i18n.t('MainPageDescription')}
-    </p>
+      <DitheredImageSlider  images={sliderImages} />    
+
+      <MorphingText class="absolute sm:top-1/2 top-2/5 left-1/2 transform -translate-x-1/2 -translate-y-1/2" texts={[t('firstPart'), t('secondPart')]} />    
     
-  </div>
   
 
+</div>
+
+<section class="w-full py-12 px-4 sm:px-6 lg:px-8 bg-background flex flex-col items-center justify-center relative">
+<img class="h-16 w-auto mb-5 text-primary" src="{logo}" alt="LAF" />
+<h1 class=" text-3xl font-bold mb-24">{t('lafFull')}</h1>
+  <div class="max-w-7xl mx-auto">
+    <!-- Three Column Layout -->
+    <div class="grid md:grid-cols-3 gap-12 items-start">
+      
+      <!-- Who We Are Column -->
+      <div class="text-center">
+        <h1 class="text-xl  font-bold mb-6 text-foreground">{t('whoWeAre')}</h1>
+        <p class="text-base text-muted-foreground leading-relaxed">
+          {t('whoWeAreDescription')}
+        </p>
+      </div>
+
+
+      <!-- Why Anarcho Capitalism Column -->
+      <div class="text-center">
+        <h1 class="text-xl font-bold mb-6 text-foreground">{t('whyAnarchoCapitalism')}</h1>
+        <p class="text-base text-muted-foreground leading-relaxed">
+          {t('whyAnarchoCapitalismDescription')}
+        </p>
+
+      </div>
+
+      <!-- Our Goal Column -->
+      <div class="text-center">
+        <h1 class="text-xl  font-bold mb-6 text-foreground">{t('ourGoal')}</h1>
+        <p class="text-base text-muted-foreground leading-relaxed">
+          {t('ourGoalDescription')}
+        </p>
+      </div>
+    </div>
+
+    
+  </div>
+</section>
+
+<DonationsSection />
+
+<!-- Contact Section - Modern Form Design -->
+<div>
+  <div class="text-center mb-10">
+              <ContactRoundIcon triggers={{ hover: false }} duration={2500} animationState="loading" size={48} class="text-primary" />
+
+    <h1 class="text-3xl font-bold mb-4 text-foreground">{t('contactForm.title')}</h1>
+    <p class="text-lg text-muted-foreground max-w-2xl mx-auto">
+      {t('contactForm.subtitle')}
+    </p>
+  </div>
+
+  <ContactForm />
 </div>
 </main>
 <Footer />

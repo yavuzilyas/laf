@@ -6,7 +6,6 @@
     import ArticleSearch from "$lib/components/ArticleSearch.svelte";
     import { Button } from "$lib/components/ui/button";
     import { t, getCurrentLocale } from '$lib/stores/i18n.svelte';
-    import { Grid, List } from "@lucide/svelte";
 
     import Loader from '$lib/components/load.svelte';
     import {BookTextIcon, NotebookPenIcon} from 'svelte-animate-icons';
@@ -83,7 +82,6 @@
     });
     let loading = $state(false);
     let hasMore = $state(false);
-    let layoutMode = $state("grid");
 
     const filterOptions = {
         languages: allAvailableLanguages.length
@@ -307,29 +305,12 @@
                     />
        
                     <div class="flex items-center gap-1 rounded-lg border p-1">
-                                                <ArticleFilterPopover
+                        <ArticleFilterPopover
                             options={filterOptions}
                             activeFilters={activeFilters}
                             onFiltersChange={handleFiltersChange}
                             enableFollowingFilter={!!currentUser}
                         />
-
-                        <Button
-                            variant={layoutMode === "grid" ? "default" : "ghost"}
-                            size="sm"
-                            onclick={() => layoutMode = "grid"}
-                            class="h-8 w-8 p-0"
-                        >
-                            <Grid class="h-4 w-4" />
-                        </Button>
-                        <Button
-                            variant={layoutMode === "list" ? "default" : "ghost"}
-                            size="sm"
-                            onclick={() => layoutMode = "list"}
-                            class="h-8 w-8 p-0"
-                        >
-                            <List class="h-4 w-4" />
-                        </Button>
                     </div>
                 </div>
             </div>
@@ -338,7 +319,7 @@
             <ArticleList
                 articles={displayedArticles}
                 loading={loading}
-                layout={layoutMode}
+                layout="grid"
                 variant="default"
                 showLoadMore={false}
                 hasMore={hasMore}

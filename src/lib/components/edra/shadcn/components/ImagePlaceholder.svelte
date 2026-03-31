@@ -8,8 +8,8 @@
 	import * as AlertDialog from '$lib/components/ui/alert-dialog/index.js';
 	import Button from '$lib/components/ui/button/button.svelte';
     import { t } from '$lib/stores/i18n.svelte';
-	import { articleEditor } from '$lib/stores/article-editor.svelte.js';
 	import { getFileSizeLimit, isFileSizeValid, getFileSizeError } from '../../config/file-limits.js';
+	import { articleEditor } from '$lib/stores/article-editor.svelte.js';
 
 	let fileInput: HTMLInputElement;
 	let dialogOpen = $state(false);
@@ -25,16 +25,16 @@
 			throw new Error(getFileSizeError(file, 'image'));
 		}
 
-		const articleId = await articleEditor.ensureArticleId();
-		if (!articleId) {
-			throw new Error('Makale kimliği alınamadı');
-		}
-
 		const fd = new FormData();
 		fd.append('file', file);
 		fd.append('folder', 'photos');
-		fd.append('articleId', articleId);
-		fd.append('type', 'photos');
+		
+		// Add articleId if available (for article editor context)
+		const articleId = articleEditor.articleId;
+		if (articleId) {
+			fd.append('articleId', articleId);
+			fd.append('type', 'photos');
+		}
 
 		if (baseUploadsUrl) {
 			fd.append('previousUrl', baseUploadsUrl);

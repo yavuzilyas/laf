@@ -8,18 +8,186 @@
   },
   "GoToHomePage" : "Go to home page.",
     "footer-text-animation": "$lib/assets/text-lottie-en.json",
+  "lafFull": "Liberteryen Anarchist Foundation",
 
   "goto" : "Go to",
   "MainPageDescription" : "Anarchist, libertarian action and intellectual knowledge sharing platform",
     "SecurityFirst": "Security First!",
 "ClearInThisSession" : "Clear in this session",
   "DevelopmentStage" : "is in the development stage.",
+  "whoWeAre": "Who We Are?",
+  "whoWeAreDescription": "Libertarian anarchist activism is a platform of political action and ideas that consistently stands with the oppressed in the struggle for workers’ rights and the conflict between the state and the people—even in positions deemed “extreme” in Turkey—and has, in fact, paid a price for this; it burns with the fervor to transform a rotten and antiquated system of oppression through optimistic radicalism.",
+  "ourGoal": "Our Goal",
+  "ourGoalDescription": "Libertarian Anarchist Foundation is a consistent and principled platform for action and ideas, organized in opposition to the top-down, liberal-libertarian platforms in Turkey that stifle the libertarian youth and systematically operate with anti-libertarian agendas. LAF, established by a completely independent youth movement of free-thinking advocates who have grown weary of the corrupt liberal politics in Turkey that seeks to buy off and pacify through external funding—and who have adopted the motto that this can and must be reorganized—began through the ideological reformation and realignment of its predecessor, 'Liberteryen Gençlik'; Its enduring lifeblood has always been an unwavering opposition to extremism, radicalism, political realism, and opportunism. LAF’s fundamental mission is to introduce libertarian thought—which is needed in Turkey and resonates deeply with youth—to broad segments of the public within a politically realistic framework, and to at least address the genuine concerns of a working-class segment that has little to lose but much to gain, while fostering a broader class consciousness.",
+  "whyAnarchoCapitalism": "Why Anarcho Capitalism?",
+  "whyAnarchoCapitalismDescription": "For millennia, it has manifested itself through enslavement, humiliation, dehumanization, degeneration, and mass slaughter; the institutional mechanisms of oppression and inefficiency created by the state—a monopoly on violence that has produced poverty and misery for the masses, as well as obedience and immorality within political power structures—and which rejects these hierarchies and sociocultural decay, advocating instead that an alternative is not only possible but necessary; if anarcho-capitalism, if an ideology that offers such a profound perspective and a multifaceted understanding of humanity’s existence, civilization, and future is insufficient to define our position in the class struggle, it is questionable what else could fulfill this function.",
+  "contact": "Contact",
+  "contactDescription": "To reach us: info@laf.org.tr or via our Telegram channel.",
+  "help": {
+    "title": "Help - LAF",
+    "description": "Help center and frequently asked questions",
+    "faqTitle": "Frequently Asked Questions",
+    "contactTitle": "Contact Us",
+    "faq": {
+      "createAccount": {
+        "question": "How do I create an account?",
+        "answer": "Click the 'Register' button on the homepage, fill in the required information, and verify your email address."
+      },
+      "forgotPassword": {
+        "question": "I forgot my password, what should I do?",
+        "answer": "Click the 'Forgot Password' link on the login page and enter your email address. A password reset link will be sent to your email."
+      },
+      "editProfile": {
+        "question": "How can I edit my profile?",
+        "answer": "Go to 'Profile Settings' from the settings menu. Here you can update your name, profile picture, and other information."
+      },
+      "twoFactor": {
+        "question": "How do I enable two-factor authentication?",
+        "answer": "Find the 'Two-Factor Authentication' option in security settings and follow the steps. Scan the QR code with an authenticator app."
+      },
+      "createContent": {
+        "question": "How can I create content?",
+        "answer": "Click the 'Write' button in the main menu. You can create content using the text editor, add media, and preview before publishing."
+      },
+      "collaborate": {
+        "question": "How can I collaborate with other users?",
+        "answer": "Use the 'Share' button on the content page to invite other users. You can use real-time editing and commenting features."
+      }
+    }
+  },
+  "contactForm": {
+    "title": "Contact Us",
+    "subtitle": "Fill out the form below to send us a message. We will get back to you as soon as possible.",
+    "name": "Name",
+    "namePlaceholder": "Enter your name",
+    "subject": "Subject",
+    "subjectPlaceholder": "Select a subject",
+    "message": "Message",
+    "messagePlaceholder": "Write your message here...",
+    "sending": "Sending...",
+    "submit": "Send Message",
+    "success": "Your message has been sent successfully",
+    "error": "Failed to send message. Please try again.",
+    "loginRequired": "Login Required",
+    "loginPrompt": "You must be logged in to use the contact form.",
+    "subjects": {
+      "general": "General Inquiry",
+      "feedback": "Feedback",
+      "collaboration": "Collaboration",
+      "report": "Report an Issue",
+      "other": "Other"
+    }
+  },
   "ThePage" : "page.",
   "Articles" : "Articles",
   "Lexicon" : "Lexicon",
   "FooterQuote-1" : "Extremism in defense of liberty is no vice.",
   "FooterQuote-2" : "Moderation in pursuit of justice is no virtue.",
   "Donations" : "Donations",
+  "donations": {
+    "title": "Donation",
+    "description": "Due to LAF’s vehement rejection of funding and financial support from any external sources, it has no steady source of income and sustains itself through small donations from ordinary volunteers. Therefore, if you wish to contribute to independent libertarian ideas and action",
+    "joinCommunity": "Join Our Community",
+    "joinDiscord": "Join Discord",
+    "joinTelegram": "Join Telegram",
+    "noDonations": "No donations yet",
+    "makeDonation": "Make a Donation",
+    "makeDonationDescription": "You can use the information below to support our platform",
+    "walletAddress": "Wallet Address",
+    "copyAddress": "Copy Address",
+    "copySuccess": "Wallet address copied!",
+    "copyError": "Copy failed",
+    "openInWallet": "Open in Wallet",
+    "selectWallet": "Select Monero Wallet",
+    "closeForm": "Close Form",
+    "iDonated": "I Donated",
+    "enterDonationInfo": "Enter Donation Information",
+    "amount": "Donation Amount (XMR)",
+    "amountPlaceholder": "0.5",
+    "txid": "Transaction ID (TXID)",
+    "txidPlaceholder": "txid...",
+    "date": "Donation Date and Time",
+    "message": "Message (Optional)",
+    "messagePlaceholder": "Write a message if you have one...",
+    "approvalNotice": "Your donation will be listed after moderator approval",
+    "submitting": "Submitting...",
+    "submitDonation": "Submit Donation",
+    "donationInfo": "Donation Information",
+    "acceptedCurrency": "Monero (XMR) is accepted",
+    "minimumAmount": "Minimum donation amount: 0.001 XMR",
+    "usage": "Your donations are used for project development",
+    "transparency": "All donations are recorded transparently",
+    "whyDonate": "Why Should You Donate?",
+    "whyDonate1": "To support freedom ideas",
+    "whyDonate2": "To keep the platform independent",
+    "whyDonate3": "To improve content quality",
+    "whyDonate4": "To contribute to community growth",
+    "topDonors": "Top Donors",
+    "topDonorsDescription": "Users who support our platform the most",
+    "rank": "Rank",
+    "user": "User",
+    "totalDonation": "Total Donation",
+    "donationCount": "Donation Count",
+    "anonymous": "Anonymous",
+    "timeAgo": {
+      "minutes": "minutes ago",
+      "hours": "hours ago",
+      "days": "days ago"
+    },
+    "monero": {
+      "whatIs": "What is it?",
+      "description": "Monero is a privacy-focused cryptocurrency. Your transactions are completely anonymous and untraceable. Unlike traditional cryptocurrencies, in Monero the sender, recipient, and transaction amount are completely encrypted.",
+      "featuresTitle": "Key Features of Monero:",
+      "privacy": "Privacy:",
+      "privacyDesc": "All transactions are private by default.",
+      "security": "Security:",
+      "securityDesc": "Security strengthened with cryptographic techniques.",
+      "fungibility": "Fungibility:",
+      "fungibilityDesc": "Every XMR is equivalent, no blacklisting.",
+      "decentralized": "Decentralized:",
+      "decentralizedDesc": "Open source and community managed.",
+      "howToGet": "How to Get a Monero Wallet?",
+      "walletInfo": "You can visit the official website to create a Monero wallet:",
+      "walletLink": "getmonero.org/downloads"
+    },
+    "errors": {
+      "fillRequired": "Please fill in all required fields",
+      "amountPositive": "Donation amount must be greater than zero",
+      "submitError": "An error occurred while saving the donation",
+      "submitFailed": "Donation could not be saved"
+    },
+    "success": {
+      "submitted": "Your donation request has been successfully submitted! Pending approval."
+    },
+    "badges": {
+      "title": "Donation Badges",
+      "subtitle": "Earn special badges for your Monero donations and show your contributions to the community.",
+      "bastiat": {
+        "name": "Bastiat",
+        "description": "Donor",
+        "requirement": "User who made a donation",
+        "fullTitle": "Bastiat Badge",
+        "criteria": "Earning Criteria"
+      },
+      "ludwig": {
+        "name": "Ludwig",
+        "description": "Supporting donor",
+        "requirement": "User who donated 1-10 XMR",
+        "fullTitle": "Ludwig Badge",
+        "criteria": "Earning Criteria"
+      },
+      "murray": {
+        "name": "Murray",
+        "description": "Anarchist sponsor",
+        "requirement": "User who donated 10+ XMR",
+        "fullTitle": "Murray Badge",
+        "criteria": "Earning Criteria"
+      }
+    },
+    "badgeHolders": "Badge Holders",
+    "noBadgeHolders": "No users have this badge yet",
+    "donations": "donations"
+  },
   "Login" : "Login",
   "Logout" : "Logout",
   "NotFound" : "not found.",
@@ -92,6 +260,24 @@
       "mnemonicVerified": "Mnemonic verification successful.",
       "passwordCopied": "Password copied!"
     },
+    "forgot": {
+      "title": "Forgot Password",
+      "step1Description": "Enter your username or email",
+      "step2Description": "Enter your 12-word mnemonic phrase to recover your account",
+      "step3Description": "Enter your new password",
+      "verifyMnemonic": "Verify Mnemonic",
+      "newPassword": "New Password",
+      "attemptsRemaining": "attempts remaining",
+      "errors": {
+        "userNotFound": "User not found",
+        "mnemonicRequired": "Mnemonic not found for this account",
+        "maxAttemptsReached": "Too many attempts. Please try again later."
+      },
+      "success": {
+        "mnemonicVerified": "Mnemonic verified",
+        "passwordReset": "Your password has been successfully reset"
+      }
+    },
     "password": {
       "veryWeak": "Very weak",
       "weak": "Weak",
@@ -126,7 +312,9 @@
       "tag": "Tag",
       "category": "Category",
       "recentSearches": "Recent Searches",
+      "article_suggestions": "Article Suggestions",
       "noSuggestions": "No suggestions found",
+      "typeForSearch": "Type to search",
       "searchFor": "Search for",
       "searchingFor": "Searching for",
       "clear": "Clear"
@@ -140,14 +328,84 @@
       "language": "Language",
       "category": "Category",
       "type": "Type",
+      "author": "Author",
+      "tags": "Tags",
+      "nickname": "Author Username",
+      "nicknamePlaceholder": "Search username...",
+      "following": "Following",
+      "followingHint": "Only show authors you follow",
       "selectLanguage": "Select language",
       "selectCategory": "Select category",
       "selectType": "Select type",
       "selectDate": "Select date range",
+      "selectAuthor": "Select author",
       "allLanguages": "All languages",
       "allCategories": "All categories",
       "allTypes": "All types",
-      "allTime": "All time"
+      "allAuthors": "All authors",
+      "allTime": "All time",
+      "sortBy": "Sort By",
+      "selectSort": "Select sorting"
+    },
+    "status": {
+      "pending": "Pending Approval",
+      "draft": "Draft",
+      "published": "Published",
+      "noFlaws": "No flaws",
+      "rejected": "Rejected"
+    },
+    "stats": {
+      "views": "views",
+      "view": "view",
+      "likes": "likes",
+      "like": "like",
+      "dislikes": "dislikes",
+      "dislike": "dislike",
+      "comments": "comments",
+      "comment": "comment"
+    },
+    "comments": {
+      "title": "Comments",
+      "writeComment": "Write a comment",
+      "postComment": "Post Comment",
+      "postReply": "Reply",
+      "reply": "Reply",
+      "replies": "replies",
+      "showReplies": "Show {count} replies",
+      "cancel": "Cancel",
+      "save": "Save",
+      "delete": "Delete",
+      "edit": "Edit",
+      "report": "Report",
+      "hide": "Hide",
+      "show": "Show",
+      "loading": "Loading comments...",
+      "empty": "No comments yet. Be the first to comment!",
+      "anonymous": "Anonymous",
+      "edited": "(edited)",
+      "hidden": "(hidden)",
+      "reported": "(reported)",
+      "sending": "Sending...",
+      "editPlaceholder": "Edit your comment...",
+      "replyPlaceholder": "Write your reply...",
+      "loginRequiredForReactions": "Please login to react"
+    },
+    "authors": "Authors",
+    "author": "author",
+    "share": "Share",
+    "readTime": "min read",
+    "unknownUser": "Unknown User",
+    "pendingApproval": "This article is pending approval",
+    "backToArticles": "Back to Articles",
+    "languages": "Languages",
+    "replies": "Replies",
+    "replyingTo": "replying to",
+    "showReplies": "show replies",
+    "share": {
+      "title": "Share",
+      "copyLink": "Copy Link",
+      "linkCopied": "Link copied!",
+      "shareError": "Share failed"
     }
   },
   "aProblem": "Having trouble?",
@@ -570,7 +828,14 @@
       "articleLikedMessage": "Your article has likes.",
       "articleLikedMessageWithTitle": "Your article \"{title}\" has likes.",
       "commentLikedMessage": "Your comment has likes.",
-      "unknownUser": "A user"
+      "unknownUser": "A user",
+      "contactMessageRead": "Your contact message has been read",
+      "contactMessageReadMessage": "Your message about \"{subject}\" has been reviewed by our team.",
+      "contactMessageResponded": "You have a response to your contact message",
+      "contactMessageRespondedMessage": "Our team has responded to your message about \"{subject}\".",
+      "contactMessageRespondedWithMessage": "Response to \"{subject}\": {response}",
+      "contactMessageArchived": "Your contact message has been archived",
+      "contactMessageArchivedMessage": "Your message about \"{subject}\" has been archived."
     }
   },
   "notLoggedIn": "Not Logged In",
@@ -667,7 +932,8 @@
   "AreYouSure": "Are you sure?",
   "DeleteAccountConfirm": "Are you sure you want to delete this account? The account will be immediately hidden and permanently deleted after 48 hours.",
   "ConfirmDelete": "Delete",
-
+  "firstPart": "government",
+  "secondPart": "is violence.",
   "0 hour": "0 hour",
   "0 minute": "0 minute",
   "0 second": "0 second",

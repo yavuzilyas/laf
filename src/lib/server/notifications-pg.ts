@@ -13,11 +13,12 @@ import {
     blockUser,
     unblockUser,
     isUserBlocked,
-    getFollowersList
+    getFollowersList,
+    createMessage
 } from '$db/queries';
 import { getUsers, getComments, getArticles } from '$db/queries';
 
-export type NotificationType = 'announcement' | 'comment' | 'reply' | 'like' | 'report_status' | 'article_status';
+export type NotificationType = 'announcement' | 'comment' | 'reply' | 'like' | 'report_status' | 'article_status' | 'contact_message';
 
 export interface NotificationActor {
     id: string;
@@ -732,4 +733,75 @@ export async function notifyAdminsNewDonation(params: {
     });
 
     await Promise.all(notificationPromises);
+}
+
+export async function notifyContactMessageStatus(params: { 
+    messageId: string; 
+    userId: string; 
+    newStatus: 'pending' | 'read' | 'responded' | 'archived'; 
+    response?: string | null;
+    moderatorId: string;
+    subject?: string | null;
+}) {
+    const { messageId, userId, newStatus, response, moderatorId, subject } = params;
+    
+    const moderatorName = await getUserName(moderatorId);
+    const subjectLabel = subject || 'İletişim mesajı';
+    
+    let title;
+    let message;
+    let link = '/notifications'; // Default link to notifications page
+    
+    if (newStatus === 'read') {
+        title = { key: 'notifications.messages.contactMessageRead' };
+        message = { key: 'notifications.messages.contactMessageReadMessage', values: { subject: subjectLabel } };
+    } else if (newStatus === 'responded') {
+        title = { key: 'notifications.messages.contactMessageResponded' };
+        if (response) {
+            message = { key: 'notifications.messages.contactMessageRespondedWithMessage', values: { subject: subjectLabel, response: response.substring(0, 150) } };
+        } else {
+            message = { key: 'notifications.messages.contactMessageRespondedMessage', values: { subject: subjectLabel } };
+        }
+        link = '/messages'; // Link to messages/inbox for response
+        
+        // Also send a private message to the user with the full response
+        if (response) {
+            try {
+                await createMessage({
+                    senderId: moderatorId,
+                    receiverId: userId,
+                    content: `İletişim mesajınıza yanıt (${subjectLabel}):\n\n${response}`
+                });
+            } catch (msgError) {
+                console.error('Failed to send private message:', msgError);
+                // Don't fail the notification if message sending fails
+            }
+        }
+    } else if (newStatus === 'archived') {
+        title = { key: 'notifications.messages.contactMessageArchived' };
+        message = { key: 'notifications.messages.contactMessageArchivedMessage', values: { subject: subjectLabel } };
+    } else {
+        // pending status - no notification needed
+        return;
+    }
+    
+    await createNotification({
+        user_id: userId,
+        type: 'contact_message',
+        title,
+        content: message,
+        data: {
+            link,
+            actor: {
+                id: moderatorId,
+                name: moderatorName,
+            },
+            meta: {
+                messageId,
+                newStatus,
+                response: response?.substring(0, 500) || null,
+                subject,
+            },
+        },
+    });
 }

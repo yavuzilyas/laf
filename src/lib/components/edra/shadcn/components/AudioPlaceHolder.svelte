@@ -3,6 +3,7 @@
 	import type { NodeViewProps } from '@tiptap/core';
 	import { t } from '$lib/stores/i18n.svelte';
 	import { getFileSizeLimit, isFileSizeValid, getFileSizeError } from '../../config/file-limits.js';
+	import { articleEditor } from '$lib/stores/article-editor.svelte.js';
 
 	const { editor }: NodeViewProps = $props();
 	import Audio from '@lucide/svelte/icons/audio-lines';
@@ -18,24 +19,37 @@
 		dialogOpen = true;
 	}
 
+	async function uploadFile(file: File) {
+		if (!isFileSizeValid(file, 'audio')) {
+			throw new Error(getFileSizeError(file, 'audio'));
+		}
+
+		const fd = new FormData();
+		fd.append('file', file);
+		fd.append('folder', 'sounds');
+		
+		// Add articleId if available (for article editor context)
+		const articleId = articleEditor.articleId;
+		if (articleId) {
+			fd.append('articleId', articleId);
+			fd.append('type', 'sounds');
+		}
+
+		const res = await fetch('/api/upload', { method: 'POST', body: fd });
+		const data = await res.json();
+		if (!res.ok) throw new Error(data?.error || 'Upload failed');
+		const urlFromServer = data.url as string;
+		if (!urlFromServer) throw new Error('No URL received');
+		return urlFromServer;
+	}
+
 	function onFileChange(e: Event) {
 		const input = e.target as HTMLInputElement;
 		const file = input.files?.[0];
 		if (!file) return;
 		(async () => {
 			try {
-				if (!isFileSizeValid(file, 'audio')) {
-					throw new Error(getFileSizeError(file, 'audio'));
-				}
-
-				const fd = new FormData();
-				fd.append('file', file);
-				fd.append('folder', 'audio');
-				const res = await fetch('/api/upload', { method: 'POST', body: fd });
-				const data = await res.json();
-				if (!res.ok) throw new Error(data?.error || 'Upload failed');
-				const urlFromServer = data.url as string;
-				if (!urlFromServer) throw new Error('No URL received');
+				const urlFromServer = await uploadFile(file);
 				editor.chain().focus().setAudio(urlFromServer).run();
 				dialogOpen = false;
 			} catch (err) {

@@ -423,3 +423,84 @@ CREATE TRIGGER update_donations_updated_at
     BEFORE UPDATE ON donations
     FOR EACH ROW
     EXECUTE FUNCTION update_donations_updated_at();
+
+-- Contact Messages table (from contact form submissions)
+CREATE TABLE IF NOT EXISTS contact_messages (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    
+    -- User information (cached for easy access)
+    user_email VARCHAR(255),
+    user_nickname VARCHAR(255),
+    user_username VARCHAR(255),
+    
+    -- Form data
+    name VARCHAR(100) NOT NULL,
+    subject VARCHAR(50) NOT NULL CHECK (subject IN ('general', 'feedback', 'collaboration', 'report', 'other')),
+    message TEXT NOT NULL,
+    
+    -- Technical metadata
+    ip_address INET,
+    user_agent TEXT,
+    
+    -- Status for moderation workflow
+    status VARCHAR(50) DEFAULT 'pending' CHECK (status IN ('pending', 'read', 'responded', 'archived')),
+    
+    -- Moderation tracking
+    reviewed_by UUID REFERENCES users(id) ON DELETE SET NULL,
+    reviewed_at TIMESTAMP WITH TIME ZONE,
+    response TEXT,
+    responded_by UUID REFERENCES users(id) ON DELETE SET NULL,
+    responded_at TIMESTAMP WITH TIME ZONE,
+    
+    -- Spam protection
+    honeypot_filled BOOLEAN DEFAULT FALSE,
+    
+    -- Timestamps
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Contact messages indexes
+CREATE INDEX IF NOT EXISTS idx_contact_messages_user_id ON contact_messages(user_id);
+CREATE INDEX IF NOT EXISTS idx_contact_messages_status ON contact_messages(status);
+CREATE INDEX IF NOT EXISTS idx_contact_messages_subject ON contact_messages(subject);
+CREATE INDEX IF NOT EXISTS idx_contact_messages_created_at ON contact_messages(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_contact_messages_reviewed_by ON contact_messages(reviewed_by);
+
+-- Trigger function to update contact_messages updated_at timestamp
+CREATE OR REPLACE FUNCTION update_contact_messages_updated_at()
+RETURNS TRIGGER AS $$
+BEGIN
+    NEW.updated_at = NOW();
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Trigger to automatically update contact_messages updated_at
+DROP TRIGGER IF EXISTS update_contact_messages_updated_at ON contact_messages;
+CREATE TRIGGER update_contact_messages_updated_at
+    BEFORE UPDATE ON contact_messages
+    FOR EACH ROW
+    EXECUTE FUNCTION update_contact_messages_updated_at();
+
+-- Trigger function to set user info in contact_messages when new message is created
+CREATE OR REPLACE FUNCTION set_contact_message_user_info()
+RETURNS TRIGGER AS $$
+BEGIN
+    IF NEW.user_id IS NOT NULL THEN
+        SELECT email, nickname, username 
+        INTO NEW.user_email, NEW.user_nickname, NEW.user_username
+        FROM users 
+        WHERE id = NEW.user_id;
+    END IF;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Trigger to automatically set user info when contact message is created
+DROP TRIGGER IF EXISTS trigger_set_contact_message_user_info ON contact_messages;
+CREATE TRIGGER trigger_set_contact_message_user_info
+    BEFORE INSERT ON contact_messages
+    FOR EACH ROW
+    EXECUTE FUNCTION set_contact_message_user_info();

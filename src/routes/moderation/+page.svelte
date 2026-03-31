@@ -461,15 +461,11 @@
 		<div class=" flex flex-1 flex-col items-center ">
 			<div class="@container/main w-full max-w-[96vw] flex-1 px-2 sm:px-4">
 			<div class="flex flex-col gap-3 py-3 sm:gap-4 sm:py-4 md:gap-5 md:py-5">
-          <div class="w-full flex justify-center items-center px-2">
+          <div class="w-full flex justify-center items-center px-2 mt-10">
+
             <h1 class="text-xl font-bold sm:text-2xl">{t('ModerationAndAnalysis')}</h1>
           </div>
-          <div class="overflow-hidden">
-            <SectionCards />
-          </div>
-          <div class="px-1 sm:px-2 lg:px-4">
-            <ChartAreaInteractive />
-          </div>
+ 
           
           <DataTable
             data={tableData}

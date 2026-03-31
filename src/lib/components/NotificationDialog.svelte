@@ -25,7 +25,7 @@
 
 	// Group notifications by type and actor
 	let groupedNotifications: Record<string, NotificationGroup> = {};
-	$: groupedNotifications = notifications.reduce((groups: Record<string, NotificationGroup>, notification) => {
+	$: groupedNotifications = (notifications || []).reduce((groups: Record<string, NotificationGroup>, notification) => {
 		const key = `${notification.type}-${notification.actor?.id || 'system'}`;
 		if (!groups[key]) {
 			groups[key] = {

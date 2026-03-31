@@ -9,20 +9,16 @@ import { notifyNewArticle, notifyModeratorsNewArticle } from '$lib/server/notifi
 // Rate limiting storage for article creation
 const articleRateLimitStore = new Map<string, { count: number; resetTime: number }>();
 
-// Spam detection patterns for articles
+// Spam detection patterns for articles - RELAXED
 const articleSpamPatterns = [
-  /\b(buy|sell|cheap|free|discount|offer|deal|price|click|here|now|urgent|act|fast|quick)\b/gi,
-  /\b(http|www|\.com|\.net|\.org|\.info|\.biz|link|url|site|website)\b/gi,
-  /\b(money|cash|dollar|bitcoin|crypto|investment|profit|income|earn)\b/gi,
-  /\b(viagra|cialis|casino|poker|bet|gambling|lottery)\b/gi,
-  /\b(weight|loss|diet|pill|fat|burn|slim)\b/gi,
-  /([a-zA-Z])\1{3,}/g, // Repeated characters
-  /\b([a-zA-Z])\b(?:\s+\1\b){2,}/g, // Repeated words
+  /\b(buy|sell|discount|offer|deal|urgent|act fast|limited time|click here now|order now|call now)\b/gi,
+  /\b(viagra|cialis|casino|poker|bet|gambling|lottery|crypto investment|earn money fast|make money quick)\b/gi,
+  /\b(weight loss pill|diet pill|fat burn|slim fast|miracle cure|guaranteed results)\b/gi,
+  /([a-zA-Z])\1{4,}/g, // 5+ Repeated characters (was 4)
 ];
 
 const profanityList = [
-  'fuck', 'shit', 'ass', 'bitch', 'damn', 'hell', 'cunt', 'dick', 'pussy',
-  'whore', 'slut', 'bastard', 'idiot', 'stupid', 'moron', 'retard'
+  'fuck', 'shit', 'cunt', 'dick', 'pussy'
 ];
 
 function checkArticleRateLimit(userId: string, limit: number = 3, windowMs: number = 3600000): boolean {
@@ -78,29 +74,30 @@ function detectArticleSpam(article: any): { isSpam: boolean; reasons: string[] }
       }
     }
     
-    // Check length limits
-    if (titleText.length < 5) {
+    // Check length limits - RELAXED for drafts
+    if (titleText.length > 0 && titleText.length < 3) {
       reasons.push('Title too short');
-    } else if (titleText.length > 200) {
+    } else if (titleText.length > 300) {
       reasons.push('Title too long');
     }
     
-    if (contentText.length < 50) {
-      reasons.push('Content too short');
-    } else if (contentText.length > 10000) {
+    // Only enforce content length for substantial articles (not drafts with just images)
+    if (contentText.length > 10000) {
       reasons.push('Content too long');
     }
     
-    // Check for excessive repetition
-    const words = contentText.split(/\s+/);
-    const uniqueWords = new Set(words.map(w => w.toLowerCase()));
-    if (words.length > 20 && uniqueWords.size < words.length * 0.4) {
-      reasons.push('Excessive repetition');
+    // Check for excessive repetition (only for longer content)
+    const words = contentText.split(/\s+/).filter(w => w.length > 0);
+    if (words.length > 50) {
+      const uniqueWords = new Set(words.map(w => w.toLowerCase()));
+      if (uniqueWords.size < words.length * 0.3) {
+        reasons.push('Excessive repetition');
+      }
     }
     
-    // Check for too many URLs
+    // Check for too many URLs (only flag if > 10)
     const urlMatches = combinedText.match(/https?:\/\/[^\s]+/g) || [];
-    if (urlMatches.length > 5) {
+    if (urlMatches.length > 10) {
       reasons.push('Too many URLs');
     }
     
@@ -239,33 +236,35 @@ async function cleanupUnusedMedia(existing: any, updated: any, articleId: string
     const data = await request.json();
     
     try {
-        // Rate limiting check for article creation
-        if (!checkArticleRateLimit(user.id)) {
+        // Get user's role first (needed for privileged checks)
+        const userData = await getUsers({ id: user.id });
+        const userRecord = userData[0];
+        const userRole = userRecord?.role || 'user';
+        const isPrivileged = userRole === 'admin' || userRole === 'moderator';
+
+        // Rate limiting check for article creation (skip for privileged users)
+        if (!isPrivileged && !checkArticleRateLimit(user.id)) {
             return json({ 
                 error: 'Too many articles created. Please wait before creating another article.' 
             }, { status: 429 });
         }
 
-        // Honeypot check for bots
-        if (data.website && data.website.trim() !== '') {
+        // Honeypot check for bots (skip for privileged users)
+        if (!isPrivileged && data.website && data.website.trim() !== '') {
             return json({ error: 'Spam detected' }, { status: 400 });
         }
 
-        // Spam detection
-        const spamCheck = detectArticleSpam(data);
-        if (spamCheck.isSpam) {
-            console.log('Article spam detected from user', user.id, ':', spamCheck.reasons);
-            return json({ 
-                error: 'Article appears to be spam',
-                reasons: spamCheck.reasons 
-            }, { status: 400 });
+        // Spam detection (skip for privileged users)
+        if (!isPrivileged) {
+            const spamCheck = detectArticleSpam(data);
+            if (spamCheck.isSpam) {
+                console.log('Article spam detected from user', user.id, ':', spamCheck.reasons);
+                return json({ 
+                    error: 'Article appears to be spam',
+                    reasons: spamCheck.reasons 
+                }, { status: 400 });
+            }
         }
-
-        // Get user's role
-        const userData = await getUsers({ id: user.id });
-        const userRecord = userData[0];
-        const userRole = userRecord?.role || 'user';
-        const isPrivileged = userRole === 'admin' || userRole === 'moderator';
 
         // Check article limit for non-privileged users
         if (data.status === 'published' && !isPrivileged) {

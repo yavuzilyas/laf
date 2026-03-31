@@ -321,6 +321,23 @@
     avatar: profileData?.avatar || ""
   });
 
+  // Watch for profileData changes to keep formData in sync
+  $effect(() => {
+    if (!isEditing) {
+      formData = {
+        name: profileData?.name || "",
+        surname: profileData?.surname || "",
+        bio: profileData?.bio || "",
+        location: profileData?.location || profileData?.preferences?.location || "",
+        website: profileData?.website || profileData?.preferences?.website || "",
+        interests: profileData?.interests || profileData?.preferences?.interests || [],
+        bannerColor: profileData?.bannerColor || profileData?.preferences?.bannerColor || "#0f172a",
+        bannerImage: profileData?.bannerImage || profileData?.preferences?.bannerImage || "",
+        avatar: profileData?.avatar || ""
+      };
+    }
+  });
+
   // Watch for isEditing changes to handle animation timing
   $effect(() => {
     if (isEditing) {
@@ -570,7 +587,7 @@
               </div>
             </div> -->
 
-            <Button onclick={onSaveProfile} disabled={isSaving} size="xs" class="w-full" >
+            <Button onclick={() => onSaveProfile(formData)} disabled={isSaving} size="xs" class="w-full" >
               {#if isSaving}
                 <Save class=" h-4 w-4 animate-spin" />
                 {t('Saving')}

@@ -36,6 +36,24 @@ body {
   animation: magicslide var(--speed) ease-in-out infinite alternate;
 }
 
+@keyframes marquee {
+  from { transform: translateX(0); }
+  to { transform: translateX(calc(-100% - var(--gap))); }
+}
+
+@keyframes marquee-vertical {
+  from { transform: translateY(0); }
+  to { transform: translateY(calc(-100% - var(--gap))); }
+}
+
+.animate-marquee {
+  animation: marquee var(--duration, 40s) linear infinite;
+}
+
+.animate-marquee-vertical {
+  animation: marquee-vertical var(--duration, 40s) linear infinite;
+}
+
 .flip {
   animation: flip 6s infinite steps(2, end);
 }
@@ -196,6 +214,91 @@ body {
 
 @import url('https://fonts.googleapis.com/css2?family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&display=swap');
 
+@variant dark (&:where(.dark, .dark *));
+
+:root {
+	--base-hue: 265;
+
+	--radius-base: 0.275rem;
+
+	--background-inset: oklch(0.9764 0.0013 var(--base-hue));
+	--background: oklch(1 0 0);
+	--background-muted: oklch(0.956 0.002 var(--base-hue));
+	--fixed-light: oklch(1 0 0);
+	--fixed-dark: oklch(0.183 0.006 var(--base-hue));
+	--foreground: oklch(0.1881 0.006 var(--base-hue));
+	--foreground-muted: oklch(0.5493 0.0081 var(--base-hue));
+	--accent: oklch(0.6996 0.201959 44.4414);
+	--accent-secondary: oklch(0.5096 0.151959 44.4414);
+	--border: oklch(0.4224 0.0013 var(--base-hue) / 0.1);
+
+	--shadow-xs: 0px 1px 1px -0.5px rgba(0, 0, 0, 0.06);
+	--shadow-sm:
+		0px 1px 1px -0.5px rgba(0, 0, 0, 0.06),
+		0px 3px 3px -1.5px rgba(0, 0, 0, 0.06);
+	--shadow-md:
+		0px 1px 1px -0.5px rgba(0, 0, 0, 0.06),
+		0px 3px 3px -1.5px rgba(0, 0, 0, 0.06), 0px 6px 6px -3px rgba(0, 0, 0, 0.06);
+	--shadow-lg:
+		0px 1px 1px -0.5px rgba(0, 0, 0, 0.06),
+		0px 3px 3px -1.5px rgba(0, 0, 0, 0.06),
+		0px 6px 6px -3px rgba(0, 0, 0, 0.06), 0px 12px 12px -6px rgba(0, 0, 0, 0.06);
+	--shadow-xl:
+		0px 1px 1px -0.5px rgba(0, 0, 0, 0.06),
+		0px 3px 3px -1.5px rgba(0, 0, 0, 0.06),
+		0px 6px 6px -3px rgba(0, 0, 0, 0.06),
+		0px 12px 12px -6px rgba(0, 0, 0, 0.06),
+		0px 24px 24px -12px rgba(0, 0, 0, 0.06);
+	--shadow-2xl:
+		0px 1px 1px -0.5px rgba(0, 0, 0, 0.06),
+		0px 3px 3px -1.5px rgba(0, 0, 0, 0.06),
+		0px 6px 6px -3px rgba(0, 0, 0, 0.06),
+		0px 12px 12px -6px rgba(0, 0, 0, 0.06),
+		0px 24px 24px -12px rgba(0, 0, 0, 0.06),
+		0px 48px 48px -24px rgba(0, 0, 0, 0.06);
+}
+
+.dark {
+	--background-inset: oklch(0.1822 0.0044 var(--base-hue));
+	--background: oklch(0.2178 0.0056 var(--base-hue));
+	--background-muted: oklch(0.261 0.007 var(--base-hue));
+	--foreground: oklch(1 0 0);
+	--foreground-muted: oklch(0.6699 0.0081 var(--base-hue));
+	--accent: oklch(0.6996 0.181959 44.4414);
+	--accent-secondary: oklch(0.5096 0.131959 44.4414);
+	--border: oklch(0.928 0.013 var(--base-hue) / 0.05);
+}
+
+@theme {
+	--color-fixed-light: var(--fixed-light);
+	--color-fixed-dark: var(--fixed-dark);
+	--color-background-inset: var(--background-inset);
+	--color-background: var(--background);
+	--color-background-muted: var(--background-muted);
+	--color-foreground: var(--foreground);
+	--color-foreground-muted: var(--foreground-muted);
+	--color-accent: var(--accent);
+	--color-accent-secondary: var(--accent-secondary);
+	--color-border: var(--border);
+
+	--radius-xs: calc(var(--radius-base) * 1);
+	--radius-sm: calc(var(--radius-base) * 2);
+	--radius-md: calc(var(--radius-base) * 3);
+	--radius-lg: calc(var(--radius-base) * 4);
+	--radius-xl: calc(var(--radius-base) * 6);
+	--radius-2xl: calc(var(--radius-base) * 8);
+	--radius-3xl: calc(var(--radius-base) * 12);
+	--radius-4xl: calc(var(--radius-base) * 16);
+	--radius-full: 9999px;
+
+	--shadow-xs: var(--shadow-xs);
+	--shadow-sm: var(--shadow-sm);
+	--shadow-md: var(--shadow-md);
+	--shadow-lg: var(--shadow-lg);
+	--shadow-xl: var(--shadow-xl);
+	--shadow-2xl: var(--shadow-2xl);
+}
+
 body{
     font-family: "Libre Baskerville", serif!important;
 }
@@ -322,11 +425,11 @@ body{
   .animate-slideDown {
     animation: slideDown 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
   }
-  
+
   .animate-fadeIn {
     animation: fadeIn 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
   }
-  
+
   @keyframes slideDown {
     from {
       opacity: 0;
@@ -337,7 +440,7 @@ body{
       transform: translateY(0);
     }
   }
-  
+
   @keyframes fadeIn {
     from {
       opacity: 0;
@@ -433,7 +536,7 @@ body{
 .highcontrast textarea {
   border-width: 2px !important;
   border-color: var(--border) !important;
-  
+
 }
 
 .highcontrast button:focus,
@@ -478,11 +581,11 @@ body{
   box-shadow: none !important;
   text-shadow: none !important;
   filter: none !important;
-  
+
   /* Remove blur effects */
   backdrop-filter: none !important;
   -webkit-backdrop-filter: none !important;
-  
+
   /* Remove transparency */
   opacity: 1 !important;
 }
@@ -499,4 +602,66 @@ body{
   background-color: var(--background) !important;
   backdrop-filter: none !important;
   -webkit-backdrop-filter: none !important;
+}
+
+@custom-variant data-open {
+	&:where([data-state="open"]), &:where([data-open]:not([data-open="false"])) {
+		@slot;
+  }
+}
+
+@custom-variant data-closed {
+	&:where([data-state="closed"]), &:where([data-closed]:not([data-closed="false"])) {
+		@slot;
+  }
+}
+
+@custom-variant data-checked {
+	&:where([data-state="checked"]), &:where([data-checked]:not([data-checked="false"])) {
+		@slot;
+  }
+}
+
+@custom-variant data-unchecked {
+	&:where([data-state="unchecked"]), &:where([data-unchecked]:not([data-unchecked="false"])) {
+		@slot;
+  }
+}
+
+@custom-variant data-selected {
+	&:where([data-selected]) {
+		@slot;
+  }
+}
+
+@custom-variant data-disabled {
+	&:where([data-disabled="true"]), &:where([data-disabled]:not([data-disabled="false"])) {
+		@slot;
+  }
+}
+
+@custom-variant data-active {
+	&:where([data-state="active"]), &:where([data-active]:not([data-active="false"])) {
+		@slot;
+  }
+}
+
+@custom-variant data-horizontal {
+	&:where([data-orientation="horizontal"]) {
+		@slot;
+  }
+}
+
+@custom-variant data-vertical {
+	&:where([data-orientation="vertical"]) {
+		@slot;
+  }
+}
+
+@utility no-scrollbar {
+	-ms-overflow-style: none;
+	scrollbar-width: none;
+	&::-webkit-scrollbar {
+		display: none;
+  }
 }

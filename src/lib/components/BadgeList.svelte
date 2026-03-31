@@ -27,10 +27,10 @@
           <Tooltip.Trigger asChild>
             <Badge 
               variant={badge.type}
-              class={`${size === 'xs' ? 'text-xs px-1.5 py-0.5' : size === 'sm' ? 'text-sm px-2 py-1' : size === 'md' ? 'text-base px-3 py-1.5' : 'text-lg px-4 py-2'}`}
+              class={`${size === 'xs' ? 'text-xs px-1.5 py-0.5' : size === 'sm' ? 'text-sm px-2 py-1' : size === 'md' ? 'text-base px-3 py-1.5' : 'text-lg px-4 py-2 '} relative overflow-shown pl-6`}
             >
-              <span class={`${size === 'xs' ? 'text-xs' : size === 'sm' ? 'text-sm' : size === 'md' ? 'text-base' : 'text-lg'}`}>
-                {badge.icon}
+              <span class={`${size === 'xs' ? 'w-5 h-5' : size === 'sm' ? 'w-7 h-7' : size === 'md' ? 'w-5 h-5' : 'w-6 h-6'} absolute left-0 z-25`}>
+                <img src={badge.icon} alt={badge.name} class="w-full h-full object-cover rounded-full" />
               </span>
               {badge.name}
             </Badge>
@@ -44,8 +44,8 @@
           variant={badge.type}
           class={`${size === 'xs' ? 'text-xs px-1.5 py-0.5' : size === 'sm' ? 'text-sm px-2 py-1' : size === 'md' ? 'text-base px-3 py-1.5' : 'text-lg px-4 py-2'}`}
         >
-          <span class={`${size === 'xs' ? 'text-xs' : size === 'sm' ? 'text-sm' : size === 'md' ? 'text-base' : 'text-lg'}`}>
-            {badge.icon}
+          <span class={`${size === 'xs' ? 'w-3 h-3' : size === 'sm' ? 'w-4 h-4' : size === 'md' ? 'w-5 h-5' : 'w-6 h-6'} mr-1`}>
+            <img src={badge.icon} alt={badge.name} class="w-full h-full object-cover rounded-full" />
           </span>
           {badge.name}
         </Badge>
@@ -70,7 +70,9 @@
           <Tooltip.Content side="top" sideOffset={4}>
             {#each badges.slice(maxVisible) as hiddenBadge}
               <div class="flex items-center gap-1">
-                <span>{hiddenBadge.icon}</span>
+                <span class="w-4 h-4">
+                  <img src={hiddenBadge.icon} alt={hiddenBadge.name} class="w-full h-full object-cover rounded-full" />
+                </span>
                 <span>{hiddenBadge.name}</span>
                 {#if hiddenBadge.description}
                   <span class="text-muted-foreground">- {hiddenBadge.description}</span>

@@ -166,6 +166,7 @@
         }
 
         avatarUploading = true;
+        const previous = profileFormData.avatar;
 
         try {
             const formData = new FormData();
@@ -274,18 +275,21 @@
         }
     };
 
-    const handleSaveProfile = async () => {
+    const handleSaveProfile = async (formData?: any) => {
         isSaving = true;
         try {
+            const dataToSave = formData || profileFormData;
             const response = await fetch('/api/profile/update', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(profileData)
+                body: JSON.stringify(dataToSave)
             });
 
             if (response.ok) {
                 isEditing = false;
-                profileUser = { ...profileUser, ...profileData };
+                profileUser = { ...profileUser, ...dataToSave };
+                // Sync profileFormData with saved data
+                profileFormData = { ...profileFormData, ...dataToSave };
             } else {
                 console.error('Failed to update profile');
             }
@@ -726,7 +730,7 @@
         <!-- Profile Header -->
         <div class="mb-8">
             <ProfileCard
-                profileData={userProfileData}
+                profileData={profileFormData}
                 profileUser={profileUser}
                 isOwnProfile={isOwnProfile}
                 isEditing={isEditing}

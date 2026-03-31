@@ -74,6 +74,10 @@
 	import HeartIcon from "@lucide/svelte/icons/heart";
 	import CheckIcon from "@lucide/svelte/icons/check";
 	import XIcon from "@lucide/svelte/icons/x";
+	// @ts-ignore - Lucide icons for contact messages
+	import ArchiveIcon from "@lucide/svelte/icons/archive";
+	// @ts-ignore - Lucide icons for contact messages
+	import MessageSquareIcon from "@lucide/svelte/icons/message-square";
 
 	type CurrentUser = {
 		id: string;
@@ -142,6 +146,32 @@
 		status: "pending" | "reviewing" | "resolved" | "rejected";
 		reviewedBy?: { id: string; nickname?: string; username?: string; name?: string; surname?: string; role?: string } | null;
 		reviewedAt?: string | null;
+	};
+
+	type ContactMessageRow = {
+		id: string;
+		user_id: string;
+		user_email?: string;
+		user_nickname?: string;
+		user_username?: string;
+		name: string;
+		subject: "general" | "feedback" | "collaboration" | "report" | "other";
+		message: string;
+		ip_address?: string;
+		user_agent?: string;
+		status: "pending" | "read" | "responded" | "archived";
+		reviewed_by?: string | null;
+		reviewed_at?: string | null;
+		reviewer_username?: string;
+		reviewer_nickname?: string;
+		response?: string;
+		responded_by?: string | null;
+		responded_at?: string | null;
+		responder_username?: string;
+		responder_nickname?: string;
+		honeypot_filled: boolean;
+		created_at: string;
+		updated_at: string;
 	};
 
 	let {
@@ -217,6 +247,18 @@
 	let donationsGlobalFilter = $state<string>("");
 	let donationsStatusFilter = $state<"pending" | "approved" | "rejected">("pending");
 
+	// Contact Messages state
+	let contactMessages = $state<ContactMessageRow[]>([]);
+	let loadingContactMessages = $state(false);
+	let contactMessagesInitialized = $state(false);
+	let contactMessagesPagination = $state<PaginationState>({ pageIndex: 0, pageSize: 10 });
+	let contactMessagesSorting = $state<SortingState>([]);
+	let contactMessagesColumnFilters = $state<ColumnFiltersState>([]);
+	let contactMessagesRowSelection = $state<RowSelectionState>({});
+	let contactMessagesColumnVisibility = $state<VisibilityState>({});
+	let contactMessagesGlobalFilter = $state<string>("");
+	let contactMessagesStatusFilter = $state<"all" | "pending" | "read" | "responded" | "archived">("all");
+
 	type ReportsBulkAction = "reviewing" | "resolved" | "rejected" | "delete";
 	const reportsBulkActionOptions: { value: ReportsBulkAction; label: string }[] = [
 		{ value: "reviewing", label: t('reviewing') ?? 'İnceleniyor' },
@@ -263,6 +305,14 @@
 		{ value: "rejected", label: "Reddedilenler" },
 	];
 
+	const contactMessageStatusOptions = [
+		{ value: "all", label: "Tümü" },
+		{ value: "pending", label: "Bekleyenler" },
+		{ value: "read", label: "Okunanlar" },
+		{ value: "responded", label: "Yanıtlananlar" },
+		{ value: "archived", label: "Arşivlenenler" },
+	];
+
 	const protectedRoles = new Set(["admin", "moderator"]);
 	const DELETION_GRACE_PERIOD_MS = 48 * 60 * 60 * 1000;
 	const normalizeRole = (role?: string | null) => role?.toLowerCase?.() ?? "user";
@@ -297,6 +347,7 @@
 	const canDemoteRole = (role?: string) => currentRole === "admin" && normalizeRole(role) === "moderator";
 	const canModerateAuthor = (role?: string | null) => currentRoleRank > getRoleRank(role);
 	const canReview = $derived(currentRole === "admin" || currentRole === "moderator");
+	const canManageContactMessages = $derived(currentRole === "admin" || currentRole === "moderator");
 
 	async function requeueArticle(articleId: string) {
 		try {
@@ -716,6 +767,150 @@
 		onRowSelectionChange: (updater) => {
 			donationsRowSelection =
 				typeof updater === "function" ? updater(donationsRowSelection) : updater;
+		},
+	});
+
+	// Contact Messages columns definition
+	const contactMessagesColumns: ColumnDef<ContactMessageRow>[] = [
+		{
+			id: "drag",
+			header: () => null,
+			cell: () => renderSnippet(DragHandle),
+		},
+		{
+			id: "select",
+			header: ({ table }) =>
+				renderComponent(DataTableCheckbox, {
+					checked: table.getIsAllPageRowsSelected(),
+					indeterminate:
+						table.getIsSomePageRowsSelected() && !table.getIsAllPageRowsSelected(),
+					onCheckedChange: (value) => table.toggleAllPageRowsSelected(!!value),
+					"aria-label": t('selectAll'),
+				}),
+			cell: ({ row }) =>
+				renderComponent(DataTableCheckbox, {
+					checked: row.getIsSelected(),
+					onCheckedChange: (value) => row.toggleSelected(!!value),
+					"aria-label": t('selectRow'),
+				}),
+			enableSorting: false,
+			enableHiding: false,
+		},
+		{
+			accessorKey: "name",
+			header: "İsim",
+			cell: ({ row }) => row.original?.name || '-',
+		},
+		{
+			accessorKey: "user_nickname",
+			header: "Kullanıcı",
+			cell: ({ row }) => {
+				const nickname = row.original?.user_nickname;
+				const username = row.original?.user_username;
+				return nickname || username || '-';
+			},
+		},
+		{
+			accessorKey: "subject",
+			header: "Konu",
+			cell: ({ row }) => {
+				const subject = row.original?.subject;
+				const subjectLabels: Record<string, string> = {
+					general: 'Genel Bilgi',
+					feedback: 'Geri Bildirim',
+					collaboration: 'İşbirliği',
+					report: 'Bildirim',
+					other: 'Diğer'
+				};
+				return subjectLabels[subject] || subject || '-';
+			},
+		},
+		{
+			accessorKey: "message",
+			header: "Mesaj",
+			cell: ({ row }) => {
+				const message = row.original?.message;
+				if (!message) return '-';
+				return message.length > 50 ? message.substring(0, 50) + '...' : message;
+			},
+		},
+		{
+			accessorKey: "created_at",
+			header: "Tarih",
+			cell: ({ row }) => formatDateTime(row.original?.created_at),
+		},
+		{
+			accessorKey: "status",
+			header: "Durum",
+			cell: ({ row }) => {
+				const status = row.original?.status;
+				return renderSnippet(UniversalStatusBadge, { status, type: "contact" });
+			},
+		},
+		{
+			id: "actions",
+			enableSorting: false,
+			enableHiding: false,
+			cell: ({ row }) => renderSnippet(ContactMessageActions, { row }),
+		},
+	];
+
+	const contactMessagesTable = createSvelteTable({
+		get data() {
+			return contactMessagesStatusFilter === 'all'
+				? contactMessages
+				: contactMessages.filter((m) => m.status === contactMessagesStatusFilter);
+		},
+		columns: contactMessagesColumns,
+		state: {
+			get pagination() {
+				return contactMessagesPagination;
+			},
+			get sorting() {
+				return contactMessagesSorting;
+			},
+			get columnVisibility() {
+				return contactMessagesColumnVisibility;
+			},
+			get columnFilters() {
+				return contactMessagesColumnFilters;
+			},
+			get rowSelection() {
+				return contactMessagesRowSelection;
+			},
+			get globalFilter() {
+				return contactMessagesGlobalFilter;
+			},
+		},
+		getRowId: (row) => row.id?.toString?.() ?? crypto.randomUUID(),
+		enableRowSelection: true,
+		getCoreRowModel: getCoreRowModel(),
+		getPaginationRowModel: getPaginationRowModel(),
+		getSortedRowModel: getSortedRowModel(),
+		getFacetedRowModel: getFacetedRowModel(),
+		getFacetedUniqueValues: getFacetedUniqueValues(),
+		getFilteredRowModel: getFilteredRowModel(),
+		onPaginationChange: (updater) => {
+			contactMessagesPagination = typeof updater === "function" ? updater(contactMessagesPagination) : updater;
+		},
+		onSortingChange: (updater) => {
+			contactMessagesSorting = typeof updater === "function" ? updater(contactMessagesSorting) : updater;
+		},
+		onColumnFiltersChange: (updater) => {
+			contactMessagesColumnFilters =
+				typeof updater === "function" ? updater(contactMessagesColumnFilters) : updater;
+		},
+		onGlobalFilterChange: (updater) => {
+			contactMessagesGlobalFilter =
+				typeof updater === "function" ? updater(contactMessagesGlobalFilter) : updater;
+		},
+		onColumnVisibilityChange: (updater) => {
+			contactMessagesColumnVisibility =
+				typeof updater === "function" ? updater(contactMessagesColumnVisibility) : updater;
+		},
+		onRowSelectionChange: (updater) => {
+			contactMessagesRowSelection =
+				typeof updater === "function" ? updater(contactMessagesRowSelection) : updater;
 		},
 	});
 
@@ -1275,6 +1470,11 @@
 			id: "bagislar",
 			label: "Bağışlar",
 			badge: 0,
+		},
+		{
+			id: "contact-messages",
+			label: "İletişim Mesajları",
+			badge: 0,
 		}
 	];
 
@@ -1324,6 +1524,31 @@
 			toast.error(t('error'));
 		} finally {
 			loadingDonations = false;
+		}
+	}
+
+	async function fetchContactMessages(force = false, status?: "all" | "pending" | "read" | "responded" | "archived") {
+		if (!canManageContactMessages) return;
+		if (loadingContactMessages) return;
+		if (!force && contactMessagesInitialized) return;
+		loadingContactMessages = true;
+		try {
+			const query = status && status !== 'all' ? `?status=${status}` : '';
+			const response = await fetch(`/api/contact-messages${query}`);
+			if (response.ok) {
+				const data = await response.json();
+				contactMessages = data.messages || [];
+				contactMessagesInitialized = true;
+				const contactTab = views.find((v) => v.id === 'contact-messages');
+				if (contactTab) {
+					contactTab.badge = contactMessages.filter((m) => m.status === 'pending').length;
+				}
+			}
+		} catch (error) {
+			console.error('Failed to fetch contact messages:', error);
+			toast.error(t('error'));
+		} finally {
+			loadingContactMessages = false;
 		}
 	}
 
@@ -1396,6 +1621,9 @@
 		if (currentView === 'bagislar') {
 			void fetchDonations(false, donationsStatusFilter);
 		}
+		if (currentView === 'contact-messages') {
+			void fetchContactMessages(false, contactMessagesStatusFilter);
+		}
 	});
 
 	let lastDonationsStatusFilter = donationsStatusFilter;
@@ -1417,7 +1645,18 @@
 		if (nextView === 'bagislar') {
 			void fetchDonations(true, donationsStatusFilter);
 		}
+		if (nextView === 'contact-messages') {
+			void fetchContactMessages(true, contactMessagesStatusFilter);
+		}
 	}
+
+	let lastContactMessagesStatusFilter = contactMessagesStatusFilter;
+	$effect(() => {
+		if (view === 'contact-messages' && contactMessagesStatusFilter !== lastContactMessagesStatusFilter) {
+			void fetchContactMessages(true, contactMessagesStatusFilter);
+			lastContactMessagesStatusFilter = contactMessagesStatusFilter;
+		}
+	});
 
 	function openRejectDialog(article: PendingArticleRow) {
 		pendingRejectArticle = article;
@@ -1578,6 +1817,78 @@
 				console.error('Failed to delete donation:', error);
 				toast.error('Bağış silinirken hata oluştu');
 			}
+		}
+	}
+
+	async function handleUpdateContactMessageStatus(messageId: string, status: "pending" | "read" | "responded" | "archived") {
+		try {
+			const response = await fetch(`/api/contact-messages/${messageId}`, {
+				method: 'PATCH',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ status })
+			});
+			if (response.ok) {
+				toast.success('Mesaj durumu güncellendi');
+				contactMessagesInitialized = false;
+				if (view === 'contact-messages') {
+					void fetchContactMessages(true, contactMessagesStatusFilter);
+				}
+			} else {
+				const error = await response.json();
+				toast.error(error.error || 'Güncelleme başarısız');
+			}
+		} catch (error) {
+			console.error('Failed to update contact message status:', error);
+			toast.error('İşlem sırasında hata oluştu');
+		}
+	}
+
+	async function handleRespondToContactMessage(messageId: string) {
+		const response = prompt('Yanıt mesajınızı girin:');
+		if (response === null) return;
+		if (response.trim() === '') {
+			toast.error('Yanıt mesajı boş olamaz');
+			return;
+		}
+		try {
+			const res = await fetch(`/api/contact-messages/${messageId}`, {
+				method: 'PATCH',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ status: 'responded', response: response.trim() })
+			});
+			if (res.ok) {
+				toast.success('Yanıt gönderildi');
+				contactMessagesInitialized = false;
+				if (view === 'contact-messages') {
+					void fetchContactMessages(true, contactMessagesStatusFilter);
+				}
+			} else {
+				const error = await res.json();
+				toast.error(error.error || 'Yanıt gönderilemedi');
+			}
+		} catch (error) {
+			console.error('Failed to respond to contact message:', error);
+			toast.error('İşlem sırasında hata oluştu');
+		}
+	}
+
+	async function handleDeleteContactMessage(messageId: string) {
+		if (!confirm('Bu mesajı silmek istediğinizden emin misiniz? Bu işlem geri alınamaz.')) return;
+		try {
+			const response = await fetch(`/api/contact-messages/${messageId}`, { method: 'DELETE' });
+			if (response.ok) {
+				toast.success('Mesaj silindi');
+				contactMessagesInitialized = false;
+				if (view === 'contact-messages') {
+					void fetchContactMessages(true, contactMessagesStatusFilter);
+				}
+			} else {
+				const error = await response.json();
+				toast.error(error.error || 'Silme başarısız');
+			}
+		} catch (error) {
+			console.error('Failed to delete contact message:', error);
+			toast.error('İşlem sırasında hata oluştu');
 		}
 	}
 
@@ -2414,6 +2725,176 @@
 			</div>
 		</div>
 	</Tabs.Content>
+	<Tabs.Content value="contact-messages" class="relative flex flex-col gap-4 overflow-auto px-2 sm:px-4 lg:px-6">
+		<div class="overflow-x-scroll rounded-lg border">
+			<div class="flex flex-col gap-3 p-2 sm:flex-row sm:items-center sm:justify-between sm:p-4">
+				<Input
+					placeholder={t('search')}
+					class="h-9 w-full sm:max-w-sm text-sm sm:text-base"
+					value={contactMessagesTable.getState().globalFilter ?? ''}
+					oninput={(e) => contactMessagesTable.setGlobalFilter(e.currentTarget.value)}
+				/>
+				<div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3">
+					<Select.Root type="single" bind:value={contactMessagesStatusFilter}>
+						<Select.Trigger size="sm" class="w-full min-w-[10rem] justify-between ">
+							{contactMessageStatusOptions.find((opt) => opt.value === contactMessagesStatusFilter)?.label}
+						</Select.Trigger>
+						<Select.Content>
+							{#each contactMessageStatusOptions as option (option.value)}
+								<Select.Item value={option.value}>{option.label}</Select.Item>
+							{/each}
+						</Select.Content>
+					</Select.Root>
+					<DropdownMenu.Root>
+						<DropdownMenu.Trigger>
+							{#snippet child({ props })}
+								<Button variant="outline" size="sm" {...props}>
+								<LayoutColumnsIcon />
+								<span class="hidden lg:inline">{t('customizeColumns')}</span>
+								<span class="lg:hidden">{t('columns')}</span>
+								<ChevronDownIcon />
+							</Button>
+						{/snippet}
+						</DropdownMenu.Trigger>
+						<DropdownMenu.Content align="end" class="w-56">
+							{#each contactMessagesTable
+								.getAllColumns()
+								.filter((col) => typeof col.accessorFn !== "undefined" && col.getCanHide()) as column (column.id)}
+								<DropdownMenu.CheckboxItem
+									class="capitalize"
+									checked={column.getIsVisible()}
+									onCheckedChange={(value) => column.toggleVisibility(!!value)}
+								>
+									{column.id}
+								</DropdownMenu.CheckboxItem>
+							{/each}
+						</DropdownMenu.Content>
+					</DropdownMenu.Root>
+				</div>
+			</div>
+
+			{#if loadingContactMessages}
+				<div class="flex items-center justify-center p-8">
+					<Loader class="animate-spin" />
+					<span>{t('common.loading')}</span>
+				</div>
+			{:else}
+				<Table.Root>
+					<Table.Header class="bg-muted sticky top-0 z-10">
+						{#each contactMessagesTable.getHeaderGroups() as headerGroup (headerGroup.id)}
+							<Table.Row>
+								{#each headerGroup.headers as header (header.id)}
+									<Table.Head colspan={header.colSpan}>
+										{#if !header.isPlaceholder}
+											<FlexRender
+												content={header.column.columnDef.header}
+												context={header.getContext()}
+											/>
+										{/if}
+									</Table.Head>
+								{/each}
+							</Table.Row>
+						{/each}
+					</Table.Header>
+					<Table.Body class="**:data-[slot=table-cell]:first:w-8">
+						{#if contactMessagesTable.getRowModel().rows?.length}
+							{#each contactMessagesTable.getRowModel().rows as row (row.id)}
+								<Table.Row data-state={row.getIsSelected() && "selected"}>
+									{#each row.getVisibleCells() as cell (cell.id)}
+										<Table.Cell>
+											<FlexRender
+												content={cell.column.columnDef.cell}
+												context={cell.getContext()}
+											/>
+										</Table.Cell>
+									{/each}
+								</Table.Row>
+							{/each}
+						{:else}
+							<Table.Row>
+								<Table.Cell colspan={contactMessagesColumns.length} class="h-24 text-center">
+									Henüz mesaj yok
+								</Table.Cell>
+							</Table.Row>
+						{/if}
+					</Table.Body>
+				</Table.Root>
+			{/if}
+		</div>
+
+		<div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 px-2 sm:px-4 py-2">
+			<div class="text-muted-foreground text-xs sm:text-sm">
+				{t('rowsSelected', { selected: contactMessagesTable.getFilteredSelectedRowModel().rows.length, total: contactMessagesTable.getFilteredRowModel().rows.length })}
+			</div>
+			<div class="flex w-full items-center justify-between gap-2 sm:gap-4 lg:w-fit">
+				<div class="hidden items-center gap-2 lg:flex">
+					<Label for="contact-rows-per-page" class="text-sm font-medium">{t('rowsPerPage')}</Label>
+					<Select.Root
+						type="single"
+						bind:value={
+							() => `${contactMessagesTable.getState().pagination.pageSize}`,
+							(v) => contactMessagesTable.setPageSize(Number(v))
+						}
+					>
+						<Select.Trigger size="sm" class="w-20" id="contact-rows-per-page">
+							{contactMessagesTable.getState().pagination.pageSize}
+						</Select.Trigger>
+						<Select.Content side="top">
+							{#each [10, 20, 30, 40, 50] as pageSize (pageSize)}
+								<Select.Item value={pageSize.toString()}>
+									{pageSize}
+								</Select.Item>
+							{/each}
+						</Select.Content>
+					</Select.Root>
+				</div>
+				<div class="flex w-fit items-center justify-center text-sm font-medium">
+					{t('pageOf', { current: contactMessagesTable.getState().pagination.pageIndex + 1, total: contactMessagesTable.getPageCount() || 1 })}
+				</div>
+				<div class="ms-auto flex items-center gap-2 lg:ms-0">
+					<Button
+						variant="outline"
+						class="h-8 w-8 p-0 min-w-[2rem] lg:flex"
+						onclick={() => contactMessagesTable.setPageIndex(0)}
+						disabled={!contactMessagesTable.getCanPreviousPage()}
+					>
+						<span class="sr-only">{t('firstPage')}</span>
+						<ChevronsLeftIcon />
+					</Button>
+					<Button
+						variant="outline"
+						class="size-8"
+						size="icon"
+						onclick={() => contactMessagesTable.previousPage()}
+						disabled={!contactMessagesTable.getCanPreviousPage()}
+					>
+						<span class="sr-only">{t('previousPage')}</span>
+						<ChevronLeftIcon />
+					</Button>
+					<Button
+						variant="outline"
+						class="size-8"
+						size="icon"
+						onclick={() => contactMessagesTable.nextPage()}
+						disabled={!contactMessagesTable.getCanNextPage()}
+					>
+						<span class="sr-only">{t('nextPage')}</span>
+						<ChevronRightIcon />
+					</Button>
+					<Button
+						variant="outline"
+						class="hidden size-8 lg:flex"
+						size="icon"
+						onclick={() => contactMessagesTable.setPageIndex(contactMessagesTable.getPageCount() - 1)}
+						disabled={!contactMessagesTable.getCanNextPage()}
+					>
+						<span class="sr-only">{t('lastPage')}</span>
+						<ChevronsRightIcon />
+					</Button>
+				</div>
+			</div>
+		</div>
+	</Tabs.Content>
 	<Tabs.Content value="past-performance" class="flex flex-col px-4 lg:px-6">
 		<div class="aspect-video w-full flex-1 rounded-lg border border-dashed"></div>
 	</Tabs.Content>
@@ -2965,6 +3446,53 @@
 	</DropdownMenu.Root>
 {/snippet}
 
+{#snippet ContactMessageActions({ row }: { row: Row<ContactMessageRow> })}
+	{@const message = row.original}
+	<DropdownMenu.Root>
+		<DropdownMenu.Trigger class="data-[state=open]:bg-muted text-muted-foreground flex size-8">
+			{#snippet child({ props })}
+				<Button variant="ghost" size="icon" {...props}>
+					<DotsVerticalIcon class="h-4 w-4" />
+					<span class="sr-only">İşlemler</span>
+				</Button>
+			{/snippet}
+		</DropdownMenu.Trigger>
+		<DropdownMenu.Content align="end" class="w-56">
+			<DropdownMenu.Label>İletişim Mesajı İşlemleri</DropdownMenu.Label>
+			<DropdownMenu.Separator />
+			{#if message.status === 'pending'}
+				<DropdownMenu.Item onclick={() => handleUpdateContactMessageStatus(message.id, 'read')}>
+					<EyeIcon class="mr-2 h-4 w-4" />
+					Okundu olarak işaretle
+				</DropdownMenu.Item>
+			{/if}
+			{#if message.status === 'pending' || message.status === 'read'}
+				<DropdownMenu.Item onclick={() => handleRespondToContactMessage(message.id)}>
+					<MessageSquareIcon class="mr-2 h-4 w-4" />
+					Yanıtla
+				</DropdownMenu.Item>
+			{/if}
+			{#if message.status !== 'archived'}
+				<DropdownMenu.Item onclick={() => handleUpdateContactMessageStatus(message.id, 'archived')}>
+					<ArchiveIcon class="mr-2 h-4 w-4" />
+					Arşivle
+				</DropdownMenu.Item>
+			{/if}
+			{#if message.status === 'archived'}
+				<DropdownMenu.Item onclick={() => handleUpdateContactMessageStatus(message.id, 'pending')}>
+					<RotateCcwIcon class="mr-2 h-4 w-4" />
+					Arşivden çıkar
+				</DropdownMenu.Item>
+			{/if}
+			<DropdownMenu.Separator />
+			<DropdownMenu.Item class="text-destructive focus:text-destructive" onclick={() => handleDeleteContactMessage(message.id)}>
+				<Trash2Icon class="mr-2 h-4 w-4" />
+				Sil
+			</DropdownMenu.Item>
+		</DropdownMenu.Content>
+	</DropdownMenu.Root>
+{/snippet}
+
 {#snippet DonationDraggableRow({ row, index }: { row: Row<any>; index: number })}
 	{@const { ref, isDragging, handleRef } = useSortable({
 		id: row.original?.id ?? row.id ?? crypto.randomUUID(),
@@ -3014,7 +3542,7 @@
 	{/if}
 {/snippet}
 
-{#snippet UniversalStatusBadge({ status, type = "default" }: { status: string | null | undefined; type?: "default" | "user" | "article" | "donation" | "report" })}
+{#snippet UniversalStatusBadge({ status, type = "default" }: { status: string | null | undefined; type?: "default" | "user" | "article" | "donation" | "report" | "contact" })}
 	{@const getStatusConfig = (status: string | null | undefined, type: string) => {
 		if (!status) return { variant: "outline", class: "text-muted-foreground", label: t('unknown') ?? "Bilinmeyen", icon: "HelpCircleIcon" };
 		
@@ -3033,6 +3561,18 @@
 		};
 		
 		// Type-specific configurations
+		if (type === "contact") {
+			const contactConfigs = {
+				pending: { variant: "outline", class: "text-yellow-600 border-yellow-600", label: "Beklemede", icon: "ClockIcon" },
+				read: { variant: "outline", class: "text-blue-600 border-blue-600", label: "Okundu", icon: "EyeIcon" },
+				responded: { variant: "outline", class: "text-green-600 border-green-600", label: "Yanıtlandı", icon: "CircleCheckFilledIcon" },
+				archived: { variant: "outline", class: "text-gray-600 border-gray-600", label: "Arşivlendi", icon: "ArchiveIcon" },
+			};
+			if (contactConfigs[statusLower]) {
+				return contactConfigs[statusLower];
+			}
+		}
+		
 		if (type === "user") {
 			if (statusLower === "silinecek") {
 				return { variant: "destructive", class: "", label: getDeletionRemainingLabel?.(null) || "Silinecek", icon: "TimerIcon" };
@@ -3058,6 +3598,8 @@
 		config.icon === "CircleXIcon" ? CircleXIcon :
 		config.icon === "TimerIcon" ? TimerIcon :
 		config.icon === "EyeOffIcon" ? EyeOffIcon :
+		config.icon === "EyeIcon" ? EyeIcon :
+		config.icon === "ArchiveIcon" ? ArchiveIcon :
 		null}
 	
 	<Badge variant={config.variant} class={`px-2 py-1 ${config.class}`}>
