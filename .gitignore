@@ -10,7 +10,7 @@ node_modules
 /build
 /static/uploads
 npm_output.log
-Dockerfile
+
 # OS
 .DS_Store
 Thumbs.db
