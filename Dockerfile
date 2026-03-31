@@ -9,9 +9,6 @@ WORKDIR /app
 COPY package.json pnpm-lock.yaml ./
 COPY .npmrc ./
 
-# node_modules cache layer
-RUN npm install -g npm@11.12.1
-
 # bağımlılıklar (build script'ler .npmrc'de izinli)
 RUN pnpm install --frozen-lockfile
 
