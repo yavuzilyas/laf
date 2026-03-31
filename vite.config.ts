@@ -5,12 +5,6 @@ export default defineConfig({
 	plugins: [sveltekit()],
 	clearScreen: true,
 	logLevel: 'error',
-	resolve: {
-		alias: {
-			// Fix for @dnd-kit ActivationConstraint export issue
-			'@dnd-kit/abstract': '@dnd-kit/core'
-		}
-	},
 	server: {
 		host: '0.0.0.0',
 		port: 5173,
