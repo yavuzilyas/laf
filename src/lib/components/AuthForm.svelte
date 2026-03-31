@@ -1037,7 +1037,8 @@ async function validateEmail(value: string) {
   </div>
 </Motion>
 {/if}
-                      <div class="flex flex-col gap-1 my-1.5 bg-secondary/50 rounded-xl px-4 py-2.5  " use:fadeScaleVariants>
+<Motion variants={fadeScaleVariants} initial="hidden" animate="visible" exit="exit" let:motion>
+                      <div class="flex flex-col gap-1 my-1.5 bg-secondary/50 rounded-xl px-4 py-2.5  " use:motion>
                         <div class="flex flex-row gap-1 ">
           <LockIcon triggers={{ hover: false }}  animationState="loading" size={21} class="text-[red] animate-pulse"  loop={true} />
 
@@ -1049,6 +1050,7 @@ async function validateEmail(value: string) {
             <li>{t('auth.register.mnemonicInfo2')}</li>
           </ul>
           </div>
+</Motion>
 
           
         </div>

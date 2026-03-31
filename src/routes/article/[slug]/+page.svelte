@@ -1874,13 +1874,151 @@
 
 <svelte:head>
     {#if article}
-        <title>{article.title} - LAF</title>
-        <meta name="description" content={article.excerpt} />
-        <meta property="og:title" content={article.title} />
-        <meta property="og:description" content={article.excerpt} />
-        <meta property="og:type" content="article" />
+        {@const meta = (() => {
+            const siteName = 'LAF - Libertarian Anarchist Foundation';
+            const siteUrl = 'https://laf.international';
+            const url = typeof window !== 'undefined' ? window.location.href : `${siteUrl}/article/${article.slug}`;
+            const ogImage = article.thumbnail || `${siteUrl}/og-default.png`;
+            const authorName = article.author?.name && article.author?.surname
+                ? `${article.author.name} ${article.author.surname}`
+                : article.author?.nickname || 'LAF';
+
+            return {
+                title: `${article.title} | ${siteName}`,
+                description: article.excerpt || article.content?.substring(0, 160) || '',
+                canonical: url,
+                og: {
+                    title: article.title,
+                    description: article.excerpt || '',
+                    type: 'article',
+                    url: url,
+                    site_name: siteName,
+                    locale: article.language === 'tr' ? 'tr_TR' : article.language === 'en' ? 'en_US' : `${article.language}_${article.language?.toUpperCase()}`,
+                    image: ogImage,
+                    image_alt: article.title,
+                    article_published_time: article.publishedAt,
+                    article_modified_time: article.updatedAt,
+                    article_author: authorName,
+                    article_section: article.category,
+                    article_tag: article.tags?.join(', ')
+                },
+                twitter: {
+                    card: 'summary_large_image',
+                    site: '@lafoundation',
+                    title: article.title,
+                    description: article.excerpt || '',
+                    image: ogImage,
+                    image_alt: article.title
+                },
+                robots: article.status === 'published' ? 'index, follow' : 'noindex, nofollow',
+                structuredData: {
+                    '@context': 'https://schema.org',
+                    '@type': 'Article',
+                    headline: article.title,
+                    description: article.excerpt || '',
+                    url: url,
+                    image: ogImage,
+                    author: {
+                        '@type': 'Person',
+                        name: authorName,
+                        url: article.author?.nickname ? `${siteUrl}/${article.author.nickname}` : undefined
+                    },
+                    publisher: {
+                        '@type': 'Organization',
+                        name: siteName,
+                        logo: {
+                            '@type': 'ImageObject',
+                            url: `${siteUrl}/logo.png`
+                        }
+                    },
+                    datePublished: article.publishedAt,
+                    dateModified: article.updatedAt || article.publishedAt,
+                    keywords: article.tags?.join(', ') || '',
+                    articleSection: article.category,
+                    inLanguage: article.language || 'tr'
+                },
+                breadcrumbs: {
+                    '@context': 'https://schema.org',
+                    '@type': 'BreadcrumbList',
+                    itemListElement: [
+                        {
+                            '@type': 'ListItem',
+                            position: 1,
+                            name: 'Ana Sayfa',
+                            item: siteUrl
+                        },
+                        {
+                            '@type': 'ListItem',
+                            position: 2,
+                            name: 'Makaleler',
+                            item: `${siteUrl}/articles`
+                        },
+                        {
+                            '@type': 'ListItem',
+                            position: 3,
+                            name: article.title,
+                            item: url
+                        }
+                    ]
+                }
+            };
+        })()}
+
+        <title>{meta.title}</title>
+        <meta name="description" content={meta.description} />
+        <link rel="canonical" href={meta.canonical} />
+
+        <!-- Open Graph -->
+        <meta property="og:title" content={meta.og.title} />
+        <meta property="og:description" content={meta.og.description} />
+        <meta property="og:type" content={meta.og.type} />
+        <meta property="og:url" content={meta.og.url} />
+        <meta property="og:site_name" content={meta.og.site_name} />
+        <meta property="og:locale" content={meta.og.locale} />
+        <meta property="og:image" content={meta.og.image} />
+        <meta property="og:image:alt" content={meta.og.image_alt} />
+        <meta property="og:image:width" content="1200" />
+        <meta property="og:image:height" content="630" />
+        {#if meta.og.article_published_time}
+            <meta property="article:published_time" content={meta.og.article_published_time} />
+        {/if}
+        {#if meta.og.article_modified_time}
+            <meta property="article:modified_time" content={meta.og.article_modified_time} />
+        {/if}
+        <meta property="article:author" content={meta.og.article_author} />
+        <meta property="article:section" content={meta.og.article_section} />
+        {#if meta.og.article_tag}
+            <meta property="article:tag" content={meta.og.article_tag} />
+        {/if}
+
+        <!-- Twitter Cards -->
+        <meta name="twitter:card" content={meta.twitter.card} />
+        <meta name="twitter:site" content={meta.twitter.site} />
+        <meta name="twitter:title" content={meta.twitter.title} />
+        <meta name="twitter:description" content={meta.twitter.description} />
+        <meta name="twitter:image" content={meta.twitter.image} />
+        <meta name="twitter:image:alt" content={meta.twitter.image_alt} />
+
+        <!-- Robots -->
+        <meta name="robots" content={meta.robots} />
+
+        <!-- Hreflang for translations -->
+        {#if article.availableTranslations}
+            {#each Object.keys(article.availableTranslations) as lang}
+                {@const translation = article.availableTranslations[lang]}
+                <link rel="alternate" hreflang={lang} href={`https://laf.org.tr/article/${translation.slug}`} />
+            {/each}
+        {/if}
+        <link rel="alternate" hreflang="x-default" href={meta.canonical} />
+
+        <!-- Structured Data -->
+        {@html `<script type="application/ld+json">${JSON.stringify(meta.structuredData)}</script>`}
+        {@html `<script type="application/ld+json">${JSON.stringify(meta.breadcrumbs)}</script>`}
+
     {:else}
         <title>Makale Bulunamadı - LAF</title>
+        <meta name="description" content="Aradığınız makale bulunamadı. LAF platformunda diğer makaleleri keşfedin." />
+        <meta name="robots" content="noindex, nofollow" />
     {/if}
 </svelte:head>
 

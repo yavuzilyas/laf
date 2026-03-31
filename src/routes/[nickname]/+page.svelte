@@ -23,12 +23,12 @@
         Shield,
         AlertCircle
     } from "@lucide/svelte";
-    import { afterNavigate } from '$app/navigation';
+    import { afterNavigate, goto } from '$app/navigation';
     import { page } from '$app/stores';
     import { onMount } from 'svelte';
     import Loader from "$lib/components/load.svelte";
     import ArticleList from '$lib/components/ArticleList.svelte';
-    
+
     // Layout mode state
     let layoutMode = $state("grid");
 
@@ -38,6 +38,91 @@
     const currentUser = data.currentUser;
     const currentUserId = currentUser?.id;
     const isModeratorOrAdmin = currentUser?.role === 'moderator' || currentUser?.role === 'admin';
+
+    // SEO Meta computation
+    const seoMeta = $derived((() => {
+        const siteName = 'LAF - Libertarian Anarchist Foundation';
+        const siteUrl = 'https://laf.international';
+        const locale = getCurrentLocale();
+        const url = typeof window !== 'undefined' ? window.location.href : `${siteUrl}/${profileUser?.username || profileUser?.id}`;
+
+        const displayName = profileUser?.name && profileUser?.surname
+            ? `${profileUser.name} ${profileUser.surname}`
+            : profileUser?.username || 'LAF User';
+
+        const bio = profileUser?.bio || (locale === 'tr'
+            ? `${displayName}'in LAF profili ve makaleleri.`
+            : `${displayName}'s profile and articles on LAF.`);
+
+        const title = locale === 'tr'
+            ? `${displayName} (@${profileUser?.username}) | LAF`
+            : `${displayName} (@${profileUser?.username}) | LAF`;
+
+        return {
+            title,
+            description: bio,
+            canonical: url,
+            og: {
+                title,
+                description: bio,
+                type: 'profile',
+                url,
+                site_name: siteName,
+                locale: locale === 'tr' ? 'tr_TR' : 'en_US',
+                image: profileUser?.avatar_url || `${siteUrl}/og-default.png`,
+                image_alt: `${displayName}'s profile picture`
+            },
+            twitter: {
+                card: 'summary',
+                site: '@lafoundation',
+                title,
+                description: bio,
+                image: profileUser?.avatar_url || `${siteUrl}/og-default.png`,
+                image_alt: `${displayName}'s profile picture`
+            },
+            structuredData: {
+                '@context': 'https://schema.org',
+                '@type': 'ProfilePage',
+                name: title,
+                description: bio,
+                url,
+                mainEntity: {
+                    '@type': 'Person',
+                    name: displayName,
+                    alternateName: profileUser?.username,
+                    ...(profileUser?.avatar_url && { image: profileUser.avatar_url }),
+                    description: bio,
+                    url,
+                    ...(profileUser?.created_at && {
+                        memberOf: {
+                            '@type': 'Organization',
+                            name: siteName,
+                            url: siteUrl
+                        }
+                    })
+                }
+            },
+            breadcrumbs: {
+                '@context': 'https://schema.org',
+                '@type': 'BreadcrumbList',
+                itemListElement: [
+                    {
+                        '@type': 'ListItem',
+                        position: 1,
+                        name: locale === 'tr' ? 'Ana Sayfa' : 'Home',
+                        item: siteUrl
+                    },
+                    {
+                        '@type': 'ListItem',
+                        position: 2,
+                        name: displayName,
+                        item: url
+                    }
+                ]
+            }
+        };
+    })());
+
     const profileusernameSlug = $derived(() => {
         const value = profileUser?.username || profileUser?.id || 'user';
         return value
@@ -719,8 +804,38 @@
 <Loader />
 
 <svelte:head>
-    <title>@{profileUser.username} - LAF</title>
-    <meta name="description" content={profileUser.bio || `${profileUser.username}'s profile on LAF`} />
+    <title>{seoMeta.title}</title>
+    <meta name="description" content={seoMeta.description} />
+    <link rel="canonical" href={seoMeta.canonical} />
+
+    <!-- Open Graph -->
+    <meta property="og:title" content={seoMeta.og.title} />
+    <meta property="og:description" content={seoMeta.og.description} />
+    <meta property="og:type" content={seoMeta.og.type} />
+    <meta property="og:url" content={seoMeta.og.url} />
+    <meta property="og:site_name" content={seoMeta.og.site_name} />
+    <meta property="og:locale" content={seoMeta.og.locale} />
+    <meta property="og:image" content={seoMeta.og.image} />
+    <meta property="og:image:alt" content={seoMeta.og.image_alt} />
+    <meta property="og:image:width" content="400" />
+    <meta property="og:image:height" content="400" />
+
+    <!-- Twitter Cards -->
+    <meta name="twitter:card" content={seoMeta.twitter.card} />
+    <meta name="twitter:site" content={seoMeta.twitter.site} />
+    <meta name="twitter:title" content={seoMeta.twitter.title} />
+    <meta name="twitter:description" content={seoMeta.twitter.description} />
+    <meta name="twitter:image" content={seoMeta.twitter.image} />
+    <meta name="twitter:image:alt" content={seoMeta.twitter.image_alt} />
+
+    <!-- Hreflang -->
+    <link rel="alternate" hreflang="tr" href={`https://laf.international/${profileUser?.username}`} />
+    <link rel="alternate" hreflang="en" href={`https://laf.international/en/${profileUser?.username}`} />
+    <link rel="alternate" hreflang="x-default" href={seoMeta.canonical} />
+
+    <!-- Structured Data -->
+    {@html `<script type="application/ld+json">${JSON.stringify(seoMeta.structuredData)}</script>`}
+    {@html `<script type="application/ld+json">${JSON.stringify(seoMeta.breadcrumbs)}</script>`}
 </svelte:head>
 
 <Navbar />

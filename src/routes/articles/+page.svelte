@@ -10,9 +10,88 @@
     import Loader from '$lib/components/load.svelte';
     import {BookTextIcon, NotebookPenIcon} from 'svelte-animate-icons';
 
-    let notebookPenIcon;
+    let notebookPenIcon: any;
 
     let { data } = $props();
+
+    // SEO Meta computation
+    const seoMeta = $derived((() => {
+        const siteName = 'LAF - Libertarian Anarchist Foundation';
+        const siteUrl = 'https://laf.international';
+        const locale = getCurrentLocale();
+        const url = typeof window !== 'undefined' ? window.location.href : `${siteUrl}/articles`;
+
+        const titles: Record<string, string> = {
+            tr: 'Makaleler | LAF - Liberteryen Anarşist Faaliyet',
+            en: 'Articles | LAF - Libertarian Anarchist Foundation'
+        };
+
+        const descriptions: Record<string, string> = {
+            tr: 'Liberter anarşizm, özgürlük ve bireysel haklar üzerine makalelerimizi keşfedin. Felsefe, iktisat, devlet teorisi, doğal hukuk ve daha fazlası.',
+            en: 'Explore our collection of articles on libertarian anarchism, freedom, and individual rights. Philosophy, economics, state theory, natural law, and more.'
+        };
+
+        const title = titles[locale] || titles.en;
+        const description = descriptions[locale] || descriptions.en;
+
+        return {
+            title,
+            description,
+            canonical: url,
+            og: {
+                title,
+                description,
+                type: 'website',
+                url,
+                site_name: siteName,
+                locale: locale === 'tr' ? 'tr_TR' : 'en_US',
+                image: `${siteUrl}/og-articles.png`,
+                image_alt: 'LAF Articles'
+            },
+            twitter: {
+                card: 'summary_large_image',
+                site: '@lafoundation',
+                title,
+                description,
+                image: `${siteUrl}/og-articles.png`,
+                image_alt: 'LAF Articles'
+            },
+            structuredData: {
+                '@context': 'https://schema.org',
+                '@type': 'CollectionPage',
+                name: title,
+                description,
+                url,
+                isPartOf: {
+                    '@type': 'WebSite',
+                    name: siteName,
+                    url: siteUrl
+                },
+                about: {
+                    '@type': 'Thing',
+                    name: locale === 'tr' ? 'Liberteryen Anarşizm' : 'Libertarian Anarchism'
+                }
+            },
+            breadcrumbs: {
+                '@context': 'https://schema.org',
+                '@type': 'BreadcrumbList',
+                itemListElement: [
+                    {
+                        '@type': 'ListItem',
+                        position: 1,
+                        name: locale === 'tr' ? 'Ana Sayfa' : 'Home',
+                        item: siteUrl
+                    },
+                    {
+                        '@type': 'ListItem',
+                        position: 2,
+                        name: locale === 'tr' ? 'Makaleler' : 'Articles',
+                        item: url
+                    }
+                ]
+            }
+        };
+    })());
 
     const serverArticles = data?.articles ?? [];
     const categories = data?.categories ?? [];
@@ -267,8 +346,38 @@
   <Loader />
 {/if}
 <svelte:head>
-    <title>{t('Articles')}</title>
-    <meta name="description" content={t('articles.description')} />
+    <title>{seoMeta.title}</title>
+    <meta name="description" content={seoMeta.description} />
+    <link rel="canonical" href={seoMeta.canonical} />
+
+    <!-- Open Graph -->
+    <meta property="og:title" content={seoMeta.og.title} />
+    <meta property="og:description" content={seoMeta.og.description} />
+    <meta property="og:type" content={seoMeta.og.type} />
+    <meta property="og:url" content={seoMeta.og.url} />
+    <meta property="og:site_name" content={seoMeta.og.site_name} />
+    <meta property="og:locale" content={seoMeta.og.locale} />
+    <meta property="og:image" content={seoMeta.og.image} />
+    <meta property="og:image:alt" content={seoMeta.og.image_alt} />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+
+    <!-- Twitter Cards -->
+    <meta name="twitter:card" content={seoMeta.twitter.card} />
+    <meta name="twitter:site" content={seoMeta.twitter.site} />
+    <meta name="twitter:title" content={seoMeta.twitter.title} />
+    <meta name="twitter:description" content={seoMeta.twitter.description} />
+    <meta name="twitter:image" content={seoMeta.twitter.image} />
+    <meta name="twitter:image:alt" content={seoMeta.twitter.image_alt} />
+
+    <!-- Hreflang -->
+    <link rel="alternate" hreflang="tr" href="https://laf.international/articles" />
+    <link rel="alternate" hreflang="en" href="https://laf.international/en/articles" />
+    <link rel="alternate" hreflang="x-default" href={seoMeta.canonical} />
+
+    <!-- Structured Data -->
+    {@html `<script type="application/ld+json">${JSON.stringify(seoMeta.structuredData)}</script>`}
+    {@html `<script type="application/ld+json">${JSON.stringify(seoMeta.breadcrumbs)}</script>`}
 </svelte:head>
 
 <Navbar />
