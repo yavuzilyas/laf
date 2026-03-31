@@ -7,24 +7,30 @@ WORKDIR /app
 
 # lock ve package önce
 COPY package.json pnpm-lock.yaml ./
+COPY .npmrc ./
 
-COPY svelte.config.js ./
-
+# node_modules cache layer
 RUN npm install -g npm@11.12.1
 
-# build script izinleri (native modüller için)
-RUN pnpm approve-builds @prisma/engines @tailwindcss/oxide argon2 core-js esbuild prisma sharp
-
-# bağımlılıklar
+# bağımlılıklar (build script'ler .npmrc'de izinli)
 RUN pnpm install --frozen-lockfile
 
 # proje dosyaları
 COPY . .
 
-# build için dummy env değerleri (runtime'da gerçek değerler kullanılır)
+# build için dummy env değerleri
 ENV DATABASE_URL=postgresql://laf_user:WdYsA6HfI06AxmUbUMNQ@laf-db-kuli76:5432/laf_app
 
+# memory limit - 2.9GB sunucu için 2GB Node heap + sistem için yer bırak
+ENV NODE_OPTIONS="--max-old-space-size=2048"
+
+# esbuild worker limit (tek worker = daha az RAM)
+ENV ESBUILD_WORKER_THREADS=1
+
+# build öncesi sync
 RUN npx svelte-kit sync
+
+# build (tek seferde, memory optimize)
 RUN pnpm build
 
 EXPOSE 3000
