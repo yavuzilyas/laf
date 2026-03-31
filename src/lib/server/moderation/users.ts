@@ -1,4 +1,4 @@
-import { getUsersCollection } from '$db/mongo';
+import { getUsersCollection } from '$db/queries';
 
 const formatDate = (value?: Date | string) => {
   if (!value) return '-';
@@ -28,34 +28,23 @@ export type ModerationTableRow = {
 };
 
 export async function getModerationTableData(limit = 150): Promise<ModerationTableRow[]> {
-  const usersCollection = await getUsersCollection();
-  const users = await usersCollection
-    .find(
-      {},
-      {
-        projection: {
-          password: 0,
-          mnemonicHashes: 0
-        }
-      }
-    )
-    .sort({ createdAt: -1 })
-    .limit(limit)
-    .toArray();
+  const usersCollection = getUsersCollection();
+  const usersResult = await usersCollection.find({}, { limit });
+  const users = await usersResult.toArray();
 
-  return users.map((user, index) => ({
-    id: user._id.toString(),
+  return users.map((user: any, index: number) => ({
+    id: user.id,
     header: user.nickname || user.email || `Kullanıcı ${index + 1}`,
     type: user.role ?? 'user',
-    status: user.status || (user.banned ? 'banned' : user.hidden ? 'hidden' : 'active'),
-    banned: Boolean(user.banned),
+    status: user.status || (user.is_banned ? 'banned' : user.hidden ? 'hidden' : 'active'),
+    banned: Boolean(user.is_banned),
     hidden: Boolean(user.hidden),
-    target: `${Array.isArray(user.reports) ? user.reports.length : user.reportsCount || 0}`,
-    limit: formatDate(user.createdAt),
-    reviewer: user.moderationAction?.action ?? '—',
+    target: `${Array.isArray(user.reports) ? user.reports.length : user.report_count || 0}`,
+    limit: formatDate(user.created_at),
+    reviewer: user.moderation_action?.action ?? '—',
     name: user.name || null,
     surname: user.surname || null,
-    nickname: user.nickname || '',
+    nickname: user.nickname || user.username || '',
     email: user.email || null
   }));
 }

@@ -18,7 +18,6 @@ COPY . .
 
 # build için dummy env değerleri (runtime'da gerçek değerler kullanılır)
 ENV DATABASE_URL=postgresql://dummy:dummy@localhost:5432/dummy
-ENV MONGODB_URL=mongodb://localhost:27017/dummy
 ENV NODE_OPTIONS="--max-old-space-size=4096"
 
 # build

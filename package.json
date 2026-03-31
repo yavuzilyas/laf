@@ -113,7 +113,6 @@
 		"lowlight": "^3.3.0",
 		"mode-watcher": "^1.1.0",
 		"motion-sv": "^0.1.10",
-		"mongodb": "^6.15.0",
 		"nanoid": "^5.1.6",
 		"node-fetch": "^3.3.2",
 		"pg": "^8.17.2",

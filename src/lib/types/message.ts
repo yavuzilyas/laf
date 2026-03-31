@@ -1,7 +1,5 @@
-import type { ObjectId } from 'mongodb';
-
 export interface MessageDoc {
-  _id?: ObjectId;
+  id?: string;
 
   message: string;
 
