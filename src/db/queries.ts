@@ -913,6 +913,27 @@ export const toggleLike = async (userId: string, articleId: string) => {
 };
 
 // Saves
+export const getSavesCollection = () => {
+    return {
+        findOne: async (filter: any) => {
+            const checkSql = 'SELECT * FROM saves WHERE user_id = $1 AND article_id = $2';
+            const checkResult = await query(checkSql, [filter.userId, filter.articleId]);
+            return checkResult.rows[0] || null;
+        },
+        insertOne: async (doc: any) => {
+            const id = uuidv4();
+            const insertSql = 'INSERT INTO saves (id, user_id, article_id, created_at) VALUES ($1, $2, $3, NOW())';
+            await query(insertSql, [id, doc.userId, doc.articleId]);
+            return { insertedId: id };
+        },
+        deleteOne: async (filter: any) => {
+            const deleteSql = 'DELETE FROM saves WHERE user_id = $1 AND article_id = $2';
+            const result = await query(deleteSql, [filter.userId, filter.articleId]);
+            return { deletedCount: result.rowCount };
+        }
+    };
+};
+
 export const toggleSave = async (userId: string, articleId: string) => {
     const checkSql = 'SELECT id FROM saves WHERE user_id = $1 AND article_id = $2';
     const checkResult = await query(checkSql, [userId, articleId]);

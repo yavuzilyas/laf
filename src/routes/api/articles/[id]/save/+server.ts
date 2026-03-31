@@ -1,26 +1,25 @@
 // src/routes/api/articles/[id]/save/+server.ts
 import { json } from '@sveltejs/kit';
-import { ObjectId } from 'mongodb';
-import { getSavesCollection } from '$db/mongo';
+import { getSavesCollection } from '$db/queries';
 
 export async function POST({ params, request, locals }) {
   const user = (locals as any)?.user;
   if (!user) return json({ error: 'Unauthorized' }, { status: 401 });
 
   const { action } = await request.json();
-  const articleId = new ObjectId(params.id);
-  const userId = new ObjectId(user.id);
+  const articleId = params.id;
+  const userId = user.id;
 
   const saves = await getSavesCollection();
 
   if (action === 'save') {
-    const existing = await saves.findOne({ articleId, userId });
-    if (!existing) await saves.insertOne({ articleId, userId, createdAt: new Date() });
+    const existing = await saves.findOne({ userId, articleId });
+    if (!existing) await saves.insertOne({ userId, articleId, createdAt: new Date() });
     return json({ saved: true });
   }
 
   if (action === 'unsave') {
-    await saves.deleteOne({ articleId, userId });
+    await saves.deleteOne({ userId, articleId });
     return json({ saved: false });
   }
 
