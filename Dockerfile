@@ -7,8 +7,12 @@ WORKDIR /app
 
 # lock ve package önce
 COPY package.json pnpm-lock.yaml ./
+COPY svelte.config.js ./
 
 RUN npm install -g npm@11.12.1
+
+# build script izinleri (native modüller için)
+RUN pnpm approve-builds @prisma/engines @tailwindcss/oxide argon2 core-js esbuild prisma sharp
 
 # bağımlılıklar
 RUN pnpm install --frozen-lockfile
