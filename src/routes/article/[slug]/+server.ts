@@ -1,6 +1,5 @@
 import { json } from '@sveltejs/kit';
-import { ObjectId } from 'mongodb';
-import { getArticlesCollection } from '$db/mongo';
+import { getArticlesCollection } from '$db/queries';
 import { resolve } from 'path';
 import { rm } from 'fs/promises';
 
@@ -9,14 +8,14 @@ export async function DELETE({ params, locals }) {
 
   // if (!user) return json({ error: 'Unauthorized' }, { status: 401 });
 
-  const articleId = new ObjectId(params.id);
-  // const userId = new ObjectId(user.id);
+  const articleId = params.id;
+  // const userId = user.id;
 
   const articles = await getArticlesCollection();
 
   // Makalenin var olup olmadığını ve kullanıcının sahibi olup olmadığını kontrol et
   const article = await articles.findOne({
-    _id: articleId
+    id: articleId
     // $or: [
     //   { authorId: userId },
     //   { 'author.id': userId.toString() }
@@ -30,7 +29,7 @@ export async function DELETE({ params, locals }) {
 
   // Makaleyi soft delete yap (deletedAt field'ını ekle)
   await articles.updateOne(
-    { _id: articleId },
+    { id: articleId },
     { $set: { deletedAt: new Date(), updatedAt: new Date(), 'stats.comments': 0 } }
   );
 
