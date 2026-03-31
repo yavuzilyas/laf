@@ -1,3 +1,8 @@
+import { json } from '@sveltejs/kit';
+import { ObjectId } from 'mongodb';
+import { getArticlesCollection } from '$db/mongo';
+import { resolve } from 'path';
+import { rm } from 'fs/promises';
 
 export async function DELETE({ params, locals }) {
   const user = (locals as any)?.user;
@@ -6,8 +11,6 @@ export async function DELETE({ params, locals }) {
 
   const articleId = new ObjectId(params.id);
   // const userId = new ObjectId(user.id);
-
-);
 
   const articles = await getArticlesCollection();
 
