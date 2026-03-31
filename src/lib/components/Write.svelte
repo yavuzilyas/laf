@@ -375,7 +375,6 @@ import {NotebookPenIcon} from 'svelte-animate-icons';
                               const { url } = await res.json();
                               articleEditor.updateMetadata('thumbnail', url);
                             } else {
-);
                               alert('Thumbnail yüklenemedi');
                             }
                           } catch (error) {
