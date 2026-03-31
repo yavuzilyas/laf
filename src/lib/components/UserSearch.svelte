@@ -31,7 +31,6 @@
           .slice(0, 10);
       }
     } catch (error) {
-      console.error('Error searching users:', error);
       searchResults = [];
     } finally {
       isLoading = false;

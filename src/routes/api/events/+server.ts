@@ -37,7 +37,6 @@ export const POST: RequestHandler = async ({ request }) => {
       event: newEvent
     });
   } catch (error) {
-    console.error('Error creating event:', error);
     return json(
       { 
         success: false, 

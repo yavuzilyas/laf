@@ -55,7 +55,6 @@
       try {
         await pendingAction();
       } catch (error) {
-        console.error("Action failed after verification:", error);
         showToast("An error occurred during the operation", "error");
       }
       pendingAction = null;
@@ -87,7 +86,6 @@
         showToast(error.error || t('moderation.actionFailed'), 'error');
       }
     } catch (error) {
-      console.error('Action failed:', error);
       showToast(t('moderation.actionFailed'), 'error');
     }
   }
@@ -267,7 +265,6 @@
           showToast(errorData.message || 'Deletion failed', 'error');
         }
       } catch (error) {
-        console.error('Delete error:', error);
         showToast('Deletion error', 'error');
       }
     };

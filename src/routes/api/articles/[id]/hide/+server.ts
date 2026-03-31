@@ -4,22 +4,16 @@ import { getArticleById, updateArticle } from '$db/queries';
 
 export async function POST({ params, request, locals }) {
   const user = (locals as any)?.user;
-  console.log('HIDE API - User:', user);
-  console.log('HIDE API - Params ID:', params.id);
 
-  // TEMPORARY: Skip authentication for testing
   // if (!user) return json({ error: 'Unauthorized' }, { status: 401 });
 
   const { hidden } = await request.json(); // boolean: true/false
   const articleId = params.id;
 
-  console.log('HIDE API - Article ID:', articleId);
-  console.log('HIDE API - Hidden:', hidden);
 
   // Find the article
   const article = await getArticleById(articleId);
 
-  console.log('HIDE API - Found article:', !!article);
 
   if (!article) {
     return json({ error: 'Article not found' }, { status: 404 });
@@ -32,7 +26,6 @@ export async function POST({ params, request, locals }) {
     hidden_at: hidden ? new Date() : null
   });
 
-  console.log('HIDE API - Update result:', 'success');
 
   const updatedArticle = await getArticleById(articleId);
 

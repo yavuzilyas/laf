@@ -22,7 +22,6 @@ export async function POST({ request }) {
 
         return json(sanitizedUsers);
     } catch (error) {
-        console.error('Batch user fetch error:', error);
         return json([], { status: 500 });
     }
 }

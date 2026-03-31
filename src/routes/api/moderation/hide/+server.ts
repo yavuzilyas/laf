@@ -118,7 +118,7 @@ export async function POST({ request }) {
 
   } catch (error) {
 
-    console.error('Hide user error:', error);
+
 
     return json({ error: 'Server error' }, { status: 500 });
 
@@ -225,7 +225,7 @@ export async function PUT({ request }) {
 
   } catch (error) {
 
-    console.error('Unhide user error:', error);
+
 
     return json({ error: 'Server error' }, { status: 500 });
 

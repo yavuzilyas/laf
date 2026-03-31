@@ -142,7 +142,6 @@ export const POST: RequestHandler = async ({ request }) => {
     });
 
   } catch (error) {
-    console.error('Mnemonic verification for reset error:', error);
     return json({ error: 'Doğrulama sırasında bir hata oluştu' }, { status: 500 });
   }
 };

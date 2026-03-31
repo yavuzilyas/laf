@@ -20,7 +20,6 @@ export async function GET({ params, locals }) {
     }));
     return json(normalized);
   } catch (e) {
-    console.error('Load versions error:', e);
     return json({ error: 'Internal server error' }, { status: 500 });
   }
 }
@@ -50,7 +49,6 @@ export async function POST({ params, request, locals }) {
       changeNote: result.change_note
     });
   } catch (e) {
-    console.error('Create version error:', e);
     return json({ error: 'Internal server error' }, { status: 500 });
   }
 }

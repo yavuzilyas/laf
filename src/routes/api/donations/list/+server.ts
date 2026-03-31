@@ -76,7 +76,6 @@ export const GET: RequestHandler = async ({ url, locals }) => {
             topDonors: topDonorsWithUsers
         });
     } catch (error) {
-        console.error('Donations fetch error:', error);
         return json({ error: 'Bağışlar yüklenirken bir hata oluştu' }, { status: 500 });
     }
 };

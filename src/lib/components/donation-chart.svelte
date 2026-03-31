@@ -117,7 +117,6 @@
 				}
 			}
 		} catch (error) {
-			console.error('Failed to fetch donation stats:', error);
 		} finally {
 			isLoading = false;
 		}

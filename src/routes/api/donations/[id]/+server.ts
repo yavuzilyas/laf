@@ -26,7 +26,6 @@ export const DELETE: RequestHandler = async ({ params, locals }) => {
         
         return json({ success: true, message: 'Bağış başarıyla silindi' });
     } catch (error) {
-        console.error('Delete donation error:', error);
         return json({ error: 'Bağış silinirken bir hata oluştu' }, { status: 500 });
     }
 };

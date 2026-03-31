@@ -59,7 +59,6 @@
 			try {
 				editor.destroy();
 			} catch (e) {
-				console.warn('Error cleaning up previous editor instance:', e);
 			}
 		}
 
@@ -110,7 +109,6 @@
 				window.__edraEditors.set(element, editor);
 			}
 		} catch (e) {
-			console.error('Error initializing editor:', e);
 		}
 	});
 
@@ -119,7 +117,6 @@
 			try {
 				editor.destroy();
 			} catch (e) {
-				console.warn('Error destroying editor instance:', e);
 			}
 		}
 

@@ -55,14 +55,12 @@ export const PATCH: RequestHandler = async ({ params, request, locals }) => {
           moderatorId: user.id
         });
       } catch (notificationError) {
-        console.error('Failed to send notification:', notificationError);
         // Don't fail the request if notification fails
       }
     }
 
     return json({ success: true, message: 'Report status updated' });
   } catch (error) {
-    console.error('Update report status error:', error);
     return json({ error: 'Failed to update report status' }, { status: 500 });
   }
 };

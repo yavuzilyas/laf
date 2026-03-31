@@ -49,7 +49,6 @@ export const POST: RequestHandler = async ({ request, cookies }) => {
 		return json({ success: true, message: 'Password changed successfully' });
 
 	} catch (error) {
-		console.error('Error changing password:', error);
 		return json({ error: 'Internal server error' }, { status: 500 });
 	}
 };

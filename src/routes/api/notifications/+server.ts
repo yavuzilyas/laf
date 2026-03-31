@@ -20,7 +20,6 @@ export const GET: RequestHandler = async ({ locals, url }) => {
 		const result = await getNotificationsAPI(user.id, page, pageSize);
 		return json(result);
 	} catch (error) {
-		console.error('Error fetching notifications:', error);
 		return json({ error: 'Internal server error' }, { status: 500 });
 	}
 };
@@ -36,7 +35,6 @@ export const POST: RequestHandler = async ({ locals, request }) => {
 		const result = await markNotificationsReadAPI(user.id, ids);
 		return json(result);
 	} catch (error) {
-		console.error('Error marking notifications as read:', error);
 		return json({ error: 'Internal server error' }, { status: 500 });
 	}
 };
@@ -70,7 +68,6 @@ export const PUT: RequestHandler = async ({ locals, request }) => {
 
 		return json({ error: 'Invalid action' }, { status: 400 });
 	} catch (error) {
-		console.error('Error in notification action:', error);
 		return json({ error: 'Internal server error' }, { status: 500 });
 	}
 };

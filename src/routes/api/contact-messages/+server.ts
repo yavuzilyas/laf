@@ -50,7 +50,6 @@ export const GET: RequestHandler = async ({ url, locals }) => {
         });
 
     } catch (error) {
-        console.error('Get contact messages error:', error);
         return json({ error: 'Mesajlar yüklenemedi' }, { status: 500 });
     }
 };
@@ -115,7 +114,6 @@ export const POST: RequestHandler = async ({ request, locals, getClientAddress }
         });
 
     } catch (error) {
-        console.error('Create contact message error:', error);
         return json({ error: 'Mesaj gönderilemedi. Lütfen daha sonra tekrar deneyin.' }, { status: 500 });
     }
 };

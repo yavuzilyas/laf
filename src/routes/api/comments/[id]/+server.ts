@@ -4,10 +4,7 @@ import { getComments, deleteComment, getArticles, updateArticle } from '$db/quer
 
 export async function DELETE({ params, locals }) {
   const user = (locals as any)?.user;
-  console.log('COMMENT DELETE API - User:', user);
-  console.log('COMMENT DELETE API - Params ID:', params.id);
 
-  // TEMPORARY: Skip authentication for testing
   // if (!user) return json({ error: 'Unauthorized' }, { status: 401 });
 
   const commentId = params.id;
@@ -17,7 +14,6 @@ export async function DELETE({ params, locals }) {
   const commentData = await getComments({ id: commentId });
   const comment = commentData[0];
 
-  console.log('COMMENT DELETE API - Found comment:', !!comment);
 
   if (!comment) {
     return json({ error: 'Comment not found' }, { status: 404 });

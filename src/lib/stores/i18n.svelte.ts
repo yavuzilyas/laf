@@ -76,7 +76,6 @@ class I18nStore {
 
   async setLocale(locale: string) {
     if (!this._config.availableLocales.includes(locale)) {
-      console.warn(`Locale '${locale}' is not available`);
       return;
     }
 
@@ -108,7 +107,6 @@ class I18nStore {
       this._translations[locale] = module.default;
       this._loadedLocales.add(locale);
     } catch (error) {
-      console.error(`Failed to load locale '${locale}':`, error);
       
       // Fallback locale'i dene
       if (this._config.fallbackLocale && locale !== this._config.fallbackLocale) {
@@ -120,7 +118,6 @@ class I18nStore {
             this._loadedLocales.add(locale);
           }
         } catch (fallbackError) {
-          console.error(`Failed to load fallback locale '${this._config.fallbackLocale}':`, fallbackError);
         }
       }
     } finally {
@@ -159,7 +156,6 @@ class I18nStore {
       }
       
       if (WARN_MISSING_TRANSLATIONS) {
-        console.warn(`Translation missing for key: ${key}`);
       }
       return key;
     }

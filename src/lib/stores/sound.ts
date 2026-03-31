@@ -96,13 +96,12 @@ export async function loadSound(key: string, url: string) {
   try {
     const res = await fetch(url);
     if (!res.ok) {
-      console.warn(`Ses dosyası yüklenemedi: ${url}`);
-      return;
+      throw new Error(`Failed to fetch sound at ${url}`);
     }
     const arrayBuffer = await res.arrayBuffer();
     bufferCache[key] = await ctx.decodeAudioData(arrayBuffer);
   } catch (error) {
-    console.warn(`Ses yükleme hatası (${key}):`, error);
+    // no-op
   }
 }
 

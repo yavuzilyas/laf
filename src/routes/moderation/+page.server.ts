@@ -24,8 +24,7 @@ export const load: PageServerLoad = async ({ locals }) => {
   const pendingArticles = await getArticles({ status: 'pending' });
   const pendingArticlesCount = pendingArticles.length;
 
-  // Debug: log current user structure
-  console.log('Current user:', JSON.stringify(currentUser, null, 2));
+);
 
   const users = await getUsers({ limit: 150 });
 

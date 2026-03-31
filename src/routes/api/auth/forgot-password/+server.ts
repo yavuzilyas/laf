@@ -74,7 +74,6 @@ export const POST: RequestHandler = async ({ request }) => {
     });
 
   } catch (error) {
-    console.error('Forgot password error:', error);
     return json({ error: 'İşlem sırasında bir hata oluştu' }, { status: 500 });
   }
 };

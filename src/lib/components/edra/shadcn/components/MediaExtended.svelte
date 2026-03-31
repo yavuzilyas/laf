@@ -51,7 +51,6 @@
 				body: JSON.stringify({ url })
 			});
 		} catch (e) {
-			console.error('Failed to delete media from server', e);
 		}
 	}
 

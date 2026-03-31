@@ -45,7 +45,6 @@ export async function POST({ request, cookies }) {
 		});
 
 	} catch (error) {
-		console.error('Hide profile error:', error);
 		return json({ error: 'Server error' }, { status: 500 });
 	}
 }
@@ -70,7 +69,6 @@ export async function GET({ cookies }) {
 		});
 
 	} catch (error) {
-		console.error('Get hide status error:', error);
 		return json({ error: 'Server error' }, { status: 500 });
 	}
 }

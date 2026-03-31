@@ -39,7 +39,6 @@ export const GET: RequestHandler = async ({ url, locals }) => {
         
         return json({ donations: donationsWithUsers });
     } catch (error) {
-        console.error('Donations moderation fetch error:', error);
         return json({ error: 'Bağışlar yüklenirken bir hata oluştu' }, { status: 500 });
     }
 };
@@ -76,7 +75,6 @@ export const POST: RequestHandler = async ({ request, locals }) => {
             return json({ error: 'Geçersiz işlem' }, { status: 400 });
         }
     } catch (error) {
-        console.error('Donation moderation error:', error);
         return json({ error: 'İşlem sırasında bir hata oluştu' }, { status: 500 });
     }
 };

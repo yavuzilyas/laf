@@ -40,13 +40,11 @@
 
     loading = true;
     try {
-      console.log('Verifying mnemonic with token:', verificationToken);
       const userId = await getCurrentUserId();
       const payload = {
         mnemonicPhrase: mnemonic.trim(),
         verificationToken: verificationToken
       };
-      console.log('Sending verification payload:', payload);
       
       const res = await fetch('/api/auth/verify-mnemonic', {
         method: 'POST',
@@ -56,16 +54,13 @@
       });
 
       const data = await res.json().catch(e => {
-        console.error('Failed to parse response:', e);
         return { error: 'Geçersiz yanıt formatı' };
       });
       
-      console.log('Verification response:', { status: res.status, data });
 
       if (res.ok) {
         if (data.verificationToken) {
           verificationToken = data.verificationToken;
-          console.log('Updated verification token:', verificationToken);
         }
         showToast(data.message || 'Doğrulama başarılı', "success");
         openVerif = false;
@@ -75,7 +70,6 @@
         handleVerificationError(data);
       }
     } catch (error) {
-      console.error('Verify mnemonic error:', error);
       showToast('Doğrulama sırasında bir hata oluştu. Lütfen tekrar deneyin.', "error");
     } finally {
       loading = false;

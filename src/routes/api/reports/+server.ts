@@ -192,7 +192,7 @@ export const POST: RequestHandler = async ({ request, locals }) => {
         reason: reason
       });
     } catch (notificationError) {
-      console.error('Failed to send notification for new report:', notificationError);
+
       // Don't fail the request if notification fails
     }
 
@@ -203,7 +203,7 @@ export const POST: RequestHandler = async ({ request, locals }) => {
     });
 
   } catch (error) {
-    console.error('Report creation error:', error);
+
     return json({ error: 'Bildirim gönderilemedi' }, { status: 500 });
   }
 };
@@ -241,7 +241,7 @@ export const GET: RequestHandler = async ({ url, locals }) => {
     });
 
   } catch (error) {
-    console.error('Get reports error:', error);
+
     return json({ error: 'Bildirimler yüklenemedi' }, { status: 500 });
   }
 };

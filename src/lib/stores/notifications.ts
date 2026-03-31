@@ -34,7 +34,7 @@ export async function fetchNotifications(): Promise<void> {
 		});
 
 		if (!res.ok) {
-			console.error('Failed to fetch notifications', res.status);
+			
 			return;
 		}
 
@@ -178,7 +178,7 @@ export async function fetchNotifications(): Promise<void> {
 		knownIds = nextIds;
 		isInitialLoad = false;
 	} catch (error) {
-		console.error('Failed to fetch notifications', error);
+		
 	}
 }
 
@@ -194,7 +194,7 @@ export async function markNotificationsRead(ids: string[]): Promise<void> {
 		});
 
 		if (!res.ok) {
-			console.error('Failed to mark notifications as read', res.status);
+			
 			return;
 		}
 
@@ -210,7 +210,7 @@ export async function markNotificationsRead(ids: string[]): Promise<void> {
 			)
 		);
 	} catch (error) {
-		console.error('Failed to mark notifications as read', error);
+		
 	}
 }
 
@@ -226,7 +226,7 @@ export async function markAllNotificationsRead(): Promise<void> {
 		});
 
 		if (!res.ok) {
-			console.error('Failed to mark all notifications as read', res.status);
+			
 			return;
 		}
 
@@ -239,7 +239,7 @@ export async function markAllNotificationsRead(): Promise<void> {
 			items.map((item: NotificationRecord) => ({ ...item, read: true, readAt: new Date().toISOString() }))
 		);
 	} catch (error) {
-		console.error('Failed to mark all notifications as read', error);
+		
 	}
 }
 
@@ -255,7 +255,7 @@ export async function deleteNotification(notificationId: string): Promise<void> 
 		});
 
 		if (!res.ok) {
-			console.error('Failed to delete notification', res.status);
+			
 			return;
 		}
 
@@ -268,7 +268,7 @@ export async function deleteNotification(notificationId: string): Promise<void> 
 			items.filter((item: NotificationRecord) => item.id !== notificationId)
 		);
 	} catch (error) {
-		console.error('Failed to delete notification', error);
+		
 	}
 }
 
@@ -284,7 +284,7 @@ export async function blockUserNotifications(actorId: string): Promise<void> {
 		});
 
 		if (!res.ok) {
-			console.error('Failed to block user notifications', res.status);
+			
 			return;
 		}
 
@@ -299,7 +299,7 @@ export async function blockUserNotifications(actorId: string): Promise<void> {
 
 		blockedActorIdsStore.update((ids: string[]) => (ids.includes(actorId) ? ids : ids.concat(actorId)));
 	} catch (error) {
-		console.error('Failed to block user notifications', error);
+		
 	}
 }
 
@@ -315,7 +315,7 @@ export async function unblockUserNotifications(actorId: string): Promise<void> {
 		});
 
 		if (!res.ok) {
-			console.error('Failed to unblock user notifications', res.status);
+			
 			return;
 		}
 
@@ -325,7 +325,7 @@ export async function unblockUserNotifications(actorId: string): Promise<void> {
 
 		blockedActorIdsStore.update((ids: string[]) => ids.filter((id) => id !== actorId));
 	} catch (error) {
-		console.error('Failed to unblock user notifications', error);
+		
 	}
 }
 
@@ -389,6 +389,6 @@ export async function goToNotificationLink(link?: string | null): Promise<void> 
 			scrollToTarget(20);
 		}
 	} catch (error) {
-		console.error('Failed to navigate to notification link', error);
+		
 	}
 }

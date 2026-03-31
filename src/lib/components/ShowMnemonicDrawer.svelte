@@ -37,14 +37,12 @@
 
 	async function generatePDF() {
 		if (!$mnemonicPhraseStore) {
-			console.error('No mnemonic phrase available');
 			return;
 		}
 		
 		isGeneratingPDF = true;
 		
 		try {
-			console.log('Generating minimalist PDF with jsPDF...');
 			const pdf = new jsPDF();
 			
 			// Set background to match site
@@ -163,13 +161,10 @@
 			showToast('Print dialog opened successfully', 'success');
 			
 		} catch (error) {
-			console.error('Error generating minimalist PDF:', error);
 			// Try fallback method
 			try {
-				console.log('Trying fallback method...');
 				await generateSimplePDF();
 			} catch (fallbackError) {
-				console.error('Fallback also failed:', fallbackError);
 				showToast(`Failed to generate PDF: ${error.message}`, 'error');
 			}
 		} finally {

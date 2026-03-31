@@ -86,7 +86,6 @@ export const PATCH: RequestHandler = async ({ params, request, locals }) => {
         return json({ error: 'Geçersiz işlem' }, { status: 400 });
 
     } catch (error) {
-        console.error('Update contact message error:', error);
         return json({ error: 'Güncelleme başarısız' }, { status: 500 });
     }
 };
@@ -116,7 +115,6 @@ export const DELETE: RequestHandler = async ({ params, locals }) => {
         });
 
     } catch (error) {
-        console.error('Delete contact message error:', error);
         return json({ error: 'Silme başarısız' }, { status: 500 });
     }
 };

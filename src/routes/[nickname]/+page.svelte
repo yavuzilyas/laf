@@ -197,7 +197,7 @@
 
             profileUser = { ...profileUser, avatar_url: newAvatarUrl };
         } catch (error) {
-            console.error('Avatar upload error:', error);
+            
             profileFormData.avatar = previous;
             profileUser = { ...profileUser, avatar_url: previous };
             alert(t('profile.avatarUploadError'));
@@ -231,7 +231,7 @@
 
             profileUser = { ...profileUser, avatar_url: '' };
         } catch (error) {
-            console.error('Avatar remove error:', error);
+            
             profileFormData.avatar = previous;
             profileUser = { ...profileUser, avatar_url: previous };
         }
@@ -270,7 +270,7 @@
 
             return true;
         } catch (error) {
-            console.error('Profile partial update error:', error);
+            
             return false;
         }
     };
@@ -291,10 +291,10 @@
                 // Sync profileFormData with saved data
                 profileFormData = { ...profileFormData, ...dataToSave };
             } else {
-                console.error('Failed to update profile');
+                
             }
         } catch (error) {
-            console.error('Error updating profile:', error);
+            
         } finally {
             isSaving = false;
         }
@@ -381,7 +381,7 @@
 
             profileUser = { ...profileUser, preferences: { ...profileUser.preferences, bannerImage: newBannerUrl } };
         } catch (error) {
-            console.error('Banner upload error:', error);
+            
             profileFormData.bannerImage = previousBanner;
             profileUser = { ...profileUser, preferences: { ...profileUser.preferences, bannerImage: previousBanner } };
             alert(t('profile.bannerUploadError') ?? 'Banner yüklenirken bir sorun oluştu.');
@@ -415,7 +415,7 @@
 
             profileUser = { ...profileUser, preferences: { ...profileUser.preferences, bannerImage: '' } };
         } catch (error) {
-            console.error('Banner remove error:', error);
+            
             profileFormData.bannerImage = previous;
             profileUser = { ...profileUser, preferences: { ...profileUser.preferences, bannerImage: previous } };
         }
@@ -459,7 +459,7 @@
             if (!response.ok) {
                 if (response.status !== 401) {
                     const errorMessage = await response.text().catch(() => response.statusText);
-                    console.error('Load follow status error:', errorMessage);
+                    
                 }
                 return;
             }
@@ -469,7 +469,7 @@
             followersCount = typeof data.followersCount === 'number' ? data.followersCount : followersCount;
             followingCount = typeof data.followingCount === 'number' ? data.followingCount : followingCount;
         } catch (error) {
-            console.error('Load follow status error:', error);
+            
         }
     };
 
@@ -488,7 +488,7 @@
             if (!response.ok) {
                 if (response.status !== 401) {
                     const errorMessage = await response.text().catch(() => response.statusText);
-                    console.error('Load block status error:', errorMessage);
+                    
                 }
                 return;
             }
@@ -499,7 +499,7 @@
                 isBlocked = !!data.blocked;
             }
         } catch (error) {
-            console.error('Load block status error:', error);
+            
         }
     };
 
@@ -513,13 +513,13 @@
             });
             if (!response.ok) {
                 const errorMessage = await response.text().catch(() => response.statusText);
-                console.error('Follow error:', errorMessage);
+                
                 return;
             }
 
             await loadFollowStatus(targetUserId);
         } catch (error) {
-            console.error('Follow error:', error);
+            
         }
     };
 
@@ -533,13 +533,13 @@
             });
             if (!response.ok) {
                 const errorMessage = await response.text().catch(() => response.statusText);
-                console.error('Unfollow error:', errorMessage);
+                
                 return;
             }
 
             await loadFollowStatus(targetUserId);
         } catch (error) {
-            console.error('Unfollow error:', error);
+            
         }
     };
 
@@ -558,7 +558,7 @@
             });
             if (!response.ok) {
                 const errorMessage = await response.text().catch(() => response.statusText);
-                console.error('Block error:', errorMessage);
+                
                 // Hata durumunda state'i geri al
                 isBlocked = false;
                 isBlockedChanging = false;
@@ -570,7 +570,7 @@
             await loadBlockStatus(targetUserId);
             await loadFollowStatus(targetUserId);
         } catch (error) {
-            console.error('Block error:', error);
+            
             // Hata durumunda state'i geri al
             isBlocked = false;
         } finally {
@@ -593,7 +593,7 @@
             });
             if (!response.ok) {
                 const errorMessage = await response.text().catch(() => response.statusText);
-                console.error('Unblock error:', errorMessage);
+                
                 // Hata durumunda state'i geri al
                 isBlocked = true;
                 isBlockedChanging = false;
@@ -604,7 +604,7 @@
             viewerBlocksProfile = false;
             await loadBlockStatus(targetUserId);
         } catch (error) {
-            console.error('Unblock error:', error);
+            
             // Hata durumunda state'i geri al
             isBlocked = true;
         } finally {

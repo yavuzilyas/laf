@@ -178,21 +178,13 @@
 
         // Apply onlyFollowing filter
         if (activeFilters.onlyFollowing && followingUserIds.length > 0) {
-            console.log('Following filter active:', {
-                activeFiltersOnlyFollowing: activeFilters.onlyFollowing,
-                followingUserIds,
-                followingLength: followingUserIds.length,
-                sampleArticleAuthorId: result[0]?.authorId
-            });
             result = result.filter(article => {
                 const articleAuthorId = article.authorId?.toString?.() || article.authorId;
                 const isFollowed = articleAuthorId && followingUserIds.includes(articleAuthorId);
                 if (!isFollowed) {
-                    console.log('Not followed article:', article.title, 'authorId:', articleAuthorId);
                 }
                 return isFollowed;
             });
-            console.log('Filtered result count:', result.length);
         }
 
         // Apply date range filter (supports CalendarDate, plain objects, ISO strings)

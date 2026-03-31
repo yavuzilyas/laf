@@ -2,7 +2,7 @@ import { json } from '@sveltejs/kit';
 import { getArticles } from '$db/queries';
 
 export async function GET({ url, locals }) {
-  console.log('Articles API called with params:', Object.fromEntries(url.searchParams.entries()));
+));
   
   try {
     const user = (locals as any)?.user;
@@ -116,11 +116,10 @@ export async function GET({ url, locals }) {
       totalPages: Math.ceil(total / limit)
     };
     
-    console.log('Returning result:', JSON.stringify(result, null, 2));
+);
     return json(result);
 
   } catch (error) {
-    console.error('Articles API error:', error);
     return json({ error: 'Internal server error' }, { status: 500 });
   }
 }

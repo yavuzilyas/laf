@@ -227,7 +227,6 @@ async function cleanupUnusedMedia(existing: any, updated: any, articleId: string
                     await rm(fsPath, { force: true });
                 }
             } catch (error) {
-                console.error('Failed to remove unused media', url, error);
             }
         })
     );
@@ -258,7 +257,6 @@ async function cleanupUnusedMedia(existing: any, updated: any, articleId: string
         if (!isPrivileged) {
             const spamCheck = detectArticleSpam(data);
             if (spamCheck.isSpam) {
-                console.log('Article spam detected from user', user.id, ':', spamCheck.reasons);
                 return json({ 
                     error: 'Article appears to be spam',
                     reasons: spamCheck.reasons 
@@ -424,7 +422,6 @@ async function cleanupUnusedMedia(existing: any, updated: any, articleId: string
                     authorName: author.username || author.name || 'Bir kullanıcı'
                   });
                 } catch (notificationError) {
-                  console.error('Failed to send notification to moderators:', notificationError);
                   // Don't fail the request if notification fails
                 }
               }
@@ -438,7 +435,6 @@ async function cleanupUnusedMedia(existing: any, updated: any, articleId: string
         });
 
     } catch (error) {
-        console.error('Article save error:', error);
         return json({ error: 'Internal server error' }, { status: 500 });
     }
 }

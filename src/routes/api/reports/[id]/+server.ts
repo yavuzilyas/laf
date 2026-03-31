@@ -26,7 +26,6 @@ export const DELETE: RequestHandler = async ({ params, locals }) => {
 
     return json({ success: true, message: 'Report deleted' });
   } catch (error) {
-    console.error('Delete report error:', error);
     return json({ error: 'Failed to delete report' }, { status: 500 });
   }
 };

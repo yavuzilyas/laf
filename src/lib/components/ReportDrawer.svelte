@@ -106,7 +106,7 @@
         showToast(data.error || t('report.errors.reportFailed'), 'error');
       }
     } catch (error) {
-      console.error('Report error:', error);
+
       showToast(t('report.errors.connectionError'), 'error');
     } finally {
       loading = false;

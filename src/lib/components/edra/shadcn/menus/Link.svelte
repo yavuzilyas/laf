@@ -30,7 +30,6 @@
 			try {
 				fn(editor);
 			} catch (e) {
-				console.warn('Editor operation failed:', e);
 			}
 		}
 	};
@@ -41,7 +40,7 @@
 
 	const copyLink = () => {
 		if (link) {
-			navigator.clipboard.writeText(link).catch(console.error);
+			navigator.clipboard.writeText(link);
 		}
 	};
 </script>

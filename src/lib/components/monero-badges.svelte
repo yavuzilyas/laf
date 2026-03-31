@@ -67,7 +67,6 @@
         badgeUsers = data.users || [];
       }
     } catch (error) {
-      console.error('Failed to fetch badge users:', error);
     } finally {
       isLoadingUsers = false;
     }

@@ -105,7 +105,6 @@ export const POST: RequestHandler = async ({ request, locals, getClientAddress }
     });
 
   } catch (error) {
-    console.error('Contact form submission error:', error);
     return json({ error: 'Mesaj gönderilemedi. Lütfen daha sonra tekrar deneyin.' }, { status: 500 });
   }
 };
@@ -119,7 +118,6 @@ export const GET: RequestHandler = async ({ locals }) => {
   }
 
   try {
-    // TODO: Fetch user's contact message history from database
     // For now, return empty array
     return json({
       messages: [],
@@ -132,7 +130,6 @@ export const GET: RequestHandler = async ({ locals }) => {
     });
 
   } catch (error) {
-    console.error('Get contact messages error:', error);
     return json({ error: 'Mesaj geçmişi yüklenemedi' }, { status: 500 });
   }
 };

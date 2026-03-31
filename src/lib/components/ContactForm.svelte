@@ -41,7 +41,6 @@ import { ContactRoundIcon } from 'svelte-animate-icons';
 
     // Honeypot check - if filled, it's likely a bot
     if (website) {
-      console.log('Honeypot triggered - possible bot detected');
       // Silently fail for bots
       return;
     }

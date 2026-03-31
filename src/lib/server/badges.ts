@@ -39,7 +39,6 @@ export const calculateDonationBadge = async (userId: string): Promise<Badge | nu
 
     return null;
   } catch (error) {
-    console.error('Error calculating donation badge:', error);
     return null;
   }
 };
@@ -60,7 +59,6 @@ export const getUserBadges = async (userId: string): Promise<Badge[]> => {
     
     return badges;
   } catch (error) {
-    console.error('Error getting user badges:', error);
     return [];
   }
 };

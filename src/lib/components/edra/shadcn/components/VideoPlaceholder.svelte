@@ -54,7 +54,6 @@
 				editor.chain().focus().setVideo(urlFromServer).run();
 				dialogOpen = false;
 			} catch (err) {
-				console.error('Video upload error', err);
 				alert(err instanceof Error ? err.message : 'Upload failed');
 			} finally {
 				input.value = '';

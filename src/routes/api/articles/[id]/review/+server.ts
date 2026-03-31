@@ -111,7 +111,6 @@ export async function POST({ params, request, locals }) {
         articleSlug: linkSlug
       });
     } catch (notificationError) {
-      console.error('Failed to send notification:', notificationError);
       // Don't fail the request if notification fails
     }
   }

@@ -159,9 +159,7 @@ import { ScrollProgress } from "$lib/components/magic/scroll-progress";
   const currentUser = $derived($userStore.user);
   const userLoading = $derived($userStore.loading);
 
-  // Debug currentUser changes
   $effect(() => {
-    console.log('Navbar currentUser changed:', currentUser);
   });
 
   // Fetch user data on component mount

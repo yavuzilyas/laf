@@ -37,7 +37,6 @@ export const POST: RequestHandler = async ({ locals, params }) => {
 
 		return json({ success: true, blocked: true });
 	} catch (error) {
-		console.error('Block error:', error);
 		return json({ error: 'Failed to block user' }, { status: 500 });
 	}
 };
@@ -57,7 +56,6 @@ export const DELETE: RequestHandler = async ({ locals, params }) => {
 
 		return json({ success: true, blocked: false });
 	} catch (error) {
-		console.error('Unblock error:', error);
 		return json({ error: 'Failed to unblock user' }, { status: 500 });
 	}
 };
@@ -79,7 +77,6 @@ export const GET: RequestHandler = async ({ locals, params }) => {
 			blocked
 		});
 	} catch (error) {
-		console.error('Check block status error:', error);
 		return json({ error: 'Failed to check block status' }, { status: 500 });
 	}
 };

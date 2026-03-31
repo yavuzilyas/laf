@@ -136,7 +136,6 @@ export async function POST({ request, cookies }) {
         mnemonic_attempts: 0
       });
     } catch (err) {
-      console.error('Error updating user token:', err);
       // Continue anyway since the verification was successful
     }
 
@@ -146,7 +145,6 @@ export async function POST({ request, cookies }) {
       message: 'Doğrulama başarılı' 
     });
   } catch (error) {
-    console.error('Mnemonic verification error:', error);
     
     // More specific error handling
     if (error instanceof Error) {

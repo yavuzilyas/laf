@@ -8,7 +8,6 @@ const pool = new Pool({
 });
 
 export function start_pg(): Promise<pg.PoolClient> {
-    console.log("Connecting to PostgreSQL...");
     return pool.connect();
 }
 

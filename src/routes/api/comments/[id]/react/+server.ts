@@ -49,7 +49,6 @@ export async function POST({ params, request, locals }) {
       try {
         await notifyCommentLike({ commentId, likerId: user.id, articleId: comment.article_id });
       } catch (error) {
-        console.error('Failed to send comment like notification', error);
       }
     } else {
       updateData.likes = (comment.likes || 0) - 1;
@@ -69,7 +68,6 @@ export async function POST({ params, request, locals }) {
     try {
       await notifyCommentLike({ commentId, likerId: user.id, articleId: comment.article_id });
     } catch (error) {
-      console.error('Failed to send comment like notification', error);
     }
   }
   return json({ reaction: action, previous: null });

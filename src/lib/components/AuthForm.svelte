@@ -86,7 +86,6 @@ import logo from '$lib/assets/hatlaf.png';
         passwordCopied = false;
       }, 2000);
     }).catch(err => {
-      console.error('Failed to copy:', err);
       showToast(t('auth.errors.copyFailed') || 'Failed to copy to clipboard', 'error');
     });
   }
@@ -162,14 +161,12 @@ const fadeScaleVariants = {
 
   async function generateMnemonicPDF() {
     if (!mnemonic || mnemonic.length === 0) {
-      console.error('No mnemonic available');
       return;
     }
     
     isGeneratingPDF = true;
     
     try {
-      console.log('Generating mnemonic PDF with jsPDF...');
       const pdf = new jsPDF();
       
       // Set background to match site
@@ -287,7 +284,6 @@ const fadeScaleVariants = {
       showToast('Print dialog opened successfully', 'success');
       
     } catch (error) {
-      console.error('Error generating mnemonic PDF:', error);
       showToast(`Failed to generate PDF: ${error.message}`, 'error');
     } finally {
       isGeneratingPDF = false;
@@ -366,7 +362,6 @@ async function finalizeRegister() {
       }
     }
   } catch (error) {
-    console.error("Registration error:", error);
     showToast("Bağlantı hatası", "error");
   } finally {
     loading = false;
@@ -519,7 +514,6 @@ async function finalizeRegister() {
         }
       }
     } catch (err) {
-      console.error("Nickname validation failed", err);
     } finally {
       isValidating = false;
     }
@@ -564,7 +558,6 @@ async function validateEmail(value: string) {
         }
       }
     } catch (err) {
-      console.error("Email validation failed", err);
     } finally {
       isValidating = false;
     }

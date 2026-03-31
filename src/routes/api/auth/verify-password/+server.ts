@@ -96,7 +96,6 @@ export async function POST({ request, cookies }) {
             message: 'Şifre doğrulaması başarılı' 
         });
     } catch (error) {
-        console.error('Password verification error:', error);
         return json({ 
             error: 'Doğrulama sırasında bir hata oluştu. Lütfen tekrar deneyin.' 
         }, { 

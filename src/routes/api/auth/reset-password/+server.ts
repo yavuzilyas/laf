@@ -79,7 +79,6 @@ export const POST: RequestHandler = async ({ request }) => {
     });
 
   } catch (error) {
-    console.error('Password reset error:', error);
     return json({ error: 'Şifre değiştirme sırasında bir hata oluştu' }, { status: 500 });
   }
 };

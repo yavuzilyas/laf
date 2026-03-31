@@ -14,7 +14,6 @@ export const GET: RequestHandler = async ({ params }) => {
         
         return json({ badges });
     } catch (error) {
-        console.error('Error fetching user badges:', error);
         return json({ error: 'Failed to fetch badges' }, { status: 500 });
     }
 };

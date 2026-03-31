@@ -1,7 +1,7 @@
 import { start_pg, query } from '$db/pg';
 import type { Handle } from '@sveltejs/kit';
 
-start_pg().then(() : void => { console.log("PostgreSQL connected."); } ).catch( (err) : void => { console.error("PostgreSQL connection error:", err); } );
+start_pg().then(() : void => { } ).catch( (err) : void => { } );
 
 export const handle: Handle = async ({ event, resolve }) => {
   const session = event.cookies.get("session");
@@ -24,7 +24,6 @@ export const handle: Handle = async ({ event, resolve }) => {
         } as any;
       }
     } catch (err) {
-      console.error("Error loading user from session:", err);
     }
   }
 

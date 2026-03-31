@@ -60,7 +60,6 @@ export const GET: RequestHandler = async ({ url }) => {
         });
         
     } catch (error) {
-        console.error('Badge holders fetch error:', error);
         return json({ error: 'Failed to fetch badge holders' }, { status: 500 });
     }
 };

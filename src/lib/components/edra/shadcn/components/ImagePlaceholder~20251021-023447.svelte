@@ -34,7 +34,6 @@
       editor.chain().focus().setImage({ src: urlFromServer }).run();
       dialogOpen = false;
     } catch (err) {
-      console.error('Image upload error', err);
     } finally {
       input.value = '';
     }

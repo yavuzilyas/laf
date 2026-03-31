@@ -285,7 +285,6 @@ export const GET: RequestHandler = async ({ locals }) => {
       data: result
     });
   } catch (error) {
-    console.error('Error fetching reported content:', error);
     return json(
       { 
         success: false, 
@@ -355,7 +354,6 @@ export const PUT: RequestHandler = async ({ request, locals }) => {
           moderatorId: user.id
         });
       } catch (notificationError) {
-        console.error('Failed to send notification:', notificationError);
         // Don't fail the request if notification fails
       }
     }
@@ -367,7 +365,6 @@ export const PUT: RequestHandler = async ({ request, locals }) => {
     });
 
   } catch (error) {
-    console.error('Update report error:', error);
     return json({ error: 'Rapor güncellenemedi' }, { status: 500 });
   }
 };

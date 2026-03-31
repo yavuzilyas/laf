@@ -114,7 +114,6 @@ export function loadNotificationPreferences(): void {
 				const parsed = JSON.parse(saved);
 				notificationPreferencesStore.set({ ...defaultPreferences, ...parsed });
 			} catch (error) {
-				console.error('Failed to load notification preferences:', error);
 				notificationPreferencesStore.set(defaultPreferences);
 			}
 		}

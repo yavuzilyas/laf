@@ -34,7 +34,6 @@
 				editor.chain().focus().setAudio(urlFromServer).run();
 				dialogOpen = false;
 			} catch (err) {
-				console.error('Audio upload error', err);
 			} finally {
 				input.value = '';
 			}

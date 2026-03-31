@@ -4,10 +4,7 @@ import { getComments, updateComment } from '$db/queries';
 
 export async function POST({ params, request, locals }) {
   const user = (locals as any)?.user;
-  console.log('COMMENT EDIT API - User:', user);
-  console.log('COMMENT EDIT API - Params ID:', params.id);
 
-  // TEMPORARY: Skip authentication for testing
   // if (!user) return json({ error: 'Unauthorized' }, { status: 401 });
 
   const { content } = await request.json();
@@ -18,7 +15,6 @@ export async function POST({ params, request, locals }) {
   const comments = await getComments({ id: commentId });
   const comment = comments[0];
 
-  console.log('COMMENT EDIT API - Found comment:', !!comment);
 
   if (!comment) {
     return json({ error: 'Comment not found' }, { status: 404 });
@@ -37,7 +33,6 @@ export async function POST({ params, request, locals }) {
 
   await updateComment(commentId, updateData);
 
-  console.log('COMMENT EDIT API - Update result:', 'success');
 
   const updatedComments = await getComments({ id: commentId });
   const updatedComment = updatedComments[0];

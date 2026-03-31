@@ -57,7 +57,6 @@ export async function GET({ locals }) {
 
     return json({ articles: formattedArticles });
   } catch (error) {
-    console.error('Error fetching pending articles:', error);
     return json({ error: 'Internal server error' }, { status: 500 });
   }
 }

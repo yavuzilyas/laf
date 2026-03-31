@@ -26,7 +26,6 @@ export async function POST({ params, request, locals }: any) {
     try {
       await notifyArticleLike({ articleId, likerId: userId });
     } catch (error) {
-      console.error('Failed to send like notification', error);
     }
   }
 

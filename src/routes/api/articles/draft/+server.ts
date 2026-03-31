@@ -16,7 +16,6 @@ export async function GET({ locals }) {
     const draft = drafts[0];
     return json(draft.data || null);
   } catch (e) {
-    console.error('Load draft error:', e);
     return json({ error: 'Internal server error' }, { status: 500 });
   }
 }

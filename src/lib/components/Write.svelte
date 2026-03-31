@@ -221,7 +221,6 @@ import { onMount, onDestroy } from 'svelte';
             selectedCollaborators = users;
           }
         } catch (error) {
-          console.error('Failed to fetch collaborator details:', error);
         }
       }
     }
@@ -317,7 +316,6 @@ import {NotebookPenIcon} from 'svelte-animate-icons';
                                 body: JSON.stringify({ url: previousUrl })
                               });
                             } catch (error) {
-                              console.error('Thumbnail delete error:', error);
                             }
                           }
                           articleEditor.updateMetadata('thumbnail', '');
@@ -365,7 +363,6 @@ import {NotebookPenIcon} from 'svelte-animate-icons';
                                 fd.append('articleId', articleId);
                               }
                             } catch (error) {
-                              console.error('Failed to ensure article ID before upload', error);
                             }
 
                             fd.append('type', 'thumbnail');
@@ -378,11 +375,10 @@ import {NotebookPenIcon} from 'svelte-animate-icons';
                               const { url } = await res.json();
                               articleEditor.updateMetadata('thumbnail', url);
                             } else {
-                              console.error('Upload failed:', await res.text());
+);
                               alert('Thumbnail yüklenemedi');
                             }
                           } catch (error) {
-                            console.error('Upload error:', error);
                             alert('Thumbnail yükleme hatası');
                           } finally {
                             URL.revokeObjectURL(urlObj);

@@ -115,7 +115,6 @@ export async function POST({ request, locals }) {
         await rm(previousFsPath, { force: true });
       }
     } catch (error) {
-      console.error('Failed to remove previous upload', error);
     }
   }
 

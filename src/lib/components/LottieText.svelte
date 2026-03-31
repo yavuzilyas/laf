@@ -38,7 +38,6 @@
         animationData: textAnimData
       });
     } catch (error) {
-      console.error(`Animation for locale '${lang}' could not be loaded:`, error);
     }
   }
 

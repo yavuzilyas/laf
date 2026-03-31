@@ -21,7 +21,6 @@ export async function GET({ url }) {
 
         return json(sanitizedUsers);
     } catch (error) {
-        console.error('User search error:', error);
         return json([], { status: 500 });
     }
 }

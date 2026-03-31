@@ -58,7 +58,6 @@ export async function POST({ request, cookies }) {
       message: 'Mnemonic başarıyla yenilendi' 
     });
   } catch (error) {
-    console.error('Regenerate mnemonic error:', error);
     
     if (error instanceof Error) {
       if (error.message.includes('invalid input syntax for uuid')) {

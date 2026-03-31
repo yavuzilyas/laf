@@ -60,7 +60,6 @@
 				dialogOpen = false;
 				baseUploadsUrl = urlFromServer;
 			} catch (err) {
-				console.error('Image upload error', err);
 				alert(err instanceof Error ? err.message : 'Upload failed');
 			} finally {
 				input.value = '';

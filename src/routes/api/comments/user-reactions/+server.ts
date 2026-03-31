@@ -27,7 +27,6 @@ export async function GET({ url, locals }) {
 
         return json({ reactions });
     } catch (error) {
-        console.error('Failed to fetch user reactions:', error);
         return json({ error: 'Internal server error' }, { status: 500 });
     }
 }

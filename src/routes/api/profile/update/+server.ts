@@ -72,7 +72,6 @@ export const POST: RequestHandler = async ({ request, locals }: any) => {
         });
 
     } catch (err) {
-        console.error('Profile update error:', err);
         throw error(500, 'Failed to update profile');
     }
 };

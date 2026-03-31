@@ -40,7 +40,6 @@ export async function DELETE({ cookies }) {
     
     return json({ success: true, successKey: 'auth.success.accountDeleted' });
   } catch (error) {
-    console.error('Hesap silme hatası:', error);
     return json({ errorKey: 'auth.errors.serverError' }, { status: 500 });
   }
 }

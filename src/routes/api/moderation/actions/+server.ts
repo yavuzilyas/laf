@@ -141,7 +141,6 @@ export async function POST({ request, locals }) {
 
     return json({ success: true, message: 'Action completed' });
   } catch (error) {
-    console.error('Moderation action error:', error);
     return json({ error: 'Failed to perform action' }, { status: 500 });
   }
 }

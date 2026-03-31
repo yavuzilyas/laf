@@ -23,7 +23,6 @@ export const GET: RequestHandler = async ({ url }) => {
         
         return json({ stats: chartData });
     } catch (error) {
-        console.error('Donations stats error:', error);
         return json({ error: 'İstatistikler yüklenirken bir hata oluştu' }, { status: 500 });
     }
 };

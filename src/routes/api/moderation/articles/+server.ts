@@ -89,7 +89,6 @@ export async function GET({ locals, url }) {
 
 		return json({ articles: formattedArticles });
 	} catch (error) {
-		console.error('Error fetching moderation articles:', error);
 		return json({ error: 'Internal server error' }, { status: 500 });
 	}
 }

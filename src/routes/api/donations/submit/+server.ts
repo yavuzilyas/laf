@@ -39,7 +39,6 @@ export const POST: RequestHandler = async ({ request, locals }) => {
                 message: message?.trim() || null
             });
         } catch (notificationError) {
-            console.error('Failed to send notification for new donation:', notificationError);
             // Don't fail the request if notification fails
         }
         
@@ -52,7 +51,6 @@ export const POST: RequestHandler = async ({ request, locals }) => {
             }
         });
     } catch (error) {
-        console.error('Donation submission error:', error);
         return json({ error: 'Bağış kaydedilirken bir hata oluştu' }, { status: 500 });
     }
 };

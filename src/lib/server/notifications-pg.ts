@@ -773,7 +773,6 @@ export async function notifyContactMessageStatus(params: {
                     content: `İletişim mesajınıza yanıt (${subjectLabel}):\n\n${response}`
                 });
             } catch (msgError) {
-                console.error('Failed to send private message:', msgError);
                 // Don't fail the notification if message sending fails
             }
         }

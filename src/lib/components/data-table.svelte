@@ -364,7 +364,7 @@
 				toast.error(error.error || (t('requeueFailed') ?? 'Beklemeye alma başarısız'));
 			}
 		} catch (error) {
-			console.error('Failed to requeue article:', error);
+			
 			toast.error(t('requeueFailed') ?? 'Beklemeye alma başarısız');
 		}
 	}
@@ -416,7 +416,7 @@
 				toast.error(error.error || (t('actionFailed')));
 			}
 		} catch (error) {
-			console.error('Article moderation action failed:', error);
+			
 			toast.error(t('actionFailed'));
 		}
 	}
@@ -960,7 +960,7 @@
 			await fetchReports(true);
 			toast.success(t('success'));
 		} catch (error) {
-			console.error('Reports bulk action failed:', error);
+			
 			toast.error(t('error'));
 		} finally {
 			reportsBulkProcessing = false;
@@ -991,7 +991,7 @@
 			await fetchPendingArticles(true);
 			toast.success(t('success'));
 		} catch (error) {
-			console.error('Pending articles bulk action failed:', error);
+			
 			toast.error(t('error'));
 		} finally {
 			pendingBulkProcessing = false;
@@ -1022,7 +1022,7 @@
 			donationsTable.resetRowSelection();
 			toast.success('Toplu işlem başarıyla tamamlandı');
 		} catch (error) {
-			console.error('Donations bulk action failed:', error);
+			
 			toast.error('Toplu işlem başarısız');
 		} finally {
 			donationsBulkProcessing = false;
@@ -1056,7 +1056,7 @@
 			try {
 				await action();
 			} catch (error) {
-				console.error('Error executing verified action:', error);
+				
 				toast.error('İşlem sırasında bir hata oluştu');
 			}
 		}
@@ -1068,7 +1068,7 @@
 	}
 
 	async function createEventFromReport(report: ReportRow) {
-		console.log('Creating event from report:', report);
+		
 		try {
 			const response = await fetch('/api/events', {
 				method: 'POST',
@@ -1094,7 +1094,7 @@
 				toast.error(error.error || 'Olay oluşturulamadı');
 			}
 		} catch (error) {
-			console.error('Error creating event:', error);
+			
 			toast.error('Olay oluşturulurken hata oluştu');
 		}
 	}
@@ -1106,13 +1106,13 @@
 			if (response.ok) {
 				const events = await response.json();
 				// Here you could open a modal or navigate to an events page
-				console.log('Event history:', events);
+				
 				toast.success(`${events.length} olay bulundu`);
 			} else {
 				toast.error('Olay geçmişi alınamadı');
 			}
 		} catch (error) {
-			console.error('Error fetching event history:', error);
+			
 			toast.error('Olay geçmişi alınırken hata oluştu');
 		}
 	}
@@ -1145,7 +1145,7 @@
 				toast.error('Kullanıcı olayı oluşturulamadı');
 			}
 		} catch (error) {
-			console.error('Error creating user event:', error);
+			
 			toast.error('Kullanıcı olayı oluşturulurken hata oluştu');
 		}
 	}
@@ -1156,13 +1156,13 @@
 			
 			if (response.ok) {
 				const events = await response.json();
-				console.log('User event history:', events);
+				
 				toast.success(`${events.length} kullanıcı olayı bulundu`);
 			} else {
 				toast.error('Kullanıcı olay geçmişi alınamadı');
 			}
 		} catch (error) {
-			console.error('Error fetching user event history:', error);
+			
 			toast.error('Kullanıcı olay geçmişi alınırken hata oluştu');
 		}
 	}
@@ -1496,7 +1496,7 @@
 				}
 			}
 		} catch (error) {
-			console.error('Failed to fetch reports:', error);
+			
 			toast.error(t('error'));
 		} finally {
 			loadingReports = false;
@@ -1520,7 +1520,7 @@
 				}
 			}
 		} catch (error) {
-			console.error('Failed to fetch donations:', error);
+			
 			toast.error(t('error'));
 		} finally {
 			loadingDonations = false;
@@ -1545,7 +1545,7 @@
 				}
 			}
 		} catch (error) {
-			console.error('Failed to fetch contact messages:', error);
+			
 			toast.error(t('error'));
 		} finally {
 			loadingContactMessages = false;
@@ -1603,7 +1603,7 @@
 				pendingInitialized = true;
 			}
 		} catch (error) {
-			console.error('Failed to fetch pending articles:', error);
+			
 			toast.error(t('fetchPendingError'));
 		} finally {
 			loadingPending = false;
@@ -1696,7 +1696,7 @@
 				toast.error(error.error || t('approveFailed'));
 			}
 		} catch (error) {
-			console.error('Failed to approve article:', error);
+			
 			toast.error(t('approveFailed'));
 		}
 	}
@@ -1720,7 +1720,7 @@
 				toast.error(error.error || t('rejectFailed'));
 			}
 		} catch (error) {
-			console.error('Failed to reject article:', error);
+			
 			toast.error(t('rejectFailed'));
 		}
 	}
@@ -1814,7 +1814,7 @@
 					toast.error(error.error || 'Bağış silinemedi');
 				}
 			} catch (error) {
-				console.error('Failed to delete donation:', error);
+				
 				toast.error('Bağış silinirken hata oluştu');
 			}
 		}
@@ -1838,7 +1838,7 @@
 				toast.error(error.error || 'Güncelleme başarısız');
 			}
 		} catch (error) {
-			console.error('Failed to update contact message status:', error);
+			
 			toast.error('İşlem sırasında hata oluştu');
 		}
 	}
@@ -1867,7 +1867,7 @@
 				toast.error(error.error || 'Yanıt gönderilemedi');
 			}
 		} catch (error) {
-			console.error('Failed to respond to contact message:', error);
+			
 			toast.error('İşlem sırasında hata oluştu');
 		}
 	}
@@ -1887,7 +1887,7 @@
 				toast.error(error.error || 'Silme başarısız');
 			}
 		} catch (error) {
-			console.error('Failed to delete contact message:', error);
+			
 			toast.error('İşlem sırasında hata oluştu');
 		}
 	}
@@ -1942,7 +1942,7 @@
 			try {
 				await handlers[selectedBulkAction](String(row.original.id));
 			} catch (error) {
-				console.error("Bulk action failed", error);
+				
 				hasError = true;
 				break;
 			}

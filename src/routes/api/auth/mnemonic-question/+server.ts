@@ -105,7 +105,6 @@ export const POST = async ({ request, cookies }) => {
       }
     });
   } catch (error) {
-    console.error('Mnemonic question error:', error);
     // Don't leak internal error details to the client
     return json({ 
       error: 'İşlem sırasında bir hata oluştu. Lütfen daha sonra tekrar deneyin.' 

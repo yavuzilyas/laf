@@ -275,7 +275,6 @@ export async function POST({ params, request, locals }) {
   if (!isPrivileged) {
     const spamCheck = detectSpam(content);
     if (spamCheck.isSpam) {
-      console.log('Spam detected from user', user.id, ':', spamCheck.reasons);
       return json({ 
         error: 'Comment appears to be spam', 
         reasons: spamCheck.reasons 
@@ -333,7 +332,6 @@ export async function POST({ params, request, locals }) {
       });
     }
   } catch (error) {
-    console.error('Failed to dispatch comment notifications', error);
   }
   
   let responseContent = newComment.content;

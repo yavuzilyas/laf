@@ -89,7 +89,6 @@
 				isProfileHidden = data.isHidden;
 			}
 		} catch (error) {
-			console.error('Error loading hide profile status:', error);
 		}
 	}
 
@@ -118,7 +117,6 @@
 				showToast(error.error || t('FailedToUpdateProfile'), 'error');
 			}
 		} catch (error) {
-			console.error('Error toggling hide profile:', error);
 			showToast(t('NetworkError'), 'error');
 		} finally {
 			isTogglingHideProfile = false;
@@ -348,7 +346,6 @@
 				showToast(passwordError, 'error');
 			}
 		} catch (error) {
-			console.error('Error changing password:', error);
 			passwordError = t('NetworkError');
 			showToast(t('NetworkError'), 'error');
 		} finally {
@@ -411,7 +408,6 @@
 				showToast(mnemonicError, 'error');
 			}
 		} catch (error) {
-			console.error('Error regenerating mnemonic:', error);
 			mnemonicError = t('NetworkError');
 			showToast(t('NetworkError'), 'error');
 		} finally {

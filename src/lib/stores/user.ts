@@ -39,10 +39,8 @@ function createUserStore() {
       }
       
       const user = await response.json();
-      console.log('Fetched user data:', user);
       update(store => ({ ...store, user, loading: false, error: null }));
     } catch (err) {
-      console.error('Error fetching user:', err);
       update(store => ({ 
         ...store, 
         user: null, 

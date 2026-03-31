@@ -6,7 +6,6 @@ function getPmView() {
 	try {
 		return pmView;
 	} catch (error) {
-		console.error(error);
 		return null;
 	}
 }

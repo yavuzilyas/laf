@@ -41,12 +41,10 @@
 
     loading = true;
     try {
-      console.log('Verifying with token:', verificationToken);
       const payload = {
         password: password.trim(),
         verificationToken: verificationToken
       };
-      console.log('Sending verification payload:', payload);
       
       const res = await fetch('/api/auth/verify-password', {
         method: 'POST',
@@ -56,16 +54,13 @@
       });
 
       const data = await res.json().catch(e => {
-        console.error('Failed to parse response:', e);
         return { error: 'Geçersiz yanıt formatı' };
       });
       
-      console.log('Verification response:', { status: res.status, data });
 
       if (res.ok) {
         if (data.verificationToken) {
           verificationToken = data.verificationToken;
-          console.log('Updated verification token:', verificationToken);
         }
         showToast(data.message || 'Doğrulama başarılı', "success");
         openVerif = false;
@@ -75,7 +70,6 @@
         handleVerificationError(data);
       }
     } catch (error) {
-      console.error('Verify password error:', error);
       showToast('Doğrulama sırasında bir hata oluştu. Lütfen tekrar deneyin.', "error");
     } finally {
       loading = false;

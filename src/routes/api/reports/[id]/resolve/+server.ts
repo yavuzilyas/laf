@@ -33,7 +33,6 @@ export const POST: RequestHandler = async ({ params, request, locals }) => {
 
     return json({ success: true, message: 'Report resolved' });
   } catch (error) {
-    console.error('Resolve report error:', error);
     return json({ error: 'Failed to resolve report' }, { status: 500 });
   }
 };

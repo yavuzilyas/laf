@@ -48,7 +48,6 @@ export const POST: RequestHandler = async ({ locals, params }) => {
 
 		return json({ success: true, following: true });
 	} catch (error) {
-		console.error('Follow error:', error);
 		return json({ error: 'Failed to follow user' }, { status: 500 });
 	}
 };
@@ -68,7 +67,6 @@ export const DELETE: RequestHandler = async ({ locals, params }) => {
 
 		return json({ success: true, following: false });
 	} catch (error) {
-		console.error('Unfollow error:', error);
 		return json({ error: 'Failed to unfollow user' }, { status: 500 });
 	}
 };
@@ -95,7 +93,6 @@ export const GET: RequestHandler = async ({ locals, params }) => {
 			followingCount: counts.followingCount
 		});
 	} catch (error) {
-		console.error('Check follow status error:', error);
 		return json({ error: 'Failed to check follow status' }, { status: 500 });
 	}
 };

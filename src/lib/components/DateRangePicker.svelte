@@ -25,7 +25,6 @@
   onValueChange?: (value: DateRange | undefined) => void;
  } = $props();
  
- // Bugünün tarihini al
  const todayDate = today(getLocalTimeZone());
  
  // Başlangıç değeri - bugünden 30 gün öncesi ile bugün arası

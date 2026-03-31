@@ -53,7 +53,6 @@
 				editor.chain().focus().setAudio(urlFromServer).run();
 				dialogOpen = false;
 			} catch (err) {
-				console.error('Audio upload error', err);
 				alert(err instanceof Error ? err.message : 'Upload failed');
 			} finally {
 				input.value = '';

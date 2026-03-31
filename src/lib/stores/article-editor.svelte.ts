@@ -283,7 +283,6 @@ class ArticleEditorStore {
         }
       }
     } catch (error) {
-      console.error('Failed to load draft:', error);
     } finally {
       this._isLoading = false;
     }
@@ -367,7 +366,6 @@ class ArticleEditorStore {
       }
       return false;
     } catch (error) {
-      console.error('Failed to publish article:', error);
       throw error;
     } finally {
       this._isSaving = false;
@@ -383,7 +381,6 @@ class ArticleEditorStore {
         this._versions = await response.json();
       }
     } catch (error) {
-      console.error('Failed to load versions:', error);
     }
   }
 
@@ -408,7 +405,6 @@ class ArticleEditorStore {
       }
       return false;
     } catch (error) {
-      console.error('Failed to create version:', error);
       return false;
     }
   }

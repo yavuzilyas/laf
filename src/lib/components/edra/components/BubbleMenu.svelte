@@ -53,7 +53,6 @@
 		element.style.visibility = 'hidden';
 
 		if (!editor || editor.isDestroyed) {
-			console.warn('BubbleMenu component does not have editor prop or editor is destroyed.');
 			return;
 		}
 
@@ -68,7 +67,6 @@
 					existingInstance.destroy();
 				}
 			} catch (e) {
-				console.warn('Error cleaning up existing bubble menu:', e);
 			}
 		}
 
@@ -105,7 +103,6 @@
 			}
 
 		} catch (e) {
-			console.error('Error initializing bubble menu:', e);
 		}
 
 		return () => {
@@ -122,7 +119,6 @@
 						bubbleMenuInstance.destroy();
 					}
 				} catch (e) {
-					console.warn('Error cleaning up bubble menu:', e);
 				}
 			}
 			
@@ -148,7 +144,6 @@
 				bubbleMenuInstance.destroy();
 			}
 		} catch (e) {
-			console.warn('Error in bubble menu cleanup:', e);
 		}
 
 		if (window.__edraBubbleMenus) {

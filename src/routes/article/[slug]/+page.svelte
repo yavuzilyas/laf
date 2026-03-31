@@ -119,7 +119,6 @@
                 collaboratorBlocked[collaboratorId] = !!blockData.blocked;
             }
         } catch (error) {
-            console.error('Load collaborator follow status error:', error);
         }
     };
 
@@ -133,7 +132,6 @@
             });
             if (!response.ok) {
                 const errorMessage = await response.text().catch(() => response.statusText);
-                console.error('Follow error:', errorMessage);
                 return;
             }
 
@@ -150,7 +148,6 @@
             // Reload status to confirm
             await loadCollaboratorFollowStatus(collaboratorId);
         } catch (error) {
-            console.error('Follow error:', error);
         }
     };
 
@@ -163,7 +160,6 @@
             });
             if (!response.ok) {
                 const errorMessage = await response.text().catch(() => response.statusText);
-                console.error('Unfollow error:', errorMessage);
                 return;
             }
 
@@ -180,7 +176,6 @@
             // Reload status to confirm
             await loadCollaboratorFollowStatus(collaboratorId);
         } catch (error) {
-            console.error('Unfollow error:', error);
         }
     };
 
@@ -196,7 +191,6 @@
             });
             if (!response.ok) {
                 const errorMessage = await response.text().catch(() => response.statusText);
-                console.error('Block error:', errorMessage);
                 collaboratorBlocked[collaboratorId] = false;
                 return;
             }
@@ -209,7 +203,6 @@
             // Reload status to confirm
             await loadCollaboratorFollowStatus(collaboratorId);
         } catch (error) {
-            console.error('Block error:', error);
             collaboratorBlocked[collaboratorId] = false;
         }
     };
@@ -224,7 +217,6 @@
             });
             if (!response.ok) {
                 const errorMessage = await response.text().catch(() => response.statusText);
-                console.error('Unblock error:', errorMessage);
                 return;
             }
 
@@ -233,7 +225,6 @@
             // Reload status to confirm
             await loadCollaboratorFollowStatus(collaboratorId);
         } catch (error) {
-            console.error('Unblock error:', error);
         }
     };
 
@@ -290,10 +281,8 @@
                     };
                 }
             } else {
-                console.error('Failed to update collaborator profile');
             }
         } catch (error) {
-            console.error('Error updating collaborator profile:', error);
         } finally {
             collaboratorSaving[collaboratorId] = false;
         }
@@ -347,7 +336,6 @@
                 }
             }
         } catch (error) {
-            console.error('Banner upload error:', error);
         } finally {
             collaboratorBannerUploading[collaboratorId] = false;
         }
@@ -377,7 +365,6 @@
                 }
             }
         } catch (error) {
-            console.error('Banner remove error:', error);
         } finally {
             collaboratorBannerUploading[collaboratorId] = false;
         }
@@ -434,7 +421,6 @@
                 }
             }
         } catch (error) {
-            console.error('Avatar upload error:', error);
         } finally {
             collaboratorAvatarUploading[collaboratorId] = false;
         }
@@ -464,7 +450,6 @@
                 }
             }
         } catch (error) {
-            console.error('Avatar remove error:', error);
         } finally {
             collaboratorAvatarUploading[collaboratorId] = false;
         }
@@ -649,7 +634,6 @@
 
             profileUser = { ...profileUser, avatar: newAvatarUrl };
         } catch (error) {
-            console.error('Avatar upload error:', error);
             profileData.avatar = previous;
             profileUser = { ...profileUser, avatar: previous };
             alert(t('profile.avatarUploadError'));
@@ -683,7 +667,6 @@
 
             profileUser = { ...profileUser, avatar: '' };
         } catch (error) {
-            console.error('Avatar remove error:', error);
             profileData.avatar = previous;
             profileUser = { ...profileUser, avatar: previous };
         }
@@ -721,7 +704,6 @@
 
             return true;
         } catch (error) {
-            console.error('Profile partial update error:', error);
             return false;
         }
     };
@@ -740,10 +722,8 @@
                 isEditing = false;
                 profileUser = { ...profileUser, ...dataToSave };
             } else {
-                console.error('Failed to update profile');
             }
         } catch (error) {
-            console.error('Error updating profile:', error);
         } finally {
             isSaving = false;
         }
@@ -830,7 +810,6 @@
 
             profileUser = { ...profileUser, bannerImage: newBannerUrl };
         } catch (error) {
-            console.error('Banner upload error:', error);
             profileData.bannerImage = previousBanner;
             profileUser = { ...profileUser, bannerImage: previousBanner };
             alert(t('profile.bannerUploadError') ?? 'Banner yüklenirken bir sorun oluştu.');
@@ -864,7 +843,6 @@
 
             profileUser = { ...profileUser, bannerImage: '' };
         } catch (error) {
-            console.error('Banner remove error:', error);
             profileData.bannerImage = previous;
             profileUser = { ...profileUser, bannerImage: previous };
         }
@@ -899,7 +877,6 @@
             if (!response.ok) {
                 if (response.status !== 401) {
                     const errorMessage = await response.text().catch(() => response.statusText);
-                    console.error('Load follow status error:', errorMessage);
                 }
                 return;
             }
@@ -909,7 +886,6 @@
             followersCount = typeof data.followersCount === 'number' ? data.followersCount : followersCount;
             followingCount = typeof data.followingCount === 'number' ? data.followingCount : followingCount;
         } catch (error) {
-            console.error('Load follow status error:', error);
         }
     };
 
@@ -927,7 +903,6 @@
             if (!response.ok) {
                 if (response.status !== 401) {
                     const errorMessage = await response.text().catch(() => response.statusText);
-                    console.error('Load block status error:', errorMessage);
                 }
                 return;
             }
@@ -937,7 +912,6 @@
                 isBlocked = !!data.blocked;
             }
         } catch (error) {
-            console.error('Load block status error:', error);
         }
     };
 
@@ -951,13 +925,11 @@
             });
             if (!response.ok) {
                 const errorMessage = await response.text().catch(() => response.statusText);
-                console.error('Follow error:', errorMessage);
                 return;
             }
 
             await loadFollowStatus(targetUserId);
         } catch (error) {
-            console.error('Follow error:', error);
         }
     };
 
@@ -971,13 +943,11 @@
             });
             if (!response.ok) {
                 const errorMessage = await response.text().catch(() => response.statusText);
-                console.error('Unfollow error:', errorMessage);
                 return;
             }
 
             await loadFollowStatus(targetUserId);
         } catch (error) {
-            console.error('Unfollow error:', error);
         }
     };
 
@@ -995,7 +965,6 @@
             });
             if (!response.ok) {
                 const errorMessage = await response.text().catch(() => response.statusText);
-                console.error('Block error:', errorMessage);
                 isBlocked = false;
                 isBlockedChanging = false;
                 return;
@@ -1005,7 +974,6 @@
             await loadBlockStatus(targetUserId);
             await loadFollowStatus(targetUserId);
         } catch (error) {
-            console.error('Block error:', error);
             isBlocked = false;
         } finally {
             isBlockedChanging = false;
@@ -1026,7 +994,6 @@
             });
             if (!response.ok) {
                 const errorMessage = await response.text().catch(() => response.statusText);
-                console.error('Unblock error:', errorMessage);
                 isBlocked = true;
                 isBlockedChanging = false;
                 return;
@@ -1035,7 +1002,6 @@
             viewerBlocksProfile = false;
             await loadBlockStatus(targetUserId);
         } catch (error) {
-            console.error('Unblock error:', error);
             isBlocked = true;
         } finally {
             isBlockedChanging = false;
@@ -1191,12 +1157,10 @@
             }
 
         } catch (e) {
-            console.error(e);
         }
     }
 
     if (!article) {
-        console.error('Article not found');
     }
 
     const getAuthorIdentifier = (author: any) => {
@@ -1371,7 +1335,6 @@
                 }
             }
         } catch (e) {
-            console.error('Failed to load comments:', e);
         } finally {
             loadingComments = false;
         }
@@ -1473,7 +1436,6 @@
                 showToast(t('UpdateFailed'), 'error');
             }
         } catch (e) {
-            console.error('Failed to edit comment:', e);
             showToast(t('UpdateFailed'), 'error');
         }
     }
@@ -1557,7 +1519,6 @@
                 showToast('Yorum gönderilemedi', 'error');
             }
         } catch (e) {
-            console.error('Failed to post comment:', e);
             showToast('Bağlantı hatası', 'error');
         } finally {
             postingComment = false;
@@ -1630,7 +1591,6 @@
                 showToast('Yanıt gönderilemedi', 'error');
             }
         } catch (e) {
-            console.error('Failed to post reply:', e);
             showToast('Bağlantı hatası', 'error');
         } finally {
             postingReply[parentId] = false;
@@ -1678,7 +1638,6 @@
                 await loadComments();
             }
         } catch (e) {
-            console.error('Failed to react to comment:', e);
             await loadComments();
         }
     }
@@ -1745,7 +1704,6 @@
                 showToast(t('DeleteFailed'), 'error');
             }
         } catch (e) {
-            console.error('Failed to delete article:', e);
             showToast(t('DeleteFailed'), 'error');
         }
     }
@@ -1770,7 +1728,6 @@
                 showToast(t('HideFailed'), 'error');
             }
         } catch (e) {
-            console.error('Failed to hide article:', e);
             showToast(t('HideFailed'), 'error');
         }
     }
@@ -1805,7 +1762,6 @@
                 showToast(t('DeleteFailed'), 'error');
             }
         } catch (e) {
-            console.error('Failed to delete comment:', e);
             showToast(t('DeleteFailed'), 'error');
         }
     }
@@ -1841,7 +1797,6 @@
                 showToast(t('HideFailed'), 'error');
             }
         } catch (e) {
-            console.error('Failed to hide comment:', e);
             showToast(t('HideFailed'), 'error');
         }
     }
@@ -1896,7 +1851,6 @@
                 return;
             } catch (err: any) {
                 if (err.name !== 'AbortError') {
-                    console.error('Share failed:', err);
                 }
             }
         }
@@ -1906,7 +1860,6 @@
             await navigator.clipboard.writeText(shareUrl);
             showToast(t('articles.share.linkCopied'), 'success');
         } catch (err) {
-            console.error('Copy failed:', err);
             showToast(t('articles.share.shareError'), 'error');
         }
     }

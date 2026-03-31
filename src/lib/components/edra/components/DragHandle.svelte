@@ -42,7 +42,6 @@
 					editor.unregisterPlugin(editorId);
 				}
 			} catch (e) {
-				console.warn('Error unregistering drag handle plugin:', e);
 			}
 		};
 	});

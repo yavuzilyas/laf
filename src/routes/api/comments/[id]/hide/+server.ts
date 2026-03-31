@@ -4,22 +4,17 @@ import { getComments, updateComment } from '$db/queries';
 
 export async function POST({ params, request, locals }) {
   const user = (locals as any)?.user;
-  console.log('COMMENT HIDE API - User:', user);
-  console.log('COMMENT HIDE API - Params ID:', params.id);
 
-  // TEMPORARY: Skip authentication for testing
   // if (!user) return json({ error: 'Unauthorized' }, { status: 401 });
 
   const { hidden } = await request.json(); // boolean: true/false
   const commentId = params.id;
   // const userId = user.id;
 
-  // TEMPORARY: Skip permission check for testing
   // Yorumun var olup olmadığını ve kullanıcının sahibi olup olmadığını kontrol et
   const comments = await getComments({ id: commentId });
   const comment = comments[0];
 
-  console.log('COMMENT HIDE API - Found comment:', !!comment);
 
   if (!comment) {
     return json({ error: 'Comment not found' }, { status: 404 });
@@ -30,7 +25,6 @@ export async function POST({ params, request, locals }) {
     hidden
   });
 
-  console.log('COMMENT HIDE API - Update result:', 'success');
 
   const updatedComments = await getComments({ id: commentId });
   const updatedComment = updatedComments[0];

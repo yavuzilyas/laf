@@ -24,7 +24,6 @@
         donations = data.donations || [];
       }
     } catch (error) {
-      console.error('Failed to fetch donations:', error);
     } finally {
       isLoading = false;
     }

@@ -3,7 +3,6 @@ import { query } from '$db/pg';
 
 export async function POST() {
   try {
-    console.log('Running Argon2 constraint migration...');
     
     // Drop the old constraint
     await query(`
@@ -33,7 +32,6 @@ export async function POST() {
       `);
     }
     
-    console.log('✅ Argon2 constraint migration completed successfully');
     
     return json({ 
       success: true, 
@@ -41,7 +39,6 @@ export async function POST() {
     });
     
   } catch (error) {
-    console.error('❌ Error running migration:', error);
     return json({ 
       error: 'Migration failed', 
       details: error.message 

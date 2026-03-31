@@ -49,7 +49,6 @@
 				);
 			}
 		} catch (e) {
-			console.error('Error initializing headings:', e);
 			headings = [];
 		}
 	});
@@ -59,7 +58,6 @@
 		try {
 			return headings.some(h => h?.isActive?.(editor));
 		} catch (e) {
-			console.warn('Error checking active heading:', e);
 			return false;
 		}
 	});
@@ -70,7 +68,6 @@
 			const activeHeading = headings.find(h => h?.isActive?.(editor));
 			return activeHeading?.icon || Heading;
 		} catch (e) {
-			console.warn('Error getting heading icon:', e);
 			return Heading;
 		}
 	});
@@ -98,7 +95,6 @@
 				try {
 					editor?.chain().focus().setParagraph().run();
 				} catch (e) {
-					console.error('Error setting paragraph:', e);
 				}
 			}}
 			class="relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none transition-colors focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50"
@@ -116,7 +112,6 @@
 							headingCommand.onClick(editor);
 						}
 					} catch (e) {
-						console.error('Error setting heading:', e);
 					}
 				}}
 				class="relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none transition-colors focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50"

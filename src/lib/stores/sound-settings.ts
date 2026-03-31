@@ -38,7 +38,6 @@ const getInitialSoundSettings = (): SoundSettings => {
       return { ...defaultSoundSettings, ...parsed };
     }
   } catch (error) {
-    console.warn('Error loading individual sound settings from localStorage:', error);
   }
   
   return defaultSoundSettings;
@@ -52,7 +51,6 @@ if (browser) {
     try {
       localStorage.setItem('individualSoundSettings', JSON.stringify(value));
     } catch (error) {
-      console.warn('Error saving individual sound settings to localStorage:', error);
     }
   });
 }

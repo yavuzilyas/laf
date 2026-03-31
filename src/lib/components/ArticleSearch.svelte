@@ -180,7 +180,6 @@
           articleSuggestions = [];
         }
       } catch (error) {
-        console.error('Search error:', error);
         articleSuggestions = [];
       } finally {
         isLoading = false;

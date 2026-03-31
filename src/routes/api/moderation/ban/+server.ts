@@ -132,7 +132,7 @@ export async function POST({ request }) {
 
   } catch (error) {
 
-    console.error('Ban user error:', error);
+
 
     return json({ error: 'Server error' }, { status: 500 });
 
@@ -252,7 +252,7 @@ export async function PUT({ request }) {
 
   } catch (error) {
 
-    console.error('Unban user error:', error);
+
 
     return json({ error: 'Server error' }, { status: 500 });
 
