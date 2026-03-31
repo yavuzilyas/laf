@@ -38,14 +38,15 @@ const commands: Record<string, EdraToolBarCommands[]> = {
 			onClick: (editor) => {
 				try {
 					editor?.chain()?.focus()?.undo()?.run();
-				} catch {
-					// Silent fail
+				} catch (e) {
+					console.error('Error undoing action:', e);
 				}
 			},
 			clickable: (editor) => {
 				try {
 					return editor?.can?.()?.undo?.() ?? false;
-				} catch {
+				} catch (e) {
+					console.error('Error checking if undo is available:', e);
 					return false;
 				}
 			}
@@ -58,14 +59,15 @@ const commands: Record<string, EdraToolBarCommands[]> = {
 			onClick: (editor) => {
 				try {
 					editor?.chain()?.focus()?.redo()?.run();
-				} catch {
-					// Silent fail
+				} catch (e) {
+					console.error('Error redoing action:', e);
 				}
 			},
 			clickable: (editor) => {
 				try {
 					return editor?.can?.()?.redo?.() ?? false;
-				} catch {
+				} catch (e) {
+					console.error('Error checking if redo is available:', e);
 					return false;
 				}
 			}
@@ -80,21 +82,23 @@ const commands: Record<string, EdraToolBarCommands[]> = {
 			onClick: (editor) => {
 				try {
 					editor?.chain()?.focus()?.toggleHeading({ level: 1 })?.run();
-				} catch {
-					// Silent fail
+				} catch (e) {
+					console.error('Error toggling heading 1:', e);
 				}
 			},
 			clickable: (editor) => {
 				try {
 					return editor?.can?.()?.toggleHeading?.({ level: 1 }) ?? false;
-				} catch {
+				} catch (e) {
+					console.error('Error checking if heading 1 is clickable:', e);
 					return false;
 				}
 			},
 			isActive: (editor) => {
 				try {
 					return editor?.isActive?.('heading', { level: 1 }) ?? false;
-				} catch {
+				} catch (e) {
+					console.error('Error checking heading 1 active state:', e);
 					return false;
 				}
 			}
@@ -107,21 +111,23 @@ const commands: Record<string, EdraToolBarCommands[]> = {
 			onClick: (editor) => {
 				try {
 					editor?.chain()?.focus()?.toggleHeading({ level: 2 })?.run();
-				} catch {
-					// Silent fail
+				} catch (e) {
+					console.error('Error toggling heading 2:', e);
 				}
 			},
 			clickable: (editor) => {
 				try {
 					return editor?.can?.()?.toggleHeading?.({ level: 2 }) ?? false;
-				} catch {
+				} catch (e) {
+					console.error('Error checking if heading 2 is clickable:', e);
 					return false;
 				}
 			},
 			isActive: (editor) => {
 				try {
 					return editor?.isActive?.('heading', { level: 2 }) ?? false;
-				} catch {
+				} catch (e) {
+					console.error('Error checking heading 2 active state:', e);
 					return false;
 				}
 			}
@@ -134,21 +140,23 @@ const commands: Record<string, EdraToolBarCommands[]> = {
 			onClick: (editor) => {
 				try {
 					editor?.chain()?.focus()?.toggleHeading({ level: 3 })?.run();
-				} catch {
-					// Silent fail
+				} catch (e) {
+					console.error('Error toggling heading 3:', e);
 				}
 			},
 			clickable: (editor) => {
 				try {
 					return editor?.can?.()?.toggleHeading?.({ level: 3 }) ?? false;
-				} catch {
+				} catch (e) {
+					console.error('Error checking if heading 3 is clickable:', e);
 					return false;
 				}
 			},
 			isActive: (editor) => {
 				try {
 					return editor?.isActive?.('heading', { level: 3 }) ?? false;
-				} catch {
+				} catch (e) {
+					console.error('Error checking heading 3 active state:', e);
 					return false;
 				}
 			}
@@ -161,21 +169,23 @@ const commands: Record<string, EdraToolBarCommands[]> = {
 			onClick: (editor) => {
 				try {
 					editor?.chain()?.focus()?.toggleHeading({ level: 4 })?.run();
-				} catch {
-					// Silent fail
+				} catch (e) {
+					console.error('Error toggling heading 4:', e);
 				}
 			},
 			clickable: (editor) => {
 				try {
 					return editor?.can?.()?.toggleHeading?.({ level: 4 }) ?? false;
-				} catch {
+				} catch (e) {
+					console.error('Error checking if heading 4 is clickable:', e);
 					return false;
 				}
 			},
 			isActive: (editor) => {
 				try {
 					return editor?.isActive?.('heading', { level: 4 }) ?? false;
-				} catch {
+				} catch (e) {
+					console.error('Error checking heading 4 active state:', e);
 					return false;
 				}
 			}
@@ -197,14 +207,15 @@ const commands: Record<string, EdraToolBarCommands[]> = {
 							editor.chain().focus().toggleLink({ href: url }).run();
 						}
 					}
-				} catch {
-					// Silent fail
+				} catch (e) {
+					console.error('Error handling link:', e);
 				}
 			},
 			isActive: (editor) => {
 				try {
 					return editor?.isActive?.('link') ?? false;
-				} catch {
+				} catch (e) {
+					console.error('Error checking link active state:', e);
 					return false;
 				}
 			}
@@ -217,21 +228,23 @@ const commands: Record<string, EdraToolBarCommands[]> = {
 			onClick: (editor) => {
 				try {
 					editor?.chain()?.focus()?.toggleBold()?.run();
-				} catch {
-					// Silent fail
+				} catch (e) {
+					console.error('Error toggling bold:', e);
 				}
 			},
 			clickable: (editor) => {
 				try {
 					return editor?.can?.()?.toggleBold?.() ?? false;
-				} catch {
+				} catch (e) {
+					console.error('Error checking if bold is clickable:', e);
 					return false;
 				}
 			},
 			isActive: (editor) => {
 				try {
 					return editor?.isActive?.('bold') ?? false;
-				} catch {
+				} catch (e) {
+					console.error('Error checking bold active state:', e);
 					return false;
 				}
 			}
@@ -244,21 +257,23 @@ const commands: Record<string, EdraToolBarCommands[]> = {
 			onClick: (editor) => {
 				try {
 					editor?.chain()?.focus()?.toggleItalic()?.run();
-				} catch {
-					// Silent fail
+				} catch (e) {
+					console.error('Error toggling italic:', e);
 				}
 			},
 			clickable: (editor) => {
 				try {
 					return editor?.can?.()?.toggleItalic?.() ?? false;
-				} catch {
+				} catch (e) {
+					console.error('Error checking if italic is clickable:', e);
 					return false;
 				}
 			},
 			isActive: (editor) => {
 				try {
 					return editor?.isActive?.('italic') ?? false;
-				} catch {
+				} catch (e) {
+					console.error('Error checking italic active state:', e);
 					return false;
 				}
 			}
@@ -271,21 +286,23 @@ const commands: Record<string, EdraToolBarCommands[]> = {
 			onClick: (editor) => {
 				try {
 					editor?.chain()?.focus()?.toggleUnderline()?.run();
-				} catch {
-					// Silent fail
+				} catch (e) {
+					console.error('Error toggling underline:', e);
 				}
 			},
 			clickable: (editor) => {
 				try {
 					return editor?.can?.()?.toggleUnderline?.() ?? false;
-				} catch {
+				} catch (e) {
+					console.error('Error checking if underline is clickable:', e);
 					return false;
 				}
 			},
 			isActive: (editor) => {
 				try {
 					return editor?.isActive?.('underline') ?? false;
-				} catch {
+				} catch (e) {
+					console.error('Error checking underline active state:', e);
 					return false;
 				}
 			}
@@ -298,21 +315,23 @@ const commands: Record<string, EdraToolBarCommands[]> = {
 			onClick: (editor) => {
 				try {
 					editor?.chain()?.focus()?.toggleStrike()?.run();
-				} catch {
-					// Silent fail
+				} catch (e) {
+					console.error('Error toggling strikethrough:', e);
 				}
 			},
 			clickable: (editor) => {
 				try {
 					return editor?.can?.()?.toggleStrike?.() ?? false;
-				} catch {
+				} catch (e) {
+					console.error('Error checking if strikethrough is clickable:', e);
 					return false;
 				}
 			},
 			isActive: (editor) => {
 				try {
 					return editor?.isActive?.('strike') ?? false;
-				} catch {
+				} catch (e) {
+					console.error('Error checking strikethrough active state:', e);
 					return false;
 				}
 			}
@@ -325,21 +344,23 @@ const commands: Record<string, EdraToolBarCommands[]> = {
 			onClick: (editor) => {
 				try {
 					editor?.chain()?.focus()?.toggleBlockquote()?.run();
-				} catch {
-					// Silent fail
+				} catch (e) {
+					console.error('Error toggling blockquote:', e);
 				}
 			},
 			clickable: (editor) => {
 				try {
 					return editor?.can?.()?.toggleBlockquote?.() ?? false;
-				} catch {
+				} catch (e) {
+					console.error('Error checking if blockquote is clickable:', e);
 					return false;
 				}
 			},
 			isActive: (editor) => {
 				try {
 					return editor?.isActive?.('blockquote') ?? false;
-				} catch {
+				} catch (e) {
+					console.error('Error checking blockquote active state:', e);
 					return false;
 				}
 			}
@@ -352,21 +373,23 @@ const commands: Record<string, EdraToolBarCommands[]> = {
 			onClick: (editor) => {
 				try {
 					editor?.chain()?.focus()?.toggleCode()?.run();
-				} catch {
-					// Silent fail
+				} catch (e) {
+					console.error('Error toggling code:', e);
 				}
 			},
 			clickable: (editor) => {
 				try {
 					return editor?.can?.()?.toggleCode?.() ?? false;
-				} catch {
+				} catch (e) {
+					console.error('Error checking if code is clickable:', e);
 					return false;
 				}
 			},
 			isActive: (editor) => {
 				try {
 					return editor?.isActive?.('code') ?? false;
-				} catch {
+				} catch (e) {
+					console.error('Error checking code active state:', e);
 					return false;
 				}
 			}
@@ -379,21 +402,23 @@ const commands: Record<string, EdraToolBarCommands[]> = {
 			onClick: (editor) => {
 				try {
 					editor?.chain()?.focus()?.toggleSuperscript()?.run();
-				} catch {
-					// Silent fail
+				} catch (e) {
+					console.error('Error toggling superscript:', e);
 				}
 			},
 			clickable: (editor) => {
 				try {
 					return editor?.can?.()?.toggleSuperscript?.() ?? false;
-				} catch {
+				} catch (e) {
+					console.error('Error checking if superscript is clickable:', e);
 					return false;
 				}
 			},
 			isActive: (editor) => {
 				try {
 					return editor?.isActive?.('superscript') ?? false;
-				} catch {
+				} catch (e) {
+					console.error('Error checking superscript active state:', e);
 					return false;
 				}
 			}
@@ -406,21 +431,23 @@ const commands: Record<string, EdraToolBarCommands[]> = {
 			onClick: (editor) => {
 				try {
 					editor?.chain()?.focus()?.toggleSubscript()?.run();
-				} catch {
-					// Silent fail
+				} catch (e) {
+					console.error('Error toggling subscript:', e);
 				}
 			},
 			clickable: (editor) => {
 				try {
 					return editor?.can?.()?.toggleSubscript?.() ?? false;
-				} catch {
+				} catch (e) {
+					console.error('Error checking if subscript is clickable:', e);
 					return false;
 				}
 			},
 			isActive: (editor) => {
 				try {
 					return editor?.isActive?.('subscript') ?? false;
-				} catch {
+				} catch (e) {
+					console.error('Error checking subscript active state:', e);
 					return false;
 				}
 			}
@@ -435,21 +462,23 @@ const commands: Record<string, EdraToolBarCommands[]> = {
 			onClick: (editor) => {
 				try {
 					editor?.chain()?.focus()?.setTextAlign('left')?.run();
-				} catch {
-					// Silent fail
+				} catch (e) {
+					console.error('Error setting text align left:', e);
 				}
 			},
 			clickable: (editor) => {
 				try {
 					return editor?.can?.()?.setTextAlign?.('left') ?? false;
-				} catch {
+				} catch (e) {
+					console.error('Error checking if align left is clickable:', e);
 					return false;
 				}
 			},
 			isActive: (editor) => {
 				try {
 					return editor?.isActive?.({ textAlign: 'left' }) ?? false;
-				} catch {
+				} catch (e) {
+					console.error('Error checking align left active state:', e);
 					return false;
 				}
 			}
@@ -462,21 +491,23 @@ const commands: Record<string, EdraToolBarCommands[]> = {
 			onClick: (editor) => {
 				try {
 					editor?.chain()?.focus()?.setTextAlign('center')?.run();
-				} catch {
-					// Silent fail
+				} catch (e) {
+					console.error('Error setting text align center:', e);
 				}
 			},
 			clickable: (editor) => {
 				try {
 					return editor?.can?.()?.setTextAlign?.('center') ?? false;
-				} catch {
+				} catch (e) {
+					console.error('Error checking if align center is clickable:', e);
 					return false;
 				}
 			},
 			isActive: (editor) => {
 				try {
 					return editor?.isActive?.({ textAlign: 'center' }) ?? false;
-				} catch {
+				} catch (e) {
+					console.error('Error checking align center active state:', e);
 					return false;
 				}
 			}
@@ -489,21 +520,23 @@ const commands: Record<string, EdraToolBarCommands[]> = {
 			onClick: (editor) => {
 				try {
 					editor?.chain()?.focus()?.setTextAlign('right')?.run();
-				} catch {
-					// Silent fail
+				} catch (e) {
+					console.error('Error setting text align right:', e);
 				}
 			},
 			clickable: (editor) => {
 				try {
 					return editor?.can?.()?.setTextAlign?.('right') ?? false;
-				} catch {
+				} catch (e) {
+					console.error('Error checking if align right is clickable:', e);
 					return false;
 				}
 			},
 			isActive: (editor) => {
 				try {
 					return editor?.isActive?.({ textAlign: 'right' }) ?? false;
-				} catch {
+				} catch (e) {
+					console.error('Error checking align right active state:', e);
 					return false;
 				}
 			}
@@ -516,21 +549,23 @@ const commands: Record<string, EdraToolBarCommands[]> = {
 			onClick: (editor) => {
 				try {
 					editor?.chain()?.focus()?.setTextAlign('justify')?.run();
-				} catch {
-					// Silent fail
+				} catch (e) {
+					console.error('Error setting text align justify:', e);
 				}
 			},
 			clickable: (editor) => {
 				try {
 					return editor?.can?.()?.setTextAlign?.('justify') ?? false;
-				} catch {
+				} catch (e) {
+					console.error('Error checking if align justify is clickable:', e);
 					return false;
 				}
 			},
 			isActive: (editor) => {
 				try {
 					return editor?.isActive?.({ textAlign: 'justify' }) ?? false;
-				} catch {
+				} catch (e) {
+					console.error('Error checking align justify active state:', e);
 					return false;
 				}
 			}
@@ -545,14 +580,15 @@ const commands: Record<string, EdraToolBarCommands[]> = {
 			onClick: (editor) => {
 				try {
 					editor?.chain()?.focus()?.toggleBulletList()?.run();
-				} catch {
-					// Silent fail
+				} catch (e) {
+					console.error('Error toggling bullet list:', e);
 				}
 			},
 			isActive: (editor) => {
 				try {
 					return editor?.isActive?.('bulletList') ?? false;
-				} catch {
+				} catch (e) {
+					console.error('Error checking bullet list active state:', e);
 					return false;
 				}
 			}
@@ -565,14 +601,15 @@ const commands: Record<string, EdraToolBarCommands[]> = {
 			onClick: (editor) => {
 				try {
 					editor?.chain()?.focus()?.toggleOrderedList()?.run();
-				} catch {
-					// Silent fail
+				} catch (e) {
+					console.error('Error toggling ordered list:', e);
 				}
 			},
 			isActive: (editor) => {
 				try {
 					return editor?.isActive?.('orderedList') ?? false;
-				} catch {
+				} catch (e) {
+					console.error('Error checking ordered list active state:', e);
 					return false;
 				}
 			}
@@ -585,14 +622,15 @@ const commands: Record<string, EdraToolBarCommands[]> = {
 			onClick: (editor) => {
 				try {
 					editor?.chain()?.focus()?.toggleTaskList()?.run();
-				} catch {
-					// Silent fail
+				} catch (e) {
+					console.error('Error toggling task list:', e);
 				}
 			},
 			isActive: (editor) => {
 				try {
 					return editor?.isActive?.('taskList') ?? false;
-				} catch {
+				} catch (e) {
+					console.error('Error checking task list active state:', e);
 					return false;
 				}
 			}
@@ -606,14 +644,15 @@ const commands: Record<string, EdraToolBarCommands[]> = {
 			onClick: (editor) => {
 				try {
 					editor?.chain()?.focus()?.insertImagePlaceholder()?.run();
-				} catch {
-					// Silent fail
+				} catch (e) {
+					console.error('Error inserting image placeholder:', e);
 				}
 			},
 			isActive: (editor) => {
 				try {
 					return editor?.isActive?.('image-placeholder') ?? false;
-				} catch {
+				} catch (e) {
+					console.error('Error checking image placeholder active state:', e);
 					return false;
 				}
 			}
@@ -625,14 +664,15 @@ const commands: Record<string, EdraToolBarCommands[]> = {
 			onClick: (editor) => {
 				try {
 					editor?.chain()?.focus()?.insertVideoPlaceholder()?.run();
-				} catch {
-					// Silent fail
+				} catch (e) {
+					console.error('Error inserting video placeholder:', e);
 				}
 			},
 			isActive: (editor) => {
 				try {
 					return editor?.isActive?.('video-placeholder') ?? false;
-				} catch {
+				} catch (e) {
+					console.error('Error checking video placeholder active state:', e);
 					return false;
 				}
 			}
@@ -644,14 +684,15 @@ const commands: Record<string, EdraToolBarCommands[]> = {
 			onClick: (editor) => {
 				try {
 					editor?.chain()?.focus()?.insertAudioPlaceholder()?.run();
-				} catch {
-					// Silent fail
+				} catch (e) {
+					console.error('Error inserting audio placeholder:', e);
 				}
 			},
 			isActive: (editor) => {
 				try {
 					return editor?.isActive?.('audio-placeholder') ?? false;
-				} catch {
+				} catch (e) {
+					console.error('Error checking audio placeholder active state:', e);
 					return false;
 				}
 			}
@@ -663,14 +704,15 @@ const commands: Record<string, EdraToolBarCommands[]> = {
 			onClick: (editor) => {
 				try {
 					editor?.chain()?.focus()?.insertIFramePlaceholder()?.run();
-				} catch {
-					// Silent fail
+				} catch (e) {
+					console.error('Error inserting iframe placeholder:', e);
 				}
 			},
 			isActive: (editor) => {
 				try {
 					return editor?.isActive?.('iframe-placeholder') ?? false;
-				} catch {
+				} catch (e) {
+					console.error('Error checking iframe placeholder active state:', e);
 					return false;
 				}
 			}
@@ -691,14 +733,15 @@ const commands: Record<string, EdraToolBarCommands[]> = {
 						return;
 					}
 					editor?.chain()?.focus()?.insertTable({ cols: 3, rows: 3, withHeaderRow: false })?.run();
-				} catch {
-					// Silent fail
+				} catch (e) {
+					console.error('Error handling table action:', e);
 				}
 			},
 			isActive: (editor) => {
 				try {
 					return editor?.isActive?.('table') ?? false;
-				} catch {
+				} catch (e) {
+					console.error('Error checking table active state:', e);
 					return false;
 				}
 			}

@@ -40,7 +40,7 @@
 
 	const copyLink = () => {
 		if (link) {
-			navigator.clipboard.writeText(link);
+			navigator.clipboard.writeText(link).catch(console.error);
 		}
 	};
 </script>

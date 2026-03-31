@@ -62,11 +62,27 @@
         showFollowingDialog = false;
     };
 
+    // Debug: Check isFollowing values (only in browser)
+    $effect(() => {
+        if (typeof window !== 'undefined') {
+            if (followersList) {
+                console.log('Followers with isFollowing:', followersList.map(f => ({id: f.id, username: f.username, isFollowing: f.isFollowing})));
+            }
+            if (followingList) {
+                console.log('Following with isFollowing:', followingList.map(f => ({id: f.id, username: f.username, isFollowing: f.isFollowing})));
+            }
+        }
+    });
+
     // Follow/unfollow functions for dialog users
     const handleFollowUser = async (userId: string) => {
         try {
+            console.log('Attempting to follow user:', userId);
+            console.log('Current user ID:', currentUserId);
+            
             // Don't allow self-follow
             if (userId === currentUserId) {
+                console.log('Cannot follow yourself');
                 return;
             }
             
@@ -78,7 +94,11 @@
                 }
             });
             
+            console.log('Follow response status:', response.status);
+            
             if (!response.ok) {
+                const errorData = await response.json();
+                console.error('Follow API error:', errorData);
                 return;
             }
             
@@ -94,15 +114,19 @@
                     f.id === userId ? { ...f, isFollowing: true } : f
                 );
             }
-        } catch {
-            // Silent fail
+        } catch (error) {
+            console.error('Error following user:', error);
         }
     };
 
     const handleUnfollowUser = async (userId: string) => {
         try {
+            console.log('Attempting to unfollow user:', userId);
+            console.log('Current user ID:', currentUserId);
+            
             // Don't allow self-unfollow
             if (userId === currentUserId) {
+                console.log('Cannot unfollow yourself');
                 return;
             }
             
@@ -114,7 +138,11 @@
                 }
             });
             
+            console.log('Unfollow response status:', response.status);
+            
             if (!response.ok) {
+                const errorData = await response.json();
+                console.error('Unfollow API error:', errorData);
                 return;
             }
             
@@ -130,14 +158,18 @@
                     f.id === userId ? { ...f, isFollowing: false } : f
                 );
             }
-        } catch {
-            // Silent fail
+        } catch (error) {
+            console.error('Error unfollowing user:', error);
         }
     };
 
     const handleBlockUser = async (userId: string) => {
         try {
+            console.log('Attempting to block user:', userId);
+            console.log('Current user ID:', currentUserId);
+            
             if (userId === currentUserId) {
+                console.log('Cannot block yourself');
                 return;
             }
             
@@ -148,7 +180,11 @@
                 }
             });
             
+            console.log('Block response status:', response.status);
+            
             if (!response.ok) {
+                const errorData = await response.json();
+                console.error('Block API error:', errorData);
                 return;
             }
             
@@ -160,14 +196,18 @@
             if (followingList) {
                 followingList = followingList.filter(f => f.id !== userId);
             }
-        } catch {
-            // Silent fail
+        } catch (error) {
+            console.error('Error blocking user:', error);
         }
     };
 
     const handleUnblockUser = async (userId: string) => {
         try {
+            console.log('Attempting to unblock user:', userId);
+            console.log('Current user ID:', currentUserId);
+            
             if (userId === currentUserId) {
+                console.log('Cannot unblock yourself');
                 return;
             }
             
@@ -178,7 +218,11 @@
                 }
             });
             
+            console.log('Unblock response status:', response.status);
+            
             if (!response.ok) {
+                const errorData = await response.json();
+                console.error('Unblock API error:', errorData);
                 return;
             }
             
@@ -193,8 +237,8 @@
                     f.id === userId ? { ...f, isBlocked: false } : f
                 );
             }
-        } catch {
-            // Silent fail
+        } catch (error) {
+            console.error('Error unblocking user:', error);
         }
     };
   type ProfileData = {

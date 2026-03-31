@@ -178,6 +178,12 @@
 
         // Apply onlyFollowing filter
         if (activeFilters.onlyFollowing && followingUserIds.length > 0) {
+            console.log('Following filter active:', {
+                activeFiltersOnlyFollowing: activeFilters.onlyFollowing,
+                followingUserIds,
+                followingLength: followingUserIds.length,
+                sampleArticleAuthorId: result[0]?.authorId
+            });
             result = result.filter(article => {
                 const articleAuthorId = article.authorId?.toString?.() || article.authorId;
                 const isFollowed = articleAuthorId && followingUserIds.includes(articleAuthorId);
