@@ -10,8 +10,6 @@ COPY package.json pnpm-lock.yaml ./
 COPY svelte.config.js ./
 COPY .npmrc ./
 
-RUN npm install -g npm@11.12.1
-
 # bağımlılıklar (build scripts .npmrc ile otomatik onaylanıyor)
 RUN pnpm install --frozen-lockfile
 
