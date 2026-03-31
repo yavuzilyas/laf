@@ -24,8 +24,6 @@ export const load: PageServerLoad = async ({ locals }) => {
   const pendingArticles = await getArticles({ status: 'pending' });
   const pendingArticlesCount = pendingArticles.length;
 
-);
-
   const users = await getUsers({ limit: 150 });
 
   const tableData = users.map((user: any) => ({
