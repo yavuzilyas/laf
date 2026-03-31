@@ -1,6 +1,4 @@
 onlyBuiltDependencies:
-  - '@prisma/engines'
   - '@tailwindcss/oxide'
   - bcrypt
   - esbuild
-  - prisma
