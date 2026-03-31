@@ -17,7 +17,7 @@ RUN pnpm install --frozen-lockfile
 COPY . .
 
 # build için dummy env değerleri (runtime'da gerçek değerler kullanılır)
-ENV DATABASE_URL=postgresql://dummy:dummy@localhost:5432/dummy
+ENV DATABASE_URL = postgresql://laf_user:WdYsA6HfI06AxmUbUMNQ@laf-db-kuli76:5432/laf_app
 ENV NODE_OPTIONS="--max-old-space-size=4096"
 
 # build
