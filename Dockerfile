@@ -10,8 +10,8 @@ COPY package.json pnpm-lock.yaml ./
 COPY svelte.config.js ./
 COPY .npmrc ./
 
-# bağımlılıklar (build scripts .npmrc ile otomatik onaylanıyor)
-RUN pnpm install --frozen-lockfile
+# pnpm build scripts izinleri
+ENV PNPM_ONLY_BUILT_DEPENDENCIES=@tailwindcss/oxide,argon2,core-js,esbuild,sharp
 
 # proje dosyaları
 COPY . .
