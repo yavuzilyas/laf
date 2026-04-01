@@ -16,7 +16,7 @@ npm_output.log
 Thumbs.db
 
 # Env
-
+Dockerfile
 .env.*
 !.env.example
 !.env.test

@@ -120,8 +120,8 @@ $effect(() => {
 		if (intervalId) clearInterval(intervalId);
 		intervalId = setInterval(nextImage, interval);
 	});
-	const color = $derived(theme === "dark" ? "#ffffff" : "#000000");
-	const backgroundColor = $derived(theme === "dark" ? "#111113" : "#ffffff");
+	const color = "#ffffff";
+	const backgroundColor = "#111113";
 
 	// Mevcut resmin aspect ratio'su (yüklenene kadar 16/9 fallback)
 	const currentAspect = $derived(aspectRatios[shuffledImages[currentIndex]] ?? 16 / 9);

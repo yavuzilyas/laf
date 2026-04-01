@@ -29,7 +29,10 @@
   } = $props();
 
   let loading = $state(false);
-
+  // Spam bot protection
+  let honeypot = $state("");
+  let formLoadTime = $state(Date.now());
+  const MIN_FORM_TIME = 2000; // Minimum 2 seconds to fill form
   // Login state
   let identifier = $state("");
   let password = $state("");
@@ -291,6 +294,13 @@ const fadeScaleVariants = {
   }
   async function proceedRegisterStep1(e) {
     e.preventDefault();
+    
+    // Bot kontrolü
+    if (isBotSubmission()) {
+      showToast(t('auth.errors.suspiciousActivity') || 'Şüpheli aktivite tespit edildi', 'error');
+      return;
+    }
+    
     if (!nickname || !regPassword) {
       showToastKey("auth.errors.usernameRequired", "error");
       return;
@@ -376,8 +386,25 @@ async function finalizeRegister() {
     return a;
   }
 
+  // Check for spam bots (honeypot + speed check)
+  function isBotSubmission(): boolean {
+    // Honeypot check - if filled, it's a bot
+    if (honeypot && honeypot.length > 0) return true;
+    // Speed check - if submitted too fast, likely a bot
+    const timeElapsed = Date.now() - formLoadTime;
+    if (timeElapsed < MIN_FORM_TIME) return true;
+    return false;
+  }
+
   async function submitLogin(e: SubmitEvent) {
     e.preventDefault();
+    
+    // Bot kontrolü
+    if (isBotSubmission()) {
+      showToast(t('auth.errors.suspiciousActivity') || 'Şüpheli aktivite tespit edildi', 'error');
+      return;
+    }
+    
     loading = true;
     try {
       const body = mnemonicStep ? 
@@ -595,6 +622,17 @@ async function validateEmail(value: string) {
 </script>
 
 <form class={cn("flex flex-col gap-6", className)} bind:this={ref} onsubmit={mode === 'login' ? submitLogin : proceedRegisterStep1}>
+  <!-- Honeypot field - hidden from users, visible to bots -->
+  <div class="opacity-0 absolute top-0 left-0 w-px h-px overflow-hidden" aria-hidden="true">
+    <label for="website-{id}">Website</label>
+    <input 
+      id="website-{id}" 
+      type="text" 
+      tabindex="-1" 
+      autocomplete="off"
+      bind:value={honeypot}
+    />
+  </div>
   {#if mode === "login"}
     {#if !mnemonicStep}
           <Motion variants={stepVariants} initial="hidden" animate="visible" exit="exit"  let:motion>
@@ -999,14 +1037,14 @@ async function validateEmail(value: string) {
           <p class="text-sm underline-hard-primary text-secondary-foreground/70">{t('auth.register.mnemonicSubtitle')}</p>
           <ScratchToReveal
       minScratchPercentage={85}
-      class="flex items-center justify-center overflow-hidden rounded-2xl my-2 bg-background"
+      class="flex w-full h-full items-center justify-center overflow-hidden rounded-2xl my-2 bg-background"
       
       gradientColors={["gray", "lightgray", "gray"]}
       onComplete={() => {
         scratchDone = true;
       }}
     >
-    <div class="w-fit min-h-39 md:min-h-44 grid grid-cols-3 gap-2 my-2 bg-secondary  p-2 rounded-lg">
+    <div class="w-full min-h-39 md:min-h-44 grid grid-cols-3 gap-2 my-2 bg-secondary p-4 rounded-2xl">
       {#each mnemonic as w, i}
         <div class="font-bold whitespace-nowrap text-sm rounded-md   drop-shadow-md bg-primary px-2 py-1.5 text-secondary flex flex-row gap-1.5"><p class="select-none pointer-events-none ">{i + 1}. </p>{w}</div>
       {/each}
