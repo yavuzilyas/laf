@@ -661,7 +661,7 @@ import {NotebookPenIcon} from 'svelte-animate-icons';
                       class="py-2 p-3  md:py-7 sm:p-10"
                       onUpdate={onEditorUpdate(lang)}
                     />
-                    <EdraDragHandleExtended />
+                    <EdraDragHandleExtended editor={editors[lang]} />
                   </ScrollArea>
                 </div>
               </Tabs.Content>
