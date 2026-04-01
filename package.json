@@ -103,8 +103,6 @@
 		"cropperjs": "^2.1.0",
 		"flag-icons": "^7.5.0",
 		"flowbite": "^3.1.2",
-		"html2canvas": "^1.4.1",
-		"jspdf": "^4.1.0",
 		"katex": "^0.16.25",
 		"lottie-web": "^5.13.0",
 		"lowlight": "^3.3.0",
