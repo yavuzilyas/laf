@@ -14,7 +14,6 @@ COPY . .
 RUN npx svelte-kit sync
 
 # Environment ve memory optimizasyonları
-ENV DATABASE_URL=postgresql://laf_user:WdYsA6HfI06AxmUbUMNQ@laf-db-kuli76:5432/laf_app
 ENV NODE_OPTIONS="--max-old-space-size=3500"
 ENV ESBUILD_WORKER_THREADS=1
 
