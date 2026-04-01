@@ -4,7 +4,10 @@
 	"version": "0.0.1",
 	"type": "module",
 	"overrides": {
-		"cookie": "^0.7.0"
+		"cookie": "^0.7.0",
+		"svelte-cropperjs": {
+			"svelte": "$svelte"
+		}
 	},
 	"scripts": {
 		"dev": "vite dev --logLevel error",
