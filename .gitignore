@@ -16,7 +16,7 @@ npm_output.log
 Thumbs.db
 
 # Env
-.env
+
 .env.*
 !.env.example
 !.env.test
