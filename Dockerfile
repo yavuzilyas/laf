@@ -1,35 +1,15 @@
-FROM node:22-alpine
-
-# pnpm için
-RUN corepack enable
-
+# Build stage
+FROM node:22-alpine AS builder
 WORKDIR /app
-
-# lock ve package önce
-COPY package.json pnpm-lock.yaml ./
-COPY .npmrc ./
-
-# bağımlılıklar (build script'ler .npmrc'de izinli)
-RUN pnpm install --frozen-lockfile
-
-# proje dosyaları
+COPY package.json pnpm-lock.yaml .npmrc ./
+RUN corepack enable && pnpm install --frozen-lockfile
 COPY . .
+RUN npx svelte-kit sync && pnpm build
 
-# build için dummy env değerleri
-ENV DATABASE_URL=postgresql://laf_user:WdYsA6HfI06AxmUbUMNQ@laf-db-kuli76:5432/laf_app
-
-# memory limit - 2.9GB sunucu için 2GB Node heap + sistem için yer bırak
-ENV NODE_OPTIONS="--max-old-space-size=1024"
-
-# esbuild worker limit (tek worker = daha az RAM)
-ENV ESBUILD_WORKER_THREADS=1
-
-# build öncesi sync
-RUN npx svelte-kit sync
-
-# build (tek seferde, memory optimize)
-RUN pnpm build
-
+# Runtime stage
+FROM node:22-alpine
+WORKDIR /app
+COPY --from=builder /app/build ./build
+COPY --from=builder /app/package.json ./
 EXPOSE 3000
-
 CMD ["node", "build"]
