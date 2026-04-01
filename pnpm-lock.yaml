@@ -107,9 +107,6 @@ importers:
       flowbite:
         specifier: ^3.1.2
         version: 3.1.2(rollup@4.60.1)
-      html2canvas:
-        specifier: ^1.4.1
-        version: 1.4.1
       jspdf:
         specifier: ^4.1.0
         version: 4.2.1
@@ -5903,7 +5900,8 @@ snapshots:
 
   balanced-match@4.0.4: {}
 
-  base64-arraybuffer@1.0.2: {}
+  base64-arraybuffer@1.0.2:
+    optional: true
 
   baseline-browser-mapping@2.10.12: {}
 
@@ -6044,6 +6042,7 @@ snapshots:
   css-line-break@2.1.0:
     dependencies:
       utrie: 1.0.2
+    optional: true
 
   cssesc@3.0.0: {}
 
@@ -6495,6 +6494,7 @@ snapshots:
     dependencies:
       css-line-break: 2.1.0
       text-segmentation: 1.0.3
+    optional: true
 
   iconv-lite@0.6.3:
     dependencies:
@@ -7465,6 +7465,7 @@ snapshots:
   text-segmentation@1.0.3:
     dependencies:
       utrie: 1.0.2
+    optional: true
 
   three-instanced-uniforms-mesh@0.52.4(three@0.182.0):
     dependencies:
@@ -7587,6 +7588,7 @@ snapshots:
   utrie@1.0.2:
     dependencies:
       base64-arraybuffer: 1.0.2
+    optional: true
 
   uuid@13.0.0: {}
 
