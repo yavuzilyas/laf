@@ -91,13 +91,22 @@ export async function POST({ request, locals }) {
     publicBase = `/uploads/users/${safeUserId}/comments/${safeCommentId}/${section}`;
   } else {
     // Generic uploads (e.g., comments) go to user's comments folder: /uploads/users/{userId}/comments/{type}/
-    const section = (() => {
-      if (type.startsWith('audio/')) return 'sounds';
-      if (type.startsWith('video/')) return 'videos';
-      return 'photos';
-    })();
-    dir = resolve(baseUploadsDir, 'users', safeUserId, 'comments', section);
-    publicBase = `/uploads/users/${safeUserId}/comments/${section}`;
+    // Profile avatars and banners go to dedicated folders: /uploads/users/{userId}/avatars/ or /uploads/users/{userId}/banners/
+    const isProfileUpload = folder === 'avatars' || folder === 'banners';
+    
+    if (isProfileUpload) {
+      // Profile uploads: avatars or banners
+      dir = resolve(baseUploadsDir, 'users', safeUserId, folder);
+      publicBase = `/uploads/users/${safeUserId}/${folder}`;
+    } else {
+      const section = (() => {
+        if (type.startsWith('audio/')) return 'sounds';
+        if (type.startsWith('video/')) return 'videos';
+        return 'photos';
+      })();
+      dir = resolve(baseUploadsDir, 'users', safeUserId, 'comments', section);
+      publicBase = `/uploads/users/${safeUserId}/comments/${section}`;
+    }
   }
 
   await mkdir(dir, { recursive: true });
