@@ -804,7 +804,7 @@
                             />
                         {/if}
                         <AvatarFallback class="text-4xl">
-                            {(profileData.username || 'U')[0].toUpperCase()}
+                            {(profileData?.username || 'U')[0].toUpperCase()}
                         </AvatarFallback>
                     </Avatar>
                     
