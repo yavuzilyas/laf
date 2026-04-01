@@ -5,11 +5,13 @@ WORKDIR /app
 # Corepack, bağımlılık kurulumu ve build tek RUN içinde
 COPY package.json pnpm-lock.yaml .npmrc ./
 RUN corepack enable \
-    && pnpm install --frozen-lockfile \
-    && npx svelte-kit sync
+    && pnpm install --frozen-lockfile
 
 # Proje dosyaları
 COPY . .
+
+# Sync ve environment
+RUN npx svelte-kit sync
 
 # Environment ve memory optimizasyonları
 ENV DATABASE_URL=postgresql://laf_user:WdYsA6HfI06AxmUbUMNQ@laf-db-kuli76:5432/laf_app
