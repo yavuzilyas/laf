@@ -3,6 +3,11 @@ import { json } from '@sveltejs/kit';
 import { writeFile, mkdir, rm } from 'fs/promises';
 import { extname, resolve } from 'path';
 import { slugify } from '$lib/utils/slugify';
+import { env } from '$env/dynamic/private';
+
+// Get upload directory from environment variable or fallback to static/uploads
+const UPLOAD_BASE_DIR = env.UPLOAD_DIR || 'static/uploads';
+const PUBLIC_BASE_PATH = '/uploads';
 
 export async function POST({ request, locals }) {
   const user = (locals as any)?.user;
@@ -49,7 +54,7 @@ export async function POST({ request, locals }) {
     : (user.id?.toString?.() ?? 'user');
   const safeUserId = slugify(rawNickname) || 'user';
 
-  const baseUploadsDir = resolve('static', 'uploads');
+  const baseUploadsDir = resolve(UPLOAD_BASE_DIR);
   let dir: string;
   let publicBase: string;
 
@@ -119,8 +124,8 @@ export async function POST({ request, locals }) {
   if (previousUrl && previousUrl !== url) {
     try {
       const normalizedPrevious = previousUrl.startsWith('/') ? previousUrl : `/${previousUrl}`;
-      const previousFsPath = resolve('static', normalizedPrevious.replace(/^\//, ''));
-      if (previousFsPath.startsWith(baseUploadsDir)) {
+      const previousFsPath = resolve(UPLOAD_BASE_DIR, normalizedPrevious.replace(/^\//, '').replace(/^uploads\//, ''));
+      if (previousFsPath.startsWith(resolve(UPLOAD_BASE_DIR))) {
         await rm(previousFsPath, { force: true });
       }
     } catch (error) {
@@ -139,10 +144,10 @@ export async function DELETE({ request, locals }) {
     if (typeof url !== 'string' || !url.startsWith('/uploads/')) {
       return json({ error: 'Invalid url' }, { status: 400 });
     }
-    // Map public URL to filesystem path under static
-    const baseUploadsDir = resolve('static', 'uploads');
-    const normalized = url.replace(/^\//, '');
-    const fsPath = resolve('static', normalized);
+    // Map public URL to filesystem path under UPLOAD_BASE_DIR
+    const baseUploadsDir = resolve(UPLOAD_BASE_DIR);
+    const normalized = url.replace(/^\//, '').replace(/^uploads\//, '');
+    const fsPath = resolve(UPLOAD_BASE_DIR, normalized);
     // Only allow deletion within static/uploads
     if (!fsPath.startsWith(baseUploadsDir)) {
       return json({ error: 'Forbidden' }, { status: 403 });
