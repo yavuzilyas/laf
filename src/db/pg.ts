@@ -3,26 +3,35 @@ import { env } from '$env/dynamic/private';
 
 const { Pool } = pg;
 
-// Runtime'da env'den oku (build-time'da değil)
-const DATABASE_URL = env.DATABASE_URL;
+// Lazy initialization - build sırasında değil, ilk kullanımda oluştur
+let pool: pg.Pool | null = null;
 
-if (!DATABASE_URL) {
-    throw new Error('DATABASE_URL environment variable is required');
+function getPool(): pg.Pool {
+    if (!pool) {
+        const DATABASE_URL = env.DATABASE_URL;
+        if (!DATABASE_URL) {
+            throw new Error('DATABASE_URL environment variable is required');
+        }
+        pool = new Pool({
+            connectionString: DATABASE_URL,
+        });
+    }
+    return pool;
 }
-
-const pool = new Pool({
-    connectionString: DATABASE_URL,
-});
 
 export function start_pg(): Promise<pg.PoolClient> {
-    return pool.connect();
+    return getPool().connect();
 }
 
-export default pool;
+export default {
+    get connect() { return getPool().connect.bind(getPool()); },
+    get query() { return getPool().query.bind(getPool()); },
+    get end() { return getPool().end.bind(getPool()); }
+};
 
 // Helper function to execute queries
 export async function query(text: string, params?: any[]): Promise<pg.QueryResult> {
-    const client = await pool.connect();
+    const client = await getPool().connect();
     try {
         const result = await client.query(text, params);
         return result;
