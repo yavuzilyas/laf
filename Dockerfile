@@ -4,6 +4,7 @@ WORKDIR /app
 COPY package.json pnpm-lock.yaml .npmrc ./
 RUN corepack enable && pnpm install --frozen-lockfile
 COPY . .
+ENV DATABASE_URL=postgresql://laf_user:WdYsA6HfI06AxmUbUMNQ@laf-db-kuli76:5432/laf_app
 RUN npx svelte-kit sync && pnpm build
 
 # Runtime stage
