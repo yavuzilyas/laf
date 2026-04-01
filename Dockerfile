@@ -19,7 +19,7 @@ COPY . .
 ENV DATABASE_URL=postgresql://laf_user:WdYsA6HfI06AxmUbUMNQ@laf-db-kuli76:5432/laf_app
 
 # memory limit - 2.9GB sunucu için 2GB Node heap + sistem için yer bırak
-ENV NODE_OPTIONS="--max-old-space-size=2048"
+ENV NODE_OPTIONS="--max-old-space-size=1024"
 
 # esbuild worker limit (tek worker = daha az RAM)
 ENV ESBUILD_WORKER_THREADS=1
