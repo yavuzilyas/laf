@@ -1,7 +1,14 @@
 import pg from 'pg';
-import { DATABASE_URL } from '$env/static/private';
+import { env } from '$env/dynamic/private';
 
 const { Pool } = pg;
+
+// Runtime'da env'den oku (build-time'da değil)
+const DATABASE_URL = env.DATABASE_URL;
+
+if (!DATABASE_URL) {
+    throw new Error('DATABASE_URL environment variable is required');
+}
 
 const pool = new Pool({
     connectionString: DATABASE_URL,
