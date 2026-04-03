@@ -451,7 +451,19 @@
       "sending": "Gönderiliyor...",
       "editPlaceholder": "Yorumunuzu düzenleyin...",
       "replyPlaceholder": "Yanıtınızı yazın...",
-      "loginRequiredForReactions": "Tepki vermek için giriş yapın"
+      "loginRequiredForReactions": "Tepki vermek için giriş yapın",
+      "timeAgo": {
+        "justNow": "Az önce",
+        "minutes": "{count} dakika önce",
+        "hours": "{count} saat önce",
+        "days": "{count} gün önce"
+      },
+      "commentDeleted": "Yorum silindi",
+      "loginRequired": "Giriş gerekli",
+      "permissionDenied": "İzin reddedildi",
+      "deleteFailed": "Silme başarısız",
+      "commentHidden": "Yorum gizlendi",
+      "hideFailed": "Gizleme başarısız"
     },
     "authors": "Yazarlar",
     "author": "yazar",

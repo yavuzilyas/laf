@@ -2126,7 +2126,7 @@ export const getPopularArticles = async (limit: number = 3, excludeId?: string) 
 };
 
 // Get similar articles based on category and tags
-export const getSimilarArticles = async (articleId: string, category: string, tags: string[], limit: number = 3) => {
+export const getSimilarArticles = async (articleId: string, category: string, tags: string[], limit: number = 3, locale: string = 'tr') => {
     let sql = `
         SELECT a.*, 
                u.username as author_name, 
@@ -2170,18 +2170,26 @@ export const getSimilarArticles = async (articleId: string, category: string, ta
     
     const result = await query(sql, params);
     
+    // Filter articles to only include those with translations in the selected locale
+    const filteredRows = result.rows.filter((row: any) => {
+        const translations = row.translations || {};
+        // Check if the article has a translation in the selected locale
+        return translations[locale] && translations[locale].title;
+    });
+    
     // Fetch collaborator details for each article
     const articlesWithCollaborators = await Promise.all(
-        result.rows.map(async (row: any) => {
+        filteredRows.map(async (row: any) => {
             const collaboratorIds = row.collaborators || [];
             const collaboratorDetails = await getCollaboratorDetails(collaboratorIds);
             
             return {
                 ...row,
                 id: row.id,
-                slug: row.translations?.[row.default_language]?.slug || row.slug || `article-${row.id}`,
-                title: row.translations?.[row.default_language]?.title || row.title || 'Untitled',
-                excerpt: row.translations?.[row.default_language]?.excerpt || 
+                slug: row.translations?.[locale]?.slug || row.translations?.[row.default_language]?.slug || row.slug || `article-${row.id}`,
+                title: row.translations?.[locale]?.title || row.translations?.[row.default_language]?.title || row.title || 'Untitled',
+                excerpt: row.translations?.[locale]?.excerpt || row.translations?.[row.default_language]?.excerpt || 
+                         (row.translations?.[locale]?.content?.substring(0, 200) + '...') || 
                          (row.translations?.[row.default_language]?.content?.substring(0, 200) + '...') || 
                          (row.content?.substring(0, 200) + '...') || '',
                 author: {
@@ -2192,7 +2200,7 @@ export const getSimilarArticles = async (articleId: string, category: string, ta
                 },
                 author_nickname: row.author_nickname || row.author_name,
                 publishedAt: row.published_at,
-                readTime: Math.ceil((row.translations?.[row.default_language]?.content?.length || row.content?.length || 0) / 1000) || 5,
+                readTime: Math.ceil((row.translations?.[locale]?.content?.length || row.translations?.[row.default_language]?.content?.length || row.content?.length || 0) / 1000) || 5,
                 category: row.category,
                 coverImage: row.thumbnail,
                 views: row.views || 0,

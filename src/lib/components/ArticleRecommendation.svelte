@@ -14,6 +14,7 @@
     excerpt: string;
     author: {
       name: string;
+      surname?: string;
       avatar?: string;
       nickname: string;
     };
@@ -82,7 +83,12 @@
   };
 
   const getAuthorDisplayName = (article: Article) => {
-    return article.author?.name || 'Unknown User';
+    const name = article.author?.name;
+    const surname = article.author?.surname;
+    if (name && surname) {
+      return `${name} ${surname}`;
+    }
+    return article.author?.nickname || article.author_nickname || 'Unknown User';
   };
 
   // Limit to 3 articles

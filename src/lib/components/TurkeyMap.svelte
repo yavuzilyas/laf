@@ -191,7 +191,7 @@
   }
 </script>
 
-<div class="w-full max-w-4xl mx-auto" onclick={(e) => { if (e.target === e.currentTarget) clearSelection(); }}>
+<div class="w-full max-w-4xl mx-auto">
   <div class="flex items-center justify-between mb-4">
     <h3 class="text-lg font-semibold text-foreground">
       {selectedCity ? `${selectedCity} - ${t('events.selectedCity') || 'Seçili Şehir'}` : t('events.selectCity') || 'Şehir Seçin'}

@@ -4,7 +4,7 @@
   import * as Card from "$lib/components/ui/card";
   import { MagicCard } from "$lib/components/magic/magic-card";
   import { t } from '$lib/stores/i18n.svelte.js';
-  import Loader from "@lucide/svelte/icons/loader";
+import { BarSpinner } from "$lib/components/spell/bar-spinner";
   import { User } from "@lucide/svelte";
 
   interface BadgeUser {
@@ -155,7 +155,7 @@
             
             {#if isLoadingUsers}
               <div class="flex items-center justify-center py-8">
-                <Loader class="animate-spin text-primary w-6 h-6" />
+                <BarSpinner class="text-primary" />
               </div>
             {:else if badgeUsers.length === 0}
               <p class="text-sm text-muted-foreground text-center py-4">

@@ -375,7 +375,8 @@ export const load: PageServerLoad = async ({ params, locals }) => {
     article.id,
     article.category,
     article.tags || [],
-    3
+    3,
+    currentLang
   );
 
   // Create a serializable article object

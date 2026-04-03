@@ -735,7 +735,7 @@ async function validateEmail(value: string) {
         </div>
         <Button type="submit" class="w-full" disabled={loading}>
           {#if loading}
-            <BarSpinner class="text-primary" />
+            <BarSpinner class="text-foreground" />
               {t('SigningIn')}
 
           {:else}
@@ -791,7 +791,7 @@ async function validateEmail(value: string) {
           <Button type="submit" class="w-1/2" disabled={loading}>
             {#if loading}
               <span class="inline-flex items-center gap-2">
-                <BarSpinner class="text-primary" />
+                <BarSpinner class="text-foreground" />
                 {t('Verifying')}
               </span>
             {:else}
@@ -1030,7 +1030,7 @@ async function validateEmail(value: string) {
           </div>
           <Button type="submit" class="w-full mt-2" disabled={loading || !!nicknameError || !!emailError || !!nameError || !!surnameError || isValidating || !meetsPasswordPolicy(regPassword)}>
             {#if isValidating}
-            <BarSpinner class="text-primary" />
+            <BarSpinner class="text-foreground" />
               {t('Verifying')}
               
             {:else}
@@ -1089,7 +1089,7 @@ async function validateEmail(value: string) {
       class="flex items-center gap-2"
     >
       {#if isGeneratingPDF}
-	<BarSpinner class="text-primary" size={28} />
+	<BarSpinner class="text-foreground" size={28} />
         {t('Generating')}
       {:else}
         <Printer class="w-4 h-4" />
@@ -1180,7 +1180,7 @@ async function validateEmail(value: string) {
             <Button type="button" class="w-1/2" onclick={() => (step = 1)} variant="outline">{t('Back')}</Button>
             <Button type="button" class="w-1/2" disabled={loading || selection.length !== mnemonic.length} onclick={finalizeRegister}>
               {#if loading}
-                <BarSpinner class="text-primary" />
+                <BarSpinner class="text-foreground" />
                 {t('Saving') || t('Loading')}
               {:else}
                 {t('Complete')}

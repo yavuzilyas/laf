@@ -495,18 +495,18 @@
     let followersList = $state(data.followersList ?? []);
     let followingList = $state(data.followingList ?? []);
     
-    // Track URL changes and reload when nickname changes
+    // Track URL changes and reload when slug changes
     onMount(() => {
-        let previousNickname = $page.params.nickname;
+        let previousSlug = $page.params.slug;
         
         // Load follow and block status only on client side
         loadFollowStatus(profileUserId);
         loadBlockStatus(profileUserId);
         
         return afterNavigate(({ to }) => {
-            const newNickname = to?.params?.nickname;
-            if (newNickname && newNickname !== previousNickname) {
-                previousNickname = newNickname;
+            const newSlug = to?.params?.slug;
+            if (newSlug && newSlug !== previousSlug) {
+                previousSlug = newSlug;
                 window.location.href = to.url.href;
             }
         });
@@ -1798,7 +1798,7 @@
             });
 
             if (res.ok) {
-                showToast(t('CommentDeleted'), 'success');
+                showToast(t('articles.comments.commentDeleted'), 'success');
                 await loadComments();
                 
                 // Refresh dialog if it's open and the deleted comment was in the current dialog
@@ -1813,14 +1813,14 @@
                     }
                 }
             } else if (res.status === 401) {
-                showToast(t('LoginRequired'), 'error');
+                showToast(t('articles.comments.loginRequired'), 'error');
             } else if (res.status === 403) {
-                showToast(t('PermissionDenied'), 'error');
+                showToast(t('articles.comments.permissionDenied'), 'error');
             } else {
-                showToast(t('DeleteFailed'), 'error');
+                showToast(t('articles.comments.deleteFailed'), 'error');
             }
         } catch (e) {
-            showToast(t('DeleteFailed'), 'error');
+            showToast(t('articles.comments.deleteFailed'), 'error');
         }
     }
 
@@ -1833,7 +1833,7 @@
             });
 
             if (res.ok) {
-                showToast(t('CommentHidden'), 'success');
+                showToast(t('articles.comments.commentHidden'), 'success');
                 await loadComments();
                 
                 // Refresh dialog if it's open and the hidden comment is in the current dialog
@@ -1848,14 +1848,14 @@
                     }
                 }
             } else if (res.status === 401) {
-                showToast(t('LoginRequired'), 'error');
+                showToast(t('articles.comments.loginRequired'), 'error');
             } else if (res.status === 403) {
-                showToast(t('PermissionDenied'), 'error');
+                showToast(t('articles.comments.permissionDenied'), 'error');
             } else {
-                showToast(t('HideFailed'), 'error');
+                showToast(t('articles.comments.hideFailed'), 'error');
             }
         } catch (e) {
-            showToast(t('HideFailed'), 'error');
+            showToast(t('articles.comments.hideFailed'), 'error');
         }
     }
     
@@ -1864,11 +1864,11 @@
         const now = new Date();
         const seconds = Math.floor((now.getTime() - date.getTime()) / 1000);
         
-        if (seconds < 60) return 'Az önce';
-        if (seconds < 3600) return `${Math.floor(seconds / 60)} dakika önce`;
-        if (seconds < 86400) return `${Math.floor(seconds / 3600)} saat önce`;
-        if (seconds < 604800) return `${Math.floor(seconds / 86400)} gün önce`;
-        return date.toLocaleDateString('tr-TR');
+        if (seconds < 60) return t('articles.comments.timeAgo.justNow');
+        if (seconds < 3600) return t('articles.comments.timeAgo.minutes', { count: Math.floor(seconds / 60) });
+        if (seconds < 86400) return t('articles.comments.timeAgo.hours', { count: Math.floor(seconds / 3600) });
+        if (seconds < 604800) return t('articles.comments.timeAgo.days', { count: Math.floor(seconds / 86400) });
+        return date.toLocaleDateString(currentLocale === 'tr' ? 'tr-TR' : 'en-US');
     }
     
     const formatNumber = (num: number): string => {
@@ -2883,7 +2883,7 @@
                                                                                 <EyeOff class="h-3 w-3 text-orange-600" />
                                                                             </Tooltip.Trigger>
                                                                             <Tooltip.Content>
-                                                                                <p>{t('hidden')}</p>
+                                                                                <p>{t('articles.comments.hidden')}</p>
                                                                             </Tooltip.Content>
                                                                         </Tooltip.Root>
                                                                     </Tooltip.Provider>

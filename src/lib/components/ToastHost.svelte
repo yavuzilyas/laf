@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { toasts, type Toast, showToast } from "$lib/hooks/toast";
-	import { readAndClearPendingToast } from "$lib/hooks/toast";
+	import { readAndClearPendingToast, dismissToast } from "$lib/hooks/toast";
 	import { t, tJoin } from '$lib/stores/i18n.svelte.js';
 	import { cn } from "$lib/utils";
 	import { CheckCircle2, XCircle, Info } from "@lucide/svelte";
@@ -72,6 +72,8 @@
 				item.exiting = true;
 				setTimeout(() => {
 					renderList = renderList.filter((i) => i.toast.id !== id);
+					// Store'dan da kaldır
+					dismissToast(id);
 					// Bu bildirim kapandıktan sonra sıradakini göster
 					setTimeout(() => showNextToast(), 100);
 				}, EXIT_MS);

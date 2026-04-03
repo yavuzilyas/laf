@@ -535,7 +535,19 @@
       "sending": "Sending...",
       "editPlaceholder": "Edit your comment...",
       "replyPlaceholder": "Write your reply...",
-      "loginRequiredForReactions": "Please login to react"
+      "loginRequiredForReactions": "Please login to react",
+      "timeAgo": {
+        "justNow": "Just now",
+        "minutes": "{count} minutes ago",
+        "hours": "{count} hours ago",
+        "days": "{count} days ago"
+      },
+      "commentDeleted": "Comment deleted",
+      "loginRequired": "Login required",
+      "permissionDenied": "Permission denied",
+      "deleteFailed": "Failed to delete",
+      "commentHidden": "Comment hidden",
+      "hideFailed": "Failed to hide"
     },
     "authors": "Authors",
     "author": "author",
