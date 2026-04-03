@@ -328,9 +328,6 @@
                                     <Badge variant="secondary" class="text-[10px] h-4">
                                         {t(`${announcement.category}`)}
                                     </Badge>
-                                    {#if announcement.isPast}
-                                        <Badge variant="outline" class="text-[10px] h-4">{t('events.completed')}</Badge>
-                                    {/if}
                                 </div>
                                 <div class="flex flex-wrap items-center gap-x-2 gap-y-1 text-[10px] text-muted-foreground">
                                     <span class="flex items-center gap-1">
@@ -343,13 +340,11 @@
                                     </span>
                                 </div>
                                 
-                                {#if announcement.link}
-                                    <div class="mt-2">
-                                        <Button variant="outline" size="xs" class="w-full h-7 text-xs" onclick={() => openDialog(announcement)}>
-                                            {t('common.view')}
-                                        </Button>
-                                    </div>
-                                {/if}
+                                <div class="mt-2">
+                                    <Button variant="outline" size="xs" class="w-full h-7 text-xs" onclick={() => openDialog(announcement)}>
+                                        {t('common.view')}
+                                    </Button>
+                                </div>
                             </div>
                         {/each}
                         
