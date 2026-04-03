@@ -82,7 +82,7 @@ import { ContactRoundIcon } from 'svelte-animate-icons';
   }
 </script>
 
-<div class="max-w-5xl mx-auto">
+<div class="max-w-5xl mx-auto my-4">
   <div class="rounded-xl border bg-card text-card-foreground shadow-lg overflow-hidden">
     <MagicCard class="w-full" gradientSize={250} gradientOpacity={0.15}>
       <div class="p-6">
@@ -183,12 +183,5 @@ import { ContactRoundIcon } from 'svelte-animate-icons';
     </MagicCard>
   </div>
 
-  <!-- Alternative Contact Info -->
-  <div class="my-8 text-center">
-    <p class="text-sm text-muted-foreground">
-      <a href="mailto:info@laf.international" class="text-primary hover:underline ml-1">
-        info@laf.international
-      </a>
-    </p>
-  </div>
+ 
 </div>
