@@ -62,10 +62,11 @@
       <Popover.Trigger>
         <Button
           variant="outline"
-          class="w-full justify-start text-left"
+          size="xs"
+          class="!w-full justify-start text-left"
         >
-          <Search class="w-4 h-4 mr-2" />
-          Search users by @username...
+          <Search class="w-4 h-4" />
+          @username...
         </Button>
       </Popover.Trigger>
       <Popover.Content class="w-80 p-0">

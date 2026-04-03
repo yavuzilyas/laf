@@ -619,7 +619,7 @@ import {NotebookPenIcon} from 'svelte-animate-icons';
               </div>
               
               <div>
-                <Label class="text-sm font-medium">{rt()('article.addCollaborators')}</Label>
+                <Label class="text-sm font-medium">{rt()('article.addCollaborator')}</Label>
                 <div class="mt-2">
                   <UserSearch 
                     bind:selectedUsers={selectedCollaborators}
@@ -723,15 +723,15 @@ import {NotebookPenIcon} from 'svelte-animate-icons';
                     disabled={isTranslator && isDefaultLanguage}
                     oninput={(e) => canEditTranslation && articleEditor.updateTranslation(lang, 'excerpt', (e.target as HTMLTextAreaElement).value)}
                   />
-                  <div class="bg-background  rounded-md border {isTranslator && isDefaultLanguage ? 'opacity-75 pointer-events-none' : ''}">
+                  <div class="bg-background relative rounded-md border overflow-visible {isTranslator && isDefaultLanguage ? 'opacity-75 pointer-events-none' : ''}">
                     {#if browser && editors[lang] && !editors[lang].isDestroyed && (!isTranslator || !isDefaultLanguage)}
                       <EdraToolBar
-                        class="bg-background/44 pb-1 sm:p-0.5 backdrop-blur-sm border-b rounded-md rounded-b-none  flex w-full items-center overflow-x-scroll sm:overflow-x-auto sm:p-0.5 sticky top-8 sm:top-7 z-1 self-start"
+                        class="bg-background/44 pb-1 sm:p-0.5 backdrop-blur-sm border-b rounded-md rounded-b-none  flex w-full items-center overflow-x-scroll sm:overflow-x-auto sm:p-0.5 sticky top-0 z-10 self-start"
                         editor={editors[lang]}
                       />
                     {/if}
                     
-                    <ScrollArea orientation="vertical" class="z-0 min-h-[780px] sm:min-h-[1080px] lg:min-h-[1280px] h-fit">
+                    <ScrollArea orientation="vertical" class="z-0 h-[500px] sm:h-[600px] lg:h-[700px] overflow-auto">
                       {#if browser}
                         <EdraEditor
                           bind:editor={editors[lang]}
