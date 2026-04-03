@@ -113,7 +113,9 @@
 
   function clearSelection() {
     selectedCity = null;
+    
   }
+
 
   // Create a map of plate codes to city data for quick lookup
   const cityByPlate = $derived(
