@@ -8,7 +8,7 @@ const VERIFICATION_TOKEN_EXPIRY = 5 * 60 * 1000;
 
 // Rate limiting configuration
   // const MAX_ATTEMPTS = 3;
-  const MAX_ATTEMPTS = 999; // Geçici olarak devre dışı
+  const MAX_ATTEMPTS = 3;
 const RATE_LIMIT_WINDOW = 15 * 60 * 1000; // 15 minutes
 
 function safeCompare(a: string, b: string): boolean {
