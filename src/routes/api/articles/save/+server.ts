@@ -407,8 +407,6 @@ async function cleanupUnusedMedia(existing: any, updated: any, articleId: string
                     }, { status: 429 });
                 }
                 
-                const defaultLang = existingArticle.default_language || 'tr';
-                
                 // Sadece yeni çeviriler veya mevcut non-default çeviriler güncellenebilir
                 const updatedTranslations = { ...existingArticle.translations };
                 
