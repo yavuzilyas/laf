@@ -7,7 +7,7 @@
   import { t } from '$lib/stores/i18n.svelte.js';
   import { cn } from "$lib/utils.js";
   import { onMount } from 'svelte';
-  import Loader from "@lucide/svelte/icons/loader";
+import { BarSpinner } from "$lib/components/spell/bar-spinner";
 
   let { openVerif = $bindable(false), onVerified = () => {}, onCancel = () => {}, verificationToken: initialToken = null } = $props();
 
@@ -189,7 +189,7 @@
           {/if}</div>
         {:else if loading}
           <div class="z-60 flex justify-center py-4">
-                    <Loader class="animate-spin text-primary" />
+                    <BarSpinner class="text-primary" />
 
           </div>
         {/if}
@@ -200,7 +200,7 @@
           disabled={loading || !mnemonic.trim()}
         >
                    {#if loading}
-            <Loader class="animate-spin" />
+            <BarSpinner class="text-primary" />
               {t('Verifying')}
               
             {:else}

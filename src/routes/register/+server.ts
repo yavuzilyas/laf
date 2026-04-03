@@ -26,6 +26,8 @@ export const POST: RequestHandler = async ({ request }) => {
   const name = typeof body?.name === 'string' ? body.name.trim() : null;
   const surname = typeof body?.surname === 'string' ? body.surname.trim() : null;
   const email = typeof body?.email === 'string' ? body.email.trim() : null;
+  const phoneNumber = typeof body?.phoneNumber === 'string' ? body.phoneNumber.trim() : null;
+  const location = typeof body?.location === 'string' ? body.location.trim() : null;
   const mnemonicPhrase = typeof body?.mnemonicPhrase === 'string' ? body.mnemonicPhrase : (typeof body?.mnemonic === 'string' ? body.mnemonic : '');
   const validateOnly = Boolean(body?.validateOnly);
 
@@ -81,7 +83,12 @@ export const POST: RequestHandler = async ({ request }) => {
     surname,
     password_hash: hashedPassword, 
     mnemonic_hash: mnemonicHash,
-    preferences: {}
+    phone_number: phoneNumber,
+    location,
+    preferences: {
+      phoneNumberVisible: false, // Phone hidden by default
+      emailVisible: false // Email hidden by default
+    }
   });
 
   return new Response(JSON.stringify({ success: true, successKey: "auth.success.registerSuccess" }), { status: 201 });

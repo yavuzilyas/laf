@@ -1,9 +1,11 @@
   <script lang="ts">
 import { onMount, onDestroy } from 'svelte';
+  import { untrack } from 'svelte';
   import { goto } from '$app/navigation';
   import { page } from '$app/stores';
   import { articleEditor } from '$lib/stores/article-editor.svelte.js';
   import { t } from '$lib/stores/i18n.svelte.js';
+  import { browser } from '$app/environment';
 
   import { Button } from '$lib/components/ui/button';
   import { Input } from '$lib/components/ui/input';
@@ -43,7 +45,7 @@ import { onMount, onDestroy } from 'svelte';
     UserPlus,
     LogIn  } from '@lucide/svelte';
 
-    let { article, mode } = $props();
+    let { article, mode, isTranslator = false } = $props();
     const user = $derived($page.data.user);
 
   const rt = () => t;
@@ -57,6 +59,7 @@ import { onMount, onDestroy } from 'svelte';
   let showVersionDialog = $state(false);
   let showCategoryDialog = $state(false);
   let selectedCollaborators = $state<Array<{ id: string; username: string; name?: string; surname?: string }>>([]);
+  let authorInfo = $state<{ id: string; username: string; name?: string; surname?: string; nickname?: string } | null>(null);
 
   const availableLanguages = [
     { value: 'tr', label: 'Türkçe', flag: '🇹🇷' },
@@ -155,36 +158,43 @@ import { onMount, onDestroy } from 'svelte';
   }
 
   $effect(() => {
-    for (const lang of availableLangs) {
+    // Track available languages
+    const langs = [...availableLangs];
+    
+    for (const lang of langs) {
+      // Read editor instance (reactive, but we only care if it exists)
       const editorInstance = editors[lang];
-      const translation = articleData.translations[lang];
+      
+      if (!editorInstance || editorInstance.isDestroyed) continue;
+      
+      // Untrack all data operations to prevent loops
+      untrack(() => {
+        const translation = articleData.translations[lang];
+        if (!translation) return;
 
-      if (!editorInstance || editorInstance.isDestroyed || !translation) continue;
+        const normalized = normalizeEditorContent(translation.content);
+        if (!normalized) return;
 
-      const normalized = normalizeEditorContent(translation.content);
-      if (!normalized) continue;
-
-      let targetSerialized: string;
-      try {
-        targetSerialized = JSON.stringify(normalized);
-      } catch {
-        continue;
-      }
-
-      const isNewInstance = hydratedEditorByLang[lang] !== editorInstance;
-
-      try {
-        if (!isNewInstance && hydratedContentByLang[lang] === targetSerialized) {
-          hydratedEditorByLang[lang] = editorInstance;
-          continue;
+        let targetSerialized: string;
+        try {
+          targetSerialized = JSON.stringify(normalized);
+        } catch {
+          return;
         }
 
-        editorInstance.commands.setContent(normalized);
-        const serializedAfterSet = JSON.stringify(editorInstance.getJSON());
-        cacheEditorContent(lang, serializedAfterSet);
-      } catch {
-        cacheEditorContent(lang, targetSerialized);
-      }
+        // Skip if already hydrated with this exact content for this editor
+        if (hydratedContentByLang[lang] === targetSerialized && hydratedEditorByLang[lang] === editorInstance) {
+          return;
+        }
+
+        try {
+          editorInstance.commands.setContent(normalized);
+          const serializedAfterSet = JSON.stringify(editorInstance.getJSON());
+          cacheEditorContent(lang, serializedAfterSet);
+        } catch {
+          cacheEditorContent(lang, targetSerialized);
+        }
+      });
     }
   });
 
@@ -204,6 +214,9 @@ import { onMount, onDestroy } from 'svelte';
   onMount(async () => {
     resetEditorCaches();
     articleEditor.initialize();
+    
+    // Set translator mode based on prop
+    articleEditor.setTranslatorMode(isTranslator);
 
     if (mode === 'edit' && article) {
       articleEditor.hydrate(article);
@@ -219,6 +232,24 @@ import { onMount, onDestroy } from 'svelte';
           if (response.ok) {
             const users = await response.json();
             selectedCollaborators = users;
+          }
+        } catch (error) {
+        }
+      }
+      // Fetch original author info
+      if (article.authorId || article.originalAuthorId) {
+        try {
+          const authorId = article.originalAuthorId || article.authorId;
+          const response = await fetch(`/api/users/batch`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ ids: [authorId] })
+          });
+          if (response.ok) {
+            const users = await response.json();
+            if (users && users.length > 0) {
+              authorInfo = users[0];
+            }
           }
         } catch (error) {
         }
@@ -271,10 +302,9 @@ import {NotebookPenIcon} from 'svelte-animate-icons';
       <div class="flex flex-col items-center justify-center gap-1">
           <NotebookPenIcon triggers={{ hover: false }} duration={2500} animationState="loading" size={48} class="text-primary" />
           <h1 class="text-xl sm:text-2xl whitespace-nowrap font-bold flex items-center gap-2">
-            {rt()('article.newArticle')}
-
+            {isTranslator ? 'Çeviri Ekle / Düzenle' : rt()('article.newArticle')}
           </h1>
-          <p class="text-muted-foreground">{rt()('article.shareThoughts')}</p>
+          <p class="text-muted-foreground">{isTranslator ? 'Makaleye yeni bir dilde çeviri ekleyin veya mevcut çeviriyi güncelleyin' : rt()('article.shareThoughts')}</p>
       </div>
       
       <!-- Honeypot field for spam protection - hidden from users -->
@@ -287,7 +317,8 @@ import {NotebookPenIcon} from 'svelte-animate-icons';
         aria-hidden="true"
       />
 
-      <div class="grid grid-re grid-cols-1 lg:grid-cols-9 gap-4">
+      <div class="grid grid-re grid-cols-1 {isTranslator ? '' : 'lg:grid-cols-9'} gap-4">
+        {#if !isTranslator}
         <div class="lg:col-span-2 space-y-4 sm:sticky md:top-12 sm:self-start md:max-h-[calc(100vh-8rem] overflow-x-hidden">
           <Card>
             <CardHeader>
@@ -345,10 +376,10 @@ import {NotebookPenIcon} from 'svelte-animate-icons';
                         const validateAndUpload = async () => {
                           try {
                             const ratio = img.naturalWidth / img.naturalHeight;
-                            const target = 16 / 9;
-                            const diff = Math.abs(ratio - target) / target;
-                            if (diff > 0.02) {
-                              alert('Thumbnail 16:9 oranında olmalı.');
+                            const minRatio = 1 / 1; // 1:1
+                            const maxRatio = 16 / 9; // 16:9
+                            if (ratio < minRatio || ratio > maxRatio) {
+                              alert('Thumbnail en/boy oranı 1:1 ile 16:9 arasında olmalı.');
                               URL.revokeObjectURL(urlObj);
                               return;
                             }
@@ -576,14 +607,14 @@ import {NotebookPenIcon} from 'svelte-animate-icons';
               <div class="flex items-center gap-3">
                 <div class="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
                   <span class="text-sm font-medium">
-                    {user?.name ? user.name.charAt(0).toUpperCase() : (user?.username?.charAt(0)?.toUpperCase() ?? '?')}
+                    {authorInfo?.name ? authorInfo.name.charAt(0).toUpperCase() : (authorInfo?.username?.charAt(0)?.toUpperCase() ?? '?')}
                   </span>
                 </div>
                 <div>
                   <p class="font-medium">
-                    {user?.name && user?.surname ? `${user.name} ${user.surname}` : (user?.nickname ?? '—')}
+                    {authorInfo?.name && authorInfo?.surname ? `${authorInfo.name} ${authorInfo.surname}` : (authorInfo?.nickname ?? authorInfo?.username ?? '—')}
                   </p>
-                  <p class="text-sm text-muted-foreground">@{user?.nickname ?? 'guest'}</p>
+                  <p class="text-sm text-muted-foreground">@{authorInfo?.nickname ?? authorInfo?.username ?? 'guest'}</p>
                 </div>
               </div>
               
@@ -602,17 +633,18 @@ import {NotebookPenIcon} from 'svelte-animate-icons';
                                   <Button class="w-full" onclick={publishArticle} disabled={articleEditor.isSaving}>
             {#if articleEditor.isSaving}
               <div class="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-              {rt()('article.publishing')}
+              {isTranslator ? 'Yayınlanıyor...' : rt()('article.publishing')}
             {:else}
               <Send class="w-4 h-4 mr-2" />
-              {rt()('article.publish')}
+              {isTranslator ? 'Çeviriyi Yayınla' : rt()('article.publish')}
             {/if}
           </Button>
         </div>
-        <div class="lg:col-span-7">
+        {/if}
+        <div class="{isTranslator ? 'lg:col-span-12' : 'lg:col-span-7'}">
           <Tabs.Root value={activeLanguage}>
-            <div class="flex items-center justify-between mb-4">
-              <Tabs.List class="grid w-full h-min grid-cols-4">
+            <div class="flex items-center justify-between mb-4 gap-2">
+              <Tabs.List class="grid w-full h-min" style="grid-template-columns: repeat({availableLangs.length}, minmax(0, 1fr));">
                 {#each availableLangs as lang}
                   {@const langInfo = availableLanguages.find(l => l.value === lang)}
                   <Tabs.Trigger
@@ -627,46 +659,121 @@ import {NotebookPenIcon} from 'svelte-animate-icons';
                 {/each}
               </Tabs.List>
 
+              {#if isTranslator}
+                <Popover.Root>
+                  <Popover.Trigger>
+                    <Button size="xs" variant="outline" class="h-9 px-2 shrink-0">
+                      <Plus class="w-4 h-4" />
+                      <span class="hidden sm:inline ml-1">{t('addLanguage')}</span>
+                    </Button>
+                  </Popover.Trigger>
+                  <Popover.Content class="w-[240px] p-0" align="end">
+                    <Command.Root>
+                      <Command.Input placeholder={t('searchLanguages')}/>
+                      <Command.List>
+                        <Command.Empty>{t('noLanguagesFound')}</Command.Empty>
+                        <Command.Group>
+                          {#each availableLanguages as opt}
+                            {#if !availableLangs.includes(opt.value)}
+                              <Command.Item
+                                value={opt.value}
+                                onclick={() => articleEditor.addLanguage(opt.value)}
+                                class="flex items-center gap-2 cursor-pointer hover:bg-accent px-2 py-1 rounded-sm"
+                              >
+                                <span>{opt.flag}</span>
+                                <span>{opt.label}</span>
+                              </Command.Item>
+                            {/if}
+                          {/each}
+                        </Command.Group>
+                      </Command.List>
+                    </Command.Root>
+                  </Popover.Content>
+                </Popover.Root>
+              {/if}
             </div>
 
             {#each availableLangs as lang}
-              <Tabs.Content value={lang} class="space-y-4">
-                {@const translation = articleData.translations[lang]}
-                <Input
-                  value={translation.title}
-                  placeholder={rt()('article.titlePlaceholder')}
-                  class="text-xl font-bold h-12"
-                  oninput={(e) => articleEditor.updateTranslation(lang, 'title', (e.target as HTMLInputElement).value)}
-                />
-                <Textarea
-                  value={translation.excerpt}
-                  placeholder={rt()('article.excerptPlaceholder')}
-                  class="resize-none"
-                  rows={3}
-                  maxlength={300}
-                  oninput={(e) => articleEditor.updateTranslation(lang, 'excerpt', (e.target as HTMLTextAreaElement).value)}
-                />
-                <div class="bg-background  rounded-md border">
-                  {#if editors[lang] && !editors[lang].isDestroyed}
-                    <EdraToolBar
-                      class="bg-background/44 pb-1 sm:p-0.5 backdrop-blur-sm border-b rounded-md rounded-b-none  flex w-full items-center overflow-x-scroll sm:overflow-x-auto sm:p-0.5 sticky top-8 sm:top-7 z-1 self-start"
-                      editor={editors[lang]}
-                    />
+              {@const translation = articleData.translations[lang]}
+              {@const isDefaultLanguage = articleData.defaultLanguage === lang}
+              {@const canEditTranslation = !isTranslator || !isDefaultLanguage}
+              {#if translation}
+                <Tabs.Content value={lang} class="space-y-4">
+                  {#if isTranslator && isDefaultLanguage}
+                    <div class="p-4 bg-muted rounded-md border border-border/50">
+                      <p class="text-sm text-muted-foreground flex items-center gap-2">
+                        <Info class="w-4 h-4" />
+                        Bu makalenin orijinal dilidir. Çevirmenler ana dili değiştiremez.
+                      </p>
+                    </div>
                   {/if}
-                  
-                  <ScrollArea orientation="vertical" class="z-0 min-h-[780px] sm:min-h-[1080px] lg:min-h-[1280px] h-fit">
-                    <EdraEditor
-                      bind:editor={editors[lang]}
-                      content={translation.content}
-                      class="py-2 p-3  md:py-7 sm:p-10"
-                      onUpdate={onEditorUpdate(lang)}
-                    />
-                    <EdraDragHandleExtended editor={editors[lang]} />
-                  </ScrollArea>
-                </div>
-              </Tabs.Content>
+                  <Input
+                    value={translation.title}
+                    placeholder={rt()('article.titlePlaceholder')}
+                    class="text-xl font-bold h-12 {isTranslator && isDefaultLanguage ? 'bg-muted/50' : ''}"
+                    disabled={isTranslator && isDefaultLanguage}
+                    oninput={(e) => canEditTranslation && articleEditor.updateTranslation(lang, 'title', (e.target as HTMLInputElement).value)}
+                  />
+                  <Textarea
+                    value={translation.excerpt}
+                    placeholder={rt()('article.excerptPlaceholder')}
+                    class="resize-none {isTranslator && isDefaultLanguage ? 'bg-muted/50' : ''}"
+                    rows={3}
+                    maxlength={300}
+                    disabled={isTranslator && isDefaultLanguage}
+                    oninput={(e) => canEditTranslation && articleEditor.updateTranslation(lang, 'excerpt', (e.target as HTMLTextAreaElement).value)}
+                  />
+                  <div class="bg-background  rounded-md border {isTranslator && isDefaultLanguage ? 'opacity-75 pointer-events-none' : ''}">
+                    {#if browser && editors[lang] && !editors[lang].isDestroyed && (!isTranslator || !isDefaultLanguage)}
+                      <EdraToolBar
+                        class="bg-background/44 pb-1 sm:p-0.5 backdrop-blur-sm border-b rounded-md rounded-b-none  flex w-full items-center overflow-x-scroll sm:overflow-x-auto sm:p-0.5 sticky top-8 sm:top-7 z-1 self-start"
+                        editor={editors[lang]}
+                      />
+                    {/if}
+                    
+                    <ScrollArea orientation="vertical" class="z-0 min-h-[780px] sm:min-h-[1080px] lg:min-h-[1280px] h-fit">
+                      {#if browser}
+                        <EdraEditor
+                          bind:editor={editors[lang]}
+                          content={translation.content}
+                          class="py-2 p-3  md:py-7 sm:p-10"
+                          editable={!isTranslator || !isDefaultLanguage}
+                          onUpdate={onEditorUpdate(lang)}
+                        />
+                      {:else}
+                        <div class="p-8 text-center text-muted-foreground">
+                          {rt()('article.loading')}...
+                        </div>
+                      {/if}
+                      {#if browser}
+                        <EdraDragHandleExtended editor={editors[lang]} />
+                      {/if}
+                    </ScrollArea>
+                  </div>
+                </Tabs.Content>
+              {:else}
+                <Tabs.Content value={lang} class="space-y-4">
+                  <div class="p-8 text-center text-muted-foreground">
+                    {rt()('article.loading')}...
+                  </div>
+                </Tabs.Content>
+              {/if}
             {/each}
           </Tabs.Root>
+          
+          {#if isTranslator}
+            <div class="mt-6 flex justify-end">
+              <Button onclick={publishArticle} disabled={articleEditor.isSaving} size="lg">
+                {#if articleEditor.isSaving}
+                  <div class="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                  Yayınlanıyor...
+                {:else}
+                  <Send class="w-4 h-4 mr-2" />
+                  Çeviriyi Yayınla
+                {/if}
+              </Button>
+            </div>
+          {/if}
         </div>
       </div>
       

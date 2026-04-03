@@ -20,7 +20,7 @@
 	import ShowMnemonicDrawer from "$lib/components/ShowMnemonicDrawer.svelte";
 	import PasswordVerificationPopup from "$lib/components/PasswordVerificationPopup.svelte";
 	import { showToast } from "$lib/hooks/toast";
-    import Loader from "@lucide/svelte/icons/loader";
+import { BarSpinner } from "$lib/components/spell/bar-spinner";
     import { t, tJoin, tMany } from '$lib/stores/i18n.svelte.js';
 	import { playSound } from "$lib/stores/sound"; 
 	import { mnemonicPhraseStore, clearMnemonicPhrase, setMnemonicPhrase } from '$lib/stores/mnemonic';
@@ -677,7 +677,7 @@ function handleOpenChange(newOpen: boolean) {
 										size="sm"
 									>
 										{#if isChangingPassword}
-											<Loader class="w-4 h-4  animate-spin" />
+											<BarSpinner class="text-primary" size={16} />
 											{t('Changing')}...
 										{:else}
 											<KeyRound class="w-4 h-4"/>
@@ -701,7 +701,7 @@ function handleOpenChange(newOpen: boolean) {
                       size="sm"
                     >
                       {#if isRegeneratingMnemonic}
-                        <Loader class="w-4 h-4  animate-spin mr-2" />
+                        <BarSpinner class="text-primary" size={16} />
                         {t('Regenerating')}...
                       {:else}
                         <RefreshCw class="w-4 h-4 mr-2" />
@@ -760,7 +760,7 @@ function handleOpenChange(newOpen: boolean) {
                   >
                     {#if isDeletingAccount}
                       <span class="inline-flex items-center gap-2">
-                        <Loader class="animate-spin" />
+                        <BarSpinner class="text-primary" />
                         {t('Deleting')}...
                       </span>
                     {:else}
@@ -897,7 +897,7 @@ function handleOpenChange(newOpen: boolean) {
 										</div>
 									</div>
 									
-									<div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+									<div class="grid grid-cols-2 md:grid-cols-3 gap-2 md:gap-3">
 										<div class="flex items-center justify-between py-3 px-4 rounded-lg border">
 											<Label for="email-notifications" class="cursor-pointer text-xs">{t('EmailNotifications')}</Label>
 											<Switch 
@@ -930,9 +930,7 @@ function handleOpenChange(newOpen: boolean) {
 												onclick={() => handleToggleGeneralSetting('systemNotifications')}
 											/>
 										</div>
-									</div>
-						
-									<div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+								
 										<div class="flex items-center justify-between py-3 px-4 rounded-lg border">
 											<Label for="follow-notifications" class="cursor-pointer text-xs">{t('FollowNotifications')}</Label>
 											<Switch 
@@ -982,7 +980,7 @@ function handleOpenChange(newOpen: boolean) {
 								<div class="space-y-4">
 									<Label class="text-sm font-medium">{t('ToastNotifications')}</Label>
 									
-									<div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+									<div class="grid grid-cols-2 md:grid-cols-3 gap-2 md:gap-3">
 										<div class="flex items-center justify-between py-3 px-4 rounded-lg border">
 											<Label for="success-toasts" class="cursor-pointer text-xs">{t('SuccessToasts')}</Label>
 											<Switch 

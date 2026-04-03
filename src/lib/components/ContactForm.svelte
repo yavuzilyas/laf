@@ -23,11 +23,11 @@ import { ContactRoundIcon } from 'svelte-animate-icons';
   let website = $state(''); // Honeypot - bots fill this, humans don't see it
 
   const subjectOptions = [
-    { value: 'general', label: t('contactForm.subjects.general'), icon: HelpCircle },
-    { value: 'feedback', label: t('contactForm.subjects.feedback'), icon: Lightbulb },
-    { value: 'collaboration', label: t('contactForm.subjects.collaboration'), icon: Users },
-    { value: 'report', label: t('contactForm.subjects.report'), icon: AlertCircle },
-    { value: 'other', label: t('contactForm.subjects.other'), icon: MessageSquare }
+    { value: 'general', label: t('General'), icon: HelpCircle },
+    { value: 'feedback', label: t('Feedback'), icon: Lightbulb },
+    { value: 'collaboration', label: t('Collaboration'), icon: Users },
+    { value: 'report', label: t('Report'), icon: AlertCircle },
+    { value: 'other', label: t('Other'), icon: MessageSquare }
   ];
 
   async function handleContactSubmit(e: Event) {

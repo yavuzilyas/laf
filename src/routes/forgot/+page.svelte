@@ -5,7 +5,8 @@
   import { showToast } from "$lib/hooks/toast";
   import { t } from '$lib/stores/i18n.svelte.js';
   import { Motion } from "svelte-motion";
-  import { User, KeyRound, Eye, EyeOff, Loader, ArrowLeft, Lock } from "@lucide/svelte";
+import { User, KeyRound, Eye, EyeOff, ArrowLeft, Lock } from "@lucide/svelte";
+  import { BarSpinner } from "$lib/components/spell/bar-spinner";
   import logo from "$lib/assets/laf1.svg";
 
   // Steps: 1 = enter identifier, 2 = verify mnemonic, 3 = enter new password
@@ -247,7 +248,7 @@
 
                 <Button type="submit" class="w-full" disabled={loading}>
                   {#if loading}
-                    <Loader class="animate-spin mr-2" />
+                    <BarSpinner class="text-primary" />mr-2" />
                     {t('Loading') || 'Yükleniyor...'}
                   {:else}
                     {t('Continue') || 'Devam Et'}
@@ -298,7 +299,7 @@
                   </Button>
                   <Button type="submit" class="w-1/2" disabled={loading}>
                     {#if loading}
-                      <Loader class="animate-spin mr-2" />
+                      <BarSpinner class="text-primary" />mr-2" />
                       {t('Verifying') || 'Doğrulanıyor...'}
                     {:else}
                       {t('Verify') || 'Doğrula'}
@@ -389,7 +390,7 @@
                   </Button>
                   <Button type="submit" class="w-1/2" disabled={loading || !meetsPasswordPolicy(newPassword)}>
                     {#if loading}
-                      <Loader class="animate-spin mr-2" />
+                      <BarSpinner class="text-primary" />mr-2" />
                       {t('Saving') || 'Kaydediliyor...'}
                     {:else}
                       {t('ResetPassword') || 'Şifreyi Sıfırla'}

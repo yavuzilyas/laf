@@ -7,7 +7,7 @@ import SettingsDialog from "$lib/components/settings-dialog.svelte";
 import NotificationDialog from "$lib/components/NotificationDialog.svelte";
 import A from "$lib/components/ui/a.svelte";
 import { ScrollProgress } from "$lib/components/magic/scroll-progress";
-    import {HandCoins, BadgeInfo, Cog, BellIcon,LogOutIcon, LogInIcon, UserRound, Shield } from "@lucide/svelte";
+    import {HandCoins, BadgeInfo, Cog, BellIcon,LogOutIcon, LogInIcon, UserRound, Shield, Link } from "@lucide/svelte";
   import logo from '$lib/assets/laf1.svg';
       import { t, tJoin, tMany, dativeSuffix } from '$lib/stores/i18n.svelte.js';
   import { goto } from '$app/navigation';
@@ -23,7 +23,9 @@ import { ScrollProgress } from "$lib/components/magic/scroll-progress";
     deleteNotification,
     blockUserNotifications,
     unblockUserNotifications,
-    goToNotificationLink
+    goToNotificationLink,
+    approveTranslation,
+    rejectTranslation
   } from '$lib/stores/notifications';
   import type { NotificationRecord } from '$lib/types/notification';
   
@@ -42,6 +44,7 @@ import { ScrollProgress } from "$lib/components/magic/scroll-progress";
   // Reaktif menu array'i - dil değiştiğinde otomatik güncellenir
   let menu = $derived([
     { isconstruction: "false", name: t('Articles'), href: "/articles" },
+    { isconstruction: "false", name: t('Events'), href: "/events" },
     // { isconstruction: "true", name: t('Bicorpus'), href: "bicorpus" },
     // { isconstruction: "true", name: t('Tacicat'), href: "tacicat" },
   ]);
@@ -124,6 +127,26 @@ import { ScrollProgress } from "$lib/components/magic/scroll-progress";
     showNotificationsDialog = false;
   }
 
+  async function handleApproveTranslation(event: CustomEvent<{ notification: NotificationRecord }>) {
+    const notification = event.detail.notification;
+    if (!notification || !notification.meta?.translationStatusId) return;
+
+    const success = await approveTranslation(notification);
+    if (success) {
+      showNotificationsDialog = false;
+    }
+  }
+
+  async function handleRejectTranslation(event: CustomEvent<{ notification: NotificationRecord }>) {
+    const notification = event.detail.notification;
+    if (!notification || !notification.meta?.translationStatusId) return;
+
+    const success = await rejectTranslation(notification);
+    if (success) {
+      showNotificationsDialog = false;
+    }
+  }
+
   async function handleMarkAllNotifications() {
     await markAllNotificationsRead();
     // Refresh the notifications list to reflect the changes
@@ -143,7 +166,11 @@ import { ScrollProgress } from "$lib/components/magic/scroll-progress";
   function scrollToDonations() {
     const element = document.getElementById('donations');
     if (element) {
+      // Already on homepage, just scroll
       element.scrollIntoView({ behavior: 'smooth' });
+    } else {
+      // Not on homepage, navigate first with hash
+      goto('/#donations');
     }
   }
  import { playSound } from "$lib/stores/sound"; // 🔥 ekle
@@ -180,6 +207,7 @@ import { ScrollProgress } from "$lib/components/magic/scroll-progress";
     { icon: Cog, name: t('Settings'), onClick: handleSettingsClick },
     { icon: BellIcon, name: t('Notifications'), onClick: openNotificationsDialog, badge: unreadTotal },
     ...(isModerator ? [{ icon: Shield, name: t('Moderation'), href: "/moderation" }] : []),
+    { icon: Link, name: t('Links'), href: "/links" },
     { icon: HandCoins, name: t('Donate'), onClick: () => scrollToDonations() },
     { icon: LogOutIcon, name: t('Logout'), href: '/logout', customStyle: "!text-red-500"},
   ]);
@@ -187,6 +215,7 @@ import { ScrollProgress } from "$lib/components/magic/scroll-progress";
   // Reaktif logged-out items - dil değiştiğinde otomatik güncellenir
   const baseLoggedOut = $derived<MenuItem[]>([
     { icon: LogInIcon, name: t('Login'), href: "/login" },
+    { icon: Link, name: t('Links'), href: "/links" },
     { icon: HandCoins, name: t('Donations'), onClick: () => scrollToDonations() },
   ]);
 
@@ -217,6 +246,8 @@ import { ScrollProgress } from "$lib/components/magic/scroll-progress";
   on:block={handleNotificationBlock}
   on:unblock={handleNotificationUnblock}
   on:editArticle={handleEditArticle}
+  on:approveTranslation={handleApproveTranslation}
+  on:rejectTranslation={handleRejectTranslation}
 />
 
 <nav class="w-full fixed border-b top-0 z-45 text-secondary-foreground  rounded-xl">

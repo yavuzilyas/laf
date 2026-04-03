@@ -7,7 +7,7 @@
   import { t } from '$lib/stores/i18n.svelte.js';
   import { cn } from "$lib/utils.js";
   import { onMount } from 'svelte';
-  import Loader from "@lucide/svelte/icons/loader";
+import { BarSpinner } from "$lib/components/spell/bar-spinner";
 
   let { openVerif = $bindable(false), onVerified = () => {}, onCancel = () => {} } = $props();
 
@@ -200,7 +200,7 @@
           disabled={loading || !password.trim()}
         >
           {#if loading}
-            <Loader class="animate-spin" />
+            <BarSpinner class="text-primary" />
               {t('Verifying')}
               
             {:else}

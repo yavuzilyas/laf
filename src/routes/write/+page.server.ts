@@ -35,13 +35,15 @@ const sanitizeTranslation = (data: any, language: string) => {
 export const load: PageServerLoad = async ({ url, locals }) => {
   const articleId = url.searchParams.get('articleId');
   const mode = url.searchParams.get('mode') ?? 'create';
+  const isTranslatorMode = url.searchParams.get('translator') === 'true';
 
   const user = (locals as any)?.user ?? null;
   if (!user) {
     return {
       user: null,
       mode,
-      article: null
+      article: null,
+      isTranslator: false
     };
   }
 
@@ -49,7 +51,8 @@ export const load: PageServerLoad = async ({ url, locals }) => {
     return {
       user,
       mode,
-      article: null
+      article: null,
+      isTranslator: false
     };
   }
 
@@ -79,7 +82,15 @@ export const load: PageServerLoad = async ({ url, locals }) => {
     throw error(404, 'Article not found');
   }
 
-  if (String(articleDoc.author_id) !== String(user.id)) {
+  // Check if user is author or collaborator
+  const isAuthor = String(articleDoc.author_id) === String(user.id);
+  const isCollaborator = articleDoc.collaborators?.includes(user.id);
+  
+  // If not author/collaborator, check if this is a translator request
+  // Translator mode: any logged-in user can add translations
+  const isTranslator = isTranslatorMode && !isAuthor && !isCollaborator;
+  
+  if (!isAuthor && !isCollaborator && !isTranslator) {
     throw error(403, 'Unauthorized');
   }
 
@@ -118,7 +129,10 @@ export const load: PageServerLoad = async ({ url, locals }) => {
     subcategory: articleDoc.subcategory || '',
     tags: Array.isArray(articleDoc.tags) ? articleDoc.tags : [],
     status: articleDoc.status || 'draft',
-    collaborators: [],
+    collaborators: Array.isArray(articleDoc.collaborators) ? articleDoc.collaborators : [],
+    originalAuthorId: articleDoc.author_id ? String(articleDoc.author_id) : user.id,
+    isCollaborator: !isAuthor && isCollaborator,
+    isTranslator,
     authorId: articleDoc.author_id ? String(articleDoc.author_id) : user.id,
     thumbnail: articleDoc.thumbnail || '',
     translations,
@@ -130,7 +144,8 @@ export const load: PageServerLoad = async ({ url, locals }) => {
   return {
     user,
     mode,
-    article: responseArticle
+    article: responseArticle,
+    isTranslator
   };
 };
 

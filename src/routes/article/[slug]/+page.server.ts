@@ -9,6 +9,70 @@ const toSerializableId = (value: unknown) => {
   return String(value);
 };
 
+// All available languages for translation
+const ALL_LANGUAGES = ['tr', 'en', 'de', 'fr', 'es', 'ar', 'ru', 'zh', 'ja', 'pt', 'it', 'nl', 'pl', 'sv', 'ko', 'hi', 'vi', 'th', 'id', 'cs', 'hu', 'ro', 'el', 'he', 'uk', 'da', 'fi', 'no', 'sk', 'bg', 'hr', 'sr', 'sl', 'lt', 'lv', 'et', 'mt', 'ga', 'is', 'lb', 'mk', 'mn', 'ka', 'az', 'hy', 'bn', 'ur', 'ta', 'te', 'ml', 'kn', 'mr', 'gu', 'pa', 'ne', 'si', 'my', 'km', 'lo', 'tl', 'jv', 'su', 'ms', 'sw', 'am', 'so', 'af', 'zu', 'xh', 'sn', 'st', 'sq', 'be', 'tg', 'uz', 'kk', 'ky', 'mo', 'lu', 'wo', 'yo', 'ig', 'ha', 'ff', 'bm', 'bo', 'dz', 'ii', 'ug', 'yi', 'iw', 'ji', 'in', 'sh', 'mo', 'mo'];
+
+// Filter translations based on user role and translation status
+async function filterTranslationsByRole(
+  article: any, 
+  viewer: any
+): Promise<Record<string, any>> {
+  const translations = article.translations || {};
+  const filteredTranslations: Record<string, any> = {};
+  
+  // Determine user role
+  const isAdmin = viewer?.role === 'admin';
+  const isModerator = viewer?.role === 'moderator';
+  const isAuthor = viewer?.id === article.author_id;
+  const isPrivileged = isAdmin || isModerator || isAuthor;
+  
+  for (const [lang, translation] of Object.entries(translations)) {
+    // Default language is always visible
+    if (lang === article.default_language) {
+      filteredTranslations[lang] = translation;
+      continue;
+    }
+    
+    // If translation exists but has no content, skip
+    if (!translation || !(translation as any).title) {
+      continue;
+    }
+    
+    // For privileged users, show all translations
+    if (isPrivileged) {
+      filteredTranslations[lang] = translation;
+      continue;
+    }
+    
+    // For public users, only show approved translations
+    // Check if there's an approved translation status
+    const { isTranslationApproved } = await import('$db/queries-translation-status');
+    const isApproved = await isTranslationApproved(article.id, lang);
+    
+    if (isApproved) {
+      filteredTranslations[lang] = translation;
+    }
+  }
+  
+  return filteredTranslations;
+}
+
+// Check if article has any translations (default + at least 1 other)
+function isFullyTranslated(article: any): boolean {
+  const translations = article.translations || {};
+  const availableLangs = Object.keys(translations).filter(
+    lang => translations[lang] && translations[lang].title
+  );
+  
+  const defaultLang = article.default_language || 'tr';
+  const hasDefault = availableLangs.includes(defaultLang);
+  
+  // If has default language AND at least 1 other translation, hide translate button
+  const otherLangs = availableLangs.filter(lang => lang !== defaultLang);
+  
+  return hasDefault && otherLangs.length >= 1;
+}
+
 const sanitizeRelationEntries = <T extends Record<string, any>>(
   entries: T[] | undefined,
   idKey: keyof T,
@@ -56,7 +120,8 @@ export const load: PageServerLoad = async ({ params, locals }) => {
     } else if (!isModeratorOrAdmin) {
       // Regular users can see published articles and their own drafts/pending
       const isAuthor = viewer.id === found.author_id;
-      if (found.status !== 'published' && !isAuthor) continue;
+      const isCollaborator = found.collaborators?.includes(viewer.id);
+      if (found.status !== 'published' && !isAuthor && !isCollaborator) continue;
     }
     
     article = found;
@@ -68,8 +133,9 @@ export const load: PageServerLoad = async ({ params, locals }) => {
     throw error(404, 'Article not found');
   }
 
-  // Eğer makale gizlenmişse ve kullanıcı sahibi değilse erişim engelle
-  if (article.is_hidden && (!viewer || String(article.author_id) !== String(viewer.id))) {
+  // Eğer makale gizlenmişse ve kullanıcı sahibi veya moderatör/admin değilse erişim engelle
+  const isModeratorOrAdmin = viewer?.role === 'moderator' || viewer?.role === 'admin';
+  if (article.is_hidden && (!viewer || (String(article.author_id) !== String(viewer.id) && !isModeratorOrAdmin))) {
     throw redirect(303, '/403');
   }
 
@@ -108,10 +174,15 @@ export const load: PageServerLoad = async ({ params, locals }) => {
   // Increment views
   await incrementArticleViews(article.id);
 
-  // Build available translations map
+  // Filter translations based on user role (admin/moderator/author see all, public sees only approved)
+  const filteredTranslations = await filterTranslationsByRole(article, viewer);
+  
+  // Check if article is fully translated (for hiding translate button)
+  const fullyTranslated = isFullyTranslated(article);
+
+  // Build available translations map (only show approved translations to public)
   const availableTranslations: Record<string, { slug: string; title: string }> = {};
-  const translations = article.translations || {};
-  for (const [lang, tr] of Object.entries(translations)) {
+  for (const [lang, tr] of Object.entries(filteredTranslations)) {
     if (tr && typeof tr === 'object' && (tr as any).slug) {
       availableTranslations[lang] = { slug: (tr as any).slug, title: (tr as any).title };
     }
@@ -119,7 +190,7 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 
   // Flatten selected translation into top-level fields for the page
   const currentLang = matchedLang || article.default_language || Object.keys(availableTranslations)[0];
-  const tr = translations[currentLang] || {};
+  const tr = filteredTranslations[currentLang] || {};
 
   // Load author as plain serializable object
   let author: { id: string; nickname?: string; name?: string; surname?: string; avatar?: string } | null = null;
@@ -223,6 +294,7 @@ export const load: PageServerLoad = async ({ params, locals }) => {
       avatar: authorDoc.avatar_url || '',
       bannerColor: authorDoc.preferences?.bannerColor || authorDoc.banner_color || '#0f172a',
       bannerImage: authorDoc.preferences?.bannerImage || authorDoc.banner_image || '',
+      is_hidden: authorDoc.is_hidden || false,
       followers: followers.map((f: any) => ({
         followerUserId: f.follower_id,
         followedAt: f.created_at
@@ -280,6 +352,7 @@ export const load: PageServerLoad = async ({ params, locals }) => {
         avatar: collaborator.avatar_url || '',
         bannerColor: collaborator.preferences?.bannerColor || collaborator.banner_color || '#0f172a',
         bannerImage: collaborator.preferences?.bannerImage || collaborator.banner_image || '',
+        is_hidden: collaborator.is_hidden || false,
         followers: [],
         following: [],
         blocked: [],
@@ -329,7 +402,8 @@ export const load: PageServerLoad = async ({ params, locals }) => {
     createdAt: article.created_at ? new Date(article.created_at).toISOString() : undefined,
     updatedAt: article.updated_at ? new Date(article.updated_at).toISOString() : undefined,
     publishedAt: article.published_at ? new Date(article.published_at).toISOString() : undefined,
-    availableTranslations
+    availableTranslations,
+    fullyTranslated
   };
 
   // Create a safe profile user object

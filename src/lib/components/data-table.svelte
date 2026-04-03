@@ -34,6 +34,7 @@
 		renderSnippet,
 	} from "$lib/components/ui/data-table/index.js";
 	  import { ClockIcon, TimerIcon, CircleXIcon, HelpCircleIcon } from "@lucide/svelte";
+	import { ScrollArea } from '$lib/components/ui/scroll-area';
 
 	import LayoutColumnsIcon from "@tabler/icons-svelte/icons/layout-columns";
 	import GripVerticalIcon from "@tabler/icons-svelte/icons/grip-vertical";
@@ -69,6 +70,7 @@
 	import { useSortable } from "@dnd-kit-svelte/svelte/sortable";
 	import PasswordVerificationPopup from "$lib/components/PasswordVerificationPopup.svelte";
 	import { cn } from "$lib/utils.js";
+	import { EdraEditor } from '$lib/components/edra/shadcn/index.js';
 
 	// @ts-ignore - Lucide icons for donations
 	import HeartIcon from "@lucide/svelte/icons/heart";
@@ -117,6 +119,24 @@
 		updatedAt: string | null;
 		hidden: boolean;
 		deletedAt: string | null;
+	};
+
+	type CommentRow = {
+		id: string;
+		content: string;
+		authorId: string;
+		authorName: string | null;
+		authorNickname: string | null;
+		authorRole?: string | null;
+		articleId: string;
+		articleTitle: string | null;
+		articleSlug: string | null;
+		parentId: string | null;
+		status: "active" | "hidden" | "deleted";
+		hidden: boolean;
+		deletedAt: string | null;
+		createdAt: string | null;
+		updatedAt: string | null;
 	};
 
 	type ReportRow = {
@@ -234,8 +254,10 @@
 	let reportsTypeFilter = $state<"all" | "profile" | "article" | "comment" | "error">("all");
 	let showReportReasonsDialog = $state(false);
 	let reportReasonsDialogText = $state<string[]>([]);
+	let showCommentContentDialog = $state(false);
+	let commentContentDialogContent = $state<any>(null);
+	let commentContentDialogAuthor = $state<string>('');
 
-	// Donation state
 	let donations = $state<any[]>([]);
 	let loadingDonations = $state(false);
 	let donationsInitialized = $state(false);
@@ -247,7 +269,10 @@
 	let donationsGlobalFilter = $state<string>("");
 	let donationsStatusFilter = $state<"pending" | "approved" | "rejected">("pending");
 
-	// Contact Messages state
+	// Contact Messages reply dialog state
+	let showContactReplyDialog = $state(false);
+	let pendingReplyMessage = $state<ContactMessageRow | null>(null);
+	let contactReplyText = $state("");
 	let contactMessages = $state<ContactMessageRow[]>([]);
 	let loadingContactMessages = $state(false);
 	let contactMessagesInitialized = $state(false);
@@ -258,6 +283,65 @@
 	let contactMessagesColumnVisibility = $state<VisibilityState>({});
 	let contactMessagesGlobalFilter = $state<string>("");
 	let contactMessagesStatusFilter = $state<"all" | "pending" | "read" | "responded" | "archived">("all");
+
+	// Comments state
+	let comments = $state<CommentRow[]>([]);
+	let loadingComments = $state(false);
+	let commentsInitialized = $state(false);
+	let commentsPagination = $state<PaginationState>({ pageIndex: 0, pageSize: 10 });
+	let commentsSorting = $state<SortingState>([]);
+	let commentsColumnFilters = $state<ColumnFiltersState>([]);
+	let commentsRowSelection = $state<RowSelectionState>({});
+	let commentsColumnVisibility = $state<VisibilityState>({});
+	let commentsGlobalFilter = $state<string>("");
+	let commentsStatusFilter = $state<"all" | "active" | "hidden" | "deleted">("all");
+
+	// Helper function to extract plain text from Edra JSON content
+	function extractPlainTextFromEdra(content: string | null | undefined): string {
+		if (!content) return '';
+		try {
+			const parsed = JSON.parse(content);
+			if (parsed && typeof parsed === 'object') {
+				// Extract text from Edra document structure
+				let text = '';
+				const extractText = (node: any): void => {
+					if (!node) return;
+					if (typeof node === 'string') {
+						text += node + ' ';
+					} else if (Array.isArray(node)) {
+						node.forEach(extractText);
+					} else if (typeof node === 'object') {
+						// Check for common text properties in Edra
+						if (node.text) extractText(node.text);
+						if (node.content) extractText(node.content);
+						if (node.children) extractText(node.children);
+						if (node.value) extractText(node.value);
+						// Check for type-specific nodes
+						if (node.type === 'text' && node.value) {
+							text += node.value + ' ';
+						}
+						// Recursively check all properties
+						Object.values(node).forEach(extractText);
+					}
+				};
+				extractText(parsed);
+				return text.trim() || content;
+			}
+		} catch {
+			// Not valid JSON, return as-is
+		}
+		return content;
+	}
+
+	// Comments bulk actions
+	type CommentsBulkAction = "hide" | "unhide" | "delete";
+	const commentsBulkActionOptions: { value: CommentsBulkAction; label: string }[] = [
+		{ value: "hide", label: t('bulkHide') ?? 'Toplu Gizle' },
+		{ value: "unhide", label: t('bulkUnhide') ?? 'Toplu Göster' },
+		{ value: "delete", label: t('bulkDelete') ?? 'Toplu Sil' },
+	];
+	let selectedCommentsBulkAction = $state<CommentsBulkAction>("hide");
+	let commentsBulkProcessing = $state(false);
 
 	type ReportsBulkAction = "reviewing" | "resolved" | "rejected" | "delete";
 	const reportsBulkActionOptions: { value: ReportsBulkAction; label: string }[] = [
@@ -278,6 +362,15 @@
 	];
 	let selectedDonationBulkAction = $state<DonationBulkAction>("approve");
 	let donationsBulkProcessing = $state(false);
+
+	// Contact Messages bulk actions
+	type ContactMessagesBulkAction = "read" | "responded" | "delete";
+	const contactMessagesBulkActionOptions: { value: ContactMessagesBulkAction; label: string }[] = [
+		{ value: "read", label: "Toplu Okundu İşaretle" },
+		{ value: "delete", label: "Toplu Sil" },
+	];
+	let selectedContactMessagesBulkAction = $state<ContactMessagesBulkAction>("read");
+	let contactMessagesBulkProcessing = $state(false);
 	type PendingBulkAction = "approve" | "reject" | "delete" | "hide";
 	const pendingBulkActionOptions: { value: PendingBulkAction; label: string }[] = [
 		{ value: "approve", label: t('bulkApprove') ?? t('common.approve') },
@@ -417,6 +510,40 @@
 			}
 		} catch (error) {
 			
+			toast.error(t('actionFailed'));
+		}
+	}
+
+	async function performCommentModerationAction(action: 'hide' | 'unhide' | 'delete', commentId: string) {
+		try {
+			let response;
+			if (action === 'delete') {
+				// Permanent deletion using DELETE endpoint
+				response = await fetch(`/api/comments/${commentId}`, { method: 'DELETE' });
+			} else {
+				response = await fetch('/api/moderation/comments', {
+					method: 'POST',
+					headers: { 'Content-Type': 'application/json' },
+					body: JSON.stringify({ action, id: commentId })
+				});
+			}
+
+			if (response.ok) {
+				let message: string;
+				if (action === 'delete') {
+					message = 'Yorum silindi';
+				} else if (action === 'hide') {
+					message = 'Yorum gizlendi';
+				} else {
+					message = 'Yorum görünür yapıldı';
+				}
+				toast.success(message);
+				await fetchComments(true);
+			} else {
+				const error = await response.json();
+				toast.error(error.error || t('actionFailed'));
+			}
+		} catch (error) {
 			toast.error(t('actionFailed'));
 		}
 	}
@@ -914,9 +1041,152 @@
 		},
 	});
 
+	// Comments columns definition
+	const commentsStatusOptions = [
+		{ value: "all", label: t('allStatuses') ?? t('common.all') ?? "Tümü" },
+		{ value: "active", label: t('active') ?? "Aktif" },
+		{ value: "hidden", label: t('hidden') ?? "Gizli" },
+		{ value: "deleted", label: t('deleted') ?? "Silinmiş" },
+	];
+
+	const commentsColumns: ColumnDef<CommentRow>[] = [
+		{
+			id: "drag",
+			header: () => null,
+			cell: () => renderSnippet(DragHandle),
+		},
+		{
+			id: "select",
+			header: ({ table }) =>
+				renderComponent(DataTableCheckbox, {
+					checked: table.getIsAllPageRowsSelected(),
+					indeterminate:
+						table.getIsSomePageRowsSelected() && !table.getIsAllPageRowsSelected(),
+					onCheckedChange: (value) => table.toggleAllPageRowsSelected(!!value),
+					"aria-label": t('selectAll'),
+				}),
+			cell: ({ row }) =>
+				renderComponent(DataTableCheckbox, {
+					checked: row.getIsSelected(),
+					onCheckedChange: (value) => row.toggleSelected(!!value),
+					"aria-label": t('selectRow'),
+				}),
+			enableSorting: false,
+			enableHiding: false,
+		},
+		{
+			accessorKey: "content",
+			header: t('comment') ?? 'Yorum',
+			cell: ({ row }) => {
+				const content = row.original?.content;
+				const author = row.original?.authorName || row.original?.authorNickname || row.original?.authorId || '';
+				if (!content) return '-';
+				return renderSnippet(CommentContentCell, { content, author });
+			},
+		},
+		{
+			accessorKey: "author",
+			header: t('author') ?? 'Yazar',
+			cell: ({ row }) => row.original?.authorName || row.original?.authorNickname || row.original?.authorId || t('unknown'),
+		},
+		{
+			accessorKey: "articleTitle",
+			header: t('article') ?? 'Makale',
+			cell: ({ row }) => {
+				const title = row.original?.articleTitle;
+				const slug = row.original?.articleSlug;
+				if (!title) return '-';
+				if (slug) {
+					return renderSnippet(CommentArticleLink, { title, slug });
+				}
+				return title; 
+			},
+		},
+		{
+			accessorKey: "createdAt",
+			header: t('date') ?? 'Tarih',
+			cell: ({ row }) => formatDateTime(row.original?.createdAt),
+		},
+		{
+			accessorKey: "status",
+			header: t('status'),
+			cell: ({ row }) => {
+				const status = row.original?.status;
+				return renderSnippet(UniversalStatusBadge, { status, type: "comment" });
+			},
+		},
+		{
+			id: "actions",
+			enableSorting: false,
+			enableHiding: false,
+			cell: ({ row }) => renderSnippet(CommentActions, { row }),
+		},
+	];
+
+	const commentsTable = createSvelteTable({
+		get data() {
+			return commentsStatusFilter === 'all'
+				? comments
+				: comments.filter((c) => c.status === commentsStatusFilter);
+		},
+		columns: commentsColumns,
+		state: {
+			get pagination() {
+				return commentsPagination;
+			},
+			get sorting() {
+				return commentsSorting;
+			},
+			get columnVisibility() {
+				return commentsColumnVisibility;
+			},
+			get columnFilters() {
+				return commentsColumnFilters;
+			},
+			get rowSelection() {
+				return commentsRowSelection;
+			},
+			get globalFilter() {
+				return commentsGlobalFilter;
+			},
+		},
+		getRowId: (row) => row.id?.toString?.() ?? crypto.randomUUID(),
+		enableRowSelection: true,
+		getCoreRowModel: getCoreRowModel(),
+		getPaginationRowModel: getPaginationRowModel(),
+		getSortedRowModel: getSortedRowModel(),
+		getFacetedRowModel: getFacetedRowModel(),
+		getFacetedUniqueValues: getFacetedUniqueValues(),
+		getFilteredRowModel: getFilteredRowModel(),
+		onPaginationChange: (updater) => {
+			commentsPagination = typeof updater === "function" ? updater(commentsPagination) : updater;
+		},
+		onSortingChange: (updater) => {
+			commentsSorting = typeof updater === "function" ? updater(commentsSorting) : updater;
+		},
+		onColumnFiltersChange: (updater) => {
+			commentsColumnFilters = typeof updater === "function" ? updater(commentsColumnFilters) : updater;
+		},
+		onGlobalFilterChange: (updater) => {
+			commentsGlobalFilter = typeof updater === "function" ? updater(commentsGlobalFilter) : updater;
+		},
+		onColumnVisibilityChange: (updater) => {
+			commentsColumnVisibility = typeof updater === "function" ? updater(commentsColumnVisibility) : updater;
+		},
+		onRowSelectionChange: (updater) => {
+			commentsRowSelection = typeof updater === "function" ? updater(commentsRowSelection) : updater;
+		},
+	});
+
 	function openReportReasonsDialog(reasons: string[]) {
 		reportReasonsDialogText = reasons;
 		showReportReasonsDialog = true;
+	}
+
+	function openCommentContentDialog(content: any, author: string) {
+		commentContentDialogContent = content;
+		commentContentDialogAuthor = author;
+		showCommentContentDialog = true;
 	}
 
 	async function updateSingleReportStatus(reportId: string, status: "reviewing" | "resolved" | "rejected") {
@@ -1026,6 +1296,63 @@
 			toast.error('Toplu işlem başarısız');
 		} finally {
 			donationsBulkProcessing = false;
+		}
+	}
+
+	async function handleCommentsBulkAction() {
+		const selected = commentsTable.getSelectedRowModel().rows;
+		if (!selected.length) {
+			toast.warning(t('selectRow') ?? 'Seçim yapın');
+			return;
+		}
+		commentsBulkProcessing = true;
+		try {
+			for (const row of selected) {
+				const commentId = row.original.id;
+				if (selectedCommentsBulkAction === 'hide') {
+					await performCommentModerationAction('hide', commentId);
+				} else if (selectedCommentsBulkAction === 'unhide') {
+					await performCommentModerationAction('unhide', commentId);
+				} else if (selectedCommentsBulkAction === 'delete') {
+					await performCommentModerationAction('delete', commentId);
+				}
+			}
+			commentsTable.resetRowSelection();
+			await fetchComments(true);
+			toast.success(t('success') ?? 'İşlem başarılı');
+		} catch (error) {
+			toast.error(t('error') ?? 'İşlem başarısız');
+		} finally {
+			commentsBulkProcessing = false;
+		}
+	}
+
+	async function handleContactMessagesBulkAction() {
+		const selection = getContactMessagesActionableRows();
+		if (!selection.length) {
+			toast.warning('Lütfen mesaj seçin');
+			return;
+		}
+		contactMessagesBulkProcessing = true;
+		try {
+			for (const row of selection) {
+				const messageId = row.original.id;
+				if (selectedContactMessagesBulkAction === 'read') {
+					await handleUpdateContactMessageStatus(messageId, 'read');
+				} else if (selectedContactMessagesBulkAction === 'delete') {
+					await performDeleteContactMessage(messageId);
+				}
+			}
+			contactMessagesTable.resetRowSelection();
+			contactMessagesInitialized = false;
+			if (view === 'contact-messages') {
+				void fetchContactMessages(true, contactMessagesStatusFilter);
+			}
+			toast.success('Toplu işlem başarıyla tamamlandı');
+		} catch (error) {
+			toast.error('Toplu işlem başarısız');
+		} finally {
+			contactMessagesBulkProcessing = false;
 		}
 	}
 
@@ -1225,7 +1552,29 @@
 			cell: ({ row }) => {
 				if (!row.original) return t('unknown');
 				const user = row.original;
-				return user.email || t('unknown');
+				const email = user.email;
+				if (!email) return t('unknown');
+				return renderSnippet(EmailLinkCell, { email });
+			},
+		},
+		{
+			accessorKey: "phone_number",
+			header: t('phone') ?? 'Telefon',
+			cell: ({ row }) => {
+				if (!row.original) return t('unknown');
+				const user = row.original;
+				const phone = user.phone_number;
+				if (!phone) return t('unknown');
+				return renderSnippet(PhoneLinkCell, { phone });
+			},
+		},
+		{
+			accessorKey: "location",
+			header: t('location') ?? 'Lokasyon',
+			cell: ({ row }) => {
+				if (!row.original) return t('unknown');
+				const user = row.original;
+				return user.location || t('unknown');
 			},
 		},
 		{
@@ -1288,6 +1637,20 @@
 		getFacetedRowModel: getFacetedRowModel(),
 		getFacetedUniqueValues: getFacetedUniqueValues(),
 		getFilteredRowModel: getFilteredRowModel(),
+		globalFilterFn: (row, columnId, filterValue) => {
+			const searchValue = String(filterValue).toLowerCase();
+			const searchableFields = [
+				row.original.nickname,
+				row.original.email,
+				row.original.phone_number,
+				row.original.location,
+				row.original.name,
+				row.original.surname
+			];
+			return searchableFields.some(field => 
+				field && String(field).toLowerCase().includes(searchValue)
+			);
+		},
 		onPaginationChange: (updater) => {
 			if (typeof updater === "function") {
 				pagination = updater(pagination);
@@ -1386,7 +1749,11 @@
 		{
 			accessorKey: "status",
 			header: t('status'),
-			cell: ({ row }) => renderSnippet(UniversalStatusBadge, { status: row.original?.status, type: "article" }),
+			cell: ({ row }) => {
+				const article = row.original;
+				const status = article?.hidden ? 'hidden' : article?.status;
+				return renderSnippet(UniversalStatusBadge, { status, type: "article" });
+			},
 		},
 		{
 			id: "actions",
@@ -1459,6 +1826,11 @@
 		{
 			id: "pending-articles",
 			label: t('articles') ?? 'Makaleler',
+			badge: 0,
+		},
+		{
+			id: "comments",
+			label: t('comments') ?? 'Yorumlar',
 			badge: 0,
 		},
 		{
@@ -1552,6 +1924,46 @@
 		}
 	}
 
+	async function fetchComments(force = false, status?: "all" | "active" | "hidden" | "deleted") {
+		if (loadingComments) return;
+		if (!force && commentsInitialized) return;
+		loadingComments = true;
+		try {
+			const query = status && status !== 'all' ? `?status=${status}` : '';
+			const response = await fetch(`/api/moderation/comments${query}`);
+			if (response.ok) {
+				const result = await response.json();
+				comments = result.comments?.map((comment: any) => ({
+					id: comment.id ?? crypto.randomUUID(),
+					content: comment.content || '',
+					authorId: comment.authorId ?? null,
+					authorName: comment.authorName ?? null,
+					authorNickname: comment.authorNickname ?? null,
+					authorRole: comment.authorRole ?? null,
+					articleId: comment.articleId ?? null,
+					articleTitle: comment.articleTitle ?? null,
+					articleSlug: comment.articleSlug ?? null,
+					parentId: comment.parentId ?? null,
+					status: comment.status || 'active',
+					hidden: comment.hidden ?? false,
+					deletedAt: comment.deletedAt ?? null,
+					createdAt: comment.createdAt ?? null,
+					updatedAt: comment.updatedAt ?? null,
+				})) ?? [];
+				commentsInitialized = true;
+				const commentsTab = views.find((v) => v.id === 'comments');
+				if (commentsTab) {
+					commentsTab.badge = comments.filter((c) => c.status === 'active').length;
+				}
+			}
+		} catch (error) {
+			
+			toast.error(t('error'));
+		} finally {
+			loadingComments = false;
+		}
+	}
+
 	const defaultRejectReason = t('defaultRejectReason') ?? 'İçerik yönergelere uygun değil';
 	let lastArticlesFilter = $state<string>(articlesStatusFilter);
 
@@ -1615,6 +2027,9 @@
 		if (currentView === 'pending-articles') {
 			void fetchPendingArticles();
 		}
+		if (currentView === 'comments') {
+			void fetchComments();
+		}
 		if (currentView === 'reports') {
 			void fetchReports();
 		}
@@ -1639,6 +2054,9 @@
 		if (nextView === 'pending-articles') {
 			void fetchPendingArticles(true);
 		}
+		if (nextView === 'comments') {
+			void fetchComments(true);
+		}
 		if (nextView === 'reports') {
 			void fetchReports(true);
 		}
@@ -1649,6 +2067,14 @@
 			void fetchContactMessages(true, contactMessagesStatusFilter);
 		}
 	}
+
+	let lastCommentsStatusFilter = commentsStatusFilter;
+	$effect(() => {
+		if (view === 'comments' && commentsStatusFilter !== lastCommentsStatusFilter) {
+			void fetchComments(true, commentsStatusFilter);
+			lastCommentsStatusFilter = commentsStatusFilter;
+		}
+	});
 
 	let lastContactMessagesStatusFilter = contactMessagesStatusFilter;
 	$effect(() => {
@@ -1843,18 +2269,38 @@
 		}
 	}
 
-	async function handleRespondToContactMessage(messageId: string) {
-		const response = prompt('Yanıt mesajınızı girin:');
-		if (response === null) return;
-		if (response.trim() === '') {
+	function openContactReplyDialog(message: ContactMessageRow) {
+		pendingReplyMessage = message;
+		contactReplyText = "";
+		showContactReplyDialog = true;
+	}
+
+	function handleContactReplyDialogOpenChange(open: boolean) {
+		showContactReplyDialog = open;
+		if (!open) {
+			pendingReplyMessage = null;
+			contactReplyText = "";
+		}
+	}
+
+	async function confirmContactReplyDialog() {
+		if (!pendingReplyMessage) return;
+		const targetMessageId = pendingReplyMessage.id;
+		const replyText = contactReplyText.trim();
+		if (replyText === '') {
 			toast.error('Yanıt mesajı boş olamaz');
 			return;
 		}
+		showContactReplyDialog = false;
+		await handleSendContactReply(targetMessageId, replyText);
+	}
+
+	async function handleSendContactReply(messageId: string, response: string) {
 		try {
 			const res = await fetch(`/api/contact-messages/${messageId}`, {
 				method: 'PATCH',
 				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({ status: 'responded', response: response.trim() })
+				body: JSON.stringify({ status: 'responded', response })
 			});
 			if (res.ok) {
 				toast.success('Yanıt gönderildi');
@@ -1867,13 +2313,35 @@
 				toast.error(error.error || 'Yanıt gönderilemedi');
 			}
 		} catch (error) {
-			
 			toast.error('İşlem sırasında hata oluştu');
 		}
 	}
 
-	async function handleDeleteContactMessage(messageId: string) {
-		if (!confirm('Bu mesajı silmek istediğinizden emin misiniz? Bu işlem geri alınamaz.')) return;
+	// Contact Messages delete dialog state
+	let showContactDeleteDialog = $state(false);
+	let pendingDeleteContactMessage = $state<ContactMessageRow | null>(null);
+
+	function openContactDeleteDialog(message: ContactMessageRow) {
+		pendingDeleteContactMessage = message;
+		showContactDeleteDialog = true;
+	}
+
+	function handleContactDeleteDialogOpenChange(open: boolean) {
+		showContactDeleteDialog = open;
+		if (!open) {
+			pendingDeleteContactMessage = null;
+		}
+	}
+
+	async function confirmContactDeleteDialog() {
+		if (!pendingDeleteContactMessage) return;
+		const messageId = pendingDeleteContactMessage.id;
+		showContactDeleteDialog = false;
+		pendingDeleteContactMessage = null;
+		await performDeleteContactMessage(messageId);
+	}
+
+	async function performDeleteContactMessage(messageId: string) {
 		try {
 			const response = await fetch(`/api/contact-messages/${messageId}`, { method: 'DELETE' });
 			if (response.ok) {
@@ -1887,10 +2355,41 @@
 				toast.error(error.error || 'Silme başarısız');
 			}
 		} catch (error) {
-			
 			toast.error('İşlem sırasında hata oluştu');
 		}
 	}
+
+	async function handleDeleteContactMessage(messageId: string) {
+		openContactDeleteDialog(contactMessages.find(m => m.id === messageId)!);
+	}
+
+	// Comments bulk selection logic
+	const getCommentsActionableRows = () =>
+		commentsTable
+			.getSelectedRowModel()
+			.rows.filter(
+				(row) =>
+					row.getCanSelect()
+				);
+	const commentsActionableSelectionCount = $derived(getCommentsActionableRows().length);
+	const hasCommentsBulkSelection = $derived(commentsActionableSelectionCount > 0);
+	const hasCommentsBulkCapableRows = $derived(
+		() => commentsTable.getRowModel().rows.some((row) => row.getCanSelect())
+	);
+
+	// Contact Messages bulk selection logic
+	const getContactMessagesActionableRows = () =>
+		contactMessagesTable
+			.getSelectedRowModel()
+			.rows.filter(
+				(row) =>
+					row.getCanSelect()
+				);
+	const contactMessagesActionableSelectionCount = $derived(getContactMessagesActionableRows().length);
+	const hasContactMessagesBulkSelection = $derived(contactMessagesActionableSelectionCount > 0);
+	const hasContactMessagesBulkCapableRows = $derived(
+		() => contactMessagesTable.getRowModel().rows.some((row) => row.getCanSelect())
+	);
 
 	let viewLabel = $derived(views.find((v) => view === v.id)?.label ?? t('selectView'));
 	const getActionableRows = () =>
@@ -1960,18 +2459,21 @@
 	<div class="flex items-center justify-between px-4 lg:px-6">
 		<Label for="view-selector" class="sr-only">{t('view')}</Label>
 
-		<Tabs.List
-			class="**:data-[slot=badge]:bg-muted-foreground/30 **:data-[slot=badge]:size-5 **:data-[slot=badge]:rounded-full **:data-[slot=badge]:px-1 flex"
-		>
-			{#each views as view (view.id)}
-				<Tabs.Trigger value={view.id}>
-					{view.label}
-					{#if view.badge > 0}
-						<Badge variant="secondary">{view.badge}</Badge>
-					{/if}
-				</Tabs.Trigger>
-			{/each}
-		</Tabs.List>
+		<ScrollArea orientation="horizontal" class="flex gap-3 overflow-auto px-2 sm:px-4 lg:px-6">
+				<Tabs.List
+					class="**:data-[slot=badge]:bg-muted-foreground/30 **:data-[slot=badge]:size-5 **:data-[slot=badge]:rounded-full **:data-[slot=badge]:px-1 flex"
+				>
+					{#each views as view (view.id)}
+						<Tabs.Trigger value={view.id}>
+							{view.label}
+							{#if view.badge > 0}
+								<Badge variant="secondary">{view.badge}</Badge>
+							{/if}
+						</Tabs.Trigger>
+					{/each}
+				</Tabs.List>
+
+		</ScrollArea>
 		
 	</div>
 	<Tabs.Content value="pending-articles" class="relative flex flex-col gap-4 overflow-auto px-2 sm:px-4 lg:px-6">
@@ -2342,6 +2844,204 @@
 						size="icon"
 						onclick={() => reportsTable.setPageIndex(reportsTable.getPageCount() - 1)}
 						disabled={!reportsTable.getCanNextPage()}
+					>
+						<span class="sr-only">{t('lastPage')}</span>
+						<ChevronsRightIcon />
+					</Button>
+				</div>
+			</div>
+		</div>
+	</Tabs.Content>
+
+	<Tabs.Content value="comments" class="relative flex flex-col gap-4 overflow-auto px-2 sm:px-4 lg:px-6">
+		<div class="overflow-x-scroll rounded-lg border">
+			<div class="flex flex-col gap-3 p-2 sm:flex-row sm:items-center sm:justify-between sm:p-4">
+				<Input
+					placeholder={t('search')}
+					class="h-9 w-full sm:max-w-sm text-sm sm:text-base"
+					value={commentsTable.getState().globalFilter ?? ''}
+					oninput={(e) => commentsTable.setGlobalFilter(e.currentTarget.value)}
+				/>
+				<div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3">
+					<Select.Root type="single" bind:value={commentsStatusFilter}>
+						<Select.Trigger size="sm" class="w-full min-w-[10rem] justify-between ">
+							{commentsStatusOptions.find((opt) => opt.value === commentsStatusFilter)?.label}
+						</Select.Trigger>
+						<Select.Content>
+							{#each commentsStatusOptions as option (option.value)}
+								<Select.Item value={option.value}>{option.label}</Select.Item>
+							{/each}
+						</Select.Content>
+					</Select.Root>
+					<div class="flex flex-wrap items-center gap-2">
+						{#if hasCommentsBulkCapableRows}
+							<Select.Root type="single" bind:value={selectedCommentsBulkAction}>
+								<Select.Trigger size="sm" class="w-40 min-w-32 justify-between">
+									{commentsBulkActionOptions.find((opt) => opt.value === selectedCommentsBulkAction)?.label}
+								</Select.Trigger>
+								<Select.Content>
+									{#each commentsBulkActionOptions as option (option.value)}
+										<Select.Item value={option.value}>{option.label}</Select.Item>
+									{/each}
+								</Select.Content>
+							</Select.Root>
+							<Button
+								size="sm"
+								variant="secondary"
+								onclick={() => requestPasswordVerification(handleCommentsBulkAction)}
+								disabled={!hasCommentsBulkSelection || commentsBulkProcessing}
+							>
+								{#if commentsBulkProcessing}
+									<Loader class="animate-spin" />
+									{t('processing')}
+								{:else}
+									{t('bulkApply')}
+								{/if}
+							</Button>
+						{/if}
+					</div>
+					<DropdownMenu.Root>
+						<DropdownMenu.Trigger>
+							{#snippet child({ props })}
+								<Button variant="outline" size="sm" {...props}>
+								<LayoutColumnsIcon />
+								<span class="hidden lg:inline">{t('customizeColumns')}</span>
+								<span class="lg:hidden">{t('columns')}</span>
+								<ChevronDownIcon />
+							</Button>
+						{/snippet}
+						</DropdownMenu.Trigger>
+						<DropdownMenu.Content align="end" class="w-56">
+							{#each commentsTable
+								.getAllColumns()
+								.filter((col) => typeof col.accessorFn !== "undefined" && col.getCanHide()) as column (column.id)}
+								<DropdownMenu.CheckboxItem
+									class="capitalize"
+									checked={column.getIsVisible()}
+									onCheckedChange={(value) => column.toggleVisibility(!!value)}
+								>
+									{column.id}
+								</DropdownMenu.CheckboxItem>
+							{/each}
+						</DropdownMenu.Content>
+					</DropdownMenu.Root>
+				</div>
+			</div>
+
+			{#if loadingComments}
+				<div class="flex items-center justify-center p-8">
+					<Loader class="animate-spin" />
+					<span>{t('common.loading')}</span>
+				</div>
+			{:else}
+				<Table.Root>
+					<Table.Header class="bg-muted sticky top-0 z-10">
+						{#each commentsTable.getHeaderGroups() as headerGroup (headerGroup.id)}
+							<Table.Row>
+								{#each headerGroup.headers as header (header.id)}
+									<Table.Head colspan={header.colSpan}>
+										{#if !header.isPlaceholder}
+											<FlexRender
+												content={header.column.columnDef.header}
+												context={header.getContext()}
+											/>
+										{/if}
+									</Table.Head>
+								{/each}
+							</Table.Row>
+						{/each}
+					</Table.Header>
+					<Table.Body class="**:data-[slot=table-cell]:first:w-8">
+						{#if commentsTable.getRowModel().rows?.length}
+							{#each commentsTable.getRowModel().rows as row (row.id)}
+								<Table.Row data-state={row.getIsSelected() && "selected"}>
+									{#each row.getVisibleCells() as cell (cell.id)}
+										<Table.Cell>
+											<FlexRender
+												content={cell.column.columnDef.cell}
+												context={cell.getContext()}
+											/>
+										</Table.Cell>
+									{/each}
+								</Table.Row>
+							{/each}
+						{:else}
+							<Table.Row>
+								<Table.Cell colspan={commentsColumns.length} class="h-24 text-center">
+									Henüz yorum yok
+								</Table.Cell>
+							</Table.Row>
+						{/if}
+					</Table.Body>
+				</Table.Root>
+			{/if}
+		</div>
+
+		<div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 px-2 sm:px-4 py-2">
+			<div class="text-muted-foreground text-xs sm:text-sm">
+				{t('rowsSelected', { selected: commentsTable.getFilteredSelectedRowModel().rows.length, total: commentsTable.getFilteredRowModel().rows.length })}
+			</div>
+			<div class="flex w-full items-center justify-between gap-2 sm:gap-4 lg:w-fit">
+				<div class="hidden items-center gap-2 lg:flex">
+					<Label for="comments-rows-per-page" class="text-sm font-medium">{t('rowsPerPage')}</Label>
+					<Select.Root
+						type="single"
+						bind:value={
+							() => `${commentsTable.getState().pagination.pageSize}`,
+							(v) => commentsTable.setPageSize(Number(v))
+						}
+					>
+						<Select.Trigger size="sm" class="w-20" id="comments-rows-per-page">
+							{commentsTable.getState().pagination.pageSize}
+						</Select.Trigger>
+						<Select.Content side="top">
+							{#each [10, 20, 30, 40, 50] as pageSize (pageSize)}
+								<Select.Item value={pageSize.toString()}>
+									{pageSize}
+								</Select.Item>
+							{/each}
+						</Select.Content>
+					</Select.Root>
+				</div>
+				<div class="flex w-fit items-center justify-center text-sm font-medium">
+					{t('pageOf', { current: commentsTable.getState().pagination.pageIndex + 1, total: commentsTable.getPageCount() || 1 })}
+				</div>
+				<div class="ms-auto flex items-center gap-2 lg:ms-0">
+					<Button
+						variant="outline"
+						class="h-8 w-8 p-0 min-w-[2rem] lg:flex"
+						onclick={() => commentsTable.setPageIndex(0)}
+						disabled={!commentsTable.getCanPreviousPage()}
+					>
+						<span class="sr-only">{t('firstPage')}</span>
+						<ChevronsLeftIcon />
+					</Button>
+					<Button
+						variant="outline"
+						class="size-8"
+						size="icon"
+						onclick={() => commentsTable.previousPage()}
+						disabled={!commentsTable.getCanPreviousPage()}
+					>
+						<span class="sr-only">{t('previousPage')}</span>
+						<ChevronLeftIcon />
+					</Button>
+					<Button
+						variant="outline"
+						class="size-8"
+						size="icon"
+						onclick={() => commentsTable.nextPage()}
+						disabled={!commentsTable.getCanNextPage()}
+					>
+						<span class="sr-only">{t('nextPage')}</span>
+						<ChevronRightIcon />
+					</Button>
+					<Button
+						variant="outline"
+						class="hidden size-8 lg:flex"
+						size="icon"
+						onclick={() => commentsTable.setPageIndex(commentsTable.getPageCount() - 1)}
+						disabled={!commentsTable.getCanNextPage()}
 					>
 						<span class="sr-only">{t('lastPage')}</span>
 						<ChevronsRightIcon />
@@ -2745,6 +3445,33 @@
 							{/each}
 						</Select.Content>
 					</Select.Root>
+					<div class="flex flex-wrap items-center gap-2">
+						{#if hasContactMessagesBulkCapableRows}
+							<Select.Root type="single" bind:value={selectedContactMessagesBulkAction}>
+								<Select.Trigger size="sm" class="w-48 min-w-40 justify-between">
+									{contactMessagesBulkActionOptions.find((opt) => opt.value === selectedContactMessagesBulkAction)?.label}
+								</Select.Trigger>
+								<Select.Content>
+									{#each contactMessagesBulkActionOptions as option (option.value)}
+										<Select.Item value={option.value}>{option.label}</Select.Item>
+									{/each}
+								</Select.Content>
+							</Select.Root>
+							<Button
+								size="sm"
+								variant="secondary"
+								onclick={() => requestPasswordVerification(handleContactMessagesBulkAction)}
+								disabled={!hasContactMessagesBulkSelection || contactMessagesBulkProcessing}
+							>
+								{#if contactMessagesBulkProcessing}
+									<Loader class="animate-spin" />
+									İşleniyor
+								{:else}
+									Uygula
+								{/if}
+							</Button>
+						{/if}
+					</div>
 					<DropdownMenu.Root>
 						<DropdownMenu.Trigger>
 							{#snippet child({ props })}
@@ -2959,6 +3686,75 @@
 		</div>
 		<AlertDialog.Footer class="flex flex-col gap-2 sm:flex-row sm:justify-end">
 			<AlertDialog.Cancel class="w-full sm:w-auto">{t('common.close') ?? t('Cancel') ?? 'Kapat'}</AlertDialog.Cancel>
+		</AlertDialog.Footer>
+	</AlertDialog.Content>
+</AlertDialog.Root>
+
+<AlertDialog.Root bind:open={showCommentContentDialog}>
+	<AlertDialog.Content class="w-[calc(100%-2rem)] max-w-2xl">
+		<AlertDialog.Header>
+			<AlertDialog.Title>{t('comment') ?? 'Yorum'}{#if commentContentDialogAuthor} - {commentContentDialogAuthor}{/if}</AlertDialog.Title>
+		</AlertDialog.Header>
+		<div class="space-y-2 py-2 max-h-[60vh] overflow-auto">
+			<div class="rounded-md border p-4">
+				{#if commentContentDialogContent}
+					<EdraEditor content={commentContentDialogContent} editable={false} />
+				{/if}
+			</div>
+		</div>
+		<AlertDialog.Footer class="flex flex-col gap-2 sm:flex-row sm:justify-end">
+			<AlertDialog.Cancel class="w-full sm:w-auto">{t('common.close') ?? 'Kapat'}</AlertDialog.Cancel>
+		</AlertDialog.Footer>
+	</AlertDialog.Content>
+</AlertDialog.Root>
+
+<AlertDialog.Root bind:open={showContactReplyDialog} onOpenChange={handleContactReplyDialogOpenChange}>
+	<AlertDialog.Content class="w-[calc(100%-2rem)] max-w-lg">
+		<AlertDialog.Header>
+			<AlertDialog.Title>
+				Mesajı Yanıtla
+			</AlertDialog.Title>
+			<AlertDialog.Description>
+				Bu mesajı yanıtlamak için aşağıya yanıtınızı yazın.
+			</AlertDialog.Description>
+		</AlertDialog.Header>
+		<div class="space-y-2 py-2">
+			<Label for="contact-reply">Yanıtınız</Label>
+			<Textarea
+				id="contact-reply"
+				rows={4}
+				bind:value={contactReplyText}
+				placeholder="Mesajınızı buraya yazın..."
+			/>
+		</div>
+		<AlertDialog.Footer class="flex flex-col gap-2 sm:flex-row sm:justify-end">
+			<AlertDialog.Cancel class="w-full sm:w-auto">
+				İptal
+			</AlertDialog.Cancel>
+			<AlertDialog.Action class="w-full sm:w-auto" onclick={confirmContactReplyDialog}>
+				Gönder
+			</AlertDialog.Action>
+		</AlertDialog.Footer>
+	</AlertDialog.Content>
+</AlertDialog.Root>
+
+<AlertDialog.Root bind:open={showContactDeleteDialog} onOpenChange={handleContactDeleteDialogOpenChange}>
+	<AlertDialog.Content class="w-[calc(100%-2rem)] max-w-lg">
+		<AlertDialog.Header>
+			<AlertDialog.Title>
+				Mesajı Sil
+			</AlertDialog.Title>
+			<AlertDialog.Description>
+				Bu mesajı silmek istediğinizden emin misiniz? Bu işlem geri alınamaz.
+			</AlertDialog.Description>
+		</AlertDialog.Header>
+		<AlertDialog.Footer class="flex flex-col gap-2 sm:flex-row sm:justify-end">
+			<AlertDialog.Cancel class="w-full sm:w-auto">
+				İptal
+			</AlertDialog.Cancel>
+			<AlertDialog.Action class="w-full sm:w-auto bg-destructive text-destructive-foreground hover:bg-destructive/90" onclick={confirmContactDeleteDialog}>
+				Sil
+			</AlertDialog.Action>
 		</AlertDialog.Footer>
 	</AlertDialog.Content>
 </AlertDialog.Root>
@@ -3370,6 +4166,67 @@
 	{/if}
 {/snippet}
 
+{#snippet CommentArticleLink({ title, slug }: { title: string; slug: string })}
+	<a href="/article/{slug}" class="underline underline-offset-2 hover:opacity-80" target="_blank" rel="noreferrer">
+		{title}
+	</a>
+{/snippet}
+
+{#snippet CommentActions({ row }: { row: Row<CommentRow> })}
+	{@const comment = row.original}
+	<DropdownMenu.Root>
+		<DropdownMenu.Trigger class="data-[state=open]:bg-muted text-muted-foreground flex size-8">
+			{#snippet child({ props })}
+				<Button variant="ghost" size="icon" {...props}>
+					<DotsVerticalIcon class="h-4 w-4" />
+					<span class="sr-only">İşlemler</span>
+				</Button>
+			{/snippet}
+		</DropdownMenu.Trigger>
+		<DropdownMenu.Content align="end" class="w-56">
+			<DropdownMenu.Label>Yorum İşlemleri</DropdownMenu.Label>
+			<DropdownMenu.Separator />
+			{#if comment.status !== 'hidden'}
+				<DropdownMenu.Item onclick={() => requestPasswordVerification(() => performCommentModerationAction('hide', comment.id))}>
+					<EyeOffIcon class="mr-2 h-4 w-4" />
+					Gizle
+				</DropdownMenu.Item>
+			{:else}
+				<DropdownMenu.Item onclick={() => requestPasswordVerification(() => performCommentModerationAction('unhide', comment.id))}>
+					<EyeIcon class="mr-2 h-4 w-4" />
+					Göster
+				</DropdownMenu.Item>
+			{/if}
+			{#if comment.status !== 'deleted'}
+				<DropdownMenu.Item class="text-destructive focus:text-destructive" onclick={() => requestPasswordVerification(() => performCommentModerationAction('delete', comment.id))}>
+					<Trash2Icon class="mr-2 h-4 w-4" />
+					Sil
+				</DropdownMenu.Item>
+			{/if}
+		</DropdownMenu.Content>
+	</DropdownMenu.Root>
+{/snippet}
+
+{#snippet CommentContentCell({ content, author }: { content: string; author: string })}
+	{@const plainText = extractPlainTextFromEdra(content)}
+	{@const displayText = plainText.length > 60 ? plainText.substring(0, 60) + '...' : plainText}
+	{@const edraContent = (() => {
+		try {
+			return JSON.parse(content);
+		} catch {
+			return { type: 'doc', content: [{ type: 'paragraph', content: [{ type: 'text', text: content }] }] };
+		}
+	})()}
+	<div class="flex items-center gap-2 max-w-[300px]">
+		<span class="truncate text-sm" title={plainText}>{displayText}</span>
+		{#if plainText.length > 60}
+			<Button size="sm" variant="ghost" class="h-6 px-2 text-xs shrink-0" onclick={() => openCommentContentDialog(edraContent, author)}>
+				{t('readMore') ?? 'Devamını oku'}
+			</Button>
+		{/if}
+	</div>
+{/snippet}
+
 {#snippet DonationDonorCell({ donation }: { donation: any })}
 	<div class="flex items-center gap-2">
 		{#if donation.donor_avatar}
@@ -3460,22 +4317,10 @@
 		<DropdownMenu.Content align="end" class="w-56">
 			<DropdownMenu.Label>İletişim Mesajı İşlemleri</DropdownMenu.Label>
 			<DropdownMenu.Separator />
-			{#if message.status === 'pending'}
-				<DropdownMenu.Item onclick={() => handleUpdateContactMessageStatus(message.id, 'read')}>
-					<EyeIcon class="mr-2 h-4 w-4" />
-					Okundu olarak işaretle
-				</DropdownMenu.Item>
-			{/if}
 			{#if message.status === 'pending' || message.status === 'read'}
-				<DropdownMenu.Item onclick={() => handleRespondToContactMessage(message.id)}>
+				<DropdownMenu.Item onclick={() => openContactReplyDialog(message)}>
 					<MessageSquareIcon class="mr-2 h-4 w-4" />
 					Yanıtla
-				</DropdownMenu.Item>
-			{/if}
-			{#if message.status !== 'archived'}
-				<DropdownMenu.Item onclick={() => handleUpdateContactMessageStatus(message.id, 'archived')}>
-					<ArchiveIcon class="mr-2 h-4 w-4" />
-					Arşivle
 				</DropdownMenu.Item>
 			{/if}
 			{#if message.status === 'archived'}
@@ -3542,7 +4387,19 @@
 	{/if}
 {/snippet}
 
-{#snippet UniversalStatusBadge({ status, type = "default" }: { status: string | null | undefined; type?: "default" | "user" | "article" | "donation" | "report" | "contact" })}
+{#snippet EmailLinkCell({ email }: { email: string })}
+	<a href="mailto:{email}" class="text-primary hover:underline truncate block max-w-[200px]" title={email}>
+		{email}
+	</a>
+{/snippet}
+
+{#snippet PhoneLinkCell({ phone }: { phone: string })}
+	<a href="tel:{phone}" class="text-primary hover:underline truncate block max-w-[150px]" title={phone}>
+		{phone}
+	</a>
+{/snippet}
+
+{#snippet UniversalStatusBadge({ status, type = "default" }: { status: string | null | undefined; type?: "default" | "user" | "article" | "donation" | "report" | "contact" | "comment" })}
 	{@const getStatusConfig = (status: string | null | undefined, type: string) => {
 		if (!status) return { variant: "outline", class: "text-muted-foreground", label: t('unknown') ?? "Bilinmeyen", icon: "HelpCircleIcon" };
 		
@@ -3562,7 +4419,7 @@
 		
 		// Type-specific configurations
 		if (type === "contact") {
-			const contactConfigs = {
+			const contactConfigs: Record<string, { variant: string; class: string; label: string; icon: string }> = {
 				pending: { variant: "outline", class: "text-yellow-600 border-yellow-600", label: "Beklemede", icon: "ClockIcon" },
 				read: { variant: "outline", class: "text-blue-600 border-blue-600", label: "Okundu", icon: "EyeIcon" },
 				responded: { variant: "outline", class: "text-green-600 border-green-600", label: "Yanıtlandı", icon: "CircleCheckFilledIcon" },
@@ -3570,6 +4427,17 @@
 			};
 			if (contactConfigs[statusLower]) {
 				return contactConfigs[statusLower];
+			}
+		}
+		
+		if (type === "comment") {
+			const commentConfigs: Record<string, { variant: string; class: string; label: string; icon: string }> = {
+				active: { variant: "outline", class: "text-green-600 border-green-600", label: "Aktif", icon: "CircleCheckFilledIcon" },
+				hidden: { variant: "outline", class: "text-orange-600 border-orange-600", label: "Gizli", icon: "EyeOffIcon" },
+				deleted: { variant: "destructive", class: "", label: "Silindi", icon: "Trash2Icon" },
+			};
+			if (commentConfigs[statusLower]) {
+				return commentConfigs[statusLower];
 			}
 		}
 		

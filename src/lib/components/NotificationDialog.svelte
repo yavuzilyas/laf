@@ -4,7 +4,7 @@
 	import { Button } from '$lib/components/ui/button';
 	import { ScrollArea } from '$lib/components/ui/scroll-area';
 	import * as DropdownMenu from '$lib/components/ui/dropdown-menu/index.js';
-	import { Trash2, UserX, Ellipsis, ChevronDown, ChevronUp, Edit } from '@lucide/svelte';
+	import { Trash2, UserX, Ellipsis, ChevronDown, ChevronUp, Edit, CheckCircle2, XCircle } from '@lucide/svelte';
 	import type { NotificationRecord, TranslationObject } from '$lib/types/notification';
 	import { t, getCurrentLocale } from '$lib/stores/i18n.svelte';
 	import { Badge } from '$lib/components/ui/badge';
@@ -68,6 +68,8 @@
 		block: { notification: NotificationRecord };
 		unblock: { notification: NotificationRecord };
 		editArticle: { notification: NotificationRecord };
+		approveTranslation: { notification: NotificationRecord };
+		rejectTranslation: { notification: NotificationRecord };
 	}>();
 
 	function handleSelect(item: any) {
@@ -93,6 +95,16 @@
 	function handleEditArticle(item: any) {
 		const n = item as NotificationRecord;
 		dispatch('editArticle', { notification: n });
+	}
+
+	function handleApproveTranslation(item: any) {
+		const n = item as NotificationRecord;
+		dispatch('approveTranslation', { notification: n });
+	}
+
+	function handleRejectTranslation(item: any) {
+		const n = item as NotificationRecord;
+		dispatch('rejectTranslation', { notification: n });
 	}
 
 	function handleMarkAll() {
@@ -170,7 +182,7 @@
 				if (key === 'user' || key === 'user1' || key === 'user2') {
 					// Skip user values - we'll add them from actor/meta
 					continue;
-				} else if (typeof value === 'string' && value.startsWith('notifications.')) {
+				} else if (typeof value === 'string' && (value.startsWith('notifications.') || value.startsWith('Info.') || value.startsWith('moderation.'))) {
 					processedValues[key] = t(value);
 				} else if (value !== null && value !== undefined) {
 					processedValues[key] = value;
@@ -331,6 +343,28 @@
 
                       <!-- Action buttons -->
                       <div class="flex items-center gap-1">
+                        <!-- Translation Review buttons -->
+                        {#if item.type === 'translation_review' && item.meta?.translationStatusId}
+                          <Button 
+                            onclick={() => handleApproveTranslation(item)} 
+                            size="icon" 
+                            variant="outline"
+                            class="text-green-600 hover:text-green-700 hover:bg-green-50"
+                            title="Çeviriyi Onayla"
+                          >
+                            <CheckCircle2 class="h-4 w-4" />
+                          </Button>
+                          <Button 
+                            onclick={() => handleRejectTranslation(item)} 
+                            size="icon" 
+                            variant="outline"
+                            class="text-red-600 hover:text-red-700 hover:bg-red-50"
+                            title="Çeviriyi Reddet"
+                          >
+                            <XCircle class="h-4 w-4" />
+                          </Button>
+                        {/if}
+                        
                         <!-- Edit Article button for rejected articles -->
                         {#if item.type === 'article_status' && item.meta?.newStatus === 'rejected' && item.meta?.articleId}
                           <Button 

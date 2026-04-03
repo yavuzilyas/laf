@@ -151,7 +151,7 @@ $effect(() => {
 >
 	{#if shuffledImages.length > 0}
 		{#if isMobile}
-			<div class="h-full flex-shrink-0" style={panStyle}>
+			<div class="h-full flex-shrink-0 overflow-hidden" style={panStyle}>
 				<DitheredImage
 					src={shuffledImages[currentIndex]}
 					{color}

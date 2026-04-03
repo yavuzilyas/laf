@@ -1,4 +1,4 @@
-export type NotificationType = 'announcement' | 'comment' | 'reply' | 'like' | 'follow' | 'report_status' | 'article_status';
+export type NotificationType = 'announcement' | 'comment' | 'reply' | 'like' | 'follow' | 'report_status' | 'article_status' | 'translation_review';
 
 export interface NotificationActor {
 	id: string;

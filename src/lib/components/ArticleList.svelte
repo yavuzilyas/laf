@@ -4,7 +4,8 @@
   import { Button } from "$lib/components/ui/button";
   import { Skeleton } from "$lib/components/ui/skeleton";
   import { t } from '$lib/stores/i18n.svelte';
-  import { Grid, List, Loader } from "@lucide/svelte";
+  import { Grid, List } from "@lucide/svelte";
+  import { BarSpinner } from "$lib/components/spell/bar-spinner";
 
   interface Article {
     id: string;
@@ -143,7 +144,7 @@ import { BookXIcon } from 'svelte-animate-icons';
           class="min-w-32"
         >
           {#if loading}
-            <Loader class="h-4 w-4 animate-spin" />
+            <BarSpinner class="text-primary" size={16} />
             {t('articles.loading')}
           {:else}
             {t('articles.loadMore')}
@@ -156,7 +157,7 @@ import { BookXIcon } from 'svelte-animate-icons';
     {#if loading && articles.length > 0}
       <div class="flex justify-center pt-4">
         <div class="flex items-center gap-2 text-sm text-muted-foreground">
-          <Loader class="h-4 w-4 animate-spin" />
+          <BarSpinner class="text-primary" size={16} />
           {t('articles.loadingMore')}
         </div>
       </div>

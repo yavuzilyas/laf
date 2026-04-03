@@ -93,11 +93,26 @@ export const load: PageServerLoad = async ({ params, locals }: any) => {
 	// Blocked users can see blocker's profile and vice versa
 
 	// Get followers and following lists using PostgreSQL
-	const [followersList, followingList, followCounts] = await Promise.all([
+	const [followersListRaw, followingListRaw, followCounts] = await Promise.all([
 		getFollowersList(profileUser.id, viewerObjectId),
 		getFollowingList(profileUser.id, viewerObjectId),
 		getFollowCounts(profileUser.id)
 	]);
+
+	// Transform snake_case to camelCase for followers and following lists
+	const followersList = followersListRaw.map((user: any) => ({
+		...user,
+		isFollowing: user.is_following,
+		isBlocked: user.is_blocked,
+		followedAt: user.followed_at
+	}));
+
+	const followingList = followingListRaw.map((user: any) => ({
+		...user,
+		isFollowing: user.is_following,
+		isBlocked: user.is_blocked,
+		followedAt: user.followed_at
+	}));
 
 	const isFollowingMe = viewerObjectId ? await isFollowing(viewerObjectId, profileUser.id) : false;
 
@@ -274,7 +289,10 @@ export const load: PageServerLoad = async ({ params, locals }: any) => {
 		status: profileUser.status,
 		email: profileUser.email,
 		is_banned: profileUser.is_banned,
-		ban_reason: profileUser.ban_reason
+		ban_reason: profileUser.ban_reason,
+		is_hidden: profileUser.is_hidden,
+		phone_number: profileUser.phone_number || '',
+		location: profileUser.location || ''
 	};
 
 		return {

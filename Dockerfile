@@ -21,4 +21,4 @@ ENV ESBUILD_WORKER_THREADS=1
 RUN pnpm build
 
 EXPOSE 3000
-CMD ["node", "build"]
+ENTRYPOINT ["node", "build"]

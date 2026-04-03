@@ -329,6 +329,70 @@ export async function unblockUserNotifications(actorId: string): Promise<void> {
 	}
 }
 
+export async function approveTranslation(notification: NotificationRecord): Promise<boolean> {
+	if (!browser || !notification?.meta?.translationStatusId) return false;
+
+	try {
+		const res = await fetch(`/api/translations/${notification.meta.translationStatusId}/review`, {
+			method: 'POST',
+			headers: { 'Content-Type': 'application/json' },
+			credentials: 'include',
+			body: JSON.stringify({ action: 'approve' })
+		});
+
+		if (!res.ok) {
+			const error = await res.json();
+			showToast(error.error || 'Çeviri onaylanırken hata oluştu', 'error', 3000);
+			return false;
+		}
+
+		const payload = await res.json();
+		
+		// Remove the notification from store
+		notificationsStore.update((items: NotificationRecord[]) =>
+			items.filter((item: NotificationRecord) => item.id !== notification.id)
+		);
+		
+		showToastKey('notifications.messages.translationApproved', 'success', 3000);
+		return true;
+	} catch (error) {
+		showToast('Çeviri onaylanırken hata oluştu', 'error', 3000);
+		return false;
+	}
+}
+
+export async function rejectTranslation(notification: NotificationRecord, reviewNotes?: string): Promise<boolean> {
+	if (!browser || !notification?.meta?.translationStatusId) return false;
+
+	try {
+		const res = await fetch(`/api/translations/${notification.meta.translationStatusId}/review`, {
+			method: 'POST',
+			headers: { 'Content-Type': 'application/json' },
+			credentials: 'include',
+			body: JSON.stringify({ action: 'reject', reviewNotes })
+		});
+
+		if (!res.ok) {
+			const error = await res.json();
+			showToast(error.error || 'Çeviri reddedilirken hata oluştu', 'error', 3000);
+			return false;
+		}
+
+		const payload = await res.json();
+		
+		// Remove the notification from store
+		notificationsStore.update((items: NotificationRecord[]) =>
+			items.filter((item: NotificationRecord) => item.id !== notification.id)
+		);
+		
+		showToastKey('notifications.messages.translationRejected', 'success', 3000);
+		return true;
+	} catch (error) {
+		showToast('Çeviri reddedilirken hata oluştu', 'error', 3000);
+		return false;
+	}
+}
+
 export function startNotificationsWatcher(): void {
 	if (!browser || watcherStarted) return;
 

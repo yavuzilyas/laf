@@ -9,9 +9,39 @@ import { env } from '$env/dynamic/private';
 const UPLOAD_BASE_DIR = env.UPLOAD_DIR || 'static/uploads';
 const PUBLIC_BASE_PATH = '/uploads';
 
+// Simple rate limiting: max 10 uploads per 5 minutes per user
+const uploadAttempts = new Map<string, number[]>();
+const RATE_LIMIT_WINDOW_MS = 5 * 60 * 1000; // 5 minutes
+const RATE_LIMIT_MAX_ATTEMPTS = 10;
+
+function isRateLimited(userId: string): boolean {
+  const now = Date.now();
+  const attempts = uploadAttempts.get(userId) || [];
+  
+  // Clean old attempts outside the window
+  const validAttempts = attempts.filter(time => now - time < RATE_LIMIT_WINDOW_MS);
+  
+  if (validAttempts.length >= RATE_LIMIT_MAX_ATTEMPTS) {
+    uploadAttempts.set(userId, validAttempts);
+    return true;
+  }
+  
+  validAttempts.push(now);
+  uploadAttempts.set(userId, validAttempts);
+  return false;
+}
+
 export async function POST({ request, locals }) {
   const user = (locals as any)?.user;
   if (!user) return json({ error: 'Unauthorized' }, { status: 401 });
+
+  // Rate limit check
+  const userId = user.id?.toString();
+  if (!userId) return json({ error: 'Invalid user' }, { status: 400 });
+  
+  if (isRateLimited(userId)) {
+    return json({ error: 'Too many uploads. Please wait a few minutes.' }, { status: 429 });
+  }
 
   const form = await request.formData();
   const file = form.get('file') as File | null;

@@ -1,5 +1,10 @@
 /* Base TipTap Editor Styles with Light/Dark Theme Support */
 
+.tiptap {
+	font-size: 0.9rem;
+	line-height: 1.6;
+}
+
 .tiptap :first-child {
 	margin-top: 0;
 }
@@ -103,26 +108,26 @@ ol > li > .drag-handle {
 
 .tiptap h1 {
 	scroll-margin: 5rem;
-	font-size: 2.25rem;
-	line-height: 2.5rem;
+	font-size: 1.75rem;
+	line-height: 2rem;
 	font-weight: 800;
 	letter-spacing: -0.015em;
 }
 
 .tiptap h2 {
-	font-size: 1.5rem;
+	font-size: 1.25rem;
 	font-weight: 700;
 }
 
 .tiptap h3 {
-	font-size: 1.25rem;
+	font-size: 1.125rem;
 	font-weight: 600;
 }
 
 .tiptap h4,
 .tiptap h5,
 .tiptap h6 {
-	font-size: 1rem;
+	font-size: 0.9375rem;
 	font-weight: 600;
 }
 

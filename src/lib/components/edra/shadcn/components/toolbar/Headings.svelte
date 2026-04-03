@@ -127,7 +127,7 @@
 				{:else}
 					<svelte:component this={Heading1} class="h-4 w-4" />
 				{/if}
-				<span>Heading {heading.name.toUpperCase()}</span>
+				<span>{t(`editor.toolbar.misc.heading${heading.name.slice(1)}`)}</span>
 			</DropdownMenu.Item>
 		{/each}
 	</DropdownMenu.Content>

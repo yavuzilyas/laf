@@ -18,7 +18,7 @@ import {
 } from '$db/queries';
 import { getUsers, getComments, getArticles } from '$db/queries';
 
-export type NotificationType = 'announcement' | 'comment' | 'reply' | 'like' | 'report_status' | 'article_status' | 'contact_message';
+export type NotificationType = 'announcement' | 'comment' | 'reply' | 'like' | 'report_status' | 'article_status' | 'contact_message' | 'translation_review';
 
 export interface NotificationActor {
     id: string;
@@ -46,8 +46,23 @@ async function resolveArticleSlug(articleId: string): Promise<string | null> {
     const article = articles[0];
     if (!article) return null;
     
-    // For now, return the article ID as slug
-    // In a real implementation, you might have a slug field
+    // Get slug from translations JSONB field
+    const translations = article.translations || {};
+    const defaultLang = article.default_language || 'tr';
+    
+    // Try to get slug from default language first
+    if (translations[defaultLang]?.slug) {
+        return translations[defaultLang].slug;
+    }
+    
+    // Try other languages if default doesn't have slug
+    for (const lang of ['tr', 'en', 'de', 'fr', 'es']) {
+        if (translations[lang]?.slug) {
+            return translations[lang].slug;
+        }
+    }
+    
+    // Fallback to article ID if no slug found
     return article.id;
 }
 
@@ -487,8 +502,8 @@ export async function notifyReportStatusChange(params: {
     } else if (newStatus === 'rejected') {
         // For rejected status, show only raw moderator message
         if (notes) {
-            title = 'Raporunuz reddedildi';
-            message = `Sebep: ${notes}`;
+            title = { key: 'notifications.messages.reportRejectedWithReason' };
+            message = { key: 'notifications.messages.reportRejectedReasonMessage', values: { reason: notes } };
         } else {
             title = { key: 'notifications.messages.reportRejected', values: { moderator: moderatorName || 'Moderatör' } };
             message = { key: 'notifications.messages.reportRejectedMessage' };
@@ -545,8 +560,8 @@ export async function notifyArticleStatusChange(params: {
     } else if (newStatus === 'rejected') {
         // For rejected status, show only raw moderator message
         if (notes) {
-            title = `"${articleTitle || 'Makale'}" makaleniz reddedildi`;
-            message = `Sebep: ${notes}`;
+            title = { key: 'notifications.messages.articleRejectedWithTitle', values: { title: articleTitle || 'Makale' } };
+            message = { key: 'notifications.messages.articleRejectedWithReason', values: { reason: notes } };
         } else {
             title = { key: 'notifications.messages.articleRejected', values: { moderator: moderatorName || 'Moderatör' } };
             message = { key: 'notifications.messages.articleRejectedMessage', values: { title: articleTitle || 'Makale' } };
@@ -648,8 +663,9 @@ export async function notifyModeratorsNewArticle(params: {
     authorId: string;
     articleTitle: string;
     authorName: string;
+    excludeUserIds?: string[];
 }) {
-    const { articleId, articleSlug, authorId, articleTitle, authorName } = params;
+    const { articleId, articleSlug, authorId, articleTitle, authorName, excludeUserIds = [] } = params;
     const articleIdStr = toIdString(articleId);
     if (!articleIdStr) return;
 
@@ -660,9 +676,10 @@ export async function notifyModeratorsNewArticle(params: {
 
     const articleSlugValue = articleSlug ?? (await resolveArticleSlug(articleId)) ?? articleIdStr;
     
-    // Create notifications for all moderators (except author if they're a moderator/admin)
+    // Create notifications for all moderators (except author and excluded users)
     const notificationPromises = allModerators.map(async (moderator: any) => {
         if (moderator.id === authorId) return; // Don't notify self
+        if (excludeUserIds.includes(moderator.id)) return; // Don't notify excluded users (e.g., collaborators)
         
         await createNotification({
             user_id: moderator.id,
@@ -803,4 +820,54 @@ export async function notifyContactMessageStatus(params: {
             },
         },
     });
+}
+
+export async function notifyAllUsersAboutEvent(params: {
+    eventId: string;
+    title: string;
+    description: string;
+    type: 'event' | 'announcement';
+    creatorId: string;
+    creatorName: string;
+}) {
+    const { eventId, title, description, type, creatorId, creatorName } = params;
+
+    // Get all users
+    const users = await getUsers({});
+
+    // Translation key for the type (event/announcement)
+    const typeKey = type === 'announcement' ? 'Info.announcement' : 'Info.event';
+
+    // Create notifications for each user
+    const notificationPromises = users.map(async (user: any) => {
+        if (user.id === creatorId) return; // Don't notify the creator
+
+        await createNotification({
+            user_id: user.id,
+            type: 'announcement',
+            title: {
+                key: 'notifications.messages.newEventOrAnnouncement',
+                values: { type: typeKey, title: title }
+            },
+            content: {
+                key: 'notifications.messages.newEventOrAnnouncementMessage',
+                values: { type: typeKey, description: description.substring(0, 100) }
+            },
+            data: {
+                link: `/events#event-${eventId}`,
+                actor: {
+                    id: creatorId,
+                    name: creatorName
+                },
+                meta: {
+                    kind: 'new-event-announcement',
+                    eventId,
+                    eventType: type,
+                    eventTitle: title
+                }
+            }
+        });
+    });
+
+    await Promise.all(notificationPromises);
 }

@@ -1,6 +1,8 @@
 import type { PageServerLoad } from './$types';
 import { error } from '@sveltejs/kit';
 import { getUsers, getArticles } from '$db/queries';
+import { getLinks } from '$db/queries-links';
+import { query } from '$db/pg';
 
 const formatDate = (value?: Date | string) => {
   if (!value) return '-';
@@ -25,6 +27,31 @@ export const load: PageServerLoad = async ({ locals }) => {
   const pendingArticlesCount = pendingArticles.length;
 
   const users = await getUsers({ limit: 150 });
+  
+  // Get all links
+  const links = await getLinks();
+  
+  // Get all events
+  const eventsResult = await query(`
+    SELECT 
+      id,
+      title,
+      description,
+      date,
+      end_date as "endDate",
+      city,
+      location,
+      type,
+      category,
+      image_url as "imageUrl",
+      link,
+      attendee_count as "attendeeCount",
+      is_active as "isActive",
+      created_at as "createdAt"
+    FROM events
+    ORDER BY date DESC
+  `);
+  const events = eventsResult.rows;
 
   const tableData = users.map((user: any) => ({
     id: user.id,
@@ -43,12 +70,16 @@ export const load: PageServerLoad = async ({ locals }) => {
     name: user.name || null,
     surname: user.surname || null,
     nickname: user.username || null,
-    email: user.email || null
+    email: user.email || null,
+    phone_number: user.phone_number || null,
+    location: user.location || null
   }));
 
   return {
     tableData,
     pendingArticlesCount,
+    links,
+    events,
     currentUser: {
       id: currentUser.id || 'unknown',
       role: currentUser.role || 'user',

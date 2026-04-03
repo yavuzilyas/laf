@@ -1,7 +1,4 @@
 import { browser } from '$app/environment';
-import { page } from '$app/stores';
-import { get } from 'svelte/store';
-import { getCurrentLocale, t } from '$lib/stores/i18n.svelte.js';
 
 export interface SEOProps {
 	title: string;
@@ -14,7 +11,6 @@ export interface SEOProps {
 	modifiedAt?: string;
 	tags?: string[];
 	type?: 'website' | 'article' | 'profile';
-	locale?: string;
 	noIndex?: boolean;
 	noFollow?: boolean;
 }
@@ -23,7 +19,6 @@ export interface SEOProps {
  * Generate full SEO meta tags for any page
  */
 export function generateSEOMeta(props: SEOProps) {
-	const currentLocale = props.locale || getCurrentLocale() || 'tr';
 	const siteName = 'LAF - Libertarian Anarchist Foundation';
 	const siteUrl = 'https://laf.international'; // Production URL
 	const defaultImage = '/og-default.png'; // Fallback OG image
@@ -44,7 +39,6 @@ export function generateSEOMeta(props: SEOProps) {
 			type: props.type || 'website',
 			url: url,
 			site_name: siteName,
-			locale: currentLocale === 'tr' ? 'tr_TR' : currentLocale === 'en' ? 'en_US' : `${currentLocale}_${currentLocale.toUpperCase()}`,
 			image: ogImage,
 			image_alt: props.imageAlt || props.title,
 			...(props.publishedAt && { article_published_time: props.publishedAt }),
@@ -131,18 +125,6 @@ function generateStructuredData(props: SEOProps, siteUrl: string, siteName: stri
 }
 
 /**
- * Generate hreflang tags for multilingual content
- */
-export function generateHreflang(slug: string, availableLanguages: string[]) {
-	const baseUrl = 'https://laf.org.tr';
-
-	return availableLanguages.map(lang => ({
-		lang,
-		url: lang === 'tr' ? `${baseUrl}/article/${slug}` : `${baseUrl}/${lang}/article/${slug}`
-	}));
-}
-
-/**
  * Clean description for meta tags (truncate and sanitize)
  */
 export function cleanDescription(text: string, maxLength: number = 160): string {
@@ -185,54 +167,27 @@ export function generateBreadcrumbs(items: { name: string; url: string }[]) {
 }
 
 /**
- * Get page-specific SEO translations
+ * Get page-specific SEO content
  */
 export function getPageSEO(page: 'home' | 'articles' | 'profile' | 'article') {
-	const locale = getCurrentLocale();
-
-	const seoContent: Record<string, Record<string, { title: string; description: string }>> = {
+	const seoContent: Record<string, { title: string; description: string }> = {
 		home: {
-			tr: {
-				title: 'Liberteryen Anarşist Faaliyet',
-				description: 'Anarşist, liberteryen eylem ve entelektüel bilgi paylaşım platformu. Özgürlük, bireysel haklar ve anarko-kapitalizm üzerine makaleler ve analizler.'
-			},
-			en: {
-				title: 'Libertarian Anarchist Foundation',
-				description: 'Anarchist, libertarian action and intellectual knowledge sharing platform. Articles and analysis on freedom, individual rights, and anarcho-capitalism.'
-			}
+			title: 'Liberteryen Anarşist Faaliyet',
+			description: 'Anarşist, liberteryen eylem ve entelektüel bilgi paylaşım platformu. Özgürlük, bireysel haklar ve anarko-kapitalizm üzerine makaleler ve analizler.'
 		},
 		articles: {
-			tr: {
-				title: 'Makaleler',
-				description: 'Liberter anarşizm, özgürlük ve bireysel haklar üzerine makalelerimizi keşfedin. Felsefe, iktisat, devlet teorisi ve daha fazlası.'
-			},
-			en: {
-				title: 'Articles',
-				description: 'Explore our collection of articles on libertarian anarchism, freedom, and individual rights. Philosophy, economics, state theory, and more.'
-			}
+			title: 'Makaleler',
+			description: 'Liberter anarşizm, özgürlük ve bireysel haklar üzerine makalelerimizi keşfedin. Felsefe, iktisat, devlet teorisi ve daha fazlası.'
 		},
 		article: {
-			tr: {
-				title: 'Makale',
-				description: 'LAF platformunda yayınlanan makaleyi okuyun.'
-			},
-			en: {
-				title: 'Article',
-				description: 'Read the article published on the LAF platform.'
-			}
+			title: 'Makale',
+			description: 'LAF platformunda yayınlanan makaleyi okuyun.'
 		},
 		profile: {
-			tr: {
-				title: 'Profil',
-				description: 'LAF kullanıcı profili ve makaleleri.'
-			},
-			en: {
-				title: 'Profile',
-				description: 'LAF user profile and articles.'
-			}
+			title: 'Profil',
+			description: 'LAF kullanıcı profili ve makaleleri.'
 		}
 	};
 
-	const content = seoContent[page][locale] || seoContent[page].en;
-	return content;
+	return seoContent[page];
 }

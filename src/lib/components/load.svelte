@@ -5,7 +5,7 @@
   import { fade } from 'svelte/transition';
   import lottie from 'lottie-web';
   import animationData from '$lib/assets/Negative-mask-effect-1.json'; // kendi Lottie JSON'unun yolu
-
+	import { BarSpinner } from "$lib/components/spell/bar-spinner";
   let showLoader = true;     // tüm loader ekranı
   let showLottie = false;    // Lottie görünürlüğü
   let spinnerVisible = true; // logo + çark
@@ -55,7 +55,7 @@
       class="flex flex-col items-center justify-center absolute transition-opacity duration-175"
       style="opacity: {spinnerVisible ? 1 : 0};"
     >
-      <Loader size="32" class="text-primary animate-spin" />
+	<BarSpinner class="text-primary" size={28} />
     </div>
 
     <!-- 2️⃣ Lottie (opacity ile gösteriliyor) -->

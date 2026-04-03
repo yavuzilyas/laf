@@ -1,47 +1,57 @@
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
+import { query } from '$db/pg';
 
-// Mock events storage - in a real app, this would be in a database
-const events: any[] = [];
-
+// GET /api/events - List all active events (public endpoint)
 export const GET: RequestHandler = async ({ url }) => {
-  const targetId = url.searchParams.get('targetId');
-  const targetType = url.searchParams.get('targetType');
-  
-  let filteredEvents = events;
-  
-  if (targetId && targetType) {
-    filteredEvents = events.filter(event => 
-      event.targetId === targetId && event.targetType === targetType
-    );
-  }
-  
-  return json(filteredEvents);
-};
-
-export const POST: RequestHandler = async ({ request }) => {
   try {
-    const eventData = await request.json();
+    const city = url.searchParams.get('city');
+    const type = url.searchParams.get('type');
     
-    const newEvent = {
-      id: crypto.randomUUID(),
-      ...eventData,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
-    };
+    let sql = `
+      SELECT 
+        id,
+        title,
+        description,
+        date,
+        end_date as "endDate",
+        city,
+        location,
+        type,
+        category,
+        image_url as "imageUrl",
+        link,
+        attendee_count as "attendeeCount",
+        is_active as "isActive",
+        created_at as "createdAt"
+      FROM events
+      WHERE is_active = true
+    `;
     
-    events.push(newEvent);
+    const params: any[] = [];
+    let paramIndex = 1;
     
-    return json({
-      success: true,
-      event: newEvent
-    });
+    if (city && city !== 'Türkiye') {
+      sql += ` AND (city = $${paramIndex} OR city = 'Türkiye')`;
+      params.push(city);
+      paramIndex++;
+    }
+    
+    if (type && ['event', 'announcement'].includes(type)) {
+      sql += ` AND type = $${paramIndex}`;
+      params.push(type);
+      paramIndex++;
+    }
+    
+    sql += ` ORDER BY date DESC`;
+    
+    const result = await query(sql, params);
+
+    return json({ success: true, events: result.rows });
   } catch (error) {
+    console.error('Error fetching events:', error);
     return json(
-      { 
-        success: false, 
-        error: 'Failed to create event' 
-      },
+      { success: false, error: 'Failed to fetch events' },
       { status: 500 }
     );
   }

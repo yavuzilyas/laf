@@ -27,6 +27,7 @@ class ArticleEditorStore {
   private _isSaving = $state(false);
   private _collaborationStates = $state<Record<string, CollaborationState>>({});
   private _versions = $state<ArticleVersion[]>([]);
+  private _isTranslator = $state(false);
 
   constructor() {
     this.initialize();
@@ -61,8 +62,8 @@ class ArticleEditorStore {
     return this._articleData.status === 'published';
   }
 
-  get versions() {
-    return this._versions;
+  get isTranslator() {
+    return this._isTranslator;
   }
 
   get currentTranslation() {
@@ -265,6 +266,10 @@ class ArticleEditorStore {
     return this._articleData.id;
   }
 
+  setTranslatorMode(value: boolean) {
+    this._isTranslator = value;
+  }
+
   private markAsChanged() {
     this._articleData.updatedAt = new Date();
   }
@@ -342,7 +347,8 @@ class ArticleEditorStore {
           ...this._articleData,
           status: 'published',
           publishedAt: new Date(),
-          website: honeypotValue // Honeypot field for spam protection
+          website: honeypotValue, // Honeypot field for spam protection
+          isTranslator: this._isTranslator // Pass translator mode to API
         })
       });
 

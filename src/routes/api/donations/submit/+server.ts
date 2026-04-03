@@ -15,6 +15,16 @@ export const POST: RequestHandler = async ({ request, locals }) => {
             return json({ error: 'Tutar, TXID ve tarih alanları zorunludur' }, { status: 400 });
         }
         
+        // TXID validation - Monero TXID should be 64 hex characters
+        const TXID_REGEX = /^[a-fA-F0-9]{64}$/;
+        if (!TXID_REGEX.test(txid.trim())) {
+            return json({ error: 'Geçersiz TXID formatı. Monero TXID 64 karakterli hex kodu olmalıdır' }, { status: 400 });
+        }
+        
+        if (message && message.trim().length > 150) {
+            return json({ error: 'Mesaj en fazla 150 karakter olabilir' }, { status: 400 });
+        }
+        
         if (parseFloat(amount) <= 0) {
             return json({ error: 'Bağış tutarı sıfırdan büyük olmalıdır' }, { status: 400 });
         }

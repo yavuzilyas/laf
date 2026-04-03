@@ -12,9 +12,10 @@
   import { fly, crossfade } from "svelte/transition";
   import ScratchToReveal from "./ScratchToReveal.svelte";
   import { User, LockKeyhole, RotateCcwKey, ShieldAlert, UserRoundPlus, KeyRound, LayoutDashboard, Eye, EyeOff, Check, Copy, Printer } from "@lucide/svelte";
-  import Loader from "@lucide/svelte/icons/loader";
+import { BarSpinner } from "$lib/components/spell/bar-spinner";
   import { t, i18n, dativeSuffix, locativeSuffix } from '$lib/stores/i18n.svelte.js';
   import { setMnemonicPhrase, clearMnemonicPhrase } from '$lib/stores/mnemonic';
+  import CountryCitySelector from './CountryCitySelector.svelte';
 
   let {
     mode = "login",
@@ -54,6 +55,8 @@
   let name = $state("");
   let surname = $state("");
   let email = $state("");
+  let phoneNumber = $state("");
+  let location = $state("");
   let mnemonic: string[] = $state([]);
 
 
@@ -128,7 +131,7 @@ import logo from '$lib/assets/hatlaf.png';
 
   function computePasswordStrength(pw: string): { score: number; msg: string } {
     let score = 0;
-    if (pw.length >= 8) score++;
+    if (pw.length >= 6) score++;
     if (/[a-z]/.test(pw)) score++;
     if (/[A-Z]/.test(pw)) score++;
     if (/[0-9]/.test(pw)) score++;
@@ -140,7 +143,7 @@ import logo from '$lib/assets/hatlaf.png';
   }
 
   function meetsPasswordPolicy(pw: string): boolean {
-    return pw.length >= 8 && /[a-z]/.test(pw) && /[A-Z]/.test(pw) && /[0-9]/.test(pw);
+    return pw.length >= 6 && /[a-z]/.test(pw) && /[0-9]/.test(pw);
   }
 
   function generatePassword(): string {
@@ -312,7 +315,7 @@ const fadeScaleVariants = {
     nameError = validateNameClient(name);
     surnameError = validateNameClient(surname);
     if (!meetsPasswordPolicy(regPassword)) {
-      const msg = t('auth.password.policy') || 'En az 8 karakter, büyük/küçük harf, rakam ve sembol içermeli';
+      const msg = t('auth.password.policy') || 'En az 6 karakter, küçük harf ve rakam içermeli';
       showToast(msg, 'error');
       return;
     }
@@ -352,6 +355,8 @@ async function finalizeRegister() {
         name, 
         surname, 
         email: email || undefined,
+        phoneNumber: phoneNumber || undefined,
+        location: location || undefined,
         mnemonicPhrase: phrase
       })
     });
@@ -730,7 +735,7 @@ async function validateEmail(value: string) {
         </div>
         <Button type="submit" class="w-full" disabled={loading}>
           {#if loading}
-            <Loader class="animate-spin" />
+            <BarSpinner class="text-primary" />
               {t('SigningIn')}
 
           {:else}
@@ -786,7 +791,7 @@ async function validateEmail(value: string) {
           <Button type="submit" class="w-1/2" disabled={loading}>
             {#if loading}
               <span class="inline-flex items-center gap-2">
-                <Loader class="animate-spin" />
+                <BarSpinner class="text-primary" />
                 {t('Verifying')}
               </span>
             {:else}
@@ -979,6 +984,25 @@ async function validateEmail(value: string) {
               <p class="text-xs text-red-500">{surnameError}</p>
             {/if}
       </div>
+      <div class="grid gap-2">
+            <Label for="phone-{id}">{t('Phone')}</Label>
+            <Input 
+              id="phone-{id}" 
+              type="tel" 
+              placeholder={t('PhonePlaceholder') || '+90 555 123 4567'} 
+              bind:value={phoneNumber} 
+              disabled={loading}
+            />
+      </div>
+      <div class="grid gap-2">
+            <Label>{t('Location')}</Label>
+            <CountryCitySelector 
+              id="location-{id}"
+              value={location}
+              onChange={(val) => location = val}
+              disabled={loading}
+            />
+      </div>
           <div class="grid gap-2" >
             <Label for="email-{id}">{t('Email')}</Label>
             <Input 
@@ -1006,7 +1030,7 @@ async function validateEmail(value: string) {
           </div>
           <Button type="submit" class="w-full mt-2" disabled={loading || !!nicknameError || !!emailError || !!nameError || !!surnameError || isValidating || !meetsPasswordPolicy(regPassword)}>
             {#if isValidating}
-            <Loader class="animate-spin" />
+            <BarSpinner class="text-primary" />
               {t('Verifying')}
               
             {:else}
@@ -1065,8 +1089,8 @@ async function validateEmail(value: string) {
       class="flex items-center gap-2"
     >
       {#if isGeneratingPDF}
-        <div class="w-4 h-4 animate-spin rounded-full border-2 border-current border-t-transparent"></div>
-        {t('Generating')}...
+	<BarSpinner class="text-primary" size={28} />
+        {t('Generating')}
       {:else}
         <Printer class="w-4 h-4" />
         {t('Print')} {t('Mnemonic')}
@@ -1156,7 +1180,7 @@ async function validateEmail(value: string) {
             <Button type="button" class="w-1/2" onclick={() => (step = 1)} variant="outline">{t('Back')}</Button>
             <Button type="button" class="w-1/2" disabled={loading || selection.length !== mnemonic.length} onclick={finalizeRegister}>
               {#if loading}
-                <Loader class="animate-spin" />
+                <BarSpinner class="text-primary" />
                 {t('Saving') || t('Loading')}
               {:else}
                 {t('Complete')}

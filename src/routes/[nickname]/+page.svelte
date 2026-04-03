@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { t, getCurrentLocale } from '$lib/stores/i18n.svelte';
+    import { t } from '$lib/stores/i18n.svelte';
     import Navbar from "$lib/Navbar.svelte";
     import Footer from "$lib/Footer.svelte";
     import { Button } from "$lib/components/ui/button";
@@ -43,20 +43,14 @@
     const seoMeta = $derived((() => {
         const siteName = 'LAF - Libertarian Anarchist Foundation';
         const siteUrl = 'https://laf.international';
-        const locale = getCurrentLocale();
         const url = typeof window !== 'undefined' ? window.location.href : `${siteUrl}/${profileUser?.username || profileUser?.id}`;
 
         const displayName = profileUser?.name && profileUser?.surname
             ? `${profileUser.name} ${profileUser.surname}`
             : profileUser?.username || 'LAF User';
 
-        const bio = profileUser?.bio || (locale === 'tr'
-            ? `${displayName}'in LAF profili ve makaleleri.`
-            : `${displayName}'s profile and articles on LAF.`);
-
-        const title = locale === 'tr'
-            ? `${displayName} (@${profileUser?.username}) | LAF`
-            : `${displayName} (@${profileUser?.username}) | LAF`;
+        const bio = profileUser?.bio || `${displayName}'in LAF profili ve makaleleri.`;
+        const title = `${displayName} (@${profileUser?.username}) | LAF`;
 
         return {
             title,
@@ -68,7 +62,6 @@
                 type: 'profile',
                 url,
                 site_name: siteName,
-                locale: locale === 'tr' ? 'tr_TR' : 'en_US',
                 image: profileUser?.avatar_url || `${siteUrl}/og-default.png`,
                 image_alt: `${displayName}'s profile picture`
             },
@@ -109,7 +102,7 @@
                     {
                         '@type': 'ListItem',
                         position: 1,
-                        name: locale === 'tr' ? 'Ana Sayfa' : 'Home',
+                        name: 'Ana Sayfa',
                         item: siteUrl
                     },
                     {
@@ -156,25 +149,20 @@
     });
     let viewerBlocksProfile = data.viewerBlocksProfile ?? false;
 
-    // Reactive articles based on current locale (using $derived rune)
+    // Reactive articles (using $derived rune)
     const articles = $derived(
         serverArticles.map((article) => {
             const translations = article.translations || {};
             const translationKeys = Object.keys(translations);
-            const currentLocale = getCurrentLocale();
             const fallbackKey = translationKeys[0] || article.language || article.defaultLanguage || 'tr';
-            const displayLanguage = currentLocale && translations[currentLocale]
-                ? currentLocale
-                : fallbackKey;
-
-            const translation = translations[displayLanguage] || translations[fallbackKey] || {};
+            const translation = translations[fallbackKey] || {};
 
             return {
                 ...article,
                 title: translation.title || article.title || 'Başlıksız',
                 excerpt: translation.excerpt || article.excerpt || '',
                 slug: translation.slug || article.slug,
-                language: displayLanguage,
+                language: fallbackKey,
                 translations
             };
         })
@@ -218,12 +206,12 @@
     let followersCount = $state(
         Array.isArray(profileUser?.followers)
             ? profileUser.followers.length
-            : profileUser?.followersCount ?? 0
+            : data?.followCounts?.followersCount ?? 0
     );
     let followingCount = $state(
         Array.isArray(profileUser?.following)
             ? profileUser.following.length
-            : profileUser?.followingCount ?? 0
+            : data?.followCounts?.followingCount ?? 0
     );
 
     const triggerAvatarFileDialog = () => {
@@ -329,11 +317,15 @@
         username: profileUser?.username || "",
         bio: profileUser?.bio || "",
         avatar: profileUser?.avatar_url || "",
-        location: profileUser?.preferences?.location || "",
+        location: profileUser?.location || "",
         website: profileUser?.preferences?.website || "",
         interests: profileUser?.preferences?.interests || [],
         bannerColor: profileUser?.preferences?.bannerColor || "#0f172a",
         bannerImage: profileUser?.preferences?.bannerImage || "",
+        phoneNumber: profileUser?.phone_number || "",
+        phoneNumberVisible: profileUser?.preferences?.phoneNumberVisible || false,
+        email: profileUser?.email || "",
+        emailVisible: profileUser?.preferences?.emailVisible || false,
         socialLinks: profileUser?.preferences?.socialLinks || {
             twitter: "",
             github: "",
@@ -392,11 +384,15 @@
             username: profileUser?.username || "",
             bio: profileUser?.bio || "",
             avatar: profileUser?.avatar_url || "",
-            location: profileUser?.preferences?.location || "",
+            location: profileUser?.location || "",
             website: profileUser?.preferences?.website || "",
             interests: profileUser?.preferences?.interests || [],
             bannerColor: profileUser?.preferences?.bannerColor || "#0f172a",
             bannerImage: profileUser?.preferences?.bannerImage || "",
+            phoneNumber: profileUser?.phone_number || "",
+            phoneNumberVisible: profileUser?.preferences?.phoneNumberVisible || false,
+            email: profileUser?.email || "",
+            emailVisible: profileUser?.preferences?.emailVisible || false,
             socialLinks: profileUser?.preferences?.socialLinks || {
                 twitter: "",
                 github: "",
@@ -814,7 +810,6 @@
     <meta property="og:type" content={seoMeta.og.type} />
     <meta property="og:url" content={seoMeta.og.url} />
     <meta property="og:site_name" content={seoMeta.og.site_name} />
-    <meta property="og:locale" content={seoMeta.og.locale} />
     <meta property="og:image" content={seoMeta.og.image} />
     <meta property="og:image:alt" content={seoMeta.og.image_alt} />
     <meta property="og:image:width" content="400" />
@@ -828,11 +823,6 @@
     <meta name="twitter:image" content={seoMeta.twitter.image} />
     <meta name="twitter:image:alt" content={seoMeta.twitter.image_alt} />
 
-    <!-- Hreflang -->
-    <link rel="alternate" hreflang="tr" href={`https://laf.international/${profileUser?.username}`} />
-    <link rel="alternate" hreflang="en" href={`https://laf.international/en/${profileUser?.username}`} />
-    <link rel="alternate" hreflang="x-default" href={seoMeta.canonical} />
-
     <!-- Structured Data -->
     {@html `<script type="application/ld+json">${JSON.stringify(seoMeta.structuredData)}</script>`}
     {@html `<script type="application/ld+json">${JSON.stringify(seoMeta.breadcrumbs)}</script>`}
@@ -842,6 +832,16 @@
 
 <main class="min-h-screen bg-background">
     <div class="container mx-auto px-3 py-10 sm:px-4 max-w-6xl">
+        <!-- Hidden Profile Warning for Moderators/Admins -->
+        {#if profileUser?.is_hidden && isModeratorOrAdmin}
+            <div class="bg-orange-500/10 border border-orange-500/30 rounded-lg p-3 flex items-center gap-2 text-orange-700 dark:text-orange-400 mb-4">
+                <Shield class="h-5 w-5 shrink-0" />
+                <div>
+                    <p class="font-medium text-sm">{t('moderatorViewingHiddenProfile') ?? 'Moderatör Görünümü: Gizli Profil'}</p>
+                </div>
+            </div>
+        {/if}
+
         <!-- Profile Header -->
         <div class="mb-8">
             <ProfileCard

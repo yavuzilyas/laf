@@ -22,18 +22,21 @@ const getRoleRank = (role?: string | null) => {
 
 // @ts-ignore - SvelteKit request types
 
-export async function POST({ request, cookies }) {
+export async function POST({ request, locals }) {
 
   try {
+    const currentUser = (locals as any)?.user;
+    
+    // Check authentication and authorization
+    if (!currentUser || (currentUser.role !== 'moderator' && currentUser.role !== 'admin')) {
+      return json({ error: 'Unauthorized' }, { status: 403 });
+    }
 
-    const { userId, reason, moderatorId, verificationToken } = await request.json();
+    const { userId, reason, verificationToken } = await request.json();
+    const moderatorId = currentUser.id;
 
-
-
-    if (!userId || !reason || !moderatorId) {
-
+    if (!userId || !reason) {
       return json({ error: 'Missing required fields' }, { status: 400 });
-
     }
 
 
@@ -151,18 +154,21 @@ export async function POST({ request, cookies }) {
 
 // @ts-ignore - SvelteKit request types
 
-export async function PUT({ request }) {
+export async function PUT({ request, locals }) {
 
   try {
+    const currentUser = (locals as any)?.user;
+    
+    // Check authentication and authorization
+    if (!currentUser || (currentUser.role !== 'moderator' && currentUser.role !== 'admin')) {
+      return json({ error: 'Unauthorized' }, { status: 403 });
+    }
 
-    const { userId, reason, moderatorId } = await request.json();
+    const { userId, reason } = await request.json();
+    const moderatorId = currentUser.id;
 
-
-
-    if (!userId || !reason || !moderatorId) {
-
+    if (!userId || !reason) {
       return json({ error: 'Missing required fields' }, { status: 400 });
-
     }
 
 

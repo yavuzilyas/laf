@@ -86,10 +86,6 @@
 				],
 				{
 					onUpdate,
-					onTransaction(props) {
-						editor = undefined;
-						editor = props.editor;
-					},
 					editable,
 					autofocus,
 					editorProps: {

@@ -191,11 +191,41 @@ export const getUserByIdentifier = async (identifier: string) => {
     return result.rows[0] || null;
 };
 
+// Optimized user search across multiple fields with ILIKE pattern matching
+export const searchUsers = async (searchQuery: string, limit: number = 20) => {
+    const sql = `
+        SELECT id, username, name, surname, email, phone_number, location, avatar_url
+        FROM users
+        WHERE (
+            username ILIKE $1 OR
+            name ILIKE $1 OR
+            surname ILIKE $1 OR
+            email ILIKE $1 OR
+            phone_number ILIKE $1 OR
+            location ILIKE $1
+        )
+        AND (status IS NULL OR status != 'banned')
+        ORDER BY 
+            CASE 
+                WHEN username ILIKE $2 THEN 1
+                WHEN name ILIKE $2 THEN 2
+                WHEN surname ILIKE $2 THEN 3
+                ELSE 4
+            END,
+            username
+        LIMIT $3
+    `;
+    const pattern = `%${searchQuery}%`;
+    const exactPattern = `${searchQuery}%`;
+    const result = await query(sql, [pattern, exactPattern, limit.toString()]);
+    return result.rows;
+};
+
 export const createUser = async (userData: any) => {
     const id = uuidv4();
     const sql = `
-        INSERT INTO users (id, username, email, password_hash, name, surname, mnemonic_hash, preferences)
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+        INSERT INTO users (id, username, email, password_hash, name, surname, mnemonic_hash, preferences, phone_number, location)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
         RETURNING *
     `;
     const result = await query(sql, [
@@ -206,7 +236,9 @@ export const createUser = async (userData: any) => {
         userData.name || null,
         userData.surname || null,
         userData.mnemonic_hash || null,
-        JSON.stringify(userData.preferences || {})
+        JSON.stringify(userData.preferences || {}),
+        userData.phone_number || null,
+        userData.location || null
     ]);
     return result.rows[0];
 };

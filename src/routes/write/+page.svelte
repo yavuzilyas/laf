@@ -8,13 +8,14 @@
     let user = data?.user;
     let article = data?.article;
     let mode = data?.mode;
+    let isTranslator = data?.isTranslator;
 </script>
 <Navbar />
 <div class="container max-w-7xl min-h-[calc(100vh-8rem)] mx-auto px-4 xl:px-0 py-10">
   {#if !user}
     <NotLogged />
   {:else}
-      <Write {article} {mode} />
+      <Write {article} {mode} {isTranslator} />
   {/if}
 </div>
 <Footer />

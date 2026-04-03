@@ -2,7 +2,7 @@
   import { cn } from "$lib/utils";
   import { Badge } from "$lib/components/ui/badge";
   import { Calendar, Clock, User, Sparkles, Eye, MessageCircle, ThumbsUp, ThumbsDown } from "@lucide/svelte";
-  import { t, getCurrentLocale } from '$lib/stores/i18n.svelte';
+  import { t, getCurrentLocale } from '$lib/stores/i18n.svelte.ts';
   import A from "$lib/components/ui/a.svelte";
   import MagicCard from '$lib/components/magic/magic-card/magic-card.svelte';
   import * as Tooltip from "$lib/components/ui/tooltip";
@@ -122,7 +122,7 @@
                 />
                 <div class="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent"></div>
                 <Badge class="absolute top-4 left-4 bg-primary/90 text-primary-foreground">
-                  {article.category}
+                  {t(`categories.${article.category}`)}
                 </Badge>
               </div>
             {/if}
@@ -133,7 +133,7 @@
               <div class="flex items-center gap-3 text-xs text-muted-foreground">
                 {#if !article.coverImage}
                   <Badge variant="secondary" class="text-xs">
-                    {article.category}
+                    {t(`categories.${article.category}`)}
                   </Badge>
                 {/if}
                 <div class="flex items-center gap-1">

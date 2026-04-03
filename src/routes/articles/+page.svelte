@@ -5,7 +5,7 @@
     import ArticleFilterPopover from "$lib/components/ArticleFilterPopover.svelte";
     import ArticleSearch from "$lib/components/ArticleSearch.svelte";
     import { Button } from "$lib/components/ui/button";
-    import { t, getCurrentLocale } from '$lib/stores/i18n.svelte';
+    import { t } from '$lib/stores/i18n.svelte';
 
     import Loader from '$lib/components/load.svelte';
     import {BookTextIcon, NotebookPenIcon} from 'svelte-animate-icons';
@@ -18,21 +18,10 @@
     const seoMeta = $derived((() => {
         const siteName = 'LAF - Libertarian Anarchist Foundation';
         const siteUrl = 'https://laf.international';
-        const locale = getCurrentLocale();
         const url = typeof window !== 'undefined' ? window.location.href : `${siteUrl}/articles`;
 
-        const titles: Record<string, string> = {
-            tr: 'Makaleler | LAF - Liberteryen Anarşist Faaliyet',
-            en: 'Articles | LAF - Libertarian Anarchist Foundation'
-        };
-
-        const descriptions: Record<string, string> = {
-            tr: 'Liberter anarşizm, özgürlük ve bireysel haklar üzerine makalelerimizi keşfedin. Felsefe, iktisat, devlet teorisi, doğal hukuk ve daha fazlası.',
-            en: 'Explore our collection of articles on libertarian anarchism, freedom, and individual rights. Philosophy, economics, state theory, natural law, and more.'
-        };
-
-        const title = titles[locale] || titles.en;
-        const description = descriptions[locale] || descriptions.en;
+        const title = 'Makaleler | LAF - Liberteryen Anarşist Faaliyet';
+        const description = 'Liberter anarşizm, özgürlük ve bireysel haklar üzerine makalelerimizi keşfedin. Felsefe, iktisat, devlet teorisi, doğal hukuk ve daha fazlası.';
 
         return {
             title,
@@ -44,7 +33,6 @@
                 type: 'website',
                 url,
                 site_name: siteName,
-                locale: locale === 'tr' ? 'tr_TR' : 'en_US',
                 image: `${siteUrl}/og-articles.png`,
                 image_alt: 'LAF Articles'
             },
@@ -69,7 +57,7 @@
                 },
                 about: {
                     '@type': 'Thing',
-                    name: locale === 'tr' ? 'Liberteryen Anarşizm' : 'Libertarian Anarchism'
+                    name: 'Liberteryen Anarşizm'
                 }
             },
             breadcrumbs: {
@@ -79,13 +67,13 @@
                     {
                         '@type': 'ListItem',
                         position: 1,
-                        name: locale === 'tr' ? 'Ana Sayfa' : 'Home',
+                        name: 'Ana Sayfa',
                         item: siteUrl
                     },
                     {
                         '@type': 'ListItem',
                         position: 2,
-                        name: locale === 'tr' ? 'Makaleler' : 'Articles',
+                        name: 'Makaleler',
                         item: url
                     }
                 ]
@@ -127,20 +115,15 @@
         serverArticles.map((article) => {
             const translations = article.translations || {};
             const translationKeys = Object.keys(translations);
-            const currentLocale = getCurrentLocale();
             const fallbackKey = translationKeys[0] || article.language || article.defaultLanguage || 'tr';
-            const displayLanguage = currentLocale && translations[currentLocale]
-                ? currentLocale
-                : fallbackKey;
-
-            const translation = translations[displayLanguage] || translations[fallbackKey] || {};
+            const translation = translations[fallbackKey] || {};
 
             return {
                 ...article,
                 title: translation.title || article.title || 'Başlıksız',
                 excerpt: translation.excerpt || article.excerpt || '',
                 slug: translation.slug || article.slug,
-                language: displayLanguage,
+                language: fallbackKey,
                 translations
             };
         })
@@ -356,7 +339,6 @@
     <meta property="og:type" content={seoMeta.og.type} />
     <meta property="og:url" content={seoMeta.og.url} />
     <meta property="og:site_name" content={seoMeta.og.site_name} />
-    <meta property="og:locale" content={seoMeta.og.locale} />
     <meta property="og:image" content={seoMeta.og.image} />
     <meta property="og:image:alt" content={seoMeta.og.image_alt} />
     <meta property="og:image:width" content="1200" />
@@ -369,11 +351,6 @@
     <meta name="twitter:description" content={seoMeta.twitter.description} />
     <meta name="twitter:image" content={seoMeta.twitter.image} />
     <meta name="twitter:image:alt" content={seoMeta.twitter.image_alt} />
-
-    <!-- Hreflang -->
-    <link rel="alternate" hreflang="tr" href="https://laf.international/articles" />
-    <link rel="alternate" hreflang="en" href="https://laf.international/en/articles" />
-    <link rel="alternate" hreflang="x-default" href={seoMeta.canonical} />
 
     <!-- Structured Data -->
     {@html `<script type="application/ld+json">${JSON.stringify(seoMeta.structuredData)}</script>`}

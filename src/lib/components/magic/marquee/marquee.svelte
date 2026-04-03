@@ -19,20 +19,18 @@
 		pauseOnHover = false,
 		vertical = false,
 		repeat = 4,
+		duration = 40,
 		...rest
-	}: MarqueeProps = $props();
+	}: MarqueeProps & { duration?: number } = $props();
 </script>
 
 <div
 	{...rest}
 	class={cn(
-		"marquee-container flex gap-(--gap) overflow-hidden p-2 [--duration:40s] [--gap:1rem]",
-		{
-			"flex-row": !vertical,
-			"flex-col": vertical,
-		},
+		"marquee-container flex gap-(--gap) overflow-hidden p-2 [--gap:1rem]",
 		className
 	)}
+	style="--duration: {duration}s"
 >
 	{#each Array(repeat).fill(0) as _, i (i)}
 		<div

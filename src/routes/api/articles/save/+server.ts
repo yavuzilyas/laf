@@ -1,10 +1,13 @@
 // src/routes/api/articles/save/+server.ts
 import { json } from '@sveltejs/kit';
 import { getArticles, createArticle, updateArticle, getArticleById, getUsers, upsertDraft, createVersion, countVersions, deleteDraft } from '$db/queries';
+import { checkDailyTranslationLimit, addDailyTranslation } from '$db/queries-translations';
 import { slugify } from '$lib/utils/slugify';
 import { rm } from 'fs/promises';
 import { resolve } from 'path';
 import { notifyNewArticle, notifyModeratorsNewArticle } from '$lib/server/notifications-pg';
+import { notifyTranslationReview } from '$lib/server/translation-notifications';
+import { createTranslationStatus } from '$db/queries-translation-status';
 
 // Rate limiting storage for article creation
 const articleRateLimitStore = new Map<string, { count: number; resetTime: number }>();
@@ -264,25 +267,24 @@ async function cleanupUnusedMedia(existing: any, updated: any, articleId: string
             }
         }
 
-        // Check article limit for non-privileged users
+        // Check article limit for non-privileged users (hourly: max 2 articles per hour)
         if (data.status === 'published' && !isPrivileged) {
-            // Count user's published articles today
-            const startOfDay = new Date();
-            startOfDay.setHours(0, 0, 0, 0);
+            // Count user's published articles in the last hour
+            const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
             
-            // Get all articles by user and filter manually for today
+            // Get all articles by user and filter manually for last hour
             const userArticles = await getArticles({ 
                 author_id: user.id 
             });
             
-            const publishedToday = userArticles.filter((article: any) => 
+            const publishedLastHour = userArticles.filter((article: any) => 
                 article.status === 'published' && 
-                new Date(article.created_at) >= startOfDay
+                new Date(article.created_at) >= oneHourAgo
             );
 
-            if (publishedToday.length >= 2) {
+            if (publishedLastHour.length >= 2) {
                 return json({ 
-                    error: 'Günlük makale yayınlama limitinize ulaştınız. Günde en fazla 2 makale yayınlayabilirsiniz.' 
+                    error: 'Saatlik makale yayınlama limitinize ulaştınız. Saatte en fazla 2 makale yayınlayabilirsiniz.' 
                 }, { status: 403 });
             }
 
@@ -353,11 +355,120 @@ async function cleanupUnusedMedia(existing: any, updated: any, articleId: string
 
         const existingId = data._id || data.id;
         let existingArticle: any = null;
+        let isCollaboratorEdit = false;
+        let originalAuthorId: string | null = null;
+        
         if (existingId) {
-            // Güncelleme
+            // Güncelleme - yetki kontrolü yap
             articleId = existingId;
             existingArticle = await getArticleById(articleId);
-            await updateArticle(articleId, articleData);
+            
+            if (!existingArticle) {
+                return json({ error: 'Article not found' }, { status: 404 });
+            }
+            
+            // Store original author ID from existing article
+            originalAuthorId = existingArticle.author_id;
+            
+            // Check if user is author or collaborator
+            const isAuthor = String(existingArticle.author_id) === String(user.id);
+            const isCollaborator = existingArticle.collaborators?.includes(user.id);
+            isCollaboratorEdit = isCollaborator && !isAuthor;
+            const isTranslator = data.isTranslator === true;
+            
+            if (!isAuthor && !isCollaborator && !isTranslator) {
+                return json({ error: 'Unauthorized - you are not the author, collaborator, or translator' }, { status: 403 });
+            }
+            
+            // Check hourly translation limit for translators (max 4 per hour)
+            if (isTranslator) {
+                // Check if article already has any translations - block if it does
+                const existingTranslations = existingArticle.translations || {};
+                const availableLangs = Object.keys(existingTranslations).filter(
+                    lang => existingTranslations[lang] && existingTranslations[lang].title
+                );
+                const defaultLang = existingArticle.default_language || 'tr';
+                const hasDefault = availableLangs.includes(defaultLang);
+                const otherLangs = availableLangs.filter(lang => lang !== defaultLang);
+                
+                // If article already has default + any other translation, block new translations
+                if (hasDefault && otherLangs.length >= 1) {
+                    return json({ 
+                        error: 'Bu makaleye çeviri eklenemez. Makale zaten çevrilmiş durumda.' 
+                    }, { status: 403 });
+                }
+                
+                const limitCheck = await checkDailyTranslationLimit(user.id, 4);
+                if (!limitCheck.canTranslate) {
+                    return json({ 
+                        error: 'Saatlik çeviri limitine ulaştınız. Saatte en fazla 4 çeviri yapabilirsiniz.',
+                        hourlyLimit: 4,
+                        currentCount: limitCheck.currentCount
+                    }, { status: 429 });
+                }
+                
+                const defaultLang = existingArticle.default_language || 'tr';
+                
+                // Sadece yeni çeviriler veya mevcut non-default çeviriler güncellenebilir
+                const updatedTranslations = { ...existingArticle.translations };
+                
+                for (const [lang, translation] of Object.entries(data.translations || {})) {
+                    // Ana dil çevirisi değiştirilemez
+                    if (lang === defaultLang) {
+                        continue;
+                    }
+                    // Sadece geçerli çeviri verisi varsa güncelle
+                    if (translation && typeof translation === 'object') {
+                        updatedTranslations[lang] = translation;
+                    }
+                }
+                
+                const translatorArticleData = {
+                    translations: updatedTranslations,
+                    author_id: originalAuthorId // Orijinal yazarı koru
+                };
+                await updateArticle(articleId, translatorArticleData);
+                
+                // Record this translation for daily limit tracking
+                for (const lang of Object.keys(data.translations || {})) {
+                    if (lang !== defaultLang && data.translations[lang]) {
+                        await addDailyTranslation(user.id, articleId, lang);
+                        
+                        // Create translation status record for approval workflow
+                        const translationStatusId = await createTranslationStatus(
+                            articleId,
+                            lang,
+                            user.id
+                        );
+                        
+                        // Send notification to article author for translation review
+                        if (translationStatusId && existingArticle?.author_id) {
+                            try {
+                                await notifyTranslationReview({
+                                    articleId: articleId,
+                                    articleSlug: data.translations[lang]?.slug || existingArticle.translations?.[defaultLang]?.slug,
+                                    translatorId: user.id,
+                                    articleAuthorId: existingArticle.author_id,
+                                    languageCode: lang,
+                                    articleTitle: data.translations[lang]?.title || existingArticle.translations?.[defaultLang]?.title,
+                                    translationStatusId: translationStatusId
+                                });
+                            } catch (notificationError) {
+                                console.error('Failed to send translation notification:', notificationError);
+                            }
+                        }
+                    }
+                }
+            } else if (isCollaboratorEdit) {
+                const collaboratorArticleData = {
+                    ...articleData,
+                    author_id: originalAuthorId // Orijinal yazarı koru
+                };
+                await updateArticle(articleId, collaboratorArticleData);
+            } else {
+                // Yazar düzenlemesi: normal güncelleme
+                await updateArticle(articleId, articleData);
+            }
         } else {
             // Yeni makale
             const result = await createArticle(articleData);
@@ -384,6 +495,9 @@ async function cleanupUnusedMedia(existing: any, updated: any, articleId: string
             await deleteDraft(articleId);
 
             await cleanupUnusedMedia(existingArticle, articleData, articleId);
+            
+            // Get collaborators list
+            const collaborators = articleData.collaborators || [];
             
             // Send notifications to followers if this is a new published article
             if (!existingId && originalStatus === 'published') {
@@ -419,7 +533,8 @@ async function cleanupUnusedMedia(existing: any, updated: any, articleId: string
                     articleSlug: articleData.translations?.[defaultLang]?.slug,
                     authorId: user.id,
                     articleTitle: title,
-                    authorName: author.username || author.name || 'Bir kullanıcı'
+                    authorName: author.username || author.name || 'Bir kullanıcı',
+                    excludeUserIds: collaborators // Don't send moderator notifications to collaborators
                   });
                 } catch (notificationError) {
                   // Don't fail the request if notification fails
@@ -435,6 +550,7 @@ async function cleanupUnusedMedia(existing: any, updated: any, articleId: string
         });
 
     } catch (error) {
-        return json({ error: 'Internal server error' }, { status: 500 });
+        console.error('Error saving article:', error);
+        return json({ error: 'Internal server error', details: String(error) }, { status: 500 });
     }
 }

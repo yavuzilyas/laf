@@ -23,7 +23,7 @@ import { HandCoinsIcon } from 'svelte-animate-icons';
   
   import { onMount } from 'svelte';
   import { userStore } from '$lib/stores/user';
-  import Loader from "@lucide/svelte/icons/loader";
+import { BarSpinner } from "$lib/components/spell/bar-spinner";
 
   // Real data from API
   let donations = $state<any[]>([]);
@@ -35,14 +35,21 @@ import { HandCoinsIcon } from 'svelte-animate-icons';
   // Subscribe to user store
   let currentUser = $state<any>(null);
 
-  // Form state
-  let amount = $state('');
-  let txid = $state('');
-  let donationDate = $state('');
   let message = $state('');
   let displayName = $state('');
   let isSubmitting = $state(false);
   let showForm = $state(false);
+
+  // Max message length
+  const MAX_MESSAGE_LENGTH = 150;
+  let messageLength = $derived(message.length);
+
+  // TXID validation - Monero TXID is 64 hex characters
+  const TXID_REGEX = /^[a-fA-F0-9]{64}$/;
+  let isValidTxid = $derived(TXID_REGEX.test(txid.trim()));
+  let amount = $state('');
+  let txid = $state('');
+  let donationDate = $state('');
 
   const walletAddress = "4A9rVy4Hg7uYMrdso6GvvHXfp7pQMCXsJfCax58TpkyRLHQ4tCbNVsBigxS7qePpwbGgrcyirKu6QNtxmeuhDMBb3tYCwaz";
   let showWalletDialog = $state(false);
@@ -103,6 +110,11 @@ import { HandCoinsIcon } from 'svelte-animate-icons';
 
     if (parseFloat(amount) <= 0) {
       showToast(t('donations.errors.amountPositive'), 'error');
+      return;
+    }
+
+    if (!TXID_REGEX.test(txid.trim())) {
+      showToast(t('donations.errors.invalidTxid'), 'error');
       return;
     }
 
@@ -287,7 +299,7 @@ import { HandCoinsIcon } from 'svelte-animate-icons';
 
       {#if isLoading}
         <div class="flex items-center justify-center h-48">
-          <Loader class="animate-spin text-primary w-8 h-8" />
+          <BarSpinner class="text-primary" size={32} />
         </div>
       {:else if donations.length === 0}
         <div class="flex items-center justify-center h-48 text-muted-foreground">
@@ -301,64 +313,9 @@ import { HandCoinsIcon } from 'svelte-animate-icons';
     {/if}
         <div class="relative flex flex-col gap-4 py-4">
           <!-- First Marquee Row - Left to Right -->
-          <Marquee pauseOnHover class="[--duration:10s]" repeat={6}>
+          <Marquee pauseOnHover class="[--duration:25s]" repeat={6} duration={25}>
             {#each donations.slice(0, Math.ceil(donations.length / 2)) as donation (donation.id)}
-              <div class="flex-shrink-0 w-72 p-2 sm:p-4 bg-card border rounded-xl shadow-sm hover:shadow-md transition-all duration-300 group cursor-pointer">
-                <div class="flex items-start gap-3">
-                  {#if donation.donor_avatar}
-                    <a href="/{getDonorIdentifier(donation)}" class="flex-shrink-0">
-                      <img 
-                        src={donation.donor_avatar} 
-                        alt={getDonorDisplayName(donation)}
-                        class="w-12 h-12 rounded-full object-cover ring-2 ring-primary/20 group-hover:ring-primary/40 transition-all"
-                      />
-                    </a>
-                  {:else}
-                    <div class="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center ring-2 ring-primary/20">
-                      <User class="w-6 h-6 text-primary" />
-                    </div>
-                  {/if}
-                  <div class="flex-1 min-w-0">
-                    <div class="flex items-center gap-2">
-                      {#if hasDonorInfo(donation)}
-                        <a 
-                          href="/{getDonorIdentifier(donation)}"
-                          class="font-semibold text-sm hover:text-primary transition-colors truncate"
-                        >
-                          {getDonorDisplayName(donation)}
-                        </a>
-                      {:else}
-                        <span class="font-semibold text-sm truncate">{getDonorDisplayName(donation)}</span>
-                      {/if}
-                                          {#if donation.badges && donation.badges.length > 0}
-                      <div>
-                        <BadgeList badges={donation.badges} size="xs" maxVisible={2} />
-                      </div>
-                    {/if}
-                    </div>
-                    <div class="flex items-center gap-2 mt-1">
-                      <Badge variant="amount" class="text-xs">
-                        {formatAmount(donation.amount)}
-                        <img src={xmr} alt="XMR" class="w-3 h-3 ml-1"/>
-                      </Badge>
-                      <span class="text-xs text-muted-foreground">{formatTimeAgo(donation.donation_date)}</span>
-                    </div>
-
-                  </div>
-                </div>
-                {#if donation.message}
-                  <div class="mt-3 pt-3 border-t border-border/50">
-                    <p class="text-xs text-muted-foreground line-clamp-2 italic">"{donation.message}"</p>
-                  </div>
-                {/if}
-              </div>
-            {/each}
-          </Marquee>
-
-          <!-- Second Marquee Row - Right to Left (Reverse) -->
-          <Marquee reverse pauseOnHover class="[--duration:20s]" repeat={6}>
-            {#each donations.slice(Math.ceil(donations.length / 2)) as donation (donation.id)}
-              <div class="flex-shrink-0 w-72 p-2 sm:p-4 bg-card border rounded-xl shadow-sm hover:shadow-md transition-all duration-300 group cursor-pointer">
+              <div class="flex-shrink-0 w-96 p-3 sm:p-4 bg-card border rounded-xl shadow-sm hover:shadow-md transition-all duration-300 group cursor-pointer">
                 <div class="flex items-start gap-3">
                   {#if donation.donor_avatar}
                     <a href="/{getDonorIdentifier(donation)}" class="flex-shrink-0">
@@ -402,7 +359,61 @@ import { HandCoinsIcon } from 'svelte-animate-icons';
                 </div>
                 {#if donation.message}
                   <div class="mt-3 pt-3 border-t border-border/50">
-                    <p class="text-xs text-muted-foreground line-clamp-2 italic">"{donation.message}"</p>
+                    <p class="text-sm text-muted-foreground italic break-words whitespace-pre-wrap">"{donation.message}"</p>
+                  </div>
+                {/if}
+              </div>
+            {/each}
+          </Marquee>
+
+          <!-- Second Marquee Row - Right to Left (Reverse) -->
+          <Marquee reverse pauseOnHover class="[--duration:30s]" repeat={6} duration={30}>
+            {#each donations.slice(Math.ceil(donations.length / 2)) as donation (donation.id)}
+              <div class="flex-shrink-0 w-96 p-3 sm:p-4 bg-card border rounded-xl shadow-sm hover:shadow-md transition-all duration-300 group cursor-pointer">
+                <div class="flex items-start gap-3">
+                  {#if donation.donor_avatar}
+                    <a href="/{getDonorIdentifier(donation)}" class="flex-shrink-0">
+                      <img 
+                        src={donation.donor_avatar} 
+                        alt={getDonorDisplayName(donation)}
+                        class="w-12 h-12 rounded-full object-cover ring-2 ring-primary/20 group-hover:ring-primary/40 transition-all"
+                      />
+                    </a>
+                  {:else}
+                    <div class="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center ring-2 ring-primary/20">
+                      <User class="w-6 h-6 text-primary" />
+                    </div>
+                  {/if}
+                  <div class="flex-1 min-w-0">
+                    <div class="flex items-center gap-2">
+                      {#if hasDonorInfo(donation)}
+                        <a 
+                          href="/{getDonorIdentifier(donation)}"
+                          class="font-semibold text-sm hover:text-primary transition-colors truncate"
+                        >
+                          {getDonorDisplayName(donation)}
+                        </a>
+                      {:else}
+                        <span class="font-semibold text-sm truncate">{getDonorDisplayName(donation)}</span>
+                      {/if}
+                    </div>
+                    <div class="flex items-center gap-2 mt-1">
+                      <Badge variant="amount" class="text-xs">
+                        {formatAmount(donation.amount)}
+                        <img src={xmr} alt="XMR" class="w-3 h-3 ml-1"/>
+                      </Badge>
+                      <span class="text-xs text-muted-foreground">{formatTimeAgo(donation.donation_date)}</span>
+                    </div>
+                    {#if donation.badges && donation.badges.length > 0}
+                      <div class="mt-2">
+                        <BadgeList badges={donation.badges} size="xs" maxVisible={2} />
+                      </div>
+                    {/if}
+                  </div>
+                </div>
+                {#if donation.message}
+                  <div class="mt-3 pt-3 border-t border-border/50">
+                    <p class="text-sm text-muted-foreground italic break-words whitespace-pre-wrap">"{donation.message}"</p>
                   </div>
                 {/if}
               </div>
@@ -492,7 +503,11 @@ import { HandCoinsIcon } from 'svelte-animate-icons';
               type="text" 
               placeholder={t('donations.txidPlaceholder')}
               bind:value={txid}
+              class={txid && !isValidTxid ? 'border-destructive' : ''}
             />
+            {#if txid && !isValidTxid}
+              <p class="text-xs text-destructive">{t('donations.errors.invalidTxid')}</p>
+            {/if}
           </div>
           
           <div class="space-y-2">
@@ -510,13 +525,17 @@ import { HandCoinsIcon } from 'svelte-animate-icons';
           {/if}
           
           <div class="space-y-2">
-            <Label for="message">{t('donations.message')}</Label>
+            <Label for="message">{t('donations.message')} ({messageLength}/{MAX_MESSAGE_LENGTH})</Label>
             <Textarea 
               id="message"
               placeholder={t('donations.messagePlaceholder')}
               bind:value={message}
               rows={3}
+              maxlength={MAX_MESSAGE_LENGTH}
             />
+            {#if messageLength > MAX_MESSAGE_LENGTH}
+              <p class="text-xs text-destructive">{t('donations.errors.messageTooLong')}</p>
+            {/if}
           </div>
           
           <div class="flex items-center gap-2 text-sm text-muted-foreground">
@@ -530,7 +549,7 @@ import { HandCoinsIcon } from 'svelte-animate-icons';
             disabled={isSubmitting}
           >
             {#if isSubmitting}
-              <Loader class="animate-spin text-primary" />
+              <BarSpinner class="text-primary" />
               {t('donations.submitting')}
             {:else}
               <Send class="w-4 h-4 mr-2" />
@@ -599,7 +618,7 @@ import { HandCoinsIcon } from 'svelte-animate-icons';
     <CardContent>
       {#if isLoading}
         <div class="flex items-center justify-center h-32">
-          <Loader class="animate-spin text-primary" />
+          <BarSpinner class="text-primary" />
         </div>
       {:else if topDonors.length === 0}
         <div class="flex items-center justify-center h-32 text-muted-foreground">

@@ -4,6 +4,7 @@
 	import type { Editor } from '@tiptap/core';
 	import EdraToolTip from './EdraToolTip.svelte';
 	import { cn } from '$lib/utils.js';
+	import { t } from '$lib/stores/i18n.svelte.js';
 
 	interface Props {
 		editor: Editor | undefined | null;
@@ -13,7 +14,7 @@
 	const { editor, command }: Props = $props();
 </script>
 
-<EdraToolTip tooltip={command.tooltip ?? ''} shortCut={command.shortCut ?? ''}>
+<EdraToolTip tooltip={t(`editor.toolbar.${command.name}`)} shortCut={command.shortCut ?? ''}>
 	<Button
 		variant="ghost"
 		size="icon"

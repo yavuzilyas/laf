@@ -196,6 +196,9 @@ export async function GET({ params, locals }) {
             } : null,
             likes: r.likes || 0,
             dislikes: r.dislikes || 0,
+            hidden: r.hidden || false,
+            metadata: r.metadata || {},
+            reportCount: r.report_count || 0,
             replies: await loadReplies(r.id)
           };
         })
@@ -211,7 +214,7 @@ export async function GET({ params, locals }) {
 
   const normalized = await Promise.all(
     list
-      .filter((c: any) => !shouldHideUser(c.author_id))
+      .filter((c: any) => !shouldHideUser(c.author_id) && canSeeHidden(c))
       .map(async (c: any) => {
         const author = await getUsers({ id: c.author_id });
         let content = c.content;
@@ -238,6 +241,9 @@ export async function GET({ params, locals }) {
           } : null,
           likes: c.likes || 0,
           dislikes: c.dislikes || 0,
+          hidden: c.hidden || false,
+          metadata: c.metadata || {},
+          reportCount: c.report_count || 0,
           replies: await loadReplies(c.id)
         };
       })

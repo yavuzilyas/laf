@@ -3,7 +3,8 @@
     import Footer from "$lib/Footer.svelte";
   import { MorphingText } from '$lib/components/magic/morphing-text';
     import {ContactRoundIcon} from 'svelte-animate-icons';
-
+import { Pointer } from "$lib/components/magic/pointer";
+	import { motion } from "motion-sv";
   import Spotlight from "$lib/components/Spotlight.svelte";
 import { cn } from "$lib/utils";
   // import Timeline from "$lib/components/timeline/Timeline.svelte";
@@ -51,16 +52,35 @@ import { cn } from "$lib/utils";
   import DitheredImageSlider from '$lib/components/magic/dithered-image-slider.svelte';
   import logo from '$lib/assets/laf1.svg';
   import ContactForm from '$lib/components/ContactForm.svelte';
+  import { Button } from "$lib/components/ui/button";
+
+  import { onMount } from 'svelte';
+  import { browser } from '$app/environment';
 
   let { data } = $props();
 
   const sliderImages = Object.keys(import.meta.glob('/static/government-is-violence/*.{jpg,jpeg,png,webp,avif}')).map(path => path.replace(/^\/static/, ''));
 
+  onMount(() => {
+    if (browser) {
+      // Check if there's a hash in the URL and scroll to it
+      const hash = window.location.hash;
+      if (hash) {
+        const element = document.querySelector(hash);
+        if (element) {
+          setTimeout(() => {
+            element.scrollIntoView({ behavior: 'smooth' });
+          }, 100);
+        }
+      }
+    }
+  });
+
 </script>
 
 <Navbar />
-<main class="w-full h-full flex flex-col gap-12">
-  <div class="h-[95vh] sm:h-[99vh] w-full  mt-7.5 sm:mt-5  mb-12 flex flex-col items-center justify-center  antialiased bg-grid-white/[0.02] relative overflow-hidden"
+<main class="w-full h-full flex flex-col gap-12 overflow-x-hidden">
+  <div class="h-[95vh] sm:h-[99vh] w-full mt-7.5 sm:mt-5 mb-12 flex flex-col items-center justify-center antialiased bg-grid-white/[0.02] relative overflow-hidden"
 >
       <DitheredImageSlider  images={sliderImages} />    
 
@@ -108,6 +128,40 @@ import { cn } from "$lib/utils";
   </div>
 </section>
 
+
+
+<!-- CTA Section - We Need You (only for non-logged in users) -->
+{#if !data.user}
+  <section class="w-full py-16 px-4 sm:px-6 lg:px-8 bg-gradient-to-r from-primary/10 via-primary/5 to-primary/10 border-y border-primary/20">
+    <div class="max-w-4xl mx-auto text-center">
+      <h2 class="text-3xl sm:text-4xl font-bold mb-4 text-foreground">
+        {t('cta.weNeedYou')}
+      </h2>
+      <p class="text-lg text-muted-foreground mb-8 max-w-2xl mx-auto">
+        {t('cta.joinUs')}
+      </p>
+      <Button class="cursor-none" href="/register" >
+        {t('cta.registerNow')}
+      </Button>
+    </div>
+    <Pointer>
+    <motion.div
+				animate={{
+					scale: [0.8, 1, 0.8],
+					rotate: [0, 5, -5, 0],
+				}}
+				transition={{
+					duration: 1.5,
+					repeat: Infinity,
+					ease: "easeInOut",
+				}}
+			>
+							<div class="text-2xl">✊</div>
+
+			</motion.div>
+		</Pointer>
+  </section>
+{/if}
 <!-- Popular Articles Section -->
 {#if data.popularArticles && data.popularArticles.length > 0}
   <section class="w-full py-12 px-4 sm:px-6 lg:px-8 ">

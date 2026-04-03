@@ -8,7 +8,7 @@
 	import { Area, AreaChart } from "layerchart";
 	import { curveMonotoneX } from "d3-shape";
 	import { onMount } from "svelte";
-	  import Loader from "@lucide/svelte/icons/loader";
+	import { BarSpinner } from "$lib/components/spell/bar-spinner";
 
 	let chartData = $state<{ date: string; amount: number; count: number }[]>([]);
 	let timeRange = $state("30d");
@@ -178,7 +178,8 @@
 	<Card.Content class="px-2 pt-4 sm:px-6 sm:pt-6">
 		{#if isLoading}
 			<div class="flex items-center justify-center h-[250px]">
-            <Loader class="animate-spin text-primary" />			</div>
+            	<BarSpinner class="text-primary" size={28} />
+		</div>
 		{:else if chartData.length === 0}
 			<div class="flex items-center justify-center h-[250px] text-muted-foreground">
 				Henüz bağış verisi bulunmuyor

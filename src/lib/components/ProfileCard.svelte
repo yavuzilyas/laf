@@ -11,11 +11,12 @@
   import BadgeList from "$lib/components/BadgeList.svelte";
   import { t } from '$lib/stores/i18n.svelte';
   import * as DropdownMenu from "$lib/components/ui/dropdown-menu";
+  import * as Tooltip from "$lib/components/ui/tooltip";
   import { MoreVertical, Flag } from "@lucide/svelte";
   import ReportDrawer from "$lib/components/ReportDrawer.svelte";
     import * as Dialog from '$lib/components/ui/dialog/index.js';
   import * as Popover from "$lib/components/ui/popover/index.js";
-    import Loader from "@lucide/svelte/icons/loader";
+  import { BarSpinner } from "$lib/components/spell/bar-spinner";
   import {
     Camera,
     Edit,
@@ -25,15 +26,18 @@
     MapPin,
     Link as LinkIcon,
     Calendar,
-    Loader2,
     Image as ImageIcon,
     Trash2,
     Palette,
     UserPlus,
     UserMinus,
     Ban,
-    Shield
+    Shield,
+    EyeOff,
+    Phone,
+    Mail
   } from "@lucide/svelte";
+  import CountryCitySelector from "./CountryCitySelector.svelte";
       let showAvatarDialog = $state(false);
       let showFollowersDialog = $state(false);
       let showFollowingDialog = $state(false);
@@ -259,6 +263,10 @@
       [key: string]: string | undefined;
     };
     badges?: any[];
+    phoneNumber?: string;
+    phoneNumberVisible?: boolean;
+    email?: string;
+    emailVisible?: boolean;
   };
 
   type ProfileUser = {
@@ -313,13 +321,21 @@
     name: profileData?.name || "",
     surname: profileData?.surname || "",
     bio: profileData?.bio || "",
-    location: profileData?.location || profileData?.preferences?.location || "",
+    location: profileData?.location || "",
     website: profileData?.website || profileData?.preferences?.website || "",
     interests: profileData?.interests || profileData?.preferences?.interests || [],
     bannerColor: profileData?.bannerColor || profileData?.preferences?.bannerColor || "#0f172a",
     bannerImage: profileData?.bannerImage || profileData?.preferences?.bannerImage || "",
-    avatar: profileData?.avatar || ""
+    avatar: profileData?.avatar || "",
+    phoneNumber: profileData?.phoneNumber || profileUser?.phone_number || "",
+    phoneNumberVisible: profileData?.phoneNumberVisible || profileData?.preferences?.phoneNumberVisible || false,
+    email: profileData?.email || profileUser?.email || "",
+    emailVisible: profileData?.emailVisible || profileData?.preferences?.emailVisible || false
   });
+
+  // Email validation state
+  let emailError = $state("");
+  let emailValid = $state(true);
 
   // Watch for profileData changes to keep formData in sync
   $effect(() => {
@@ -328,12 +344,16 @@
         name: profileData?.name || "",
         surname: profileData?.surname || "",
         bio: profileData?.bio || "",
-        location: profileData?.location || profileData?.preferences?.location || "",
+        location: profileData?.location || "",
         website: profileData?.website || profileData?.preferences?.website || "",
         interests: profileData?.interests || profileData?.preferences?.interests || [],
         bannerColor: profileData?.bannerColor || profileData?.preferences?.bannerColor || "#0f172a",
         bannerImage: profileData?.bannerImage || profileData?.preferences?.bannerImage || "",
-        avatar: profileData?.avatar || ""
+        avatar: profileData?.avatar || "",
+        phoneNumber: profileData?.phoneNumber || profileUser?.phone_number || "",
+        phoneNumberVisible: profileData?.phoneNumberVisible || profileData?.preferences?.phoneNumberVisible || false,
+        email: profileData?.email || profileUser?.email || "",
+        emailVisible: profileData?.emailVisible || profileData?.preferences?.emailVisible || false
       };
     }
   });
@@ -346,12 +366,16 @@
         name: profileData?.name || "",
         surname: profileData?.surname || "",
         bio: profileData?.bio || "",
-        location: profileData?.location || profileData?.preferences?.location || "",
+        location: profileData?.location || "",
         website: profileData?.website || profileData?.preferences?.website || "",
         interests: profileData?.interests || profileData?.preferences?.interests || [],
         bannerColor: profileData?.bannerColor || profileData?.preferences?.bannerColor || "#0f172a",
         bannerImage: profileData?.bannerImage || profileData?.preferences?.bannerImage || "",
-        avatar: profileData?.avatar || ""
+        avatar: profileData?.avatar || "",
+        phoneNumber: profileData?.phoneNumber || profileUser?.phone_number || "",
+        phoneNumberVisible: profileData?.phoneNumberVisible || profileData?.preferences?.phoneNumberVisible || false,
+        email: profileData?.email || profileUser?.email || "",
+        emailVisible: profileData?.emailVisible || profileData?.preferences?.emailVisible || false
       };
       
       // Reset showEditForm when entering edit mode
@@ -395,9 +419,17 @@
     formData.bannerColor = value;
     onBannerColorChange(value);
   };
+
+  const ensureHttps = (url: string): string => {
+    if (!url) return url;
+    if (url.startsWith('http://') || url.startsWith('https://')) {
+      return url;
+    }
+    return `https://${url}`;
+  };
 </script>
 
-<Card class="overflow-hidden pt-0 h-full transition-all duration-500 ease-in-out {isEditing ? 'min-h-[760px] sm:min-h-[660px]' : 'min-h-[350px]'} flex flex-col">
+<Card class="overflow-hidden pt-0 h-full transition-all duration-500 ease-in-out {isEditing ? 'min-h-[1050px] sm:min-h-[760px]' : 'min-h-[350px]'} flex flex-col">
   <div class="relative w-full pt-0 transition-all duration-500 ease-in-out {isEditing ? 'min-h-[150px] sm:min-h-[225px]' : 'min-h-[185px] sm:min-h-[300px]'}">
     {#if profileData?.bannerImage}
       <img
@@ -415,7 +447,7 @@
 
     {#if bannerUploading}
       <div class="absolute inset-0 flex items-center justify-center bg-black/40">
-        <Loader2 class="h-8 w-8 animate-spin text-white" />
+	<BarSpinner class="text-primary" size={28} />
       </div>
     {/if}
 
@@ -423,7 +455,7 @@
       <div class="absolute z-20 bottom-3 right-3 flex flex-wrap gap-2">
         <Button size="xs" variant="outline" onclick={onTriggerBannerFile}>
           {#if bannerUploading}
-            <Loader2 class="h-4 w-4 animate-spin" />
+            <BarSpinner class="text-primary" size={16} />
           {:else}
             <ImageIcon class="h-4 w-4" />
           {/if}
@@ -512,6 +544,18 @@
                 ? `${profileData.name} ${profileData.surname}`
                 : profileData?.name || profileData?.username}
             </h1>
+            {#if profileUser?.is_hidden || profileData?.is_hidden}
+              <Tooltip.Provider>
+                <Tooltip.Root>
+                  <Tooltip.Trigger>
+                    <EyeOff class="h-4 w-4 text-orange-600 ml-1" />
+                  </Tooltip.Trigger>
+                  <Tooltip.Content>
+                    <p>{t('Hidden')}</p>
+                  </Tooltip.Content>
+                </Tooltip.Root>
+              </Tooltip.Provider>
+            {/if}
             {#if showProfileLink && profileData?.username}
               <a 
                 href={`/${profileData.username}`}
@@ -530,17 +574,17 @@
           <div class="space-y-4 opacity-0 animate-slideDown">
             <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
               <div>
-                <Label for="name">{t('Name')}</Label>
+                <Label for="name" class="mb-2">{t('Name')}</Label>
                 <Input id="name" bind:value={formData.name} placeholder="{t('Name')}" class="transition-all duration-300 ease-in-out " />
               </div>
               <div>
-                <Label for="surname">{t('Surname')}</Label>
+                <Label for="surname" class="mb-2">{t('Surname')}</Label>
                 <Input id="surname" bind:value={formData.surname} placeholder="{t('Surname')}" class="transition-all duration-300 ease-in-out " />
               </div>
             </div>
 
             <div>
-              <Label for="bio">{t('profile.bio')}</Label>
+              <Label for="bio" class="mb-2">{t('profile.bio')}</Label>
               <Textarea
                 id="bio"
                 bind:value={formData.bio}
@@ -552,12 +596,75 @@
 
             <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
               <div>
-                <Label for="location">{t('profile.location')}</Label>
-                <Input id="location" bind:value={formData.location} placeholder={t('profile.location')} class="transition-all duration-300 ease-in-out " />
+                <Label class="mb-2" for="location">{t('profile.location')}</Label>
+                <CountryCitySelector 
+                  id="location"
+                  value={formData.location}
+                  onChange={(val) => formData.location = val}
+                />
               </div>
               <div>
-                <Label for="website">{t('profile.website')}</Label>
+                <Label class="mb-2" for="website">{t('profile.website')}</Label>
                 <Input id="website" bind:value={formData.website} type="url" placeholder="https://" class="transition-all duration-300 ease-in-out " />
+              </div>
+            </div>
+            
+            <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+              <div>
+                <Label class="mb-2" for="phone">{t('profile.phone') || t('Phone')}</Label>
+                <Input id="phone" bind:value={formData.phoneNumber} type="tel" placeholder={t('PhonePlaceholder') || '+90 555 123 4567'} class="transition-all duration-300 ease-in-out" />
+              </div>
+              <div class="flex items-end">
+                <label class="flex flex-row justify-center items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    bind:checked={formData.phoneNumberVisible}
+                    class="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+                  />
+                  <span class="text-sm text-muted-foreground">{t('profile.phoneVisible') || 'Telefon numarasını göster'}</span>
+                </label>
+              </div>
+            </div>
+
+            <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+              <div>
+                <Label class="mb-2" for="email">{t('Email') || 'E-posta'}</Label>
+                <Input 
+                  id="email" 
+                  bind:value={formData.email} 
+                  type="email" 
+                  placeholder="email@example.com" 
+                  class="transition-all duration-300 ease-in-out {emailError ? 'border-red-500 focus:border-red-500' : ''}" 
+                  oninput={(e) => {
+                    const value = e.currentTarget.value;
+                    if (!value) {
+                      emailError = "";
+                      emailValid = true;
+                    } else {
+                      const re = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+                      if (!re.test(value)) {
+                        emailError = t('auth.errors.emailFormat') || "Geçerli bir e-posta adresi girin";
+                        emailValid = false;
+                      } else {
+                        emailError = "";
+                        emailValid = true;
+                      }
+                    }
+                  }}
+                />
+                {#if emailError}
+                  <p class="text-xs text-red-500 mt-1">{emailError}</p>
+                {/if}
+              </div>
+              <div class="flex items-end">
+                <label class="flex flex-row justify-center items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    bind:checked={formData.emailVisible}
+                    class="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+                  />
+                  <span class="text-sm text-muted-foreground">{t('profile.emailVisible') || 'E-posta adresini göster'}</span>
+                </label>
               </div>
             </div>
 <!-- 
@@ -610,22 +717,38 @@
             {/if}
             
             <div class="flex flex-wrap items-center gap-2.5 sm:gap-4 text-xs sm:text-sm text-muted-foreground">
-              {#if (profileData?.location || profileData?.preferences?.location)}
+              {#if (profileData?.location)}
                 <div class="flex items-center gap-1">
                   <MapPin class="h-4 w-4" />
-                  {profileData?.location || profileData?.preferences?.location}
+                  {profileData?.location}
                 </div>
               {/if}
               {#if (profileData?.website || profileData?.preferences?.website)}
                 <div class="flex items-center gap-1">
                   <LinkIcon class="h-4 w-4" />
                   <a
-                    href={profileData?.website || profileData?.preferences?.website}
+                    href={ensureHttps(profileData?.website || profileData?.preferences?.website)}
                     target="_blank"
                     class="flex items-center gap-1 text-primary hover:underline"
                   >
                     {profileData?.website || profileData?.preferences?.website}
                     <ExternalLink class="h-3 w-3" />
+                  </a>
+                </div>
+              {/if}
+              {#if (profileData?.phoneNumber || profileUser?.phone_number) && (profileData?.phoneNumberVisible || profileData?.preferences?.phoneNumberVisible)}
+                <div class="flex items-center gap-1">
+                  <Phone class="h-4 w-4" />
+                  <a href="tel:{profileData?.phoneNumber || profileUser?.phone_number}" class="text-primary hover:underline">
+                    {profileData?.phoneNumber || profileUser?.phone_number}
+                  </a>
+                </div>
+              {/if}
+              {#if (profileData?.email || profileUser?.email) && (profileData?.emailVisible || profileData?.preferences?.emailVisible)}
+                <div class="flex items-center gap-1">
+                  <Mail class="h-4 w-4" />
+                  <a href="mailto:{profileData?.email || profileUser?.email}" class="text-primary hover:underline">
+                    {profileData?.email || profileUser?.email}
                   </a>
                 </div>
               {/if}
@@ -674,7 +797,7 @@
                   <DropdownMenu.Content>
                     <DropdownMenu.Item onclick={() => showReportDrawer = true}>
                       <Flag class="h-4 w-4" />
-                      <span>{t('report.reportProfile')}</span>
+                      <span>{t('Report')}</span>
                     </DropdownMenu.Item>
                   </DropdownMenu.Content>
                 </DropdownMenu.Root>
@@ -699,7 +822,7 @@
          
             <Button size="xs" variant="outline" onclick={onTriggerAvatarFile}>
               {#if avatarUploading}
-                <Loader class="h-4 w-4 text-primary animate-spin" />
+                <BarSpinner class="text-primary" size={16} />
                 {t('profile.avatarUploading')}
               {:else}
                 <Camera class="h-4 w-4" />
@@ -810,7 +933,7 @@
                     
                     {#if avatarUploading}
                         <div class="absolute inset-0 flex items-center justify-center bg-black/50 rounded-full">
-                <Loader class="h-4 w-4 text-primary animate-spin" />
+                <BarSpinner class="text-primary" size={16} />
                         </div>
                     {/if}
                 </div>
@@ -823,7 +946,7 @@
                         disabled={avatarUploading}
                     >
                         {#if avatarUploading}
-                <Loader class="h-4 w-4 text-primary animate-spin" />
+                <BarSpinner class="text-primary" size={16} />
                             {t('profile.avatarUploading')}
                         {:else}
                             <Camera class="h-4 w-4 " />
@@ -853,7 +976,7 @@
 </Dialog.Root>
 
 <Dialog.Root bind:open={showFollowersDialog} onOpenChange={closeFollowersDialog}>
-  <Dialog.Content class="w-15/16 sm:w-2/3 md:w-2/7 ">
+  <Dialog.Content class="w-15/16  sm:w-1/2 md:w-2/7 ">
     <Dialog.Header>
       <Dialog.Title>{t('profile.followers')}</Dialog.Title>
     </Dialog.Header>
@@ -903,7 +1026,7 @@
 </Dialog.Root>
 
 <Dialog.Root bind:open={showFollowingDialog} onOpenChange={closeFollowingDialog}>
-  <Dialog.Content class="w-15/16 sm:w-2/3 md:w-3/7 ">
+  <Dialog.Content class="w-15/16  sm:w-1/2 md:w-2/7 ">
     <Dialog.Header>
       <Dialog.Title>{t('profile.following')}</Dialog.Title>
     </Dialog.Header>
