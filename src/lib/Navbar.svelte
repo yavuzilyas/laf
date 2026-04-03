@@ -250,7 +250,7 @@ import { ScrollProgress } from "$lib/components/magic/scroll-progress";
   on:rejectTranslation={handleRejectTranslation}
 />
 
-<nav class="w-full fixed border-b top-0 z-45 text-secondary-foreground  rounded-xl">
+<nav class="w-full fixed border-b top-0 z-39 text-secondary-foreground  rounded-xl">
     <div class="absolute -z-1 inset-0 bg-background/44 backdrop-blur-sm"></div>
   <div class="max-w-7xl mx-auto  py-0 sm:py-0.5 px-5 sm:px-6 lg:px-8">
     <div class="flex items-center justify-between">

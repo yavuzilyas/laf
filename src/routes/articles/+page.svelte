@@ -4,6 +4,7 @@
     import ArticleList from "$lib/components/ArticleList.svelte";
     import ArticleFilterPopover from "$lib/components/ArticleFilterPopover.svelte";
     import ArticleSearch from "$lib/components/ArticleSearch.svelte";
+    import Pagination from "$lib/components/Pagination.svelte";
     import { Button } from "$lib/components/ui/button";
     import { t } from '$lib/stores/i18n.svelte';
 
@@ -130,8 +131,9 @@
     );
 
     let filteredArticles = $state([...allArticles]);
-    let displayedArticles = $state([...allArticles]);
     let searchQuery = $state("");
+    let currentPage = $state(1);
+    const itemsPerPage = 12;
     let activeFilters = $state<any>({
         language: '',
         category: '',
@@ -143,7 +145,6 @@
         onlyFollowing: false
     });
     let loading = $state(false);
-    let hasMore = $state(false);
 
     const filterOptions = {
         languages: allAvailableLanguages.length
@@ -192,14 +193,49 @@
     function applyFiltersAndSearch() {
         let result = [...allArticles];
 
-        // Apply search filter
+        // Apply search filter - search in all translations, prioritize selected language
         if (searchQuery && searchQuery.trim()) {
             const query = searchQuery.toLowerCase().trim();
-            result = result.filter(article =>
-                article.title.toLowerCase().includes(query) ||
-                article.excerpt.toLowerCase().includes(query) ||
-                (article.tags || []).some(tag => tag.toLowerCase().includes(query))
-            );
+            result = result.filter(article => {
+                const translations = article.translations || {};
+                
+                // Check all translations for matches
+                const allTranslationValues = Object.values(translations).flatMap((t: any) => [
+                    t.title || '',
+                    t.excerpt || '',
+                    t.content || ''
+                ]).join(' ').toLowerCase();
+                
+                // Check tags
+                const tagsMatch = (article.tags || []).some(tag => tag.toLowerCase().includes(query));
+                
+                // Check current display title/excerpt
+                const currentMatch = (article.title || '').toLowerCase().includes(query) || 
+                                    (article.excerpt || '').toLowerCase().includes(query);
+                
+                // Check all translations combined
+                const translationsMatch = allTranslationValues.includes(query);
+                
+                return currentMatch || tagsMatch || translationsMatch;
+            }).sort((a, b) => {
+                // Prioritize: selected language matches first, then others
+                const query = searchQuery.toLowerCase().trim();
+                const aTranslations = a.translations || {};
+                const bTranslations = b.translations || {};
+                
+                // Get current language from article
+                const currentLang = a.language || 'tr';
+                
+                // Check if current language translation matches
+                const aCurrentMatch = (aTranslations[currentLang]?.title || '').toLowerCase().includes(query) ||
+                                     (aTranslations[currentLang]?.excerpt || '').toLowerCase().includes(query);
+                const bCurrentMatch = (bTranslations[currentLang]?.title || '').toLowerCase().includes(query) ||
+                                     (bTranslations[currentLang]?.excerpt || '').toLowerCase().includes(query);
+                
+                if (aCurrentMatch && !bCurrentMatch) return -1;
+                if (!aCurrentMatch && bCurrentMatch) return 1;
+                return 0;
+            });
         }
 
         // Apply category filter (case insensitive partial match)
@@ -291,12 +327,12 @@
         }
 
         filteredArticles = result;
-        displayedArticles = result;
-        hasMore = false; // No pagination for mock data
+        currentPage = 1; // Reset to first page when filters change
     }
 
     const handleSearch = (query: string) => {
         searchQuery = query;
+        currentPage = 1; // Reset to first page on search
         addToRecentSearches(query);
         applyFiltersAndSearch();
     };
@@ -314,15 +350,22 @@
         applyFiltersAndSearch();
     });
 
+    // Pagination computed values
+    const totalPages = $derived(Math.ceil(filteredArticles.length / itemsPerPage));
+    const paginatedArticles = $derived(
+        filteredArticles.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)
+    );
+
     const handleFiltersChange = (filters: any) => {
         activeFilters = filters;
+        currentPage = 1; // Reset to first page when filters change
         applyFiltersAndSearch();
     };
 
-    const handleLoadMore = async () => {
-        // Not implemented for mock data
-        hasMore = false;
+    const handlePageChange = (page: number) => {
+        currentPage = page;
     };
+
 </script>
 
 {#if loading}
@@ -400,15 +443,30 @@
             </div>
 
             <!-- Articles List -->
-            <ArticleList
-                articles={displayedArticles}
-                loading={loading}
-                layout="grid"
-                variant="default"
-                showLoadMore={false}
-                hasMore={hasMore}
-                onLoadMore={handleLoadMore}
-            />
+            <div id="article-list" class="w-full">
+                <ArticleList
+                    articles={paginatedArticles}
+                    loading={loading}
+                    layout="grid"
+                    variant="default"
+                    showLoadMore={false}
+                    hasMore={false}
+                    onLoadMore={() => {}}
+                />
+
+                <!-- Pagination -->
+                {#if filteredArticles.length > 0}
+                    <div class="mt-8">
+                        <Pagination
+                            {currentPage}
+                            {totalPages}
+                            totalItems={filteredArticles.length}
+                            {itemsPerPage}
+                            onPageChange={handlePageChange}
+                        />
+                    </div>
+                {/if}
+            </div>
 
     </section>
 </main>

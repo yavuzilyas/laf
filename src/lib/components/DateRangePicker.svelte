@@ -24,17 +24,7 @@
   value?: DateRange;
   onValueChange?: (value: DateRange | undefined) => void;
  } = $props();
- 
- const todayDate = today(getLocalTimeZone());
- 
- // Başlangıç değeri - bugünden 30 gün öncesi ile bugün arası
- if (!value) {
-  value = {
-   start: todayDate.subtract({ days: 30 }),
-   end: todayDate
-  };
- }
- 
+
  let startValue: DateValue | undefined = $state(undefined);
 </script>
  

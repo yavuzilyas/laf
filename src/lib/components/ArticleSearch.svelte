@@ -124,7 +124,7 @@
       isLoading = true;
       
       try {
-        const response = await fetch(`/api/articles?search=${encodeURIComponent(query)}&limit=5&fields=id,title,slug,excerpt,translations,language,author,authorId`);
+        const response = await fetch(`/api/articles?search=${encodeURIComponent(query)}&language=${currentLanguage}&limit=5&fields=id,title,slug,excerpt,translations,language,author,authorId`);
         
         if (!response.ok) {
           throw new Error(`API Error: ${response.status}`);

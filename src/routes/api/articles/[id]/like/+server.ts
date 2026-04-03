@@ -1,7 +1,7 @@
 // src/routes/api/articles/[id]/like/+server.ts
 import { json } from '@sveltejs/kit';
 import { getLikes, createLike, deleteLike, getArticles, updateArticle } from '$db/queries';
-import { notifyArticleLike } from '$lib/server/notifications-new';
+import { notifyArticleLike } from '$lib/server/notifications-pg';
 
 export async function POST({ params, request, locals }) {
   const user = (locals as any)?.user;

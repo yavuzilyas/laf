@@ -74,9 +74,7 @@ export function showToast(
     
     const id = idCounter++;
     update((list) => [...list, { id, message, type, duration, link: options?.link }]);
-    if (duration > 0) {
-        setTimeout(() => dismissToast(id), duration);
-    }
+    // ToastHost.svelte kendi zamanlayıcısını kullanıyor, burada setTimeout yok
     return id;
 }
 
@@ -128,7 +126,7 @@ export function showToastKey(key: string, type: ToastType = 'info', duration = 3
     
     const id = idCounter++;
     update((list) => [...list, { id, key, type, duration }]);
-    if (duration > 0) setTimeout(() => dismissToast(id), duration);
+    // ToastHost.svelte kendi zamanlayıcısını kullanıyor, burada setTimeout yok
     return id;
 }
 
@@ -187,7 +185,7 @@ export function showToastKeys(keys: string[], type: ToastType = 'info', duration
     
     const id = idCounter++;
     update((list) => [...list, { id, keys, sep, type, duration }]);
-    if (duration > 0) setTimeout(() => dismissToast(id), duration);
+    // ToastHost.svelte kendi zamanlayıcısını kullanıyor, burada setTimeout yok
     return id;
 }
 

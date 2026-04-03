@@ -363,14 +363,31 @@ export const getArticles = async (filters: any = {}) => {
         conditions.push(`a.translations->'${filters.language}'->>'slug' = $${params.length + 1}`);
         params.push(filters.slug);
     }
-    // Search in title/content
+    // Search in title/content - prioritize selected language but include all languages
     if (filters.search) {
-        conditions.push(`(
-            a.translations::text ILIKE $${params.length + 1}
-            OR a.category ILIKE $${params.length + 1}
-            OR a.subcategory ILIKE $${params.length + 1}
-        )`);
-        params.push(`%${filters.search}%`);
+        const searchParam = `%${filters.search}%`;
+        const searchLang = filters.search_language;
+        
+        if (searchLang) {
+            // If search_language is provided, prioritize that language in search
+            // but still include matches from other languages
+            conditions.push(`(
+                a.translations->'${searchLang}'->>'title' ILIKE $${params.length + 1}
+                OR a.translations->'${searchLang}'->>'content' ILIKE $${params.length + 1}
+                OR a.translations::text ILIKE $${params.length + 1}
+                OR a.category ILIKE $${params.length + 1}
+                OR a.subcategory ILIKE $${params.length + 1}
+            )`);
+            params.push(searchParam);
+        } else {
+            // No specific language - search all translations equally
+            conditions.push(`(
+                a.translations::text ILIKE $${params.length + 1}
+                OR a.category ILIKE $${params.length + 1}
+                OR a.subcategory ILIKE $${params.length + 1}
+            )`);
+            params.push(searchParam);
+        }
     }
     // Tags filter
     if (filters.tags && Array.isArray(filters.tags) && filters.tags.length > 0) {

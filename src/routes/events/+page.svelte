@@ -36,7 +36,7 @@
     // State
     let selectedCity = $state<string>('');
     let activeTab = $state<'all' | 'events' | 'announcements'>('all');
-    let timeFilter = $state<'all' | 'upcoming' | 'past'>('upcoming');
+    let timeFilter = $state<'all' | 'upcoming' | 'past'>('all');
     let selectedEvent = $state<Event | null>(null);
     let dialogOpen = $state(false);
 
@@ -94,7 +94,33 @@
         return status;
     });
 
-    // Format date
+    // Pagination state
+    const ITEMS_PER_PAGE = 5;
+    let announcementsPage = $state(1);
+    let eventsPage = $state(1);
+
+    // Paginated lists
+    const filteredAnnouncements = $derived(() => {
+        return filteredEvents().filter(e => e.type === 'announcement');
+    });
+
+    const filteredEventsList = $derived(() => {
+        return filteredEvents().filter(e => e.type === 'event');
+    });
+
+    const paginatedAnnouncements = $derived(() => {
+        const start = (announcementsPage - 1) * ITEMS_PER_PAGE;
+        return filteredAnnouncements().slice(start, start + ITEMS_PER_PAGE);
+    });
+
+    const paginatedEvents = $derived(() => {
+        const start = (eventsPage - 1) * ITEMS_PER_PAGE;
+        return filteredEventsList().slice(start, start + ITEMS_PER_PAGE);
+    });
+
+    const totalAnnouncementPages = $derived(() => Math.ceil(filteredAnnouncements().length / ITEMS_PER_PAGE) || 1);
+    const totalEventPages = $derived(() => Math.ceil(filteredEventsList().length / ITEMS_PER_PAGE) || 1);
+
     function formatDate(dateStr: string): string {
         const date = new Date(dateStr);
         return new Intl.DateTimeFormat('tr-TR', {
@@ -114,6 +140,8 @@
 
     function handleCitySelect(event: CustomEvent<{ city: string; plate: string }>) {
         selectedCity = event.detail.city;
+        announcementsPage = 1;
+        eventsPage = 1;
         // Scroll to events section
         setTimeout(() => {
             const eventsSection = document.getElementById('events-section');
@@ -131,7 +159,7 @@
     function clearFilters() {
         selectedCity = '';
         activeTab = 'all';
-        timeFilter = 'upcoming';
+        timeFilter = 'all';
     }
 
     // Scroll to event from URL hash
@@ -290,20 +318,20 @@
                     </div>
                     
                     <div class="space-y-4">
-                        {#each filteredEvents().filter(e => e.type === 'announcement') as announcement (announcement.id)}
+                        {#each paginatedAnnouncements() as announcement (announcement.id)}
                             <div id="event-{announcement.id}" class="bg-card border border-border rounded-lg p-2.5 hover:shadow-sm transition-all">
-                                <div class="flex items-center justify-between mb-1.5">
+                                
+                                
+                                <h3 class="text-sm font-semibold mb-1 leading-tight">{announcement.title}</h3>
+                                <p class="text-xs text-muted-foreground mb-2 line-clamp-2">{announcement.description}</p>
+                                <div class="flex items-center gap-2 my-2">
                                     <Badge variant="secondary" class="text-[10px] h-4">
-                                        {announcement.category}
+                                        {t(`${announcement.category}`)}
                                     </Badge>
                                     {#if announcement.isPast}
                                         <Badge variant="outline" class="text-[10px] h-4">{t('events.completed')}</Badge>
                                     {/if}
                                 </div>
-                                
-                                <h3 class="text-sm font-semibold mb-1 leading-tight">{announcement.title}</h3>
-                                <p class="text-xs text-muted-foreground mb-2 line-clamp-2">{announcement.description}</p>
-                                
                                 <div class="flex flex-wrap items-center gap-x-2 gap-y-1 text-[10px] text-muted-foreground">
                                     <span class="flex items-center gap-1">
                                         <Calendar class="w-3 h-3" />
@@ -325,10 +353,35 @@
                             </div>
                         {/each}
                         
-                        {#if filteredEvents().filter(e => e.type === 'announcement').length === 0}
+                        {#if filteredAnnouncements().length === 0}
                             <div class="text-center py-8 bg-muted/30 rounded-xl">
                                 <Bell class="w-10 h-10 mx-auto text-muted-foreground/50 mb-2" />
                                 <p class="text-sm text-muted-foreground">{t('events.noAnnouncements')}</p>
+                            </div>
+                        {/if}
+                        
+                        <!-- Announcements Pagination -->
+                        {#if totalAnnouncementPages() > 1}
+                            <div class="flex justify-center items-center gap-2 pt-4">
+                                <Button
+                                    variant="outline"
+                                    size="xs"
+                                    onclick={() => announcementsPage = Math.max(1, announcementsPage - 1)}
+                                    disabled={announcementsPage === 1}
+                                >
+                                    ←
+                                </Button>
+                                <span class="text-xs text-muted-foreground">
+                                    {announcementsPage} / {totalAnnouncementPages()}
+                                </span>
+                                <Button
+                                    variant="outline"
+                                    size="xs"
+                                    onclick={() => announcementsPage = Math.min(totalAnnouncementPages(), announcementsPage + 1)}
+                                    disabled={announcementsPage === totalAnnouncementPages()}
+                                >
+                                    →
+                                </Button>
                             </div>
                         {/if}
                     </div>
@@ -342,11 +395,15 @@
                     </div>
                     
                     <div class="space-y-4">
-                        {#each filteredEvents().filter(e => e.type === 'event') as event (event.id)}
+                        {#each paginatedEvents() as event (event.id)}
                             <div id="event-{event.id}" class="bg-card border border-border rounded-lg p-2.5 hover:shadow-sm transition-all">
-                                <div class="flex items-center justify-between mb-1.5">
+                                
+                                
+                                <h3 class="text-sm font-semibold mb-1 leading-tight">{event.title}</h3>
+                                <p class="text-xs text-muted-foreground mb-2 line-clamp-2">{event.description}</p>
+                                <div class="flex items-center gap-2 my-2">
                                     <Badge variant="default" class="text-[10px] h-4">
-                                        {event.category}
+                                        {t(`${event.category}`)}
                                     </Badge>
                                     {#if event.isPast}
                                         <Badge variant="outline" class="text-[10px] h-4">{t('events.completed')}</Badge>
@@ -354,10 +411,6 @@
                                         <Badge variant="outline" class="text-[10px] h-4 text-green-600 border-green-600">{t('events.upcoming')}</Badge>
                                     {/if}
                                 </div>
-                                
-                                <h3 class="text-sm font-semibold mb-1 leading-tight">{event.title}</h3>
-                                <p class="text-xs text-muted-foreground mb-2 line-clamp-2">{event.description}</p>
-                                
                                 <div class="flex flex-wrap items-center gap-x-2 gap-y-1 text-[10px] text-muted-foreground">
                                     <span class="flex items-center gap-1">
                                         <Calendar class="w-3 h-3" />
@@ -385,6 +438,7 @@
                                             {t('events.link')}
                                         </a>
                                     {/if}
+                                    
                                 </div>
                                 
                                 {#if !event.isPast}
@@ -412,10 +466,35 @@
                             </div>
                         {/each}
                         
-                        {#if filteredEvents().filter(e => e.type === 'event').length === 0}
+                        {#if filteredEventsList().length === 0}
                             <div class="text-center py-8 bg-muted/30 rounded-xl">
                                 <Calendar class="w-10 h-10 mx-auto text-muted-foreground/50 mb-2" />
                                 <p class="text-sm text-muted-foreground">{t('events.noEvents')}</p>
+                            </div>
+                        {/if}
+                        
+                        <!-- Events Pagination -->
+                        {#if totalEventPages() > 1}
+                            <div class="flex justify-center items-center gap-2 pt-4">
+                                <Button
+                                    variant="outline"
+                                    size="xs"
+                                    onclick={() => eventsPage = Math.max(1, eventsPage - 1)}
+                                    disabled={eventsPage === 1}
+                                >
+                                    ←
+                                </Button>
+                                <span class="text-xs text-muted-foreground">
+                                    {eventsPage} / {totalEventPages()}
+                                </span>
+                                <Button
+                                    variant="outline"
+                                    size="xs"
+                                    onclick={() => eventsPage = Math.min(totalEventPages(), eventsPage + 1)}
+                                    disabled={eventsPage === totalEventPages()}
+                                >
+                                    →
+                                </Button>
                             </div>
                         {/if}
                     </div>
@@ -433,7 +512,7 @@
             <Dialog.Description>
                 <div class="flex items-center gap-2 mt-2">
                     <Badge variant={selectedEvent?.type === 'announcement' ? 'secondary' : 'default'} class="text-xs">
-                        {selectedEvent?.category}
+                        {t(`${selectedEvent.category}`)}
                     </Badge>
                     {#if selectedEvent?.isPast}
                         <Badge variant="outline" class="text-xs">{t('events.completed')}</Badge>

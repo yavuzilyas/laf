@@ -1325,7 +1325,7 @@
             {:else}
               <div class="grid gap-4">
                 {#each paginatedEvents as event (event.id)}
-                  <div class="flex flex-col sm:flex-row items-start sm:items-center gap-4 p-4 border rounded-lg bg-card hover:shadow-sm transition-shadow max-w-[90vw] sm:max-w-full">
+                  <div class="flex flex-col sm:flex-row items-start sm:items-center gap-4 p-4 border rounded-lg bg-card hover:shadow-sm transition-shadow max-w-[90vw]">
                     <!-- Icon/Type -->
                     <div class="flex-shrink-0">
                       <div class="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center">

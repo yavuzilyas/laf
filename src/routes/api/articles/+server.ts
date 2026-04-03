@@ -43,6 +43,11 @@ export async function GET({ url, locals }) {
     if (search) {
       // Note: For full-text search, you might want to add PostgreSQL's full-text search
       filters.search = search;
+      // Pass the language parameter to prioritize search in that language
+      // but still include results from other languages
+      if (language) {
+        filters.search_language = language;
+      }
     }
 
     // Category filter

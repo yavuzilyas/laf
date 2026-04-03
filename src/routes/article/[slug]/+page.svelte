@@ -1943,7 +1943,7 @@
 
             return {
                 title: `${article.title} | ${siteName}`,
-                description: article.excerpt || article.content?.substring(0, 160) || '',
+                description: article.excerpt || (typeof article.content === 'string' ? article.content.substring(0, 160) : '') || '',
                 canonical: url,
                 og: {
                     title: article.title,
@@ -2191,9 +2191,9 @@
                                     </Tooltip.Root>
                                 </Tooltip.Provider>
                             {/if}
-                            <Badge variant="default">{t(article.category)}</Badge>
+                            <Badge variant="default">{t(`${article.category}`)}</Badge>
                             {#if article.subcategory}
-                                <Badge variant="secondary">{t(article.subcategory)}</Badge>
+                                <Badge variant="secondary">{t(`${article.subcategory}`)}</Badge>
                             {/if}
                         </div>
                     </div>

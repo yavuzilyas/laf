@@ -3,7 +3,7 @@
   import { Button } from "$lib/components/ui/button";
   import { Badge } from "$lib/components/ui/badge";
   import { Calendar, Clock, User, Eye, MessageCircle, ThumbsUp, ThumbsDown } from "@lucide/svelte";
-  import { t } from '$lib/stores/i18n.svelte.ts';
+  import { t, getCurrentLocale } from '$lib/stores/i18n.svelte.ts';
   import Lens from '$lib/components/Lens.svelte';
   import A from "$lib/components/ui/a.svelte";
     import { ScrollArea } from "$lib/components/ui/scroll-area";
@@ -48,6 +48,15 @@
       followersCount?: number;
       followingCount?: number;
     }>;
+    // Translation support
+    translations?: Record<string, {
+      title: string;
+      excerpt: string;
+      content?: string;
+      slug?: string;
+      language?: string;
+    }>;
+    defaultLanguage?: string;
   }
 
   let {
@@ -61,9 +70,49 @@
     class?: string;
   } = $props();
 
+  // Get translated content based on current locale
+  const getTranslatedContent = (article: Article) => {
+    const currentLocale = getCurrentLocale() || 'tr';
+    const defaultLocale = article.defaultLanguage || 'tr';
+    const translations = article.translations || {};
+    
+    // Try current locale first
+    const currentTranslation = translations[currentLocale];
+    if (currentTranslation?.title) {
+      return {
+        title: currentTranslation.title,
+        excerpt: currentTranslation.excerpt || '',
+        slug: currentTranslation.slug || article.slug,
+        content: currentTranslation.content || ''
+      };
+    }
+    
+    // Fallback to default locale
+    const defaultTranslation = translations[defaultLocale];
+    if (defaultTranslation?.title) {
+      return {
+        title: defaultTranslation.title,
+        excerpt: defaultTranslation.excerpt || '',
+        slug: defaultTranslation.slug || article.slug,
+        content: defaultTranslation.content || ''
+      };
+    }
+    
+    // Final fallback to article's direct fields (for backward compatibility)
+    return {
+      title: article.title,
+      excerpt: article.excerpt,
+      slug: article.slug,
+      content: article.content || ''
+    };
+  };
+
+  // Reactive translated content
+  const translatedContent = $derived(getTranslatedContent(article));
+
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
-    return date.toLocaleDateString(t.currentLocale, {
+    return date.toLocaleDateString(getCurrentLocale(), {
       year: 'numeric',
       month: 'short',
       day: 'numeric'
@@ -121,7 +170,7 @@
       <div class="relative overflow-hidden md:order-2">
         <img 
           src={article.coverImage} 
-          alt={article.title}
+          alt={translatedContent.title}
           class="aspect-[16/9] w-full object-cover transition-transform duration-300 group-hover:scale-105 md:aspect-[4/3]"
         />
         <div class="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent" />
@@ -137,7 +186,7 @@
       <div class="space-y-4">
         <div class="flex items-center gap-2 text-xs text-muted-foreground">
           <Badge variant="secondary" class="text-xs">
-            {article.category}
+            {t(`${article.category}`)}
           </Badge>
           <span>•</span>
           <div class="flex items-center gap-1">
@@ -149,7 +198,7 @@
         <div>
           <div class="flex flex-wrap items-center gap-2">
             <h2 class="text-2xl font-bold leading-tight tracking-tight group-hover:text-primary transition-colors">
-              {article.title}
+              {translatedContent.title}
             </h2>
             {#if article.status === 'pending'}
               <Badge variant="warning">{t('articles.status.pending')}</Badge>
@@ -160,7 +209,7 @@
             {/if}
           </div>
           <p class="mt-2 text-muted-foreground leading-relaxed">
-            {truncateText(article.excerpt, 200)}
+            {truncateText(translatedContent.excerpt, 200)}
           </p>
         </div>
         
@@ -229,7 +278,7 @@
           </div>
         </div>
         
-        <Button variant="outline" size="sm" href={article.slug ? `/article/${article.slug}` : undefined}>
+        <Button variant="outline" size="sm" href={translatedContent.slug ? `/article/${translatedContent.slug}` : undefined}>
           {t('articles.readMore')}
         </Button>
       </div>
@@ -246,7 +295,7 @@
       <div class="relative flex-shrink-0 overflow-hidden rounded-md">
         <img 
           src={article.coverImage} 
-          alt={article.title}
+          alt={translatedContent.title}
           class="h-32 w-full object-cover transition-transform duration-300 group-hover:scale-105"
         />
       </div>
@@ -255,14 +304,14 @@
     <div class="flex-1 space-y-2">
       <div class="flex items-center gap-2 text-xs text-muted-foreground">
         <Badge variant="secondary" class="text-xs">
-          {article.category}
+            {t(`${article.category}`)}
         </Badge>
         <time>{formatDate(article.publishedAt)}</time>
       </div>
       
       <div class="flex flex-wrap items-center gap-2">
         <h3 class="font-semibold leading-tight group-hover:text-primary transition-colors">
-          {truncateText(article.title, 80)}
+          {truncateText(translatedContent.title, 80)}
         </h3>
         {#if article.status === 'pending'}
           <Badge variant="warning">{t('articles.status.pending')}</Badge>
@@ -274,7 +323,7 @@
       </div>
       
       <p class="text-xs text-muted-foreground">
-        {truncateText(article.excerpt, 120)}
+        {truncateText(translatedContent.excerpt, 120)}
       </p>
       
       <div class="flex items-center gap-4">
@@ -352,8 +401,8 @@
   )} {...restProps}>
     <div class="flex items-center gap-2 text-xs text-muted-foreground">
       <Badge variant="outline" class="text-xs">
-        {article.category}
-      </Badge>
+            {t(`${article.category}`)}
+          </Badge>
       <span>•</span>
       <time>{formatDate(article.publishedAt)}</time>
       <span>•</span>
@@ -362,7 +411,7 @@
     
     <div class="flex flex-wrap items-center gap-2">
       <h3 class="font-semibold leading-tight group-hover:text-primary transition-colors">
-        {article.title}
+        {translatedContent.title}
       </h3>
       {#if article.status === 'pending'}
         <Badge variant="warning">{t('articles.status.pending')}</Badge>
@@ -374,14 +423,14 @@
     </div>
     
     <p class="text-xs text-muted-foreground">
-      {truncateText(article.excerpt, 150)}
+      {truncateText(translatedContent.excerpt, 150)}
     </p>
     
     <div class="flex items-center justify-between">
       <div class="flex items-center gap-2">
         <div class="flex items-center gap-1 text-xs text-muted-foreground">
           <User class="h-3 w-3" />
-          <A href={article.slug ? `/article/${article.slug}` : undefined} class="hover:text-foreground transition-colors">
+          <A href={translatedContent.slug ? `/article/${translatedContent.slug}` : undefined} class="hover:text-foreground transition-colors">
             {getAuthorDisplayName(article)}
           </A>
         </div>
@@ -434,10 +483,10 @@
     {#if article.coverImage}
       <div class="relative p-3 sm:p-4 pb-0 overflow-hidden">
         <Lens>
-        <A href={article.slug ? `/article/${article.slug}` : undefined}>
+        <A href={translatedContent.slug ? `/article/${translatedContent.slug}` : undefined}>
           <img 
             src={article.coverImage} 
-            alt={article.title}
+            alt={translatedContent.title}
             class="aspect-[16/9] rounded-2xl w-full object-cover transition-transform duration-300 "
           />
         </A>
@@ -454,7 +503,7 @@
             <Badge variant="warning">{t('articles.status.pending')}</Badge>
           {/if}
         <Badge variant="secondary">
-          {t(article.category)}
+            {t(`${article.category}`)}
         </Badge>
 
       </div>
@@ -474,12 +523,12 @@
       <div>
         <div class="flex flex-wrap items-center gap-2">
           <h2 class="text-xs sm:text-base font-bold leading-tight tracking-tight group-hover:text-primary transition-colors">
-            <A href={article.slug ? `/article/${article.slug}` : undefined}>{article.title}</A>
+            <A href={translatedContent.slug ? `/article/${translatedContent.slug}` : undefined}>{translatedContent.title}</A>
           </h2>
 
         </div>
         <p class="mt-2 text-xs sm:text-xs text-muted-foreground">
-          {truncateText(article.excerpt, 150)}
+          {truncateText(translatedContent.excerpt, 150)}
         </p>
       </div>
       
