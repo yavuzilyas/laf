@@ -5,6 +5,7 @@ import { checkDailyTranslationLimit, addDailyTranslation } from '$db/queries-tra
 import { slugify } from '$lib/utils/slugify';
 import { rm } from 'fs/promises';
 import { resolve } from 'path';
+import { env } from '$env/dynamic/private';
 import { notifyNewArticle, notifyModeratorsNewArticle } from '$lib/server/notifications-pg';
 import { notifyTranslationReview } from '$lib/server/translation-notifications';
 import { createTranslationStatus } from '$db/queries-translation-status';
@@ -210,7 +211,7 @@ async function cleanupUnusedMedia(existing: any, updated: any, articleId: string
 
     if (!previousUrls.size) return;
 
-    const baseUploadsDir = resolve('static', 'uploads');
+    const baseUploadsDir = resolve(env.UPLOAD_DIR || 'uploads');
     const allowedPrefix = `/uploads/articles/${articleId}/`;
 
     const toDelete: string[] = [];
@@ -225,7 +226,7 @@ async function cleanupUnusedMedia(existing: any, updated: any, articleId: string
     await Promise.all(
         toDelete.map(async (url) => {
             try {
-                const fsPath = resolve('static', url.replace(/^\//, ''));
+                const fsPath = resolve(baseUploadsDir, url.replace(/^\/uploads\//, '').replace(/^\//, ''));
                 if (fsPath.startsWith(baseUploadsDir)) {
                     await rm(fsPath, { force: true });
                 }

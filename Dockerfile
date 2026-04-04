@@ -16,9 +16,14 @@ RUN npx svelte-kit sync
 # Environment ve memory optimizasyonları
 ENV NODE_OPTIONS="--max-old-space-size=3500"
 ENV ESBUILD_WORKER_THREADS=1
+ENV UPLOAD_DIR=/app/uploads
+
+# Uploads klasörü oluştur (volume için)
+RUN mkdir -p /app/uploads
 
 # Build
 RUN pnpm build
 
 EXPOSE 3000
+VOLUME ["/app/uploads"]
 ENTRYPOINT ["node", "build"]

@@ -6,7 +6,7 @@ import { slugify } from '$lib/utils/slugify';
 import { env } from '$env/dynamic/private';
 
 // Get upload directory from environment variable or fallback to static/uploads
-const UPLOAD_BASE_DIR = env.UPLOAD_DIR || 'static/uploads';
+const UPLOAD_BASE_DIR = env.UPLOAD_DIR || 'uploads';
 const PUBLIC_BASE_PATH = '/uploads';
 
 // Simple rate limiting: max 10 uploads per 5 minutes per user

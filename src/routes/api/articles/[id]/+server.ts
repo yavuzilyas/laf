@@ -4,6 +4,7 @@ import { getArticleById, softDeleteArticle } from '$db/queries';
 import { resolve } from 'path';
 import { rm } from 'fs/promises';
 import { existsSync } from 'fs';
+import { env } from '$env/dynamic/private';
 
 export async function DELETE({ params, locals }) {
   const user = (locals as any)?.user;
@@ -26,9 +27,20 @@ export async function DELETE({ params, locals }) {
     await softDeleteArticle(articleId);
 
     // Delete the entire article's upload directory if it exists
-    const articleUploadsDir = resolve('static', 'uploads', 'articles', params.id);
-    if (existsSync(articleUploadsDir)) {
-      await rm(articleUploadsDir, { recursive: true, force: true });
+    const baseUploadsDir = resolve(env.UPLOAD_DIR || 'uploads');
+    const articleUploadsDir = resolve(baseUploadsDir, 'users');
+    // Look for article folder in any user's directory
+    const { readdir } = await import('fs/promises');
+    try {
+      const users = await readdir(articleUploadsDir);
+      for (const userId of users) {
+        const articleDir = resolve(baseUploadsDir, 'users', userId, 'articles', params.id);
+        if (existsSync(articleDir)) {
+          await rm(articleDir, { recursive: true, force: true });
+        }
+      }
+    } catch (error) {
+      // Directory might not exist, ignore
     }
 
     return json({ success: true, message: 'Article deleted successfully' });
