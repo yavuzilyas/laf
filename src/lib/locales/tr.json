@@ -245,9 +245,9 @@
   "EnterYourPassword": "İşlemi tamamlamak için hesap şifrenizi girin.",
   "EnterPassword": "Şifrenizi girin",
   "VerificationIsRequired": "Doğrulama Gerekli",
-  "EnterTheMnemonicWord": "İşlemi tamamlamak için BIP-39 silsilenizden bir kelime girin.",
+  "EnterTheMnemonicWord": "İşlemi tamamlamak için BIP-39 silsilenizin tamamını doğrulayın.",
   "attemptsLeft": "hakkınız kaldı.",
-  "EnterMnemonic": "Silsiledeki kelimeyi girin.",
+  "EnterMnemonic": "İşlemi tamamlamak için BIP-39 silsilenizin tamamını doğrulayın.",
   "auth": {
     "title": {
       "login": "Giriş",
@@ -255,9 +255,8 @@
     },
     "login": {
       "subtitle": "Kullanıcı adın/e-postan ile şifrenle giriş yap",
-      "mnemonicAnswer": "Silsile Kelimesi",
-      "mnemonicQuestionP1": "BIP-39 silsilenizdeki",
-      "mnemonicQuestionP2": ". kelime nedir?"
+      "mnemonicAnswer": "BIP-39 Doğrulaması"
+
     },
     "register": {
       "subtitle": "Formu doldurun; opsiyonel alanları boş bırakabilirsiniz.",
@@ -5582,8 +5581,8 @@
       "newReportMessage": "{reporter} yeni bir {type} bildirdi. Sebep: {reason}",
       "newArticleForReview": "İnceleme için yeni makale: {title}",
       "newArticleForReviewMessage": "{author} \"{title}\" başlıklı makaleyi incelemeye gönderdi.",
-      "newDonation": "Yeni bağış: {amount} TL",
-      "newDonationMessage": "{donor} {amount} TL bağış yaptı.",
+      "newDonation": "Yeni bağış: {amount} XMR",
+      "newDonationMessage": "{donor} {amount} XMR bağış yaptı.",
       "contactMessageRead": "İletişim mesajınız okundu",
       "contactMessageReadMessage": "\"{subject}\" konulu mesajınız ekibimiz tarafından incelendi.",
       "contactMessageResponded": "İletişim mesajınıza yanıt var",

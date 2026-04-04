@@ -18,7 +18,10 @@
 </div>              
           </div>
 
-          <p class="font-semibold sm:max-w-full text-[0.7rem] sm:text-sm text-hard-primary">{t('FooterQuote-1')}<br>{t('FooterQuote-2')}</p>
+          <p class="hidden sm:block font-semibold sm:max-w-full text-[0.7rem] sm:text-sm text-hard-primary">{t('FooterQuote-1')}<br>{t('FooterQuote-2')}</p>
         </div>
   </div>
+</footer>
+<footer class="sm:hidden w-full bg-muted p-6">
+            <p class="sm:hidden font-semibold text-[0.7rem] sm:text-sm text-hard-primary">{t('FooterQuote-1')}<br>{t('FooterQuote-2')}</p>
 </footer>

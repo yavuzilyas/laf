@@ -27,5 +27,7 @@ export const handle: Handle = async ({ event, resolve }) => {
     }
   }
 
-  return resolve(event);
+  return resolve(event, {
+    bodySizeLimit: 4 * 1024 * 1024 // 4MB
+  });
 };
