@@ -332,9 +332,6 @@ async function cleanupUnusedMedia(existing: any, updated: any, articleId: string
             collaborators: data.collaborators || [],
             status: data.status || 'draft',
             default_language: data.defaultLanguage || 'tr',
-            views: data.stats?.views || 0,
-            likes_count: data.stats?.likes || 0,
-            comments_count: data.stats?.comments || 0,
             author_id: user.id,
             published_at: data.status === 'published' ? new Date() : data.published_at,
             // Store reviewer info if status was changed to pending
@@ -367,6 +364,11 @@ async function cleanupUnusedMedia(existing: any, updated: any, articleId: string
             if (!existingArticle) {
                 return json({ error: 'Article not found' }, { status: 404 });
             }
+            
+            // Preserve existing interaction counts
+            (articleData as any).views = existingArticle.views ?? 0;
+            (articleData as any).likes_count = existingArticle.likes_count ?? 0;
+            (articleData as any).comments_count = existingArticle.comments_count ?? 0;
             
             // Store original author ID from existing article
             originalAuthorId = existingArticle.author_id;
