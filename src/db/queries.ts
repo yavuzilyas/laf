@@ -517,7 +517,11 @@ export const getArticleById = async (id: string) => {
         defaultLanguage: row.default_language,
         likesCount: row.likes_count,
         commentsCount: row.comments_count,
-        isHidden: row.is_hidden
+        isHidden: row.is_hidden,
+        // Explicitly include stats fields for article updates
+        views: row.views,
+        likes_count: row.likes_count,
+        comments_count: row.comments_count
     };
 };
 

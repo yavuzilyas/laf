@@ -444,7 +444,10 @@ async function cleanupUnusedMedia(existing: any, updated: any, articleId: string
                 
                 const translatorArticleData = {
                     translations: updatedTranslations,
-                    author_id: originalAuthorId // Orijinal yazarı koru
+                    author_id: originalAuthorId, // Orijinal yazarı koru
+                    views: existingArticle.views ?? 0,
+                    likes_count: existingArticle.likes_count ?? 0,
+                    comments_count: existingArticle.comments_count ?? 0
                 };
                 await updateArticle(articleId, translatorArticleData);
                 
