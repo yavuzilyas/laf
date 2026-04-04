@@ -2429,11 +2429,9 @@
   "SelectCountry": "Select country...",
   "SelectCity": "Select city...",
   "SelectCountryFirst": "Select a country first",
-  "EditorFontSize":"Editor Font Size",
-
+  "EditorFontSize": "Editor Font Size",
   "profile": {
     "myArticlesDescription": "Oh! My articles here",
-
     "followsYou": "Follows you",
     "editProfile": "Edit Profile",
     "saveChanges": "Save Changes",
@@ -2449,10 +2447,10 @@
     "comments": "Comments",
     "likes": "Likes",
     "views": "Views",
-    "avatarSizeError": "Maximum file size is 512KB.",
+    "avatarSizeError": "Maximum file size is 4MB.",
     "avatarTypeError": "Only image files are allowed.",
     "avatarUploadError": "Failed to upload avatar.",
-    "bannerSizeError": "Maximum banner size is 512KB.",
+    "bannerSizeError": "Maximum banner size is 4MB.",
     "myArticles": "My Articles",
     "articlesDescription": "Articles you have written",
     "noArticles": "You haven't written any articles yet",
@@ -2493,7 +2491,8 @@
     "changeBanner": "Change Banner",
     "removeBanner": "Remove Banner",
     "changeBannerColor": "Banner Color",
-    "bannerAlt": "Profile banner"
+    "bannerAlt": "Profile banner",
+    "saveSuccess": "Succesfully saved."
   },
   "Fractions": "Fractions",
   "France": "France",

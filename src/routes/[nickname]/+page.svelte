@@ -218,9 +218,9 @@
         const file = input.files?.[0];
         if (!file) return;
 
-        const maxBytes = 512 * 1024; // 512KB match server limit
+        const maxBytes = 4 * 1024 * 1024; // 4MB match server limit
         if (file.size > maxBytes) {
-            showToast(t('profile.avatarSizeError') || 'Avatar en fazla 512KB olmalıdır', 'error');
+            showToast(t('profile.avatarSizeError') || 'Avatar en fazla 4MB olmalıdır', 'error');
             input.value = "";
             return;
         }
@@ -415,9 +415,9 @@
         if (!file) return;
 
         const previousBanner = profileFormData.bannerImage;
-        const maxBytes = 512 * 1024; // 512KB match server limit
+        const maxBytes = 4 * 1024 * 1024; // 4MB match server limit
         if (file.size > maxBytes) {
-            showToast(t('profile.bannerSizeError') || 'Banner en fazla 512KB olmalıdır', 'error');
+            showToast(t('profile.bannerSizeError') || 'Banner en fazla 4MB olmalıdır', 'error');
             input.value = "";
             return;
         }

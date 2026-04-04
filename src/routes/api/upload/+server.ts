@@ -59,19 +59,19 @@ export async function POST({ request, locals }) {
   if (!type || !allowedPrefixes.some((prefix) => type.startsWith(prefix))) {
     return json({ error: 'Only image, audio or video uploads are allowed' }, { status: 400 });
   }
-
+  
   // In environments where File.size is available, enforce 4MB here as well
-  const maxBytes = 8 * 1024 * 1024; // 4MB
+  const maxBytes = 4 * 1024 * 1024; // 4MB
   const declaredSize = (file as any)?.size as number | undefined;
   if (typeof declaredSize === 'number' && declaredSize > maxBytes) {
-    return json({ error: 'File too large. Max 8MB' }, { status: 400 });
+    return json({ error: 'File too large. Max 4MB' }, { status: 400 });
   }
 
   const arrayBuffer = await file.arrayBuffer();
   const buffer = Buffer.from(arrayBuffer);
 
   if (buffer.byteLength > maxBytes) {
-    return json({ error: 'File too large. Max 8MB' }, { status: 400 });
+    return json({ error: 'File too large. Max 4MB' }, { status: 400 });
   }
 
   const ext = extname(file.name) || '.bin';
