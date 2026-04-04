@@ -61,14 +61,33 @@ export const load: PageServerLoad = async ({ locals }) => {
       };
     }));
 
+    // Fetch user counts by city - extract city part from "City, Country" format
+    const userCountsResult = await query(`
+      SELECT split_part(location, ',', 1) as city, COUNT(*) as count 
+      FROM users 
+      WHERE (status IS NULL OR status != 'banned') AND location IS NOT NULL AND location != ''
+      GROUP BY split_part(location, ',', 1)
+    `);
+    const userCounts: Record<string, number> = {};
+    
+    userCountsResult.rows.forEach((row: any) => {
+      if (row.city) {
+        const cityName = row.city.trim();
+        userCounts[cityName] = parseInt(row.count);
+      }
+    });
+
     return {
       events,
+      userUserCounts: userCounts,
       user: currentUser
     };
   } catch (error) {
     console.error('Error loading events:', error);
     return {
-      events: []
+      events: [],
+      userUserCounts: {},
+      user: null
     };
   }
 };

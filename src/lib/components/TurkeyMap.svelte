@@ -12,9 +12,10 @@
 
 	interface Props {
 		cityEventStatus?: Record<string, 'future' | 'past' | 'none'>;
+		cityUserCounts?: Record<string, number>;
 	}
 
-	let { cityEventStatus = {} }: Props = $props();
+	let { cityEventStatus = {}, cityUserCounts = {} }: Props = $props();
 
 	interface City {
 		name: string;
@@ -158,6 +159,7 @@
 		},
 		{ name: 'Mardin', plate: '47', x: 720, y: 340, path: 'M720,340 L760,335 L765,370 L730,375 Z' },
 		{ name: 'Muğla', plate: '48', x: 260, y: 370, path: 'M260,370 L300,365 L305,400 L270,405 Z' },
+		{ name: 'Muğla', plate: '48', x: 260, y: 370, path: 'M260,370 L300,365 L305,400 L270,405 Z' },
 		{ name: 'Muş', plate: '49', x: 750, y: 260, path: 'M750,260 L790,255 L795,290 L760,295 Z' },
 		{
 			name: 'Nevşehir',
@@ -234,6 +236,70 @@
 	let showUsersDialog = $state(false);
 	let usersInCity = $state<any[]>([]);
 	let loadingUsers = $state(false);
+
+	// Helper to normalize city names for searching
+	function normalizeCityName(name: string): string | null {
+		if (!name) return null;
+		// Map Turkish-specific characters to their closest ASCII equivalents for matching
+		const charMap: Record<string, string> = {
+			ı: 'i',
+			İ: 'i',
+			I: 'i',
+			ğ: 'g',
+			Ğ: 'g',
+			ü: 'u',
+			Ü: 'u',
+			ş: 's',
+			Ş: 's',
+			ö: 'o',
+			Ö: 'o',
+			ç: 'c',
+			Ç: 'c'
+		};
+
+		let normalized = name.trim().toLowerCase();
+		for (const [char, replacement] of Object.entries(charMap)) {
+			normalized = normalized.replace(new RegExp(char, 'g'), replacement);
+		}
+
+		return normalized
+			.normalize('NFD')
+			.replace(/[\u0300-\u036f]/g, '')
+			.replace(/[^a-z0-9]/g, '');
+	}
+
+	$effect(() => {
+		console.log('TurkeyMap Data Check:', {
+			cityUserCountsKeys: Object.keys(cityUserCounts),
+			cityEventStatusKeys: Object.keys(cityEventStatus),
+			userCountsMap,
+			normalizedEventStatus
+		});
+	});
+
+	// Create a map for normalized names to counts for easier lookup
+	const userCountsMap = $derived(
+		Object.entries(cityUserCounts).reduce(
+			(acc, [name, count]) => {
+				const normName = normalizeCityName(name);
+				if (normName) acc[normName] = count;
+				return acc;
+			},
+			{} as Record<string, number>
+		)
+	);
+
+	// Create a map for normalized names to event status
+	const normalizedEventStatus = $derived(
+		Object.entries(cityEventStatus).reduce(
+			(acc, [name, status]) => {
+				const normName = normalizeCityName(name);
+				if (normName) acc[normName] = status;
+				return acc;
+			},
+			{} as Record<string, 'future' | 'past' | 'none'>
+		)
+	);
 
 	async function fetchUsersByCity() {
 		if (!selectedCity) return;
@@ -349,23 +415,39 @@
 		return city ? hoveredCity === city.name : false;
 	}
 
-	// Get color based on city event status
+	// Get color based on user counts - using tailwind primary with color-mix
 	function getCityColor(cityName: string): string {
-		const status = cityEventStatus[cityName];
-		if (status === 'future') return '#E5C84B'; // 75% yellow - bright
-		if (status === 'past') return '#E5E3A8'; // 25% yellow - pale
-		return '#333333'; // black for no events
+		const normName = normalizeCityName(cityName);
+		const count = normName ? userCountsMap[normName] || 0 : 0;
+
+		if (count > 100) return 'var(--primary)'; // Solid Primary
+		if (count > 50) return 'color-mix(in srgb, var(--primary), transparent 20%)';
+		if (count > 25) return 'color-mix(in srgb, var(--primary), transparent 45%)';
+		if (count > 10) return 'color-mix(in srgb, var(--primary), transparent 70%)';
+		if (count > 0) return 'color-mix(in srgb, var(--primary), transparent 85%)';
+
+		return '#2a2a2a'; // Base color for 0 users
 	}
 
-	// Get fill color for path based on selection, hover, and event status
+	// Get fill color for path based on selection, hover, events and user counts
 	function getPathFill(pathId: string): string {
 		const plate = getPlateFromPathId(pathId);
 		if (!plate) return '#333333';
 		const city = cityByPlate[plate];
 		if (!city) return '#333333';
 
-		if (selectedCity === city.name) return '#D4A017'; // Golden for selected
-		if (hoveredCity === city.name) return '#F4D03F'; // Yellow for hover
+		// Priority 1: Selection
+		if (selectedCity === city.name) return '#fff'; // Golden for selected
+		if (hoveredCity === city.name) return 'gray'; // Yellow for hover
+
+		// Priority 2: Future Event (Requirement: Full Yellow)
+		const normName = normalizeCityName(city.name);
+		if (normName && normalizedEventStatus[normName] === 'future') return 'var(--primary)'; // Pure Primary for future events
+
+		// Priority 3: Hover
+		if (hoveredCity === city.name) return 'color-mix(in srgb, var(--primary), white 20%)'; // Lighter primary for hover
+
+		// Default: Dynamic User Density color
 		return getCityColor(city.name);
 	}
 </script>
@@ -407,10 +489,13 @@
 			<path
 				d="M889.7 82.2l-3.1 1.1-4.8 2.7-7.7 3.3-7.8 3.3-5.7 3-1.1 4.8-0.7 7.5-0.9 4.5-5.7 0.6-5.5 1.1-1.4-2.6-1.9-1.9-1.4-2.1-1-2.4-1.3-1.7-1.8-1.2-2.4-3.7-1-4.9 3-5.9 4.1-4.6 4-2 1.2-4.2-1.3-4.4-0.9-2.3-0.4-0.7-0.5-1.5-0.3-2.7-0.7-3.6 0.5 0 1-0.7 1.4-2.2 1.1-1 0.5-1.1 0.4-2.6 0.5-1 0.9-0.8 0.1 0 0.2 0 0.9-0.4 2.4-0.2 6.7 0.6 0.9 0.4-0.4 0.6-0.1 0.7-0.1 0.6-0.2 0.6-0.4 0.4-1 0.8-0.4 0.7 1.3 0.7 0.9 1 0.9 0.3 1.1-1.4 0.7-0.4 0.3 0.4 0.3 0.8 0.4 0.7 0.3 0.3 1.4 0.4 0.3 0.3 0.2 0.3 0.2 0.2 0.5 0.2 0.3 0.4 1.4 2.7 0.7 0.8 3.5 2.4 2.3 2 1.5 0.7 1.4 0.2 0 0.3-0.6 0.9-0.7 0.6-2.6 1.3 1.3 0.4 1.1-0.1 0.9 0.1 1 1.1 1.1 2.8 0.7 0.5 4.4-1.2 1.3-0.1 1.5 0.4 1.3 0.8 1.3 1.2 0.7 1.5-0.5 1.6z"
 				id="TR75"
-				name="Ardahan"
+				role="button"
+				tabindex="0"
+				aria-label="Ardahan"
 				fill={getPathFill('TR75')}
-				class="cursor-pointer transition-all duration-200 hover:opacity-80"
+				class="cursor-pointer transition-all duration-200 hover:opacity-80 focus:outline-none focus:ring-1 focus:ring-primary"
 				onclick={() => handlePathClick('TR75')}
+				onkeydown={(e) => e.key === 'Enter' && handlePathClick('TR75')}
 				onmouseenter={() => handlePathHover('TR75')}
 				onmouseleave={() => handlePathHover(null)}
 			></path>

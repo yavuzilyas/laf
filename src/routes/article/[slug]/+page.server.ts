@@ -328,6 +328,32 @@ export const load: PageServerLoad = async ({ params, locals }) => {
   const totalLikes = userArticles.reduce((sum, a) => sum + (a.likes_count || 0), 0);
   const totalComments = userArticles.reduce((sum, a) => sum + (a.comments_count || 0), 0);
 
+  // Determine edit permissions
+  const isAuthor = viewer?.id === article.author_id;
+  const isCollaborator = article.collaborators?.includes(viewer?.id);
+  const isAdmin = viewer?.role === 'admin';
+  const isModerator = viewer?.role === 'moderator';
+  
+  // Authors and collaborators can edit their own articles
+  let canEdit = isAuthor || isCollaborator;
+  let canFullEdit = canEdit;
+  
+  // Admins can edit all articles
+  if (isAdmin) {
+    canEdit = true;
+    canFullEdit = true;
+  }
+  // Moderators can only edit articles where author is a regular user
+  else if (isModerator) {
+    const authorData = await getUsers({ id: article.author_id });
+    const authorRole = authorData[0]?.role || 'user';
+    // Moderators can only edit user articles, not other moderators' or admins' articles
+    if (authorRole === 'user') {
+      canEdit = true;
+      canFullEdit = true;
+    }
+  }
+
   // Load collaborator data if any
   let collaborators: Array<{ id: string; username: string; name?: string; surname?: string }> = [];
   let collaboratorProfiles: any[] = [];
@@ -495,6 +521,8 @@ export const load: PageServerLoad = async ({ params, locals }) => {
     followingList: Array.isArray(followingList) ? followingList : [],
     isOwnProfile: Boolean(isOwnProfile),
     currentUser: safeCurrentUser,
+    canEdit,
+    canFullEdit,
     stats: {
       totalArticles: Number(totalArticles) || 0,
       totalViews: Number(totalViews) || 0,

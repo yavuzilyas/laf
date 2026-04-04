@@ -243,7 +243,11 @@
     <!-- Turkey Map Section -->
     <section id="map-section" class="pb-8">
         <div class="container max-w-7xl mx-auto px-2 sm:px-6">
-            <TurkeyMap on:select={handleCitySelect} cityEventStatus={cityEventStatus()} />
+            <TurkeyMap 
+                on:select={handleCitySelect} 
+                cityEventStatus={cityEventStatus()} 
+                cityUserCounts={data.userUserCounts} 
+            />
         </div>
     </section>
 
@@ -507,7 +511,7 @@
             <Dialog.Description>
                 <div class="flex items-center gap-2 mt-2">
                     <Badge variant={selectedEvent?.type === 'announcement' ? 'secondary' : 'default'} class="text-xs">
-                        {t(`${selectedEvent.category}`)}
+                        {selectedEvent?.category ? t(`${selectedEvent.category}`) : ''}
                     </Badge>
                     {#if selectedEvent?.isPast}
                         <Badge variant="outline" class="text-xs">{t('events.completed')}</Badge>
