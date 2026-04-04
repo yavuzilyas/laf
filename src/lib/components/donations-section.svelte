@@ -265,7 +265,7 @@ import { BarSpinner } from "$lib/components/spell/bar-spinner";
     }
 </script>
 
-<section id="donations" class="px-4 py-12 lg:max-w-5/7 flex flex-col mx-auto gap-10">
+<section id="donations" class="w-full px-4 py-12 lg:max-w-6xl flex flex-col mx-auto gap-10">
 
   <!-- Header Section -->
   <div class="text-center">
@@ -315,7 +315,7 @@ import { BarSpinner } from "$lib/components/spell/bar-spinner";
           <!-- First Marquee Row - Left to Right -->
           <Marquee pauseOnHover class="[--duration:25s]" repeat={6} duration={25}>
             {#each donations.slice(0, Math.ceil(donations.length / 2)) as donation (donation.id)}
-              <div class="flex-shrink-0 w-96 p-3 sm:p-4 bg-card border rounded-xl shadow-sm hover:shadow-md transition-all duration-300 group cursor-pointer">
+              <div class="flex-shrink-0 w-72 sm:w-80 md:w-96 p-3 sm:p-4 bg-card border rounded-xl shadow-sm hover:shadow-md transition-all duration-300 group cursor-pointer">
                 <div class="flex items-start gap-3">
                   {#if donation.donor_avatar}
                     <a href="/{getDonorIdentifier(donation)}" class="flex-shrink-0">
@@ -369,7 +369,7 @@ import { BarSpinner } from "$lib/components/spell/bar-spinner";
           <!-- Second Marquee Row - Right to Left (Reverse) -->
           <Marquee reverse pauseOnHover class="[--duration:30s]" repeat={6} duration={30}>
             {#each donations.slice(Math.ceil(donations.length / 2)) as donation (donation.id)}
-              <div class="flex-shrink-0 w-96 p-3 sm:p-4 bg-card border rounded-xl shadow-sm hover:shadow-md transition-all duration-300 group cursor-pointer">
+              <div class="flex-shrink-0 w-72 sm:w-80 md:w-96 p-3 sm:p-4 bg-card border rounded-xl shadow-sm hover:shadow-md transition-all duration-300 group cursor-pointer">
                 <div class="flex items-start gap-3">
                   {#if donation.donor_avatar}
                     <a href="/{getDonorIdentifier(donation)}" class="flex-shrink-0">
@@ -427,7 +427,7 @@ import { BarSpinner } from "$lib/components/spell/bar-spinner";
       {/if}
 
 
-  <MagicCard class="p-4 sm:p-6 rounded-xl">
+  <MagicCard class="p-4 sm:p-6 rounded-xl min-w-0">
     <CardHeader>
       <CardTitle class="flex items-center gap-2">
                         <img src={xmr} alt="XMR" class="w-9 h-9"/>
@@ -574,10 +574,10 @@ import { BarSpinner } from "$lib/components/spell/bar-spinner";
   </MagicCard>
 
   <!-- Monero Hakkında Bilgi Kartı -->
-  <MagicCard class="p-4 sm:p-6 rounded-xl">
+  <MagicCard class="p-4 sm:p-6 rounded-xl min-w-0">
     <CardHeader class="w-full flex-col justify-center">
       <CardTitle class="text-4xl text-primary font-bold flex flex-row justify-center items-center gap-3">
-        <div bind:this={moneroContainer} class="w-34 h-full"></div>
+        <div bind:this={moneroContainer} class="w-32 h-32"></div>
         {t('donations.monero.whatIs')}
       </CardTitle>
     </CardHeader>
@@ -605,7 +605,7 @@ import { BarSpinner } from "$lib/components/spell/bar-spinner";
       </div>
     </CardContent>
   </MagicCard>
-  <MagicCard class="p-4 sm:p-6 rounded-xl">
+  <MagicCard class="p-4 sm:p-6 rounded-xl min-w-0">
     <CardHeader>
       <CardTitle class="flex items-center gap-2">
         <TrendingUp class="w-5 h-5" />
@@ -625,13 +625,14 @@ import { BarSpinner } from "$lib/components/spell/bar-spinner";
           {t('donations.noDonations')}
         </div>
       {:else}
+        <div class="overflow-x-auto -mx-2 px-2">
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>{t('donations.rank')}</TableHead>
+              <TableHead class="w-16">{t('donations.rank')}</TableHead>
               <TableHead>{t('donations.user')}</TableHead>
-              <TableHead>{t('donations.totalDonation')}</TableHead>
-              <TableHead>{t('donations.donationCount')}</TableHead>
+              <TableHead class="whitespace-nowrap">{t('donations.totalDonation')}</TableHead>
+              <TableHead class="w-20 text-center">{t('donations.donationCount')}</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -694,6 +695,7 @@ import { BarSpinner } from "$lib/components/spell/bar-spinner";
             {/each}
           </TableBody>
         </Table>
+        </div>
       {/if}
     </CardContent>
   </MagicCard>

@@ -19,6 +19,18 @@
 
 	let { icons, images, class: className = "" }: IconCloudProps = $props();
 
+	let isMobile = $state(false);
+
+	function checkMobile() {
+		isMobile = window.innerWidth < 768;
+	}
+
+	onMount(() => {
+		checkMobile();
+		window.addEventListener('resize', checkMobile);
+		return () => window.removeEventListener('resize', checkMobile);
+	});
+
 	let canvasRef: HTMLCanvasElement | null = $state(null);
 	let iconPositions = $state<Icon[]>([]);
 	let isDragging = $state(false);
@@ -282,12 +294,12 @@
 
 <canvas
 	bind:this={canvasRef}
-	width={400}
-	height={400}
+	width={isMobile ? 300 : 400}
+	height={isMobile ? 300 : 400}
 	onmousedown={handleMouseDown}
 	onmousemove={handleMouseMove}
 	onmouseup={handleMouseUp}
 	onmouseleave={handleMouseUp}
-	class={`rounded-lg ${className}`}
+	class={`rounded-lg max-w-full h-auto ${className}`}
 	aria-label="Interactive 3D Icon Cloud"
 ></canvas>

@@ -144,7 +144,7 @@ const chartConfig = $derived({
 } satisfies Chart.ChartConfig);
 </script>
 
-<MagicCard class="@container/card rounded-xl p-6">
+<MagicCard class="@container/card rounded-xl p-3 sm:p-6 min-w-0">
 	<div>
 <Card.Header>
 	<Card.Title>{t('donations.chart.title')}</Card.Title>
@@ -169,7 +169,7 @@ const chartConfig = $derived({
 		<Select.Root type="single" bind:value={timeRange}>
 			<Select.Trigger
 				size="sm"
-				class="**:data-[slot=select-value]:block **:data-[slot=select-value]:truncate @[900px]/card:hidden flex w-40"
+				class="**:data-[slot=select-value]:block **:data-[slot=select-value]:truncate @[900px]/card:hidden flex w-32 sm:w-40"
 				aria-label="Zaman aralığı seç"
 			>
 				<span data-slot="select-value">
@@ -189,15 +189,15 @@ const chartConfig = $derived({
 </Card.Header>
 	<Card.Content class="px-2 pt-4 sm:px-6 sm:pt-6">
 		{#if isLoading}
-			<div class="flex items-center justify-center h-[250px]">
+			<div class="flex items-center justify-center h-[200px] sm:h-[250px]">
             	<BarSpinner class="text-primary" size={28} />
 		</div>
 	{:else if chartData.length === 0}
-		<div class="flex items-center justify-center h-[250px] text-muted-foreground">
+		<div class="flex items-center justify-center h-[200px] sm:h-[250px] text-muted-foreground">
 			{t('donations.chart.noData')}
 		</div>
 		{:else}
-			<Chart.Container config={chartConfig} class="aspect-auto h-[250px] m-auto w-11/12">
+			<Chart.Container config={chartConfig} class="aspect-auto h-[200px] sm:h-[250px] m-auto w-full">
 				<AreaChart
 					legend
 					data={chartData}
