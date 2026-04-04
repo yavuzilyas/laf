@@ -52,6 +52,16 @@ export const POST: RequestHandler = async ({ request, cookies }) => {
   // DB-backed rate limiting
   const lastAttempt = user.last_mnemonic_attempt ? new Date(user.last_mnemonic_attempt) : null;
   const attemptWindow = lastAttempt ? now.getTime() - lastAttempt.getTime() : RATE_LIMIT_WINDOW + 1;
+  
+  // Reset attempts if time window has passed
+  if ((user.mnemonic_attempts || 0) >= MAX_ATTEMPTS && attemptWindow >= RATE_LIMIT_WINDOW) {
+    await updateUserAuthFields(user.id, {
+      last_mnemonic_attempt: null,
+      mnemonic_attempts: 0
+    });
+    user.mnemonic_attempts = 0;
+  }
+  
   if ((user.mnemonic_attempts || 0) >= MAX_ATTEMPTS && attemptWindow < RATE_LIMIT_WINDOW) {
     return new Response(JSON.stringify({
       errorKey: "auth.errors.maxAttemptsReached",

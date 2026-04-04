@@ -12,6 +12,11 @@
   import { Textarea } from '$lib/components/ui/textarea';
   import { Copy, User, TrendingUp, Users, MessageCircle, Send, CheckCircle, Clock, ExternalLink } from '@lucide/svelte';
   import { t } from '$lib/stores/i18n.svelte.js';
+  import { getCurrentLocale } from '$lib/stores/i18n.svelte.js';
+
+  // Locale-aware URL helper
+  const currentLocale = $derived(getCurrentLocale() || 'tr');
+  const l = (path: string) => `/${currentLocale}${path}`;
   import { showToast } from '$lib/hooks/toast';
   import DonationChart from "$lib/components/donation-chart.svelte";
 import { HandCoinsIcon } from 'svelte-animate-icons';
@@ -287,7 +292,7 @@ import { BarSpinner } from "$lib/components/spell/bar-spinner";
               <div class="flex-shrink-0 w-72 sm:w-80 md:w-96 p-3 sm:p-4 bg-card border rounded-xl shadow-sm hover:shadow-md transition-all duration-300 group cursor-pointer">
                 <div class="flex items-start gap-3">
                   {#if donation.donor_avatar}
-                    <a href="/{getDonorIdentifier(donation)}" class="flex-shrink-0">
+                    <a href={l(`/${getDonorIdentifier(donation)}`)} class="flex-shrink-0">
                       <img 
                         src={donation.donor_avatar} 
                         alt={getDonorDisplayName(donation)}
@@ -303,7 +308,7 @@ import { BarSpinner } from "$lib/components/spell/bar-spinner";
                     <div class="flex items-center gap-2">
                       {#if hasDonorInfo(donation)}
                         <a 
-                          href="/{getDonorIdentifier(donation)}"
+                          href={l(`/${getDonorIdentifier(donation)}`)}
                           class="font-semibold text-sm hover:text-primary transition-colors truncate"
                         >
                           {getDonorDisplayName(donation)}
@@ -341,7 +346,7 @@ import { BarSpinner } from "$lib/components/spell/bar-spinner";
               <div class="flex-shrink-0 w-72 sm:w-80 md:w-96 p-3 sm:p-4 bg-card border rounded-xl shadow-sm hover:shadow-md transition-all duration-300 group cursor-pointer">
                 <div class="flex items-start gap-3">
                   {#if donation.donor_avatar}
-                    <a href="/{getDonorIdentifier(donation)}" class="flex-shrink-0">
+                    <a href={l(`/${getDonorIdentifier(donation)}`)} class="flex-shrink-0">
                       <img 
                         src={donation.donor_avatar} 
                         alt={getDonorDisplayName(donation)}
@@ -357,7 +362,7 @@ import { BarSpinner } from "$lib/components/spell/bar-spinner";
                     <div class="flex items-center gap-2">
                       {#if hasDonorInfo(donation)}
                         <a 
-                          href="/{getDonorIdentifier(donation)}"
+                          href={l(`/${getDonorIdentifier(donation)}`)}
                           class="font-semibold text-sm hover:text-primary transition-colors truncate"
                         >
                           {getDonorDisplayName(donation)}
@@ -656,7 +661,7 @@ import { BarSpinner } from "$lib/components/spell/bar-spinner";
                       <div class="flex items-center gap-2 flex-wrap">
                         {#if hasTopDonorInfo(donor)}
                           <a 
-                            href="/{getTopDonorIdentifier(donor)}"
+                            href={l(`/${getTopDonorIdentifier(donor)}`)}
                             class="hover:text-primary transition-colors"
                           >
                             {getTopDonorDisplayName(donor)}

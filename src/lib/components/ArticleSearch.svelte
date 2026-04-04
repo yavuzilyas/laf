@@ -4,6 +4,10 @@
   import { Button } from "$lib/components/ui/button";
   import { Badge } from "$lib/components/ui/badge";
   import { t, getCurrentLocale } from '$lib/stores/i18n.svelte';
+
+  // Locale-aware URL helper
+  const currentLocale = $derived(getCurrentLocale() || 'tr');
+  const l = (path: string) => `/${currentLocale}${path}`;
   import { Search, X, Clock, TrendingUp, Hash, BookOpen } from "@lucide/svelte";
   import { onDestroy } from 'svelte';
   import { goto } from '$app/navigation';
@@ -457,7 +461,7 @@
                       class="flex flex-col gap-1 rounded-md px-2 py-1.5 text-sm hover:bg-accent hover:text-accent-foreground cursor-pointer transition-colors {isSelected(articleIdx) ? 'bg-accent text-accent-foreground ring-2 ring-primary/30' : ''}"
                       on:click|preventDefault={() => {
                         if (article.slug) {
-                          goto(`/article/${article.slug}`);
+                          goto(l(`/article/${article.slug}`));
                         }
                       }}
                     

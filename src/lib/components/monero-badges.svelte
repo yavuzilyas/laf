@@ -4,6 +4,11 @@
   import * as Card from "$lib/components/ui/card";
   import { MagicCard } from "$lib/components/magic/magic-card";
   import { t } from '$lib/stores/i18n.svelte.js';
+  import { getCurrentLocale } from '$lib/stores/i18n.svelte.js';
+
+  // Locale-aware URL helper
+  const currentLocale = $derived(getCurrentLocale() || 'tr');
+  const l = (path: string) => `/${currentLocale}${path}`;
 import { BarSpinner } from "$lib/components/spell/bar-spinner";
   import { User } from "@lucide/svelte";
 
@@ -165,7 +170,7 @@ import { BarSpinner } from "$lib/components/spell/bar-spinner";
               <div class="grid gap-2 max-h-80 overflow-y-auto">
                 {#each badgeUsers as user (user.userId)}
                   <a 
-                    href="/{user.username}" 
+                    href={l(`/${user.username}`)}
                     class="flex items-center gap-3 p-2 bg-background rounded-lg hover:bg-accent transition-colors"
                   >
                     {#if user.avatar_url}

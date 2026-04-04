@@ -41,10 +41,14 @@ import { ScrollProgress } from "$lib/components/magic/scroll-progress";
     image?: string;
   };
 
+  // Locale-aware URL helper
+  const currentLocale = $derived((t as any).currentLocale || 'tr');
+  const l = (path: string) => `/${currentLocale}${path}`;
+
   // Reaktif menu array'i - dil değiştiğinde otomatik güncellenir
   let menu = $derived([
-    { isconstruction: "false", name: t('Articles'), href: "/articles" },
-    { isconstruction: "false", name: t('Events'), href: "/events" },
+    { isconstruction: "false", name: t('Articles'), href: l("/articles") },
+    { isconstruction: "false", name: t('Events'), href: l("/events") },
     // { isconstruction: "true", name: t('Bicorpus'), href: "bicorpus" },
     // { isconstruction: "true", name: t('Tacicat'), href: "tacicat" },
   ]);
@@ -123,7 +127,7 @@ import { ScrollProgress } from "$lib/components/magic/scroll-progress";
     if (!notification || !notification.meta?.articleId) return;
 
     // Navigate to edit page with query parameters
-    goto(`/write?articleId=${notification.meta.articleId}&mode=edit`);
+    goto(l(`/write?articleId=${notification.meta.articleId}&mode=edit`));
     showNotificationsDialog = false;
   }
 
@@ -170,7 +174,7 @@ import { ScrollProgress } from "$lib/components/magic/scroll-progress";
       element.scrollIntoView({ behavior: 'smooth' });
     } else {
       // Not on homepage, navigate first with hash
-      goto('/#donations');
+      goto(l('/#donations'));
     }
   }
  import { playSound } from "$lib/stores/sound"; // 🔥 ekle
@@ -198,7 +202,7 @@ import { ScrollProgress } from "$lib/components/magic/scroll-progress";
         ? currentUser.avatar
         : undefined
     );
-    const accountHref = $derived(currentUser?.nickname ? `/${currentUser.nickname}` : '/account');
+    const accountHref = $derived(currentUser?.nickname ? l(`/${currentUser.nickname}`) : l('/account'));
 
   const isModerator = $derived(currentUser?.role === 'moderator' || currentUser?.role === 'admin');
   
@@ -206,23 +210,21 @@ import { ScrollProgress } from "$lib/components/magic/scroll-progress";
     { icon: accountImage ? undefined : UserRound, image: accountImage, name: t('Account'), href: accountHref },
     { icon: Cog, name: t('Settings'), onClick: handleSettingsClick },
     { icon: BellIcon, name: t('Notifications'), onClick: openNotificationsDialog, badge: unreadTotal },
-    ...(isModerator ? [{ icon: Shield, name: t('Moderation'), href: "/moderation" }] : []),
-    { icon: Link, name: t('Links'), href: "/links" },
+    ...(isModerator ? [{ icon: Shield, name: t('Moderation'), href: l("/moderation") }] : []),
+    { icon: Link, name: t('Links'), href: l("/links") },
     { icon: HandCoins, name: t('Donate'), onClick: () => scrollToDonations() },
-    { icon: LogOutIcon, name: t('Logout'), href: '/logout', customStyle: "!text-red-500"},
+    { icon: LogOutIcon, name: t('Logout'), href: l('/logout'), customStyle: "!text-red-500"},
   ]);
 
   // Reaktif logged-out items - dil değiştiğinde otomatik güncellenir
   const baseLoggedOut = $derived<MenuItem[]>([
-    { icon: LogInIcon, name: t('Login'), href: "/login" },
-    { icon: Link, name: t('Links'), href: "/links" },
+    { icon: LogInIcon, name: t('Login'), href: l("/login") },
+    { icon: Link, name: t('Links'), href: l("/links") },
     { icon: HandCoins, name: t('Donations'), onClick: () => scrollToDonations() },
   ]);
 
-  // Locale-aware login path: /giris for tr, /login otherwise
-  const currentLocale = $derived((t as any).currentLocale || 'tr');
-  const loginPath = $derived(currentLocale === 'tr' ? '/giris' : '/login');
-  const loginHref = $derived(`${loginPath}?redirectTo=${encodeURIComponent($page.url.pathname + $page.url.search)}`);
+  // Locale-aware paths
+  const loginHref = $derived(`${l('/login')}?redirectTo=${encodeURIComponent($page.url.pathname)}`);
 
   let items = $state<MenuItem[]>(baseLoggedOut);
   $effect(() => {
@@ -257,7 +259,7 @@ import { ScrollProgress } from "$lib/components/magic/scroll-progress";
       <Tooltip.Provider>
  <Tooltip.Root>
   <Tooltip.Trigger>   
-    <A href="/" ><img class="h-3.5 sm:h-4 text-primary" src="{logo}" alt="LAF" /></A> 
+    <A href={l("/")} ><img class="h-3.5 sm:h-4 text-primary" src="{logo}" alt="LAF" /></A> 
   </Tooltip.Trigger>
   <Tooltip.Content>
    <p>{t('GoToHomePage')}</p>

@@ -184,9 +184,7 @@ function transliterate(text: string): string {
 }
 
 export function slugify(text: string): string {
-    return transliterate(text)
-        .toString()
-        .toLowerCase()
+    return transliterate(text.toString().toLowerCase())
         .replace(/\s+/g, '-')
         .replace(/[^\w\-]+/g, '')
         .replace(/\-\-+/g, '-')

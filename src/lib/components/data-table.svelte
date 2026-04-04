@@ -63,7 +63,11 @@
 	// @ts-ignore - Lucide icons
 	import Trash2Icon from "@lucide/svelte/icons/trash-2";
 	import { toast } from "svelte-sonner";
-	import { t } from '$lib/stores/i18n.svelte';
+	  import { t, getCurrentLocale } from '$lib/stores/i18n.svelte.js';
+
+  // Locale-aware URL helper
+  const currentLocale = $derived(getCurrentLocale() || 'tr');
+  const l = (path: string) => `/${currentLocale}${path}`;
 	import DataTableCheckbox from "./data-table-checkbox.svelte";
 	import { DragDropProvider } from "@dnd-kit-svelte/svelte";
 	import { move } from "@dnd-kit/helpers";
@@ -4167,7 +4171,7 @@
 {/snippet}
 
 {#snippet CommentArticleLink({ title, slug }: { title: string; slug: string })}
-	<a href="/article/{slug}" class="underline underline-offset-2 hover:opacity-80" target="_blank" rel="noreferrer">
+	<a href={l(`/article/${slug}`)} class="underline underline-offset-2 hover:opacity-80" target="_blank" rel="noreferrer">
 		{title}
 	</a>
 {/snippet}
@@ -4242,7 +4246,7 @@
 		{/if}
 		{#if donation.donor_username}
 			<a 
-				href="/profile/{donation.donor_username}"
+				href={l(`/${donation.donor_username}`)}
 				class="hover:text-primary transition-colors"
 			>
 				{donation.display_name || 

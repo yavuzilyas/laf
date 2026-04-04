@@ -3,6 +3,10 @@
   import { Badge } from "$lib/components/ui/badge";
   import { Calendar, Clock, User, Sparkles, Eye, MessageCircle, ThumbsUp, ThumbsDown } from "@lucide/svelte";
   import { t, getCurrentLocale } from '$lib/stores/i18n.svelte';
+
+  // Locale-aware URL helper
+  const currentLocale = $derived(getCurrentLocale() || 'tr');
+  const l = (path: string) => `/${currentLocale}${path}`;
   import A from "$lib/components/ui/a.svelte";
   import MagicCard from '$lib/components/magic/magic-card/magic-card.svelte';
   import * as Tooltip from "$lib/components/ui/tooltip";
@@ -129,7 +133,7 @@
   <div class="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6">
     {#each recommendedArticles as article, index (article.id)}
       <a
-        href={article.slug ? `/article/${article.slug}` : undefined}
+        href={article.slug ? l(`/article/${article.slug}`) : undefined}
         class="block group"
       >
         <MagicCard
@@ -275,7 +279,7 @@
                   <div class="flex items-center gap-1">
                     <div class="flex -space-x-2">
                       {#each article.collaborators.slice(0, 2) as collaborator}
-                        <A href={`/${getCollaboratorIdentifier(collaborator)}`} class="hover:opacity-80 transition-opacity">
+                        <A href={l(`/${getCollaboratorIdentifier(collaborator)}`)} class="hover:opacity-80 transition-opacity">
                           {#if collaborator.avatar}
                             <img 
                               src={collaborator.avatar} 

@@ -5,7 +5,6 @@
   import Preloader from "$lib/components/Preloader.svelte";
   import { onMount } from 'svelte';
   import { i18n } from '$lib/stores/i18n.svelte.js';
-  import LanguageSelector from '$lib/components/LanguageSelector.svelte';
   import { ModeWatcher } from "mode-watcher";
   // Props declaration import'lardan sonra gelir
   let { children, data } = $props();
@@ -13,6 +12,10 @@
   import { soundFiles } from "$lib/sounds";
   import { soundEnabled } from "$lib/stores/sound";
   import { browser } from '$app/environment';
+
+  // Initialize i18n from server-side rendered data
+  // This ensures translations are ready immediately (no client-side loading flash)
+  i18n.initFromSSR(data.locale, data.translations);
 
   onMount(async () => {
     // Ses durumunu local storage'dan yükle
@@ -23,7 +26,6 @@
       }
     }
 
-    await i18n.loadLocale(i18n.currentLocale);
     await preloadSounds(soundFiles);
   });
   import Loader from "$lib/components/load.svelte";

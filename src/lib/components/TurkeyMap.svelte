@@ -1,6 +1,11 @@
 <script lang="ts">
 	import { createEventDispatcher } from 'svelte';
 	import { t } from '$lib/stores/i18n.svelte';
+	import { getCurrentLocale } from '$lib/stores/i18n.svelte';
+
+	// Locale-aware URL helper
+	const currentLocale = $derived(getCurrentLocale() || 'tr');
+	const l = (path: string) => `/${currentLocale}${path}`;
 	import { Avatar, AvatarFallback, AvatarImage } from '$lib/components/ui/avatar';
 	import { Button } from '$lib/components/ui/button';
 	import { ScrollArea } from '$lib/components/ui/scroll-area';
@@ -1407,42 +1412,39 @@
 							<li
 								class="flex items-center justify-between gap-3 rounded-lg border p-3 transition-colors hover:bg-muted/50"
 							>
-								<a href={`/${user.username}`} class="flex items-center gap-3 flex-1 min-w-0">
-									<Avatar class="h-10 w-10 flex-shrink-0">
-										{#if user.avatar}
-											<AvatarImage src={user.avatar} alt={user.username} class="object-cover" />
-										{/if}
-										<AvatarFallback>
-											{(user.username?.[0] ?? '?').toUpperCase()}
-										</AvatarFallback>
-									</Avatar>
-									<div class="flex flex-col text-sm truncate">
-										<span class="font-semibold text-foreground truncate">
+								<div class="flex max-w-[calc(100%-4rem)] items-center gap-3 flex-1">
+									<a href={l(`/${user.username}`)}>
+										<Avatar class="h-10 w-10 flex-shrink-0">
+											{#if user.avatar}
+												<AvatarImage src={user.avatar} alt={user.username} class="object-cover" />
+											{/if}
+											<AvatarFallback>
+												{(user.username?.[0] ?? '?').toUpperCase()}
+											</AvatarFallback>
+										</Avatar>
+									</a>
+									<div class="flex flex-col text-sm flex-1">
+										<a href={l(`/${user.username}`)} class="font-semibold text-foreground hover:text-primary transition-colors">
 											{user.name && user.surname
 												? `${user.name} ${user.surname}`
 												: user.name || user.username}
-										</span>
-										<span class="text-muted-foreground truncate">@{user.username}</span>
+										</a>
+										<a href={l(`/${user.username}`)} class="text-muted-foreground hover:text-primary transition-colors">@{user.username}</a>
 									</div>
-								</a>
+								</div>
 
 								{#if currentUserId && user.id !== currentUserId}
 									{#if user.isFollowing}
-										<Button
-											size="icon"
-											variant="outline"
-											onclick={() => handleUnfollowUser(user.id)}
-											class="h-8 w-8"
-										>
-											<UserMinus class="h-4 w-4" />
+										<Button size="icon" variant="outline" onclick={() => handleUnfollowUser(user.id)}>
+											<UserMinus class="h-3 w-3" />
 										</Button>
 									{:else}
-										<Button size="icon" onclick={() => handleFollowUser(user.id)} class="h-8 w-8">
-											<UserPlus class="h-4 w-4" />
+										<Button size="icon" onclick={() => handleFollowUser(user.id)}>
+											<UserPlus class="h-3 w-3" />
 										</Button>
 									{/if}
 								{:else if !currentUserId}
-									<Button size="sm" variant="ghost" href={`/${user.username}`}>
+									<Button size="sm" variant="ghost" href={l(`/${user.username}`)}>
 										{t('common.view') || 'Görüntüle'}
 									</Button>
 								{/if}

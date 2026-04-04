@@ -47,6 +47,10 @@ import { cn } from "$lib/utils";
   //   },
   // ];
   import { t, dativeSuffix, locativeSuffix } from '$lib/stores/i18n.svelte.js';
+
+  // Locale-aware URL helper
+  const currentLocale = $derived((t as any).currentLocale || 'tr');
+  const l = (path: string) => `/${currentLocale}${path}`;
   import DonationsSection from '$lib/components/donations-section.svelte';
   import ArticleRecommendation from '$lib/components/ArticleRecommendation.svelte';
   import DitheredImageSlider from '$lib/components/magic/dithered-image-slider.svelte';
@@ -159,7 +163,7 @@ import { cn } from "$lib/utils";
       <p class="text-lg text-muted-foreground mb-8 max-w-2xl mx-auto">
         {t('cta.joinUs')}
       </p>
-      <Button class="cursor-none" href="/register" >
+      <Button class="cursor-none" href={l("/register")} >
         {t('cta.registerNow')}
       </Button>
     </div>

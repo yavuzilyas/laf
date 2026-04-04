@@ -7,6 +7,9 @@
 	import { Button } from '$lib/components/ui/button';
 	import { Separator } from '$lib/components/ui/separator';
 	import { t, getCurrentLocale } from '$lib/stores/i18n.svelte';
+
+	// Locale-aware URL helper
+	const l = (path: string) => `/${currentLocale}${path}`;
 	import { onMount } from 'svelte';
 	import { afterNavigate, goto } from '$app/navigation';
 	import { EdraEditor, EdraToolBar } from '$lib/components/edra/shadcn/index.js';
@@ -2160,12 +2163,12 @@
 			<div class="container mx-auto px-4 py-12 text-center">
 				<h1 class="text-2xl font-bold mb-4">{t('articles.noArticles')}</h1>
 				<p class="text-muted-foreground mb-6">{t('articles.noArticlesDescription')}</p>
-				<Button size="sm" href="/articles">{t('articles.allArticles')}</Button>
+				<Button size="sm" href={l('/articles')}>{t('articles.allArticles')}</Button>
 			</div>
 		{:else}
 			<article class="container mx-auto px-4 py-12 max-w-3xl">
 				<div class="mb-6 flex flex-row gap-2 justify-between items-center">
-					<Button variant="outline" size="xs" href="/articles">
+					<Button variant="outline" size="xs" href={l('/articles')}>
 						<ArrowLeftIcon triggers={{ hover: false }} animationState="loading" duration={2000} />
 						{t('articles.backToArticles')}
 					</Button>
@@ -2329,7 +2332,7 @@
 					<div class="flex flex-wrap items-center gap-2 text-sm text-muted-foreground mb-3">
 						<div class="flex items-center gap-2">
 							<a
-								href="/{getAuthorIdentifier(article.author)}"
+								href={l(`/${getAuthorIdentifier(article.author)}`)}
 								class="flex items-center gap-2 hover:opacity-80 transition-opacity"
 							>
 								<div class="w-8 h-8 rounded-full flex items-center justify-center">
@@ -2753,7 +2756,7 @@
 									<div class="flex items-start gap-3">
 										<div>
 											<div class="flex items-center gap-2 mb-2">
-												<a href="/{getAuthorIdentifier(comment.author)}">
+												<a href={l(`/${getAuthorIdentifier(comment.author)}`)}>
 													<div
 														class="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0"
 													>
@@ -2784,7 +2787,7 @@
 														</Avatar>
 													</div>
 												</a>
-												<a href="/{getAuthorIdentifier(comment.author)}">
+												<a href={l(`/${getAuthorIdentifier(comment.author)}`)}>
 													<span class="font-medium">
 														{comment.author?.name && comment.author?.surname
 															? `${comment.author.name} ${comment.author.surname}`

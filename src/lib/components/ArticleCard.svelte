@@ -4,6 +4,10 @@
   import { Badge } from "$lib/components/ui/badge";
   import { Calendar, Clock, User, Eye, MessageCircle, ThumbsUp, ThumbsDown } from "@lucide/svelte";
   import { t, getCurrentLocale } from '$lib/stores/i18n.svelte.ts';
+
+  // Locale-aware URL helper
+  const currentLocale = $derived(getCurrentLocale() || 'tr');
+  const l = (path: string) => `/${currentLocale}${path}`;
   import Lens from '$lib/components/Lens.svelte';
   import A from "$lib/components/ui/a.svelte";
     import { ScrollArea } from "$lib/components/ui/scroll-area";
@@ -228,7 +232,7 @@
       <div class="mt-6 flex items-center justify-between">
         <div class="flex items-center gap-3">
           <div class="flex items-center gap-2">
-            <A href={`/${getAuthorIdentifier(article)}`} class="flex items-center gap-2 hover:opacity-80 transition-opacity">
+            <A href={l(`/${getAuthorIdentifier(article)}`)} class="flex items-center gap-2 hover:opacity-80 transition-opacity">
               {#if article.author?.avatar}
                 <img 
                   src={article.author.avatar} 
@@ -248,7 +252,7 @@
               <div class="flex items-center gap-1">
                 <div class="flex -space-x-2">
                   {#each article.collaborators.slice(0, 3) as collaborator}
-                    <A href={`/${getCollaboratorIdentifier(collaborator)}`} class="hover:opacity-80 transition-opacity">
+                    <A href={l(`/${getCollaboratorIdentifier(collaborator)}`)} class="hover:opacity-80 transition-opacity">
                       {#if collaborator.avatar}
                         <img 
                           src={collaborator.avatar} 
@@ -281,7 +285,7 @@
           </div>
         </div>
         
-        <Button variant="outline" size="sm" href={translatedContent.slug ? `/article/${translatedContent.slug}` : undefined}>
+        <Button variant="outline" size="sm" href={translatedContent.slug ? l(`/article/${translatedContent.slug}`) : undefined}>
           {t('articles.readMore')}
         </Button>
       </div>
@@ -331,7 +335,7 @@
       
       <div class="flex items-center gap-4">
         <div class="flex items-center gap-2">
-          <A href={`/${getAuthorIdentifier(article)}`} class="flex items-center gap-2 hover:opacity-80 transition-opacity">
+          <A href={l(`/${getAuthorIdentifier(article)}`)} class="flex items-center gap-2 hover:opacity-80 transition-opacity">
             {#if article.author?.avatar}
               <img 
                 src={article.author.avatar} 
@@ -351,7 +355,7 @@
             <div class="flex items-center gap-1">
               <div class="flex -space-x-2">
                 {#each article.collaborators.slice(0, 2) as collaborator}
-                  <A href={`/${getCollaboratorIdentifier(collaborator)}`} class="hover:opacity-80 transition-opacity">
+                  <A href={l(`/${getCollaboratorIdentifier(collaborator)}`)} class="hover:opacity-80 transition-opacity">
                     {#if collaborator.avatar}
                       <img 
                         src={collaborator.avatar} 
@@ -433,7 +437,7 @@
       <div class="flex items-center gap-2">
         <div class="flex items-center gap-1 text-xs text-muted-foreground">
           <User class="h-3 w-3" />
-          <A href={translatedContent.slug ? `/article/${translatedContent.slug}` : undefined} class="hover:text-foreground transition-colors">
+          <A href={translatedContent.slug ? l(`/article/${translatedContent.slug}`) : undefined} class="hover:text-foreground transition-colors">
             {getAuthorDisplayName(article)}
           </A>
         </div>
@@ -526,7 +530,7 @@
       <div>
         <div class="flex flex-wrap items-center gap-2">
           <h2 class="text-xs sm:text-base font-bold leading-tight tracking-tight group-hover:text-primary transition-colors">
-            <A href={translatedContent.slug ? `/article/${translatedContent.slug}` : undefined}>{translatedContent.title}</A>
+            <A href={translatedContent.slug ? l(`/article/${translatedContent.slug}`) : undefined}>{translatedContent.title}</A>
           </h2>
 
         </div>
@@ -539,7 +543,7 @@
       <div class="flex items-center justify-between">
       <div class="flex items-center gap-1">
         <div class="flex items-center gap-2">
-          <A href={`/${getAuthorIdentifier(article)}`} class="flex items-center gap-2 hover:opacity-80 transition-opacity">
+          <A href={l(`/${getAuthorIdentifier(article)}`)} class="flex items-center gap-2 hover:opacity-80 transition-opacity">
             {#if article.author?.avatar}
               <img 
                 src={article.author.avatar} 
@@ -559,7 +563,7 @@
             <div class="flex items-center gap-1">
               <div class="flex -space-x-2">
                 {#each article.collaborators.slice(0, 2) as collaborator}
-                  <A href={`/${getCollaboratorIdentifier(collaborator)}`} class="hover:opacity-80 transition-opacity">
+                  <A href={l(`/${getCollaboratorIdentifier(collaborator)}`)} class="hover:opacity-80 transition-opacity">
                     {#if collaborator.avatar}
                       <img 
                         src={collaborator.avatar} 

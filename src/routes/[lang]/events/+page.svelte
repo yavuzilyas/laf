@@ -7,6 +7,11 @@
     import * as Dialog from "$lib/components/ui/dialog";
   import * as Tooltip from "$lib/components/ui/tooltip";
     import { t } from '$lib/stores/i18n.svelte';
+    import { getCurrentLocale } from '$lib/stores/i18n.svelte';
+
+    // Locale-aware URL helper
+    const currentLocale = $derived(getCurrentLocale() || 'tr');
+    const l = (path: string) => `/${currentLocale}${path}`;
     import { Calendar, MapPin, Clock, Users, Bell, Megaphone, ExternalLink } from '@lucide/svelte';
     import { showToast } from '$lib/hooks/toast';
 
@@ -572,7 +577,7 @@
                         {#each selectedEvent.attendees as attendee}
                             {@const tooltipId = 'tooltip-' + attendee.id}
                             <div class="relative group">
-                                <a href="/{attendee.name}" class="block">
+                                <a href={l(`/${attendee.name}`)} class="block">
                                     <div class="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center overflow-hidden border border-border hover:border-primary transition-colors">
                                         {#if attendee.avatar_url}
                                             <img src={attendee.avatar_url} alt={attendee.name} class="w-full h-full object-cover" />

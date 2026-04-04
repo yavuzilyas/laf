@@ -10,6 +10,7 @@ declare global {
 				email?: string;
 				[key: string]: any;
 			} | null;
+			locale: string;
 		}
 		// interface PageData {}
 		// interface PageState {}

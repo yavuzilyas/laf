@@ -8,6 +8,11 @@
   import { showToast } from '$lib/hooks/toast';
   import { userStore } from '$lib/stores/user';
   import { t } from '$lib/stores/i18n.svelte.js';
+  import { getCurrentLocale } from '$lib/stores/i18n.svelte.js';
+
+  // Locale-aware URL helper
+  const currentLocale = $derived(getCurrentLocale() || 'tr');
+  const l = (path: string) => `/${currentLocale}${path}`;
   import { MagicCard } from '$lib/components/magic/magic-card';
 import { ContactRoundIcon } from 'svelte-animate-icons';
   // User authentication state
@@ -170,7 +175,7 @@ import { ContactRoundIcon } from 'svelte-animate-icons';
             </div>
             <h3 class="text-lg font-semibold mb-2">{t('contactForm.loginRequired')}</h3>
             <p class="text-muted-foreground mb-6">{t('contactForm.loginPrompt')}</p>
-            <Button href="/giris" class="w-full sm:w-auto">
+            <Button href={l('/login')} class="w-full sm:w-auto">
               <LogIn class="w-4 h-4 mr-2" />
               {t('Login')}
             </Button>

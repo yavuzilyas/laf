@@ -10,6 +10,11 @@
   import { ScrollArea } from "$lib/components/ui/scroll-area";
   import BadgeList from "$lib/components/BadgeList.svelte";
   import { t } from '$lib/stores/i18n.svelte';
+  import { getCurrentLocale } from '$lib/stores/i18n.svelte';
+
+  // Locale-aware URL helper
+  const currentLocale = $derived(getCurrentLocale() || 'tr');
+  const l = (path: string) => `/${currentLocale}${path}`;
   import * as DropdownMenu from "$lib/components/ui/dropdown-menu";
   import * as Tooltip from "$lib/components/ui/tooltip";
   import { MoreVertical, Flag } from "@lucide/svelte";
@@ -558,7 +563,7 @@
             {/if}
             {#if showProfileLink && profileData?.username}
               <a 
-                href={`/${profileData.username}`}
+                href={l(`/${profileData.username}`)}
                 class="text-muted-foreground hover:text-primary transition-colors ml-1"
                 aria-label={t('profile.viewProfile')}
                 title={t('profile.viewProfile')}
@@ -989,7 +994,7 @@
           {#each followersList ?? [] as follower (follower.id)}
             <li class="flex items-center justify-between gap-3 rounded-lg border p-3">
               <div class="flex max-w-[calc(100%-4rem)] items-center gap-3 flex-1">
-                <a href={`/${follower.username}`}>
+                <a href={l(`/${follower.username}`)}>
                 <Avatar class="h-10 w-10">
                   {#if follower.avatar}
                     <AvatarImage src={follower.avatar} alt={getDisplayName(follower)} class="object-cover" />
@@ -1000,8 +1005,8 @@
                 </Avatar>
                 </a>
                 <div class="flex flex-col text-sm flex-1">
-                  <a href={`/${follower.username}`} class="font-semibold text-foreground hover:text-primary transition-colors">{getDisplayName(follower)}</a>
-                  <a href={`/${follower.username}`} class="text-muted-foreground hover:text-primary transition-colors">@{follower.username}</a>
+                  <a href={l(`/${follower.username}`)} class="font-semibold text-foreground hover:text-primary transition-colors">{getDisplayName(follower)}</a>
+                  <a href={l(`/${follower.username}`)} class="text-muted-foreground hover:text-primary transition-colors">@{follower.username}</a>
                 </div>
               </div>
               {#if follower.id !== currentUserId}
@@ -1039,7 +1044,7 @@
           {#each followingList ?? [] as following (following.id)}
             <li class="flex items-center justify-between gap-3 rounded-lg border p-3">
               <div class="flex items-center gap-3 flex-1">
-                <a href={`/${following.username}`}>
+                <a href={l(`/${following.username}`)}>
                   <Avatar class="h-10 w-10">
                     {#if following.avatar}
                       <AvatarImage src={following.avatar} alt={getDisplayName(following)} class="object-cover" />
@@ -1050,8 +1055,8 @@
                   </Avatar>
                 </a>
                 <div class="flex flex-col text-sm flex-1">
-                  <a href={`/${following.username}`} class="font-semibold text-foreground hover:text-primary transition-colors">{getDisplayName(following)}</a>
-                  <a href={`/${following.username}`} class="text-muted-foreground hover:text-primary transition-colors">@{following.username}</a>
+                  <a href={l(`/${following.username}`)} class="font-semibold text-foreground hover:text-primary transition-colors">{getDisplayName(following)}</a>
+                  <a href={l(`/${following.username}`)} class="text-muted-foreground hover:text-primary transition-colors">@{following.username}</a>
                 </div>
               </div>
               {#if following.id !== currentUserId}

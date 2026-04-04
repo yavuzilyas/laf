@@ -14,6 +14,10 @@
   import { User, LockKeyhole, RotateCcwKey, ShieldAlert, UserRoundPlus, KeyRound, LayoutDashboard, Eye, EyeOff, Check, Copy, Printer } from "@lucide/svelte";
 import { BarSpinner } from "$lib/components/spell/bar-spinner";
   import { t, i18n, dativeSuffix, locativeSuffix } from '$lib/stores/i18n.svelte.js';
+
+  // Locale-aware URL helper
+  const currentLocale = $derived(i18n.currentLocale || 'tr');
+  const l = (path: string) => `/${currentLocale}${path}`;
   import { setMnemonicPhrase, clearMnemonicPhrase } from '$lib/stores/mnemonic';
   import CountryCitySelector from './CountryCitySelector.svelte';
 
@@ -346,7 +350,7 @@ async function finalizeRegister() {
   try {
     const phrase = mnemonic.join(' ');
 
-    const res = await fetch(`/register`, {
+    const res = await fetch(`/${i18n.currentLocale}/register`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ 
@@ -416,7 +420,7 @@ async function finalizeRegister() {
         { identifier, password, mnemonicPhrase, verificationToken } : 
         { identifier, password };
 
-      const res = await fetch(`/login`, {
+      const res = await fetch(`/${i18n.currentLocale}/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body)
@@ -518,7 +522,7 @@ async function finalizeRegister() {
 
     isValidating = true;
     try {
-      const res = await fetch("/register", {
+      const res = await fetch(`/${i18n.currentLocale}/register`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ nickname: value, password: "dummy", validateOnly: true })
@@ -562,7 +566,7 @@ async function validateEmail(value: string) {
 
     isValidating = true;
     try {
-      const res = await fetch("/register", {
+      const res = await fetch(`/${i18n.currentLocale}/register`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ nickname: "dummy", password: "dummy", email: value, validateOnly: true })
@@ -705,7 +709,7 @@ async function validateEmail(value: string) {
           <div class="grid gap-3">
             <div class="flex items-center">
               <Label for="password-{id}">{t('Password')}</Label>
-              <a href="/forgot" class="text-primary ml-auto text-xs underline-offset-4 hover:underline">{t('ForgotPassword')}</a>
+              <a href={l('/forgot')} class="text-primary ml-auto text-xs underline-offset-4 hover:underline">{t('ForgotPassword')}</a>
             </div>
             <div class="relative">
               <Input 
@@ -744,7 +748,7 @@ async function validateEmail(value: string) {
         </Button>
         <div class="text-center text-xs">
           {t('NoAccount')}
-          <a href={i18n.currentLocale === 'tr' ? '/kayit' : '/register'} class="text-primary font-bold underline underline-offset-4">
+          <a href={l('/register')} class="text-primary font-bold underline underline-offset-4">
             {t('Register')}
           </a>
         </div>
@@ -1039,7 +1043,7 @@ async function validateEmail(value: string) {
     </Button>
     <div class="text-center text-xs">
       {t('HaveAccount')}
-      <a href={i18n.currentLocale === 'tr' ? '/giris' : '/login'} class="text-primary font-bold underline underline-offset-4">
+      <a href={l('/login')} class="text-primary font-bold underline underline-offset-4">
         {t('Login')}
       </a>
     </div>

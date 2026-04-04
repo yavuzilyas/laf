@@ -64,6 +64,15 @@ class I18nStore {
     }
   }
 
+  // Initialize from server-side rendered data (SSR)
+  initFromSSR(locale: string, translations: LocaleData) {
+    if (this._config.availableLocales.includes(locale)) {
+      this._currentLocale = locale;
+    }
+    this._translations[locale] = translations;
+    this._loadedLocales.add(locale);
+  }
+
   get currentLocale() {
     return this._currentLocale;
   }
@@ -80,16 +89,40 @@ class I18nStore {
     return this._config.availableLocales;
   }
 
-  async setLocale(locale: string) {
+  async setLocale(locale: string, reload: boolean = true) {
     if (!this._config.availableLocales.includes(locale)) {
       return;
     }
 
     this._currentLocale = locale;
     
-    // Browser'da localStorage'a kaydet
+    // Browser'da localStorage'a ve cookie'ye kaydet
     if (browser) {
       localStorage.setItem('locale', locale);
+      // Set cookie for server-side detection (1 year expiry)
+      document.cookie = `locale=${locale}; path=/; max-age=${60 * 60 * 24 * 365}; SameSite=Lax`;
+      
+      // Navigate to the new locale URL if reload is true
+      if (reload) {
+        const currentPath = window.location.pathname;
+        const currentSearch = window.location.search;
+        const currentHash = window.location.hash;
+        
+        // Check if current path already has a locale prefix
+        const localePattern = new RegExp(`^/(${this._config.availableLocales.join('|')})(/|$)`);
+        const hasLocalePrefix = localePattern.test(currentPath);
+        
+        let newPath: string;
+        if (hasLocalePrefix) {
+          // Replace existing locale
+          newPath = currentPath.replace(localePattern, `/${locale}$2`);
+        } else {
+          // Add locale prefix
+          newPath = `/${locale}${currentPath === '/' ? '' : currentPath}`;
+        }
+        
+        window.location.href = newPath + currentSearch + currentHash;
+      }
     }
 
     // Eğer bu dil daha önce yüklenmemişse, yükle
@@ -195,15 +228,15 @@ class I18nStore {
   }
 }
 
-// i18n konfigürasyonu
-const i18nConfig: I18nConfig = {
-  defaultLocale: 'en',
-  availableLocales: ['en', 'tr'],
+// Export locale config for use in hooks
+export const localeConfig = {
+  defaultLocale: 'tr',
+  availableLocales: ['tr', 'en'] as const,
   fallbackLocale: 'tr'
 };
 
-// Global i18n instance
-export const i18n = new I18nStore(i18nConfig);
+// Global i18n instance with SSR-aware config
+export const i18n = new I18nStore(localeConfig);
 
 // Utility fonksiyonlar
 export const t = (key: TranslationKey, values?: InterpolationValues) => i18n.t(key, values);
