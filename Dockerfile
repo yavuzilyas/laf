@@ -17,7 +17,7 @@ RUN npx svelte-kit sync
 ENV NODE_OPTIONS="--max-old-space-size=3500"
 ENV ESBUILD_WORKER_THREADS=1
 ENV UPLOAD_DIR=/app/uploads
-
+VOLUME ["/app/uploads"]
 # Uploads klasörü oluştur (volume için)
 RUN mkdir -p /app/uploads
 
