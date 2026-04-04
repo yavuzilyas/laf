@@ -133,11 +133,14 @@
   };
 
   const getCollaboratorDisplayName = (collaborator: any) => {
-    return collaborator.name || collaborator.nickname || 'Unknown User';
+    if (collaborator?.name || collaborator?.surname) {
+      return [collaborator.name, collaborator.surname].filter(Boolean).join(' ').trim();
+    }
+    return collaborator?.nickname || 'Unknown User';
   };
 
   const getCollaboratorIdentifier = (collaborator: any) => {
-    return collaborator.nickname || collaborator.id || 'user';
+    return collaborator?.nickname || collaborator?.id || 'user';
   };
 
   const formatNumber = (num: number): string => {
@@ -201,7 +204,7 @@
               {translatedContent.title}
             </h2>
             {#if article.status === 'pending'}
-              <Badge variant="warning">{t('articles.status.pending')}</Badge>
+              <Badge variant="outline">{t('articles.status.pending')}</Badge>
             {:else if article.status === 'draft'}
               <Badge variant="outline">{t('articles.status.draft')}</Badge>
             {:else if article.status === 'published'}
@@ -226,7 +229,7 @@
         <div class="flex items-center gap-3">
           <div class="flex items-center gap-2">
             <A href={`/${getAuthorIdentifier(article)}`} class="flex items-center gap-2 hover:opacity-80 transition-opacity">
-              {#if article.author.avatar}
+              {#if article.author?.avatar}
                 <img 
                   src={article.author.avatar} 
                   alt={getAuthorDisplayName(article)}
@@ -314,7 +317,7 @@
           {truncateText(translatedContent.title, 80)}
         </h3>
         {#if article.status === 'pending'}
-          <Badge variant="warning">{t('articles.status.pending')}</Badge>
+          <Badge variant="outline">{t('articles.status.pending')}</Badge>
         {:else if article.status === 'draft'}
           <Badge variant="outline">{t('articles.status.draft')}</Badge>
         {:else if article.status === 'published'}
@@ -329,7 +332,7 @@
       <div class="flex items-center gap-4">
         <div class="flex items-center gap-2">
           <A href={`/${getAuthorIdentifier(article)}`} class="flex items-center gap-2 hover:opacity-80 transition-opacity">
-            {#if article.author.avatar}
+            {#if article.author?.avatar}
               <img 
                 src={article.author.avatar} 
                 alt={getAuthorDisplayName(article)}
@@ -414,7 +417,7 @@
         {translatedContent.title}
       </h3>
       {#if article.status === 'pending'}
-        <Badge variant="warning">{t('articles.status.pending')}</Badge>
+        <Badge variant="outline">{t('articles.status.pending')}</Badge>
       {:else if article.status === 'draft'}
         <Badge variant="outline">{t('articles.status.draft')}</Badge>
       {:else if article.status === 'published'}
@@ -500,7 +503,7 @@
         <ScrollArea orientation="horizontal" class="pb-2 max-w-1/2">
           <div class="flex flex-row gap-1">
                               {#if article.status === 'pending'}
-            <Badge variant="warning">{t('articles.status.pending')}</Badge>
+            <Badge variant="outline">{t('articles.status.pending')}</Badge>
           {/if}
         <Badge variant="secondary">
             {t(`${article.category}`)}
@@ -537,7 +540,7 @@
       <div class="flex items-center gap-1">
         <div class="flex items-center gap-2">
           <A href={`/${getAuthorIdentifier(article)}`} class="flex items-center gap-2 hover:opacity-80 transition-opacity">
-            {#if article.author.avatar}
+            {#if article.author?.avatar}
               <img 
                 src={article.author.avatar} 
                 alt={getAuthorDisplayName(article)}

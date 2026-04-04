@@ -142,11 +142,11 @@
         selectedCity = event.detail.city;
         announcementsPage = 1;
         eventsPage = 1;
-        // Scroll to events section
+        // Scroll to map section to show both map and events
         setTimeout(() => {
-            const eventsSection = document.getElementById('events-section');
-            if (eventsSection) {
-                eventsSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            const mapSection = document.getElementById('map-section');
+            if (mapSection) {
+                mapSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
             }
         }, 100);
     }
@@ -241,7 +241,7 @@
     </section>
 
     <!-- Turkey Map Section -->
-    <section class="pb-8">
+    <section id="map-section" class="pb-8">
         <div class="container max-w-7xl mx-auto px-2 sm:px-6">
             <TurkeyMap on:select={handleCitySelect} cityEventStatus={cityEventStatus()} />
         </div>

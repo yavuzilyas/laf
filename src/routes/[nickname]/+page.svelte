@@ -28,13 +28,14 @@
     import { onMount } from 'svelte';
     import Loader from "$lib/components/load.svelte";
     import ArticleList from '$lib/components/ArticleList.svelte';
+    import { showToast } from "$lib/hooks/toast";
 
     // Layout mode state
-    let layoutMode = $state("grid");
+    let layoutMode = $state<"grid" | "list" | "masonry">("grid");
 
     let { data } = $props();
-    let profileUser = data.profileUser;
-    let userProfileData = data.userProfileData;
+    let profileUser = $state(data.profileUser);
+    let userProfileData = $state(data.userProfileData);
     const currentUser = data.currentUser;
     const currentUserId = currentUser?.id;
     const isModeratorOrAdmin = currentUser?.role === 'moderator' || currentUser?.role === 'admin';
@@ -367,8 +368,12 @@
                 profileUser = { ...profileUser, ...dataToSave };
                 // Sync profileFormData with saved data
                 profileFormData = { ...profileFormData, ...dataToSave };
+                showToast(t('profile.saveSuccess') ?? 'Profil başarıyla güncellendi', 'success');
+            } else if (response.status === 429) {
+                showToast(t('profile.errorRateLimit') ?? 'Çok fazla istek gönderdiniz. Lütfen daha sonra tekrar deneyin.', 'error');
             } else {
-                
+                const errorData = await response.json().catch(() => ({}));
+                showToast(errorData.error || t('profile.saveError') || 'Profil güncellenirken bir hata oluştu', 'error');
             }
         } catch (error) {
             
@@ -952,7 +957,7 @@
                 <ArticleList
                     articles={displayedArticles}
                     loading={loadingArticles}
-                    layout={layoutMode}
+                    layout={layoutMode as 'list' | 'grid'}
                     variant={layoutMode === 'list' ? 'compact' : 'default'}
                     showLoadMore={false}
                     hasMore={hasMore}

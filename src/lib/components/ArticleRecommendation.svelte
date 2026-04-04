@@ -66,14 +66,14 @@
   };
 
   const getCollaboratorDisplayName = (collaborator: any) => {
-    if (collaborator.name || collaborator.surname) {
+    if (collaborator?.name || collaborator?.surname) {
       return [collaborator.name, collaborator.surname].filter(Boolean).join(' ').trim();
     }
-    return collaborator.nickname || 'Unknown User';
+    return collaborator?.nickname || 'Unknown User';
   };
 
   const getCollaboratorIdentifier = (collaborator: any) => {
-    return collaborator.nickname || collaborator.id || 'user';
+    return collaborator?.nickname || collaborator?.id || 'user';
   };
 
   const truncateText = (text: string, maxLength: number) => {

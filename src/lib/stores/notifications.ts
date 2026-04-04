@@ -141,7 +141,7 @@ export async function fetchNotifications(): Promise<void> {
 						// Add user values from actor/meta based on what's needed in template
 						if (translationTemplate.includes('{user}') && !processedValues.user) {
 							if (item.actor) {
-								processedValues.user = item.actor.nickname || item.actor.name || t('notifications.messages.unknownUser');
+								processedValues.user = item.actor?.nickname || item.actor?.name || t('notifications.messages.unknownUser');
 							} else {
 								processedValues.user = t('notifications.messages.unknownUser');
 							}
@@ -152,7 +152,7 @@ export async function fetchNotifications(): Promise<void> {
 							if (item.meta?.likerNames && Array.isArray(item.meta.likerNames) && item.meta.likerNames.length > 0) {
 								processedValues.user1 = item.meta.likerNames[0] || t('notifications.messages.unknownUser');
 							} else if (item.actor) {
-								processedValues.user1 = item.actor.nickname || item.actor.name || t('notifications.messages.unknownUser');
+								processedValues.user1 = item.actor?.nickname || item.actor?.name || t('notifications.messages.unknownUser');
 							} else {
 								processedValues.user1 = t('notifications.messages.unknownUser');
 							}
@@ -412,9 +412,10 @@ export function stopNotificationsWatcher(): void {
 
 function getCurrentNotifications(): NotificationRecord[] {
 	let current: NotificationRecord[] = [];
-	notificationsStore.subscribe((value) => {
+	const unsubscribe = notificationsStore.subscribe((value) => {
 		current = value;
-	})().unsubscribe?.();
+	});
+	unsubscribe();
 	return current;
 }
 
@@ -429,7 +430,7 @@ export async function goToNotificationLink(link?: string | null): Promise<void> 
 		if (pathWithQuery !== `${window.location.pathname}${window.location.search}`) {
 			try {
 				await goto(hash ? `${pathWithQuery}#${hash}` : pathWithQuery, {
-					noscroll: !!hash
+					noScroll: !!hash
 				});
 			} catch (error) {
 				// Fallback to direct navigation if goto fails
