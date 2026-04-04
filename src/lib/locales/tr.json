@@ -647,7 +647,11 @@
     "Regenerating": "Yeniden oluşturuluyor",
     "MnemonicRegenerated": "BIP-39 sıralaması yeniden oluşturuldu",
     "FailedToRegenerateMnemonic": "BIP-39 sıralaması yeniden oluşturulamadı",
-    "ShowMnemonic": "BIP-39 Sıralamasını Göster"
+    "ShowMnemonic": "BIP-39 Sıralamasını Göster",
+    "EditorFontSize": "Editör Yazı Boyutu",
+    "Small": "Küçük",
+    "Medium": "Orta",
+    "Large": "Büyük"
   },
       "Generate": "Oluştur",
 	"Language": "Dil",
@@ -787,7 +791,7 @@
 	"Settings": "Ayarlar",
 	"Cancel": "İptal",
 	"VerificationIsRequired": "Doğrulama Gerekli",
-
+"EditorFontSize":"Editör Yazı Boyutu",
   "profile": {
       "myArticlesDescription": "Makalelerim buradaymış!",
 
@@ -813,12 +817,13 @@
   "changeAvatar": "Avatarı Değiştir",
   "removeAvatar": "Avatarı Kaldır",
   "avatarUploading": "Yükleniyor...",
-  "avatarSizeError": "Maksimum dosya boyutu 4MB olmalıdır.",
+  "avatarSizeError": "Maksimum dosya boyutu 512KB olmalıdır.",
   "avatarTypeError": "Sadece resim dosyaları yükleyebilirsiniz.",
   "avatarUploadError": "Avatar yüklenirken bir hata oluştu.",
+  "bannerSizeError": "Maksimum banner boyutu 512KB olmalıdır.",
   "editAvatar": "Avatarı Düzenle",
   "avatarDescription": "Profil resminizi yükleyin veya değiştirin",
-  "avatarRequirements": "Maksimum dosya boyutu: 4MB. İzin verilen formatlar: JPG, PNG, GIF.",
+  "avatarRequirements": "Maksimum dosya boyutu: 512KB. İzin verilen formatlar: JPG, PNG, GIF.",
   "myArticles": "Makalelerim",
   "articlesDescription": "Yazdığınız makaleler",
   "noArticles": "Henüz makale yazmadınız",

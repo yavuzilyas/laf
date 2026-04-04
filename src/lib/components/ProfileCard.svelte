@@ -819,7 +819,8 @@
           {#if isOwnProfile}
 
  
-         
+                       {#if isEditing}
+
             <Button size="xs" variant="outline" onclick={onTriggerAvatarFile}>
               {#if avatarUploading}
                 <BarSpinner class="text-primary" size={16} />
@@ -834,7 +835,8 @@
                 <Trash2 class="h-4 w-4" />
                 {t('profile.removeAvatar')}
               </Button>
-            {/if}
+            {/if}              {/if}
+
                        <Button
               size="xs"
               variant={isEditing ? "destructive" : "outline"}

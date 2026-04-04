@@ -204,16 +204,8 @@
     let isFollowing = $state(false);
     let isBlocked = $state(viewerBlocksProfile);
     let isBlockedChanging = $state(false);
-    let followersCount = $state(
-        Array.isArray(profileUser?.followers)
-            ? profileUser.followers.length
-            : data?.followCounts?.followersCount ?? 0
-    );
-    let followingCount = $state(
-        Array.isArray(profileUser?.following)
-            ? profileUser.following.length
-            : data?.followCounts?.followingCount ?? 0
-    );
+    let followersCount = $state(data?.followCounts?.followersCount ?? 0);
+    let followingCount = $state(data?.followCounts?.followingCount ?? 0);
 
     const triggerAvatarFileDialog = () => {
         if (typeof document === "undefined") return;
@@ -226,9 +218,9 @@
         const file = input.files?.[0];
         if (!file) return;
 
-        const maxBytes = 4 * 1024 * 1024;
+        const maxBytes = 512 * 1024; // 512KB match server limit
         if (file.size > maxBytes) {
-            alert(t('profile.avatarSizeError'));
+            showToast(t('profile.avatarSizeError') || 'Avatar en fazla 512KB olmalıdır', 'error');
             input.value = "";
             return;
         }
@@ -423,9 +415,9 @@
         if (!file) return;
 
         const previousBanner = profileFormData.bannerImage;
-        const maxBytes = 4 * 1024 * 1024;
+        const maxBytes = 512 * 1024; // 512KB match server limit
         if (file.size > maxBytes) {
-            alert(t('profile.bannerSizeError') ?? 'Banner en fazla 4MB olmalı.');
+            showToast(t('profile.bannerSizeError') || 'Banner en fazla 512KB olmalıdır', 'error');
             input.value = "";
             return;
         }

@@ -9,7 +9,13 @@
   import { onMount } from 'svelte';
 import { BarSpinner } from "$lib/components/spell/bar-spinner";
 
-  let { openVerif = $bindable(false), onVerified = () => {}, onCancel = () => {} } = $props();
+  let { 
+    openVerif = $bindable(false), 
+    onVerified = () => {}, 
+    onCancel = () => {},
+    title = t('VerificationIsRequired'),
+    description = t('EnterYourPassword')
+  } = $props();
 
   // Generate a verification token when component mounts
   const generateUUID = () => {
@@ -160,8 +166,8 @@ import { BarSpinner } from "$lib/components/spell/bar-spinner";
 
   <Drawer.Header>
     <ShieldAlert size={20} class="text-primary z-60 " />
-   <Drawer.Title>{t('VerificationIsRequired')}</Drawer.Title>
-   <Drawer.Description>{t('EnterYourPassword')}</Drawer.Description>
+   <Drawer.Title>{title}</Drawer.Title>
+   <Drawer.Description>{description}</Drawer.Description>
   </Drawer.Header>
   {#if !loading}
           <div class="z-60 space-y-2">
@@ -189,7 +195,7 @@ import { BarSpinner } from "$lib/components/spell/bar-spinner";
           {/if}</div>
         {:else if loading}
           <div class="z-60 flex justify-center ">
-                    <Loader class="animate-spin text-primary" />
+                    <BarSpinner class="text-primary" />
 
           </div>
         {/if}

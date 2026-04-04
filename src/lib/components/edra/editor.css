@@ -1,7 +1,34 @@
-/* Base TipTap Editor Styles with Light/Dark Theme Support */
+:root {
+	--editor-small: 0.8rem;
+	--editor-medium: 0.9rem;
+	--editor-large: 1.1rem;
+}
 
-.tiptap {
-	font-size: 0.9rem;
+[data-editor-font-size="small"] .tiptap,
+[data-editor-font-size="small"] .edra-editor {
+	--editor-font-size: var(--editor-small);
+	font-size: var(--editor-small) !important;
+}
+
+[data-editor-font-size="medium"] .tiptap,
+[data-editor-font-size="medium"] .edra-editor {
+	--editor-font-size: var(--editor-medium);
+	font-size: var(--editor-medium) !important;
+}
+
+[data-editor-font-size="large"] .tiptap,
+[data-editor-font-size="large"] .edra-editor {
+	--editor-font-size: var(--editor-large);
+	font-size: var(--editor-large) !important;
+}
+
+.tiptap,
+.edra-editor,
+.tiptap p,
+.edra-editor p,
+.tiptap li,
+.edra-editor li {
+	font-size: inherit;
 	line-height: 1.6;
 }
 
@@ -106,28 +133,28 @@ ol > li > .drag-handle {
 	margin-bottom: 1rem;
 }
 
-.tiptap h1 {
+.tiptap h1, .edra-editor h1 {
 	scroll-margin: 5rem;
-	font-size: 1.75rem;
-	line-height: 2rem;
+	font-size: 2em;
+	line-height: 1.2;
 	font-weight: 800;
 	letter-spacing: -0.015em;
 }
 
-.tiptap h2 {
-	font-size: 1.25rem;
+.tiptap h2, .edra-editor h2 {
+	font-size: 1.5em;
 	font-weight: 700;
 }
 
-.tiptap h3 {
-	font-size: 1.125rem;
+.tiptap h3, .edra-editor h3 {
+	font-size: 1.25em;
 	font-weight: 600;
 }
 
-.tiptap h4,
-.tiptap h5,
-.tiptap h6 {
-	font-size: 0.9375rem;
+.tiptap h4, .edra-editor h4,
+.tiptap h5, .edra-editor h5,
+.tiptap h6, .edra-editor h6 {
+	font-size: 1.1em;
 	font-weight: 600;
 }
 

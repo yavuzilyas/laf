@@ -782,7 +782,11 @@
     "Regenerating": "Regenerating",
     "MnemonicRegenerated": "BIP-39 phrase regenerated",
     "FailedToRegenerateMnemonic": "Failed to regenerate BIP-39 phrase",
-    "ShowMnemonic": "Show BIP-39 Phrase"
+    "ShowMnemonic": "Show BIP-39 Phrase",
+    "EditorFontSize": "Editor Font Size",
+    "Small": "Small",
+    "Medium": "Medium",
+    "Large": "Large"
   },
   "editor": {
     "media": {
@@ -2425,6 +2429,8 @@
   "SelectCountry": "Select country...",
   "SelectCity": "Select city...",
   "SelectCountryFirst": "Select a country first",
+  "EditorFontSize":"Editor Font Size",
+
   "profile": {
     "myArticlesDescription": "Oh! My articles here",
 
@@ -2443,9 +2449,10 @@
     "comments": "Comments",
     "likes": "Likes",
     "views": "Views",
-    "avatarSizeError": "Maximum file size is 4MB.",
+    "avatarSizeError": "Maximum file size is 512KB.",
     "avatarTypeError": "Only image files are allowed.",
     "avatarUploadError": "Failed to upload avatar.",
+    "bannerSizeError": "Maximum banner size is 512KB.",
     "myArticles": "My Articles",
     "articlesDescription": "Articles you have written",
     "noArticles": "You haven't written any articles yet",

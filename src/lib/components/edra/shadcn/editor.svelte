@@ -91,7 +91,7 @@
 					editorProps: {
 						attributes: {
 							'data-editor-id': id,
-							class: `edra-editor ${id}`
+							class: `edra-editor tiptap ${id}`
 						}
 					}
 				}

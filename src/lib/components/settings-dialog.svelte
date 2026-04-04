@@ -33,6 +33,8 @@ import { BarSpinner } from "$lib/components/spell/bar-spinner";
 	import { createEventDispatcher } from 'svelte';
     import { notificationPreferences, toggleNotificationType, toggleGeneralSetting, setAllNotifications, saveNotificationPreferences, loadNotificationPreferences, type NotificationPreferences } from "$lib/stores/notification-preferences";
     import LanguageSelector from "./LanguageSelector.svelte";
+	import * as ToggleGroup from "$lib/components/ui/toggle-group/index.js";
+	import { fontSize, type FontSize } from "$lib/stores/fontSize.js";
 
 	// Import default preferences for initialization
 	const defaultPreferences = {
@@ -55,7 +57,7 @@ import { BarSpinner } from "$lib/components/spell/bar-spinner";
 	let isHighContrast = $state(false);
 
 	// Sound settings state from store
-	let currentSoundSettings = $state({});
+	let currentSoundSettings = $state<Record<string, boolean>>({});
 
 	// Notification preferences state from store
 	let currentNotificationPreferences = $state<NotificationPreferences>(defaultPreferences);
@@ -829,6 +831,19 @@ function handleOpenChange(newOpen: boolean) {
 											</svg>
 										{/if}
 									</Button>
+								</div>
+								<div class="flex items-center justify-between py-3 px-4 rounded-lg border">
+									<Label for="font-size" class="cursor-pointer text-xs">{t('EditorFontSize')}</Label>
+									<ToggleGroup.Root
+										type="single"
+										value={$fontSize}
+										onValueChange={(v) => { if (v) fontSize.set(v as FontSize); }}
+										class="justify-end h-8"
+									>
+										<ToggleGroup.Item value="small" class="text-xs px-2 h-7">{t('Small')}</ToggleGroup.Item>
+										<ToggleGroup.Item value="medium" class="text-xs px-2 h-7">{t('Medium')}</ToggleGroup.Item>
+										<ToggleGroup.Item value="large" class="text-xs px-2 h-7">{t('Large')}</ToggleGroup.Item>
+									</ToggleGroup.Root>
 								</div>
 								
 								<Separator class="my-4"/>
