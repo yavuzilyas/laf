@@ -927,7 +927,7 @@
                 </CardDescription>
             </CardHeader>
             <CardContent class="space-y-6">
-                <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-start">
                     <ArticleSearch
                         value={searchQuery}
                         suggestions={[]}
@@ -941,30 +941,12 @@
                         class="w-full sm:max-w-xl"
                     />
 
-                    <div class="flex items-center gap-1 rounded-lg border p-1">
                         <ArticleFilterPopover
                             options={filterOptions}
                             activeFilters={activeFilters}
                             onFiltersChange={handleFiltersChange}
                         />
 
-                        <Button
-                            variant={layoutMode === 'grid' ? 'default' : 'ghost'}
-                            size="sm"
-                            onclick={() => layoutMode = 'grid'}
-                            class="h-8 w-8 p-0"
-                        >
-                            <Grid class="h-4 w-4" />
-                        </Button>
-                        <Button
-                            variant={layoutMode === 'list' ? 'default' : 'ghost'}
-                            size="sm"
-                            onclick={() => layoutMode = 'list'}
-                            class="h-8 w-8 p-0"
-                        >
-                            <List class="h-4 w-4" />
-                        </Button>
-                    </div>
                 </div>
 
                 <ArticleList

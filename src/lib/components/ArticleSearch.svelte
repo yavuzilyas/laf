@@ -7,7 +7,7 @@
   import { Search, X, Clock, TrendingUp, Hash, BookOpen } from "@lucide/svelte";
   import { onDestroy } from 'svelte';
   import { goto } from '$app/navigation';
-  import Loader from "@lucide/svelte/icons/loader";
+	import { BarSpinner } from "$lib/components/spell/bar-spinner";
 
   interface ArticleSuggestion {
     id: string;
@@ -229,9 +229,9 @@
     const searchTerm = query || searchQuery;
     if (searchTerm.trim()) {
       onSearch?.(searchTerm.trim());
-      // Close dropdown after triggering search for a clearer UX
-      showDropdown = false;
-      inputRef?.blur?.();
+      // Keep dropdown open after triggering search
+      // showDropdown = false;
+      // inputRef?.blur?.();
     }
   };
 
@@ -546,7 +546,7 @@
 
       <!-- Loading State -->
       {#if isLoading && articleSuggestions.length === 0}
-        <Loader class="animate-spin m-auto text-primary" />
+        <BarSpinner class="m-auto text-primary" />
       {/if}
 
       <!-- No Results -->

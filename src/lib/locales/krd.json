@@ -4229,5 +4229,29 @@
   "yes": "evet",
   "yesterday": "dün",
   "zinc": "Çinko",
-  "zombie": "zombi"
+  "zombie": "zombi",
+  "donations": {
+    "chart": {
+      "title": "Nexşeya Bexşîn",
+      "description": "Statîstîkên bexşînê",
+      "timeRanges": {
+        "all": "Her dem",
+        "365d": "Sala Dawî",
+        "180d": "6 Mehên Dawî",
+        "90d": "3 Mehên Dawî",
+        "30d": "Meha Dawî",
+        "14d": "2 Hefteyên Dawî",
+        "allShort": "Tevî",
+        "365dShort": "1 Sal",
+        "180dShort": "6 Meh",
+        "90dShort": "3 Meh",
+        "30dShort": "1 Meh",
+        "14dShort": "2 Hefte"
+      },
+      "noData": "Hîn daneyên bexşînê tune ye",
+      "amount": "Bexşîn (XMR)",
+      "count": "Hejmara Bexşîn",
+      "pieces": "heb"
+    }
+  }
 }

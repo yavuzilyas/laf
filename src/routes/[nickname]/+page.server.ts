@@ -102,6 +102,7 @@ export const load: PageServerLoad = async ({ params, locals }: any) => {
 	// Transform snake_case to camelCase for followers and following lists
 	const followersList = followersListRaw.map((user: any) => ({
 		...user,
+		avatar: user.avatar_url || '',
 		isFollowing: user.is_following,
 		isBlocked: user.is_blocked,
 		followedAt: user.followed_at
@@ -109,6 +110,7 @@ export const load: PageServerLoad = async ({ params, locals }: any) => {
 
 	const followingList = followingListRaw.map((user: any) => ({
 		...user,
+		avatar: user.avatar_url || '',
 		isFollowing: user.is_following,
 		isBlocked: user.is_blocked,
 		followedAt: user.followed_at

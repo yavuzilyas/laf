@@ -1,7 +1,7 @@
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { createDonation, getUsers } from '$db/queries';
-import { notifyAdminsNewDonation } from '$lib/server/notifications-pg';
+import { notifyModeratorsAndAdminsNewDonation } from '$lib/server/notifications-pg';
 
 export const POST: RequestHandler = async ({ request, locals }) => {
     try {
@@ -41,7 +41,7 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 
         // Send notification to admins about new donation
         try {
-            await notifyAdminsNewDonation({
+            await notifyModeratorsAndAdminsNewDonation({
                 donationId: donation.id,
                 amount: parseFloat(amount),
                 donorId: body_user_id || user?.id || null,

@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { t, i18n } from '$lib/stores/i18n.svelte.js';
 	import * as Chart from "$lib/components/ui/chart/index.js";
 	import * as Card from "$lib/components/ui/card/index.js";
 	import { MagicCard } from "$lib/components/magic/magic-card";
@@ -10,7 +11,7 @@
 	import { onMount } from "svelte";
 	import { BarSpinner } from "$lib/components/spell/bar-spinner";
 
-	let chartData = $state<{ date: string; amount: number; count: number }[]>([]);
+	let chartData = $state<{ date: Date; amount: number; count: number; scaled_count: number }[]>([]);
 	let timeRange = $state("30d");
 	let groupBy = $state("day");
 	let isLoading = $state(true);
@@ -27,24 +28,24 @@
 		return () => window.removeEventListener('resize', checkMobile);
 	});
 
-	const selectedLabel = $derived.by(() => {
-		switch (timeRange) {
-			case "all":
-				return "Tüm Zamanlar";
-			case "365d":
-				return "Son 1 Yıl";
-			case "180d":
-				return "Son 6 Ay";
-			case "90d":
-				return "Son 3 Ay";
-			case "30d":
-				return "Son 1 Ay";
-			case "14d":
-				return "Son 2 Hafta";
-			default:
-				return "Son 1 Ay";
-		}
-	});
+const selectedLabel = $derived.by(() => {
+	switch (timeRange) {
+		case "all":
+			return t('donations.chart.timeRanges.all');
+		case "365d":
+			return t('donations.chart.timeRanges.365d');
+		case "180d":
+			return t('donations.chart.timeRanges.180d');
+		case "90d":
+			return t('donations.chart.timeRanges.90d');
+		case "30d":
+			return t('donations.chart.timeRanges.30d');
+		case "14d":
+			return t('donations.chart.timeRanges.14d');
+		default:
+			return t('donations.chart.timeRanges.30d');
+	}
+});
 
 	async function fetchDonationStats() {
 		isLoading = true;
@@ -52,12 +53,12 @@
 			const now = new Date();
 			let fromDate: Date | null = null;
 			
-			switch (timeRange) {
-				case "all":
-					fromDate = null; // No from date - get all data
-					groupBy = "year";
-					break;
-				case "365d":
+	switch (timeRange) {
+		case "all":
+			fromDate = null; // No from date - get all data
+			groupBy = "month";
+			break;
+		case "365d":
 					fromDate = new Date(now.getTime() - 365 * 24 * 60 * 60 * 1000);
 					groupBy = "month";
 					break;
@@ -106,9 +107,20 @@
 					return {
 						date,
 						amount: parseFloat(item.amount) || 0, // Ensure amount is a number, default to 0
-						count: parseInt(item.count) || 0 // Ensure count is a number, default to 0
+						count: parseInt(item.count) || 0, // Ensure count is a number, default to 0
+						scaled_count: 0
 					};
 				});
+				
+				// Scale count lower than the max amount to make it visually pleasing
+				const maxAmount = Math.max(...chartData.map(item => item.amount));
+				const maxCount = Math.max(...chartData.map(item => item.count));
+				const scaleFactor = (maxCount > 0 && maxAmount > 0) ? (maxAmount * 0.25) / maxCount : 1;
+				
+				chartData = chartData.map(item => ({
+					...item,
+					scaled_count: item.count * scaleFactor
+				}));
 				
 				// Ensure we have continuous data by filling any gaps with zero values
 				if (chartData.length > 0) {
@@ -126,64 +138,64 @@
 		fetchDonationStats();
 	});
 
-	const chartConfig = {
-		amount: { label: "Bağış (XMR)", color: "var(--primary)" },
-		count: { label: "Bağış Sayısı", color: "var(--primary)" },
-	} satisfies Chart.ChartConfig;
+const chartConfig = $derived({
+	amount: { label: t('donations.chart.amount'), color: "var(--primary)" },
+	scaled_count: { label: t('donations.chart.count'), color: "var(--primary)" },
+} satisfies Chart.ChartConfig);
 </script>
 
 <MagicCard class="@container/card rounded-xl p-6">
 	<div>
-	<Card.Header>
-		<Card.Title>Bağış Grafiği</Card.Title>
-		<Card.Description>
-			<span class="@[540px]/card:block hidden">Bağış istatistikleri</span>
-			<span class="@[540px]/card:hidden">{selectedLabel}</span>
-		</Card.Description>
-		<Card.Action>
-			<ToggleGroup.Root
-				type="single"
-				bind:value={timeRange}
-				variant="outline"
-				class="@[900px]/card:flex hidden *:data-[slot=toggle-group-item]:!px-3 *:data-[slot=toggle-group-item]:!py-1.5 text-xs"
+<Card.Header>
+	<Card.Title>{t('donations.chart.title')}</Card.Title>
+	<Card.Description>
+		<span class="@[540px]/card:block hidden">{t('donations.chart.description')}</span>
+		<span class="@[540px]/card:hidden">{selectedLabel}</span>
+	</Card.Description>
+	<Card.Action>
+		<ToggleGroup.Root
+			type="single"
+			bind:value={timeRange}
+			variant="outline"
+			class="@[900px]/card:flex hidden *:data-[slot=toggle-group-item]:!px-3 *:data-[slot=toggle-group-item]:!py-1.5 text-xs"
+		>
+			<ToggleGroup.Item value="all">{t('donations.chart.timeRanges.allShort')}</ToggleGroup.Item>
+			<ToggleGroup.Item value="365d">{t('donations.chart.timeRanges.365dShort')}</ToggleGroup.Item>
+			<ToggleGroup.Item value="180d">{t('donations.chart.timeRanges.180dShort')}</ToggleGroup.Item>
+			<ToggleGroup.Item value="90d">{t('donations.chart.timeRanges.90dShort')}</ToggleGroup.Item>
+			<ToggleGroup.Item value="30d">{t('donations.chart.timeRanges.30dShort')}</ToggleGroup.Item>
+			<ToggleGroup.Item value="14d">{t('donations.chart.timeRanges.14dShort')}</ToggleGroup.Item>
+		</ToggleGroup.Root>
+		<Select.Root type="single" bind:value={timeRange}>
+			<Select.Trigger
+				size="sm"
+				class="**:data-[slot=select-value]:block **:data-[slot=select-value]:truncate @[900px]/card:hidden flex w-40"
+				aria-label="Zaman aralığı seç"
 			>
-				<ToggleGroup.Item value="all">Tümü</ToggleGroup.Item>
-				<ToggleGroup.Item value="365d">1 Yıl</ToggleGroup.Item>
-				<ToggleGroup.Item value="180d">6 Ay</ToggleGroup.Item>
-				<ToggleGroup.Item value="90d">3 Ay</ToggleGroup.Item>
-				<ToggleGroup.Item value="30d">1 Ay</ToggleGroup.Item>
-				<ToggleGroup.Item value="14d">2 Hafta</ToggleGroup.Item>
-			</ToggleGroup.Root>
-			<Select.Root type="single" bind:value={timeRange}>
-				<Select.Trigger
-					size="sm"
-					class="**:data-[slot=select-value]:block **:data-[slot=select-value]:truncate @[900px]/card:hidden flex w-40"
-					aria-label="Zaman aralığı seç"
-				>
-					<span data-slot="select-value">
-						{selectedLabel}
-					</span>
-				</Select.Trigger>
-				<Select.Content class="rounded-xl">
-					<Select.Item value="all" class="rounded-lg">Tüm Zamanlar</Select.Item>
-					<Select.Item value="365d" class="rounded-lg">Son 1 Yıl</Select.Item>
-					<Select.Item value="180d" class="rounded-lg">Son 6 Ay</Select.Item>
-					<Select.Item value="90d" class="rounded-lg">Son 3 Ay</Select.Item>
-					<Select.Item value="30d" class="rounded-lg">Son 1 Ay</Select.Item>
-					<Select.Item value="14d" class="rounded-lg">Son 2 Hafta</Select.Item>
-				</Select.Content>
-			</Select.Root>
-		</Card.Action>
-	</Card.Header>
+				<span data-slot="select-value">
+					{selectedLabel}
+				</span>
+			</Select.Trigger>
+			<Select.Content class="rounded-xl">
+				<Select.Item value="all" class="rounded-lg">{t('donations.chart.timeRanges.all')}</Select.Item>
+				<Select.Item value="365d" class="rounded-lg">{t('donations.chart.timeRanges.365d')}</Select.Item>
+				<Select.Item value="180d" class="rounded-lg">{t('donations.chart.timeRanges.180d')}</Select.Item>
+				<Select.Item value="90d" class="rounded-lg">{t('donations.chart.timeRanges.90d')}</Select.Item>
+				<Select.Item value="30d" class="rounded-lg">{t('donations.chart.timeRanges.30d')}</Select.Item>
+				<Select.Item value="14d" class="rounded-lg">{t('donations.chart.timeRanges.14d')}</Select.Item>
+			</Select.Content>
+		</Select.Root>
+	</Card.Action>
+</Card.Header>
 	<Card.Content class="px-2 pt-4 sm:px-6 sm:pt-6">
 		{#if isLoading}
 			<div class="flex items-center justify-center h-[250px]">
             	<BarSpinner class="text-primary" size={28} />
 		</div>
-		{:else if chartData.length === 0}
-			<div class="flex items-center justify-center h-[250px] text-muted-foreground">
-				Henüz bağış verisi bulunmuyor
-			</div>
+	{:else if chartData.length === 0}
+		<div class="flex items-center justify-center h-[250px] text-muted-foreground">
+			{t('donations.chart.noData')}
+		</div>
 		{:else}
 			<Chart.Container config={chartConfig} class="aspect-auto h-[250px] m-auto w-11/12">
 				<AreaChart
@@ -191,18 +203,18 @@
 					data={chartData}
 					x="date"
 					xScale={scaleUtc()}
-					series={[
-						{
-							key: "amount",
-							label: "Bağış (XMR)",
-							color: "green",
-						},
-						{
-							key: "count",
-							label: "Bağış Sayısı",
-							color: "var(--primary)",
-						},
-					]}
+				series={[
+					{
+						key: "amount",
+						label: t('donations.chart.amount'),
+						color: "green",
+					},
+					{
+						key: "scaled_count",
+						label: t('donations.chart.count'),
+						color: "var(--primary)",
+					},
+				]}
 					seriesLayout="overlay"
 					props={{
 						area: {
@@ -211,25 +223,26 @@
 							line: { class: "stroke-2", "stroke-opacity": 0.8 },
 							motion: "tween",
 						},
-						xAxis: {
-							ticks: isMobile 
-								? (timeRange === "14d" ? 3 : timeRange === "30d" ? 4 : timeRange === "90d" ? 3 : timeRange === "180d" ? 3 : timeRange === "365d" ? 4 : 3)
-								: (timeRange === "14d" ? 7 : timeRange === "30d" ? 10 : timeRange === "90d" ? 6 : timeRange === "180d" ? 6 : timeRange === "365d" ? 12 : 10),
-							format: (v: Date) => {
-								if (groupBy === "year") {
-									return v.getFullYear().toString();
-								} else if (groupBy === "week") {
-									// Get week number
-									const startOfYear = new Date(v.getFullYear(), 0, 1);
-								 const weekNumber = Math.ceil(((v.getTime() - startOfYear.getTime()) / 86400000 + startOfYear.getDay() + 1) / 7);
-									return `${v.getFullYear()}-W${weekNumber}`;
-								}
-								return v.toLocaleDateString("tr-TR", {
-									day: "numeric",
-									month: "short"
-								});
-							},
+					xAxis: {
+						ticks: isMobile 
+							? (timeRange === "all" ? 5 : timeRange === "14d" ? 3 : timeRange === "30d" ? 4 : timeRange === "90d" ? 3 : timeRange === "180d" ? 3 : timeRange === "365d" ? 4 : 3)
+							: (timeRange === "all" ? 10 : timeRange === "14d" ? 7 : timeRange === "30d" ? 10 : timeRange === "90d" ? 6 : timeRange === "180d" ? 6 : timeRange === "365d" ? 12 : 10),
+						format: (v: Date) => {
+							if (groupBy === "year") {
+								return v.getFullYear().toString();
+							} else if (groupBy === "month") {
+								return v.toLocaleDateString(i18n.currentLocale || "tr-TR", { month: "short", year: "numeric" });
+							} else if (groupBy === "week") {
+								const startOfYear = new Date(v.getFullYear(), 0, 1);
+								const weekNumber = Math.ceil(((v.getTime() - startOfYear.getTime()) / 86400000 + startOfYear.getDay() + 1) / 7);
+								return `${v.getFullYear()}-W${weekNumber}`;
+							}
+							return v.toLocaleDateString(i18n.currentLocale || "tr-TR", {
+								day: "numeric",
+								month: "short"
+							});
 						},
+					},
 						yAxis: { 
 							format: (v: number) => `${v.toFixed(2)} XMR`,
 							ticks: 5,
@@ -271,26 +284,37 @@
 							/>
 						{/each}
 					{/snippet}
-					{#snippet tooltip()}
-						<Chart.Tooltip
-							labelFormatter={(v: Date) => {
-								return v.toLocaleDateString("tr-TR", {
-									day: "numeric",
-									month: "long",
-									year: "numeric"
-								});
-							}}
-							valueFormatter={(value: number, name: string) => {
-								if (name === "Bağış (XMR)") {
-									return `${value.toFixed(4)} XMR`;
-								} else if (name === "Bağış Sayısı") {
-									return `${value} adet`;
-								}
-								return value.toString();
-							}}
-							indicator="line"
-						/>
-					{/snippet}
+				{#snippet tooltip()}
+					<Chart.Tooltip
+						labelFormatter={(v: Date) => {
+							if (groupBy === "month") {
+								return v.toLocaleDateString(i18n.currentLocale || "tr-TR", { month: "long", year: "numeric" });
+							}
+							return v.toLocaleDateString(i18n.currentLocale || "tr-TR", {
+								day: "numeric",
+								month: "long",
+								year: "numeric"
+							});
+						}}
+						indicator="line"
+					>
+						{#snippet formatter({ item, name })}
+							<div class="flex items-center gap-2">
+								<div class="size-2.5 shrink-0 rounded-[2px]" style="background-color: {item.color || 'var(--primary)'}"></div>
+								<div class="flex flex-1 justify-between gap-4">
+									<span class="text-muted-foreground">{name}</span>
+									<span class="font-mono font-medium">
+										{#if name === t('donations.chart.amount')}
+											{Number(item.payload?.amount || 0).toFixed(4)} XMR
+										{:else}
+											{item.payload?.count || 0} {t('donations.chart.pieces')}
+										{/if}
+									</span>
+								</div>
+							</div>
+						{/snippet}
+					</Chart.Tooltip>
+				{/snippet}
 				</AreaChart>
 			</Chart.Container>
 		{/if}

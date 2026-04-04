@@ -350,7 +350,7 @@
                             size="icon" 
                             variant="outline"
                             class="text-green-600 hover:text-green-700 hover:bg-green-50"
-                            title="Çeviriyi Onayla"
+                            title={t('notifications.approveTranslation')}
                           >
                             <CheckCircle2 class="h-4 w-4" />
                           </Button>
@@ -359,7 +359,7 @@
                             size="icon" 
                             variant="outline"
                             class="text-red-600 hover:text-red-700 hover:bg-red-50"
-                            title="Çeviriyi Reddet"
+                            title={t('notifications.rejectTranslation')}
                           >
                             <XCircle class="h-4 w-4" />
                           </Button>
@@ -371,14 +371,14 @@
                             onclick={() => handleEditArticle(item)} 
                             size="icon" 
                             variant="outline"
-                            title="Makaleyi Düzenle"
+                            title={t('notifications.editArticle')}
                           >
                             <Edit class="h-4 w-4" />
                           </Button>
                         {/if}
                         
                         <!-- Delete button -->
-                        <Button onclick={() => handleDelete(item)} size="icon" variant="outline" title="Bildirimi Sil">
+                        <Button onclick={() => handleDelete(item)} size="icon" variant="outline" title={t('notifications.deleteNotification')}>
                           <Trash2 class="h-4 w-4" />
                         </Button>
                       </div>

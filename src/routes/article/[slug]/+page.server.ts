@@ -251,6 +251,7 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 
       return {
         id: user.id,
+        username: user.username || user.nickname || '',
         nickname: user.nickname || '',
         name: user.name || '',
         surname: user.surname || '',
@@ -275,6 +276,7 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 
       return {
         id: user.id,
+        username: user.username || user.nickname || '',
         nickname: user.nickname || '',
         name: user.name || '',
         surname: user.surname || '',
@@ -291,6 +293,10 @@ export const load: PageServerLoad = async ({ params, locals }) => {
     profileUser = {
       ...authorDoc,
       id: authorDoc.id,
+      username: authorDoc.username || authorDoc.nickname || '',
+      nickname: authorDoc.nickname || '',
+      name: authorDoc.name || '',
+      surname: authorDoc.surname || '',
       avatar: authorDoc.avatar_url || '',
       bannerColor: authorDoc.preferences?.bannerColor || authorDoc.banner_color || '#0f172a',
       bannerImage: authorDoc.preferences?.bannerImage || authorDoc.banner_image || '',
@@ -346,18 +352,72 @@ export const load: PageServerLoad = async ({ params, locals }) => {
       const totalLikes = collaboratorArticles.reduce((sum: number, a: any) => sum + (a.likes_count || 0), 0);
       const totalComments = collaboratorArticles.reduce((sum: number, a: any) => sum + (a.comments_count || 0), 0);
 
+      // Get followers and following counts for collaborator
+      const collaboratorFollowers = await getFollows({ following_id: collaborator.id });
+      const collaboratorFollowing = await getFollows({ follower_id: collaborator.id });
+
+      // Prepare followers list for collaborator
+      const collaboratorFollowersList = await Promise.all(collaboratorFollowers.slice(0, 10).map(async (f: any) => {
+        const followerData = await getUsers({ id: f.follower_id });
+        const user = followerData[0];
+        if (!user) return null;
+        
+        const followerFollowers = await getFollows({ following_id: user.id });
+        const isViewerFollowing = viewerId && followerFollowers.some((follow: any) => follow.follower_id === viewerId);
+
+        return {
+          id: user.id,
+          username: user.username || user.nickname || '',
+          nickname: user.nickname || '',
+          name: user.name || '',
+          surname: user.surname || '',
+          avatar: user.avatar_url || '',
+          bio: user.bio || '',
+          followedAt: f.created_at instanceof Date ? f.created_at.toISOString() : f.created_at,
+          isFollowing: isViewerFollowing,
+          isBlocked: false
+        };
+      }));
+
+      // Prepare following list for collaborator
+      const collaboratorFollowingList = await Promise.all(collaboratorFollowing.slice(0, 10).map(async (f: any) => {
+        const followingData = await getUsers({ id: f.following_id });
+        const user = followingData[0];
+        if (!user) return null;
+        
+        const followingFollowers = await getFollows({ following_id: user.id });
+        const isViewerFollowing = viewerId && followingFollowers.some((follow: any) => follow.follower_id === viewerId);
+
+        return {
+          id: user.id,
+          username: user.username || user.nickname || '',
+          nickname: user.nickname || '',
+          name: user.name || '',
+          surname: user.surname || '',
+          avatar: user.avatar_url || '',
+          bio: user.bio || '',
+          followedAt: f.created_at instanceof Date ? f.created_at.toISOString() : f.created_at,
+          isFollowing: isViewerFollowing,
+          isBlocked: false
+        };
+      }));
+
       collaboratorProfiles.push({
         ...collaborator,
         id: collaborator.id,
+        username: collaborator.username || collaborator.nickname || '',
+        name: collaborator.name || '',
+        surname: collaborator.surname || '',
+        nickname: collaborator.nickname || collaborator.username || '',
         avatar: collaborator.avatar_url || '',
         bannerColor: collaborator.preferences?.bannerColor || collaborator.banner_color || '#0f172a',
         bannerImage: collaborator.preferences?.bannerImage || collaborator.banner_image || '',
         is_hidden: collaborator.is_hidden || false,
-        followers: [],
-        following: [],
+        followers: collaboratorFollowersList.filter(Boolean),
+        following: collaboratorFollowingList.filter(Boolean),
         blocked: [],
-        followersCount: 0,
-        followingCount: 0,
+        followersCount: collaboratorFollowers.length,
+        followingCount: collaboratorFollowing.length,
         createdAt: collaborator.created_at instanceof Date ? collaborator.created_at.toISOString() : collaborator.created_at,
         updatedAt: collaborator.updated_at instanceof Date ? collaborator.updated_at.toISOString() : collaborator.updated_at,
         stats: {

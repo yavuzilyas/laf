@@ -2141,7 +2141,7 @@
                                         <BadgeAlertIcon triggers={{ hover: false }} animationState="loading" duration={3000} loop={true} class=" h-4 w-4" />
                                         {t('articles.comments.report')}
                                     </DropdownMenu.Item>
-                                    {#if isArticleOwner() || isCollaborator() || ($page.data.user?.role === 'admin') || ($page.data.user?.role === 'moderator' && article?.author?.id !== $page.data.user?.id && article?.authorId !== $page.data.user?.id)}
+                                    {#if data.canEdit}
                                         <DropdownMenu.Separator />
                                         <DropdownMenu.Item onclick={onDeleteArticle}>
                                             <BookMinusIcon triggers={{ hover: false }} animationState="loading" duration={3000} loop={true} class=" h-4 w-4" />
@@ -2493,8 +2493,8 @@
                                     followersCount={collaboratorProfile.followersCount || 0}
                                     followingCount={collaboratorProfile.followingCount || 0}
                                     isFollowingMe={false}
-                                    followersList={[]}
-                                    followingList={[]}
+                                    followersList={collaboratorProfile.followersList || []}
+                                    followingList={collaboratorProfile.followingList || []}
                                     currentUserId={currentUserId}
                                 />
                             </div>

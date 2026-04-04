@@ -369,6 +369,7 @@ async function cleanupUnusedMedia(existing: any, updated: any, articleId: string
             
             // Store original author ID from existing article
             originalAuthorId = existingArticle.author_id;
+            articleData.author_id = originalAuthorId;
             
             // Check if user is author or collaborator
             const isAuthor = String(existingArticle.author_id) === String(user.id);
@@ -376,7 +377,24 @@ async function cleanupUnusedMedia(existing: any, updated: any, articleId: string
             isCollaboratorEdit = isCollaborator && !isAuthor;
             const isTranslator = data.isTranslator === true;
             
-            if (!isAuthor && !isCollaborator && !isTranslator) {
+            let canEdit = isAuthor || isCollaborator;
+            let isPrivilegedEdit = false;
+            
+            if (!canEdit && isPrivileged) {
+                if (userRole === 'admin') {
+                    canEdit = true;
+                    isPrivilegedEdit = true;
+                } else if (userRole === 'moderator') {
+                    const authorData = await getUsers({ id: existingArticle.author_id });
+                    const authorRole = authorData[0]?.role || 'user';
+                    if (authorRole === 'user') {
+                        canEdit = true;
+                        isPrivilegedEdit = true;
+                    }
+                }
+            }
+            
+            if (!canEdit && !isTranslator) {
                 return json({ error: 'Unauthorized - you are not the author, collaborator, or translator' }, { status: 403 });
             }
             
@@ -457,7 +475,7 @@ async function cleanupUnusedMedia(existing: any, updated: any, articleId: string
                         }
                     }
                 }
-            } else if (isCollaboratorEdit) {
+            } else if (isCollaboratorEdit || isPrivilegedEdit) {
                 const collaboratorArticleData = {
                     ...articleData,
                     author_id: originalAuthorId // Orijinal yazarı koru

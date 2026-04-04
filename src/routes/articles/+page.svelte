@@ -4,7 +4,6 @@
     import ArticleList from "$lib/components/ArticleList.svelte";
     import ArticleFilterPopover from "$lib/components/ArticleFilterPopover.svelte";
     import ArticleSearch from "$lib/components/ArticleSearch.svelte";
-    import Pagination from "$lib/components/Pagination.svelte";
     import { Button } from "$lib/components/ui/button";
     import { t } from '$lib/stores/i18n.svelte';
 
@@ -101,7 +100,6 @@
                     const translations = article.translations || {};
                     return [
                         ...Object.keys(translations),
-                        article.language,
                         article.defaultLanguage
                     ].filter(Boolean);
                 })
@@ -116,7 +114,7 @@
         serverArticles.map((article) => {
             const translations = article.translations || {};
             const translationKeys = Object.keys(translations);
-            const fallbackKey = translationKeys[0] || article.language || article.defaultLanguage || 'tr';
+            const fallbackKey = translationKeys[0] || article.defaultLanguage || 'tr';
             const translation = translations[fallbackKey] || {};
 
             return {
@@ -250,7 +248,7 @@
         if (activeFilters.language && activeFilters.language !== "") {
             result = result.filter(article => {
                 // Check if the article's main language matches
-                if (article.language === activeFilters.language) return true;
+                if (article.defaultLanguage === activeFilters.language) return true;
                 
                 // Check if the article has a translation in the selected language
                 const translations = article.translations || {};
@@ -350,12 +348,6 @@
         applyFiltersAndSearch();
     });
 
-    // Pagination computed values
-    const totalPages = $derived(Math.ceil(filteredArticles.length / itemsPerPage));
-    const paginatedArticles = $derived(
-        filteredArticles.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)
-    );
-
     const handleFiltersChange = (filters: any) => {
         activeFilters = filters;
         currentPage = 1; // Reset to first page when filters change
@@ -415,7 +407,7 @@
                         {t('articles.subtitle')}
                     </p>
                     <Button size="xs"  onmouseenter={() => notebookPenIcon?.start()} onmouseleave={() => notebookPenIcon?.stop()} href="/write"  class="shrink-0">
-                        <NotebookPenIcon loop="true" triggers={{ custom: true }}  bind:this={notebookPenIcon} class="w-4 h-4" />
+                        <NotebookPenIcon loop={true} triggers={{ custom: true }}  bind:this={notebookPenIcon} class="w-4 h-4" />
                         {t('articles.writeArticle')}
                     </Button>
                 </div>
@@ -445,27 +437,15 @@
             <!-- Articles List -->
             <div id="article-list" class="w-full">
                 <ArticleList
-                    articles={paginatedArticles}
+                    articles={filteredArticles}
                     loading={loading}
                     layout="grid"
                     variant="default"
-                    showLoadMore={false}
-                    hasMore={false}
-                    onLoadMore={() => {}}
+                    usePagination={true}
+                    {itemsPerPage}
+                    bind:currentPage={currentPage}
+                    onPageChange={handlePageChange}
                 />
-
-                <!-- Pagination -->
-                {#if filteredArticles.length > 0}
-                    <div class="mt-8">
-                        <Pagination
-                            {currentPage}
-                            {totalPages}
-                            totalItems={filteredArticles.length}
-                            {itemsPerPage}
-                            onPageChange={handlePageChange}
-                        />
-                    </div>
-                {/if}
             </div>
 
     </section>

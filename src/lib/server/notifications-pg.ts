@@ -1,10 +1,10 @@
-import { 
-    createNotification, 
-    getNotifications, 
-    getNotificationsCount, 
+import {
+    createNotification,
+    getNotifications,
+    getNotificationsCount,
     getUnreadNotificationsCount,
-    markNotificationRead, 
-    markMultipleNotificationsRead, 
+    markNotificationRead,
+    markMultipleNotificationsRead,
     markAllNotificationsRead,
     deleteNotification,
     deleteNotificationsByActor,
@@ -45,54 +45,54 @@ async function resolveArticleSlug(articleId: string): Promise<string | null> {
     const articles = await getArticles({ id: articleId });
     const article = articles[0];
     if (!article) return null;
-    
+
     // Get slug from translations JSONB field
     const translations = article.translations || {};
     const defaultLang = article.default_language || 'tr';
-    
+
     // Try to get slug from default language first
     if (translations[defaultLang]?.slug) {
         return translations[defaultLang].slug;
     }
-    
+
     // Try other languages if default doesn't have slug
     for (const lang of ['tr', 'en', 'de', 'fr', 'es']) {
         if (translations[lang]?.slug) {
             return translations[lang].slug;
         }
     }
-    
+
     // Fallback to article ID if no slug found
     return article.id;
 }
 
-export async function notifyArticleComment(params: { 
-    articleId: string; 
-    articleSlug?: string | null; 
-    commenterId: string; 
-    articleAuthorId?: string | null; 
-    commentId: string; 
-    articleTitle?: string | null 
+export async function notifyArticleComment(params: {
+    articleId: string;
+    articleSlug?: string | null;
+    commenterId: string;
+    articleAuthorId?: string | null;
+    commentId: string;
+    articleTitle?: string | null
 }) {
     const { articleId, articleSlug, commenterId, articleAuthorId, commentId, articleTitle } = params;
     if (!articleAuthorId) return;
     if (articleAuthorId === commenterId) return;
     if (await isUserBlocked(articleAuthorId, commenterId)) return;
-    
+
     const articleIdStr = toIdString(articleId);
     const commentIdStr = toIdString(commentId);
     if (!articleIdStr || !commentIdStr) return;
-    
+
     const articleSlugValue = articleSlug ?? (await resolveArticleSlug(articleId)) ?? articleIdStr;
     const actorName = await getUserName(commenterId);
-    
-    const title = actorName ? 
-        { key: 'notifications.messages.newComment', values: { user: actorName } } : 
+
+    const title = actorName ?
+        { key: 'notifications.messages.newComment', values: { user: actorName } } :
         { key: 'notifications.messages.newComment', values: { user: 'Bir kullanıcı' } };
-    const message = articleTitle ? 
-        { key: 'notifications.messages.newCommentWithTitle', values: { user: actorName || 'Bir kullanıcı', title: articleTitle } } : 
+    const message = articleTitle ?
+        { key: 'notifications.messages.newCommentWithTitle', values: { user: actorName || 'Bir kullanıcı', title: articleTitle } } :
         { key: 'notifications.messages.newCommentGeneric', values: { user: actorName || 'Bir kullanıcı' } };
-    
+
     await createNotification({
         user_id: articleAuthorId,
         type: 'comment',
@@ -113,12 +113,12 @@ export async function notifyArticleComment(params: {
     });
 }
 
-export async function notifyCommentReply(params: { 
-    parentCommentId: string; 
-    replierId: string; 
-    articleId: string; 
-    articleSlug?: string | null; 
-    commentId: string 
+export async function notifyCommentReply(params: {
+    parentCommentId: string;
+    replierId: string;
+    articleId: string;
+    articleSlug?: string | null;
+    commentId: string
 }) {
     const { parentCommentId, replierId, articleId, articleSlug, commentId } = params;
     const comments = await getComments({ id: parentCommentId });
@@ -126,16 +126,16 @@ export async function notifyCommentReply(params: {
     if (!parent?.author_id) return;
     if (parent.author_id === replierId) return;
     if (await isUserBlocked(parent.author_id, replierId)) return;
-    
+
     const articleIdStr = toIdString(articleId);
     const commentIdStr = toIdString(commentId);
     const parentIdStr = toIdString(parentCommentId);
     if (!articleIdStr || !commentIdStr || !parentIdStr) return;
-    
+
     const articleSlugValue = articleSlug ?? (await resolveArticleSlug(articleId)) ?? articleIdStr;
     const actorName = await getUserName(replierId);
     const title = { key: 'notifications.messages.newReply' };
-    
+
     await createNotification({
         user_id: parent.author_id,
         type: 'reply',
@@ -157,10 +157,10 @@ export async function notifyCommentReply(params: {
     });
 }
 
-export async function notifyArticleLike(params: { 
-    articleId: string; 
-    articleSlug?: string | null; 
-    likerId: string 
+export async function notifyArticleLike(params: {
+    articleId: string;
+    articleSlug?: string | null;
+    likerId: string
 }) {
     const { articleId, articleSlug, likerId } = params;
     const articles = await getArticles({ id: articleId });
@@ -168,15 +168,15 @@ export async function notifyArticleLike(params: {
     if (!article?.author_id) return;
     if (article.author_id === likerId) return;
     if (await isUserBlocked(article.author_id, likerId)) return;
-    
+
     const articleIdStr = toIdString(articleId);
     if (!articleIdStr) return;
-    
+
     const articleSlugValue = articleSlug ?? (await resolveArticleSlug(articleId)) ?? articleIdStr;
 
     // Find existing like notification for this article
     const existing = await findExistingLikeNotification(article.author_id, articleIdStr, 'article-like');
-    
+
     let likerIds: string[] = [];
     if (existing?.data?.meta?.likerIds && Array.isArray(existing.data.meta.likerIds)) {
         likerIds = existing.data.meta.likerIds as string[];
@@ -200,7 +200,7 @@ export async function notifyArticleLike(params: {
         title = { key: 'notifications.messages.articleLikedMany', values: { count: count - 1 } };
     }
 
-    const message = article?.title 
+    const message = article?.title
         ? { key: 'notifications.messages.articleLikedMessageWithTitle', values: { title: article.title } }
         : { key: 'notifications.messages.articleLikedMessage' };
 
@@ -222,11 +222,11 @@ export async function notifyArticleLike(params: {
     });
 }
 
-export async function notifyCommentLike(params: { 
-    commentId: string; 
-    likerId: string; 
-    articleId: string; 
-    articleSlug?: string | null 
+export async function notifyCommentLike(params: {
+    commentId: string;
+    likerId: string;
+    articleId: string;
+    articleSlug?: string | null
 }) {
     const { commentId, likerId, articleId, articleSlug } = params;
     const comments = await getComments({ id: commentId });
@@ -234,15 +234,15 @@ export async function notifyCommentLike(params: {
     if (!comment?.author_id) return;
     if (comment.author_id === likerId) return;
     if (await isUserBlocked(comment.author_id, likerId)) return;
-    
+
     const commentIdStr = toIdString(commentId);
     const articleIdStr = toIdString(articleId);
     if (!commentIdStr || !articleIdStr) return;
-    
+
     const articleSlugValue = articleSlug ?? (await resolveArticleSlug(articleId)) ?? articleIdStr;
 
     const existing = await findExistingLikeNotification(comment.author_id, commentIdStr, 'comment-like');
-    
+
     let likerIds: string[] = [];
     if (existing?.data?.meta?.likerIds && Array.isArray(existing.data.meta.likerIds)) {
         likerIds = existing.data.meta.likerIds as string[];
@@ -317,9 +317,9 @@ export interface NotificationRecord {
     readAt?: string | null;
 }
 
-export async function notifyNewArticle(params: { 
-    articleId: string; 
-    articleSlug?: string | null; 
+export async function notifyNewArticle(params: {
+    articleId: string;
+    articleSlug?: string | null;
     authorId: string;
     articleTitle: string;
     authorName: string;
@@ -333,11 +333,11 @@ export async function notifyNewArticle(params: {
     const followers: string[] = followersList.map((f: any) => f.id);
 
     const articleSlugValue = articleSlug ?? (await resolveArticleSlug(articleId)) ?? articleIdStr;
-    
+
     // Create notifications for each follower
     const notificationPromises = followers.map(async (followerId) => {
         if (followerId === authorId) return; // Don't notify self
-        
+
         await createNotification({
             user_id: followerId,
             type: 'announcement',
@@ -405,9 +405,9 @@ export async function createNotificationFunc(input: CreateNotificationInput): Pr
 // Helper function to find existing like notifications
 async function findExistingLikeNotification(userId: string, itemId: string, kind: string) {
     const notifications = await getNotifications(userId, { unreadOnly: false });
-    return notifications.find((n: any) => 
-        n.type === 'like' && 
-        n.data?.meta?.kind === kind && 
+    return notifications.find((n: any) =>
+        n.type === 'like' &&
+        n.data?.meta?.kind === kind &&
         (n.data?.meta?.articleId === itemId || n.data?.meta?.commentId === itemId)
     );
 }
@@ -415,8 +415,8 @@ async function findExistingLikeNotification(userId: string, itemId: string, kind
 // Helper function to find existing notification
 async function findExistingNotification(userId: string, type: string, meta: any, createdAt: Date) {
     const notifications = await getNotifications(userId, { unreadOnly: false });
-    return notifications.find((n: any) => 
-        n.type === type && 
+    return notifications.find((n: any) =>
+        n.type === type &&
         n.created_at >= createdAt &&
         (!meta.articleId || n.data?.meta?.articleId === meta.articleId) &&
         (!meta.commentId || n.data?.meta?.commentId === meta.commentId) &&
@@ -452,7 +452,7 @@ export async function getNotificationsAPI(userId: string, page: number = 1, page
     const notifications = await getNotifications(userId, { page, pageSize });
     const total = await getNotificationsCount(userId);
     const unreadCount = await getUnreadNotificationsCount(userId);
-    
+
     // Get blocked actors
     const blockedDoc = await getBlockedUsers(userId);
     const blockedActorIds: string[] = Array.isArray(blockedDoc?.blocked_actor_ids)
@@ -482,20 +482,20 @@ export async function deleteNotificationAPI(userId: string, notificationId: stri
     return { success: result, unreadCount, action: 'delete' };
 }
 
-export async function notifyReportStatusChange(params: { 
-    reportId: string; 
-    reporterId: string; 
-    newStatus: string; 
+export async function notifyReportStatusChange(params: {
+    reportId: string;
+    reporterId: string;
+    newStatus: string;
     notes?: string | null;
     moderatorId: string;
 }) {
     const { reportId, reporterId, newStatus, notes, moderatorId } = params;
-    
+
     const moderatorName = await getUserName(moderatorId);
-    
+
     let title;
     let message;
-    
+
     if (newStatus === 'resolved') {
         title = { key: 'notifications.messages.reportResolved', values: { moderator: moderatorName || 'Moderatör' } };
         message = { key: 'notifications.messages.reportResolvedMessage' };
@@ -515,7 +515,7 @@ export async function notifyReportStatusChange(params: {
         title = { key: 'notifications.messages.reportStatusChanged', values: { moderator: moderatorName || 'Moderatör' } };
         message = { key: 'notifications.messages.reportStatusChangedMessage' };
     }
-    
+
     await createNotification({
         user_id: reporterId,
         type: 'report_status',
@@ -536,24 +536,24 @@ export async function notifyReportStatusChange(params: {
     });
 }
 
-export async function notifyArticleStatusChange(params: { 
-    articleId: string; 
-    authorId: string; 
-    newStatus: string; 
+export async function notifyArticleStatusChange(params: {
+    articleId: string;
+    authorId: string;
+    newStatus: string;
     notes?: string | null;
     moderatorId: string;
     articleTitle?: string | null;
     articleSlug?: string | null;
 }) {
     const { articleId, authorId, newStatus, notes, moderatorId, articleTitle, articleSlug } = params;
-    
+
     const moderatorName = await getUserName(moderatorId);
     const articleIdStr = toIdString(articleId);
     if (!articleIdStr) return;
-    
+
     let title;
     let message;
-    
+
     if (newStatus === 'published') {
         title = { key: 'notifications.messages.articlePublished', values: { moderator: moderatorName || 'Moderatör' } };
         message = { key: 'notifications.messages.articlePublishedMessage', values: { title: articleTitle || 'Makale' } };
@@ -573,7 +573,7 @@ export async function notifyArticleStatusChange(params: {
         title = { key: 'notifications.messages.articleStatusChanged', values: { moderator: moderatorName || 'Moderatör' } };
         message = { key: 'notifications.messages.articleStatusChangedMessage' };
     }
-    
+
     await createNotification({
         user_id: authorId,
         type: 'article_status',
@@ -608,35 +608,37 @@ export async function unblockUserAPI(userId: string, actorId: string) {
     return { success: true, unreadCount, action: 'unblockUser' };
 }
 
-export async function notifyNewReport(params: { 
-    reportId: string; 
-    reporterId: string; 
-    reportType: string; 
+export async function notifyNewReport(params: {
+    reportId: string;
+    reporterId: string;
+    reportType: string;
     targetId: string;
     reason: string;
 }) {
     const { reportId, reporterId, reportType, targetId, reason } = params;
-    
+
     // Get all moderators and admins
     const moderators = await getUsers({ role: 'moderator' });
     const admins = await getUsers({ role: 'admin' });
-    const allModerators = [...moderators, ...admins];
-    
+    const allModerators = Array.from(new Map([...moderators, ...admins].map(u => [u.id, u])).values());
+
     const reporterName = await getUserName(reporterId);
-    
+
     // Create notifications for all moderators
     const notificationPromises = allModerators.map(async (moderator: any) => {
         if (moderator.id === reporterId) return; // Don't notify self
-        
+
         await createNotification({
             user_id: moderator.id,
             type: 'announcement',
             title: { key: 'notifications.messages.newReport', values: { type: reportType } },
-            content: { key: 'notifications.messages.newReportMessage', values: { 
-                reporter: reporterName || 'Bir kullanıcı', 
-                type: reportType, 
-                reason: reason.substring(0, 100) 
-            }},
+            content: {
+                key: 'notifications.messages.newReportMessage', values: {
+                    reporter: reporterName || 'Bir kullanıcı',
+                    type: reportType,
+                    reason: reason.substring(0, 100)
+                }
+            },
             data: {
                 link: '/moderation', // Link to moderation page instead of specific report
                 actor: {
@@ -657,9 +659,9 @@ export async function notifyNewReport(params: {
     await Promise.all(notificationPromises);
 }
 
-export async function notifyModeratorsNewArticle(params: { 
-    articleId: string; 
-    articleSlug?: string | null; 
+export async function notifyModeratorsNewArticle(params: {
+    articleId: string;
+    articleSlug?: string | null;
     authorId: string;
     articleTitle: string;
     authorName: string;
@@ -672,23 +674,25 @@ export async function notifyModeratorsNewArticle(params: {
     // Get all moderators and admins
     const moderators = await getUsers({ role: 'moderator' });
     const admins = await getUsers({ role: 'admin' });
-    const allModerators = [...moderators, ...admins];
+    const allModerators = Array.from(new Map([...moderators, ...admins].map(u => [u.id, u])).values());
 
     const articleSlugValue = articleSlug ?? (await resolveArticleSlug(articleId)) ?? articleIdStr;
-    
+
     // Create notifications for all moderators (except author and excluded users)
     const notificationPromises = allModerators.map(async (moderator: any) => {
         if (moderator.id === authorId) return; // Don't notify self
         if (excludeUserIds.includes(moderator.id)) return; // Don't notify excluded users (e.g., collaborators)
-        
+
         await createNotification({
             user_id: moderator.id,
             type: 'announcement',
             title: { key: 'notifications.messages.newArticleForReview', values: { title: articleTitle } },
-            content: { key: 'notifications.messages.newArticleForReviewMessage', values: { 
-                author: authorName, 
-                title: articleTitle 
-            }},
+            content: {
+                key: 'notifications.messages.newArticleForReviewMessage', values: {
+                    author: authorName,
+                    title: articleTitle
+                }
+            },
             data: {
                 link: '/moderation', // Link to moderation page instead of specific article
                 actor: {
@@ -707,32 +711,36 @@ export async function notifyModeratorsNewArticle(params: {
     await Promise.all(notificationPromises);
 }
 
-export async function notifyAdminsNewDonation(params: { 
-    donationId: string; 
-    amount: number; 
+export async function notifyModeratorsAndAdminsNewDonation(params: {
+    donationId: string;
+    amount: number;
     donorId?: string | null;
     donorName?: string | null;
     message?: string | null;
 }) {
     const { donationId, amount, donorId, donorName, message } = params;
-    
-    // Get all admins
+
+    // Get all moderators and admins
+    const moderators = await getUsers({ role: 'moderator' });
     const admins = await getUsers({ role: 'admin' });
-    
+    const allModerators = Array.from(new Map([...moderators, ...admins].map(u => [u.id, u])).values());
+
     const donorDisplayName = donorName || await getUserName(donorId || '') || 'Anonim bağışçı';
-    
-    // Create notifications for all admins
-    const notificationPromises = admins.map(async (admin: any) => {
-        if (admin.id === donorId) return; // Don't notify self
-        
+
+    // Create notifications for all moderators and admins
+    const notificationPromises = allModerators.map(async (moderator: any) => {
+        if (moderator.id === donorId) return; // Don't notify self
+
         await createNotification({
-            user_id: admin.id,
+            user_id: moderator.id,
             type: 'announcement',
             title: { key: 'notifications.messages.newDonation', values: { amount: amount.toString() } },
-            content: { key: 'notifications.messages.newDonationMessage', values: { 
-                donor: donorDisplayName, 
-                amount: amount.toString() 
-            }},
+            content: {
+                key: 'notifications.messages.newDonationMessage', values: {
+                    donor: donorDisplayName,
+                    amount: amount.toString()
+                }
+            },
             data: {
                 link: '/moderation', // Link to moderation page instead of specific donation
                 actor: donorId ? {
@@ -752,23 +760,23 @@ export async function notifyAdminsNewDonation(params: {
     await Promise.all(notificationPromises);
 }
 
-export async function notifyContactMessageStatus(params: { 
-    messageId: string; 
-    userId: string; 
-    newStatus: 'pending' | 'read' | 'responded' | 'archived'; 
+export async function notifyContactMessageStatus(params: {
+    messageId: string;
+    userId: string;
+    newStatus: 'pending' | 'read' | 'responded' | 'archived';
     response?: string | null;
     moderatorId: string;
     subject?: string | null;
 }) {
     const { messageId, userId, newStatus, response, moderatorId, subject } = params;
-    
+
     const moderatorName = await getUserName(moderatorId);
     const subjectLabel = subject || 'İletişim mesajı';
-    
+
     let title;
     let message;
     let link = '/notifications'; // Default link to notifications page
-    
+
     if (newStatus === 'read') {
         title = { key: 'notifications.messages.contactMessageRead' };
         message = { key: 'notifications.messages.contactMessageReadMessage', values: { subject: subjectLabel } };
@@ -780,7 +788,7 @@ export async function notifyContactMessageStatus(params: {
             message = { key: 'notifications.messages.contactMessageRespondedMessage', values: { subject: subjectLabel } };
         }
         link = '/messages'; // Link to messages/inbox for response
-        
+
         // Also send a private message to the user with the full response
         if (response) {
             try {
@@ -800,7 +808,7 @@ export async function notifyContactMessageStatus(params: {
         // pending status - no notification needed
         return;
     }
-    
+
     await createNotification({
         user_id: userId,
         type: 'contact_message',
@@ -836,7 +844,7 @@ export async function notifyAllUsersAboutEvent(params: {
     const users = await getUsers({});
 
     // Translation key for the type (event/announcement)
-    const typeKey = type === 'announcement' ? 'Info.announcement' : 'Info.event';
+    const typeKey = type === 'announcement' ? 'announcement' : 'event';
 
     // Create notifications for each user
     const notificationPromises = users.map(async (user: any) => {

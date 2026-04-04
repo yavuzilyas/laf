@@ -9,17 +9,18 @@
 
   interface Article {
     id: string;
+    slug: string;
     title: string;
     excerpt: string;
     content?: string;
+    status?: 'published' | 'pending' | 'draft';
     author: {
-      id?: string;
       name: string;
       avatar?: string;
-      nickname?: string;
+      nickname: string;
     };
+    author_nickname: string;
     authorId?: string;
-    author_nickname?: string;
     publishedAt: string;
     readTime: number;
     category: string;
@@ -29,7 +30,6 @@
     likes: number;
     featured?: boolean;
     coverImage?: string;
-    status?: 'published' | 'pending' | 'draft';
     collaborators?: Array<{
       id: string;
       name: string;
@@ -56,6 +56,10 @@
     showLoadMore = false,
     hasMore = false,
     onLoadMore,
+    usePagination = false,
+    itemsPerPage = 12,
+    currentPage = $bindable(1),
+    onPageChange,
     class: className,
     ...restProps
   }: {
@@ -66,10 +70,28 @@
     showLoadMore?: boolean;
     hasMore?: boolean;
     onLoadMore?: () => void;
+    usePagination?: boolean;
+    itemsPerPage?: number;
+    currentPage?: number;
+    onPageChange?: (page: number) => void;
     class?: string;
   } = $props();
-import { BookXIcon } from 'svelte-animate-icons';
+
+  import { BookXIcon } from 'svelte-animate-icons';
+  import Pagination from "./Pagination.svelte";
+
   // Use the layout prop directly instead of internal state
+  const totalPages = $derived(Math.ceil(articles.length / itemsPerPage));
+  const paginatedArticles = $derived(
+    usePagination 
+      ? articles.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage) 
+      : articles
+  );
+
+  function handlePageChange(page: number) {
+    currentPage = page;
+    if (onPageChange) onPageChange(page);
+  }
 </script>
 
 <div class={cn("space-y-6", className)} {...restProps}>
@@ -112,24 +134,37 @@ import { BookXIcon } from 'svelte-animate-icons';
         variant === "featured" ? "lg:grid-cols-2" : "sm:grid-cols-2 lg:grid-cols-3",
         variant === "compact" && "sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3"
       )}>
-        {#each articles as article (article.id)}
+        {#each paginatedArticles as article (article.id)}
           <ArticleCard {article} {variant} />
         {/each}
       </div>
     {:else if layout === "list"}
       <div class="space-y-4">
-        {#each articles as article (article.id)}
+        {#each paginatedArticles as article (article.id)}
           <ArticleCard {article} variant="compact" />
         {/each}
       </div>
     {:else if layout === "masonry"}
       <!-- Masonry Layout - CSS Grid based -->
       <div class="columns-1 gap-6 sm:columns-2 lg:columns-3">
-        {#each articles as article (article.id)}
+        {#each paginatedArticles as article (article.id)}
           <div class="mb-6 break-inside-avoid">
             <ArticleCard {article} variant="minimal" />
           </div>
         {/each}
+      </div>
+    {/if}
+
+    <!-- Pagination -->
+    {#if usePagination && totalPages > 1}
+      <div class="mt-8">
+        <Pagination
+          {currentPage}
+          {totalPages}
+          totalItems={articles.length}
+          {itemsPerPage}
+          onPageChange={handlePageChange}
+        />
       </div>
     {/if}
 

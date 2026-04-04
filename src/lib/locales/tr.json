@@ -64,6 +64,9 @@
 			}
 		}
 	},
+
+    "PhonePlaceholder": "+90 555 123 4567",
+  "LocationPlaceholder": "İstanbul, Türkiye",
 	"contactForm": {
 		"title": "Bize Ulaşın",
 		"subtitle": "Görüşlerinizi, önerilerinizi veya sorularınızı bizimle paylaşın",
@@ -101,6 +104,28 @@
 	"Bicorpus": "Külliyât",
 	"Donations": "Bağışlar",
 	"donations": {
+		"chart": {
+			"title": "Bağış Grafiği",
+			"description": "Bağış istatistikleri",
+			"timeRanges": {
+				"all": "Tüm Zamanlar",
+				"365d": "Son 1 Yıl",
+				"180d": "Son 6 Ay",
+				"90d": "Son 3 Ay",
+				"30d": "Son 1 Ay",
+				"14d": "Son 2 Hafta",
+				"allShort": "Tümü",
+				"365dShort": "1 Yıl",
+				"180dShort": "6 Ay",
+				"90dShort": "3 Ay",
+				"30dShort": "1 Ay",
+				"14dShort": "2 Hafta"
+			},
+			"noData": "Henüz bağış verisi bulunmuyor",
+			"amount": "Bağış (XMR)",
+			"count": "Bağış Sayısı",
+			"pieces": "adet"
+		},
 		"title": "Bağış",
 		"description": "LAF`ın fonlamacılığı ve fonu şiddetle reddetmesi nedeniyle bir sabit gelir kaynağı yok, ve gönüllü küçük insanların bağışladığı, küçük miktarlar sayesinde kendisini sürdürüyor. O yüzden bağımsız özgürlükçü fikir ve eyleme sizde katkıda bulunmak istiyorsanız: ",
 		"joinCommunity": "Topluluğumuza Katıl",
@@ -530,7 +555,8 @@
     "close": "Kapat",
     "generate": "Oluştur",
     "apply": "Uygula",
-    "clear": "Clean"
+    "clear": "Temizle",
+    "showUsers": "Kullanıcıları Göster"
   },
   "pagination": {
     "showing": "Gösterilen:",
@@ -763,6 +789,8 @@
 	"VerificationIsRequired": "Doğrulama Gerekli",
 
   "profile": {
+      "myArticlesDescription": "Makalelerim buradaymış!",
+
        "phone": "Telefon numarası",
     "phoneVisible": "Telefon numaram gözüksün",
         "emailVisible": "E-posta adresim gözüksün",
@@ -817,7 +845,9 @@
   "block": "Engelle",
   "unblock": "Engeli Kaldır",
   "followers": "Takipçi",
-  "following": "Takip Edilen"
+  "following": "Takip Edilenler",
+  "usersInCity": "Üyeler",
+  "noUsersInCity": "Bu şehirde henüz üye bulunmuyor."
 },
 "searchLanguages": "Dilleri ara",
   "addLanguage": "Dil Ekle",
@@ -5485,6 +5515,10 @@
     "markAll": "Tümünü Okundu İşaretle",
     "markAllRead": "Tümünü Okundu İşaretle",
     "empty": "Bildirim yok",
+    "approveTranslation": "Çeviriyi Onayla",
+    "rejectTranslation": "Çeviriyi Reddet",
+    "editArticle": "Makaleyi Düzenle",
+    "deleteNotification": "Bildirimi Sil",
     "loadMore": "Daha Fazla",
     "unread": "okunmamış",
     "systemNotification": "Sistem Bildirimi",

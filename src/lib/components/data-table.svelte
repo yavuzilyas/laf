@@ -45,7 +45,7 @@
 	import ChevronRightIcon from "@tabler/icons-svelte/icons/chevron-right";
 	import ChevronsRightIcon from "@tabler/icons-svelte/icons/chevrons-right";
 	import CircleCheckFilledIcon from "@tabler/icons-svelte/icons/circle-check-filled";
-  import Loader from "@lucide/svelte/icons/loader";
+	import { BarSpinner } from "$lib/components/spell/bar-spinner";
   	import DotsVerticalIcon from "@tabler/icons-svelte/icons/dots-vertical";
 	import UserPlusIcon from "@tabler/icons-svelte/icons/user-plus";
 	import UserMinusIcon from "@tabler/icons-svelte/icons/user-minus";
@@ -63,7 +63,7 @@
 	// @ts-ignore - Lucide icons
 	import Trash2Icon from "@lucide/svelte/icons/trash-2";
 	import { toast } from "svelte-sonner";
-	import { t } from '$lib/stores/i18n.svelte.js';
+	import { t } from '$lib/stores/i18n.svelte';
 	import DataTableCheckbox from "./data-table-checkbox.svelte";
 	import { DragDropProvider } from "@dnd-kit-svelte/svelte";
 	import { move } from "@dnd-kit/helpers";
@@ -2514,7 +2514,7 @@
 							disabled={pendingTable.getSelectedRowModel().rows.length === 0 || pendingBulkProcessing}
 						>
 							{#if pendingBulkProcessing}
-            <Loader class="animate-spin" />
+            <BarSpinner class="text-primary" />
 								{t('processing')}
 							{:else}
 								{t('bulkApply')}
@@ -2550,7 +2550,7 @@
 			</div>
 			{#if loadingPending}
 				<div class="flex items-center justify-center p-8">
-            <Loader class="animate-spin" />					<span>{t('common.loading')}</span>
+            <BarSpinner class="text-primary" />					
 				</div>
 			{:else}
 				<DragDropProvider
@@ -2697,7 +2697,7 @@
 							disabled={reportsTable.getSelectedRowModel().rows.length === 0 || reportsBulkProcessing}
 						>
 							{#if reportsBulkProcessing}
-            <Loader class="animate-spin" />
+            <BarSpinner class="text-primary" />
 								{t('processing')}
 							{:else}
 								{t('bulkApply')}
@@ -2734,7 +2734,7 @@
 
 			{#if loadingReports}
 				<div class="flex items-center justify-center p-8">
-            <Loader class="animate-spin" />					<span>{t('common.loading')}</span>
+            <BarSpinner class="text-primary" />					
 				</div>
 			{:else}
 				<DragDropProvider
@@ -2892,7 +2892,7 @@
 								disabled={!hasCommentsBulkSelection || commentsBulkProcessing}
 							>
 								{#if commentsBulkProcessing}
-									<Loader class="animate-spin" />
+									<BarSpinner class="text-primary" />
 									{t('processing')}
 								{:else}
 									{t('bulkApply')}
@@ -2930,8 +2930,8 @@
 
 			{#if loadingComments}
 				<div class="flex items-center justify-center p-8">
-					<Loader class="animate-spin" />
-					<span>{t('common.loading')}</span>
+					<BarSpinner class="text-primary" />
+					
 				</div>
 			{:else}
 				<Table.Root>
@@ -3106,7 +3106,7 @@
 						disabled={!hasBulkSelection || bulkProcessing}
 					>
 						{#if bulkProcessing}
-            <Loader class="animate-spin" />
+            <BarSpinner class="text-primary" />
 										{t('processing')}
 						{:else}
 							{t('bulkApply')}
@@ -3269,7 +3269,7 @@
 								disabled={!hasDonationBulkSelection || donationsBulkProcessing}
 							>
 								{#if donationsBulkProcessing}
-	            <Loader class="animate-spin" />
+	            <BarSpinner class="text-primary" />
 									İşleniyor
 								{:else}
 									Uygula
@@ -3307,7 +3307,7 @@
 
 			{#if loadingDonations}
 				<div class="flex items-center justify-center p-8">
-            <Loader class="animate-spin" />					<span>{t('common.loading')}</span>
+            <BarSpinner class="text-primary" />					
 				</div>
 			{:else}
 				<DragDropProvider
@@ -3464,7 +3464,7 @@
 								disabled={!hasContactMessagesBulkSelection || contactMessagesBulkProcessing}
 							>
 								{#if contactMessagesBulkProcessing}
-									<Loader class="animate-spin" />
+									<BarSpinner class="text-primary" />
 									İşleniyor
 								{:else}
 									Uygula
@@ -3502,8 +3502,8 @@
 
 			{#if loadingContactMessages}
 				<div class="flex items-center justify-center p-8">
-					<Loader class="animate-spin" />
-					<span>{t('common.loading')}</span>
+					<BarSpinner class="text-primary" />
+					
 				</div>
 			{:else}
 				<Table.Root>

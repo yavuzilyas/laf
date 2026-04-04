@@ -1,6 +1,6 @@
 import type { PageServerLoad } from './$types';
 import { error } from '@sveltejs/kit';
-import { getArticleById, getArticles } from '$db/queries';
+import { getArticleById, getArticles, getUsers } from '$db/queries';
 
 const normalizeContent = (content: unknown) => {
   if (!content) return null;
@@ -86,11 +86,25 @@ export const load: PageServerLoad = async ({ url, locals }) => {
   const isAuthor = String(articleDoc.author_id) === String(user.id);
   const isCollaborator = articleDoc.collaborators?.includes(user.id);
   
+  let canEdit = isAuthor || isCollaborator;
+
+  if (!canEdit && (user.role === 'admin' || user.role === 'moderator')) {
+    if (user.role === 'admin') {
+      canEdit = true;
+    } else if (user.role === 'moderator') {
+      const authorData = await getUsers({ id: articleDoc.author_id });
+      const authorRole = authorData[0]?.role || 'user';
+      if (authorRole === 'user') {
+        canEdit = true;
+      }
+    }
+  }
+  
   // If not author/collaborator, check if this is a translator request
   // Translator mode: any logged-in user can add translations
-  const isTranslator = isTranslatorMode && !isAuthor && !isCollaborator;
+  const isTranslator = isTranslatorMode && !canEdit;
   
-  if (!isAuthor && !isCollaborator && !isTranslator) {
+  if (!canEdit && !isTranslator) {
     throw error(403, 'Unauthorized');
   }
 

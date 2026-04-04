@@ -1,872 +1,1380 @@
 <script lang="ts">
-  import { createEventDispatcher } from 'svelte';
-  import { t } from '$lib/stores/i18n.svelte';
+	import { createEventDispatcher } from 'svelte';
+	import { t } from '$lib/stores/i18n.svelte';
+	import { Avatar, AvatarFallback, AvatarImage } from '$lib/components/ui/avatar';
+	import { Button } from '$lib/components/ui/button';
+	import { ScrollArea } from '$lib/components/ui/scroll-area';
+	import * as Dialog from '$lib/components/ui/dialog/index.js';
+	import { Users, Loader2, UserPlus, UserMinus } from '@lucide/svelte';
+	import { page } from '$app/stores';
 
-  const dispatch = createEventDispatcher<{ select: { city: string; plate: string } }>();
+	const dispatch = createEventDispatcher<{ select: { city: string; plate: string } }>();
 
-  interface Props {
-    cityEventStatus?: Record<string, 'future' | 'past' | 'none'>;
-  }
-  
-  let { cityEventStatus = {} }: Props = $props();
+	interface Props {
+		cityEventStatus?: Record<string, 'future' | 'past' | 'none'>;
+	}
 
-  interface City {
-    name: string;
-    plate: string;
-    path: string;
-    x: number;
-    y: number;
-  }
+	let { cityEventStatus = {} }: Props = $props();
 
-  // Turkey provinces with simplified SVG paths (approximate)
-  const cities: City[] = [
-    { name: 'Adana', plate: '01', x: 580, y: 380, path: 'M580,380 L600,375 L610,385 L600,395 Z' },
-    { name: 'Adıyaman', plate: '02', x: 650, y: 340, path: 'M650,340 L670,335 L675,350 L665,355 Z' },
-    { name: 'Afyonkarahisar', plate: '03', x: 320, y: 280, path: 'M320,280 L350,275 L355,295 L340,300 Z' },
-    { name: 'Ağrı', plate: '04', x: 820, y: 200, path: 'M820,200 L850,195 L855,220 L830,225 Z' },
-    { name: 'Amasya', plate: '05', x: 500, y: 180, path: 'M500,180 L530,175 L535,195 L510,200 Z' },
-    { name: 'Ankara', plate: '06', x: 400, y: 220, path: 'M400,220 L440,215 L445,245 L410,250 Z' },
-    { name: 'Antalya', plate: '07', x: 350, y: 380, path: 'M350,380 L400,375 L410,400 L360,410 Z' },
-    { name: 'Artvin', plate: '08', x: 850, y: 140, path: 'M850,140 L880,135 L885,155 L860,160 Z' },
-    { name: 'Aydın', plate: '09', x: 220, y: 340, path: 'M220,340 L250,335 L255,355 L230,360 Z' },
-    { name: 'Balıkesir', plate: '10', x: 220, y: 240, path: 'M220,240 L260,235 L265,265 L230,270 Z' },
-    { name: 'Bilecik', plate: '11', x: 320, y: 220, path: 'M320,220 L350,215 L355,235 L330,240 Z' },
-    { name: 'Bingöl', plate: '12', x: 720, y: 240, path: 'M720,240 L750,235 L755,260 L730,265 Z' },
-    { name: 'Bitlis', plate: '13', x: 780, y: 260, path: 'M780,260 L810,255 L815,280 L790,285 Z' },
-    { name: 'Bolu', plate: '14', x: 380, y: 180, path: 'M380,180 L410,175 L415,200 L390,205 Z' },
-    { name: 'Burdur', plate: '15', x: 300, y: 340, path: 'M300,340 L330,335 L335,360 L310,365 Z' },
-    { name: 'Bursa', plate: '16', x: 280, y: 210, path: 'M280,210 L320,205 L325,230 L290,235 Z' },
-    { name: 'Çanakkale', plate: '17', x: 180, y: 220, path: 'M180,220 L220,215 L225,240 L190,245 Z' },
-    { name: 'Çankırı', plate: '18', x: 450, y: 180, path: 'M450,180 L490,175 L495,205 L460,210 Z' },
-    { name: 'Çorum', plate: '19', x: 480, y: 200, path: 'M480,200 L520,195 L525,225 L490,230 Z' },
-    { name: 'Denizli', plate: '20', x: 280, y: 340, path: 'M280,340 L310,335 L315,365 L285,370 Z' },
-    { name: 'Diyarbakır', plate: '21', x: 700, y: 300, path: 'M700,300 L740,295 L745,330 L710,335 Z' },
-    { name: 'Edirne', plate: '22', x: 150, y: 140, path: 'M150,140 L190,135 L195,165 L160,170 Z' },
-    { name: 'Elazığ', plate: '23', x: 680, y: 280, path: 'M680,280 L710,275 L715,305 L690,310 Z' },
-    { name: 'Erzincan', plate: '24', x: 650, y: 240, path: 'M650,240 L690,235 L695,270 L660,275 Z' },
-    { name: 'Erzurum', plate: '25', x: 750, y: 200, path: 'M750,200 L800,195 L805,235 L760,240 Z' },
-    { name: 'Eskişehir', plate: '26', x: 340, y: 240, path: 'M340,240 L380,235 L385,265 L350,270 Z' },
-    { name: 'Gaziantep', plate: '27', x: 620, y: 360, path: 'M620,360 L650,355 L655,385 L630,390 Z' },
-    { name: 'Giresun', plate: '28', x: 620, y: 160, path: 'M620,160 L660,155 L665,185 L630,190 Z' },
-    { name: 'Gümüşhane', plate: '29', x: 660, y: 170, path: 'M660,170 L690,165 L695,195 L670,200 Z' },
-    { name: 'Hakkari', plate: '30', x: 880, y: 280, path: 'M880,280 L910,275 L915,305 L890,310 Z' },
-    { name: 'Hatay', plate: '31', x: 580, y: 420, path: 'M580,420 L610,415 L615,445 L590,450 Z' },
-    { name: 'Isparta', plate: '32', x: 320, y: 320, path: 'M320,320 L350,315 L355,345 L330,350 Z' },
-    { name: 'Mersin', plate: '33', x: 540, y: 400, path: 'M540,400 L570,395 L575,425 L550,430 Z' },
-    { name: 'İstanbul', plate: '34', x: 260, y: 170, path: 'M260,170 L290,165 L295,195 L270,200 Z' },
-    { name: 'İzmir', plate: '35', x: 200, y: 300, path: 'M200,300 L240,295 L245,325 L210,330 Z' },
-    { name: 'Kars', plate: '36', x: 820, y: 160, path: 'M820,160 L860,155 L865,185 L830,190 Z' },
-    { name: 'Kastamonu', plate: '37', x: 420, y: 140, path: 'M420,140 L470,135 L475,175 L430,180 Z' },
-    { name: 'Kayseri', plate: '38', x: 520, y: 280, path: 'M520,280 L560,275 L565,315 L530,320 Z' },
-    { name: 'Kırklareli', plate: '39', x: 180, y: 130, path: 'M180,130 L220,125 L225,155 L190,160 Z' },
-    { name: 'Kırşehir', plate: '40', x: 460, y: 260, path: 'M460,260 L500,255 L505,290 L470,295 Z' },
-    { name: 'Kocaeli', plate: '41', x: 300, y: 190, path: 'M300,190 L330,185 L335,215 L310,220 Z' },
-    { name: 'Konya', plate: '42', x: 400, y: 320, path: 'M400,320 L460,315 L465,365 L410,370 Z' },
-    { name: 'Kütahya', plate: '43', x: 280, y: 250, path: 'M280,250 L320,245 L325,280 L290,285 Z' },
-    { name: 'Malatya', plate: '44', x: 620, y: 300, path: 'M620,300 L660,295 L665,335 L630,340 Z' },
-    { name: 'Manisa', plate: '45', x: 220, y: 290, path: 'M220,290 L260,285 L265,320 L230,325 Z' },
-    { name: 'Kahramanmaraş', plate: '46', x: 580, y: 320, path: 'M580,320 L620,315 L625,355 L590,360 Z' },
-    { name: 'Mardin', plate: '47', x: 720, y: 340, path: 'M720,340 L760,335 L765,370 L730,375 Z' },
-    { name: 'Muğla', plate: '48', x: 260, y: 370, path: 'M260,370 L300,365 L305,400 L270,405 Z' },
-    { name: 'Muş', plate: '49', x: 750, y: 260, path: 'M750,260 L790,255 L795,290 L760,295 Z' },
-    { name: 'Nevşehir', plate: '50', x: 500, y: 300, path: 'M500,300 L540,295 L545,330 L510,335 Z' },
-    { name: 'Niğde', plate: '51', x: 480, y: 340, path: 'M480,340 L520,335 L525,370 L490,375 Z' },
-    { name: 'Ordu', plate: '52', x: 580, y: 160, path: 'M580,160 L620,155 L625,185 L590,190 Z' },
-    { name: 'Rize', plate: '53', x: 750, y: 140, path: 'M750,140 L780,135 L785,165 L760,170 Z' },
-    { name: 'Sakarya', plate: '54', x: 340, y: 200, path: 'M340,200 L370,195 L375,225 L350,230 Z' },
-    { name: 'Samsun', plate: '55', x: 520, y: 150, path: 'M520,150 L570,145 L575,185 L530,190 Z' },
-    { name: 'Siirt', plate: '56', x: 800, y: 300, path: 'M800,300 L840,295 L845,330 L810,335 Z' },
-    { name: 'Sinop', plate: '57', x: 460, y: 120, path: 'M460,120 L510,115 L515,155 L470,160 Z' },
-    { name: 'Sivas', plate: '58', x: 560, y: 220, path: 'M560,220 L620,215 L625,265 L570,270 Z' },
-    { name: 'Tekirdağ', plate: '59', x: 200, y: 160, path: 'M200,160 L240,155 L245,190 L210,195 Z' },
-    { name: 'Tokat', plate: '60', x: 540, y: 190, path: 'M540,190 L590,185 L595,225 L550,230 Z' },
-    { name: 'Trabzon', plate: '61', x: 700, y: 140, path: 'M700,140 L740,135 L745,170 L710,175 Z' },
-    { name: 'Tunceli', plate: '62', x: 620, y: 260, path: 'M620,260 L660,255 L665,290 L630,295 Z' },
-    { name: 'Şanlıurfa', plate: '63', x: 620, y: 380, path: 'M620,380 L670,375 L675,415 L630,420 Z' },
-    { name: 'Uşak', plate: '64', x: 260, y: 300, path: 'M260,300 L300,295 L305,325 L270,330 Z' },
-    { name: 'Van', plate: '65', x: 850, y: 240, path: 'M850,240 L890,235 L895,275 L860,280 Z' },
-    { name: 'Yozgat', plate: '66', x: 480, y: 230, path: 'M480,230 L530,225 L535,270 L490,275 Z' },
-    { name: 'Zonguldak', plate: '67', x: 380, y: 140, path: 'M380,140 L420,135 L425,175 L390,180 Z' },
-    { name: 'Aksaray', plate: '68', x: 460, y: 310, path: 'M460,310 L500,305 L505,340 L470,345 Z' },
-    { name: 'Bayburt', plate: '69', x: 700, y: 180, path: 'M700,180 L730,175 L735,205 L710,210 Z' },
-    { name: 'Karaman', plate: '70', x: 440, y: 370, path: 'M440,370 L480,365 L485,400 L450,405 Z' },
-    { name: 'Kırıkkale', plate: '71', x: 440, y: 240, path: 'M440,240 L480,235 L485,270 L450,275 Z' },
-    { name: 'Batman', plate: '72', x: 760, y: 310, path: 'M760,310 L800,305 L805,340 L770,345 Z' },
-    { name: 'Şırnak', plate: '73', x: 840, y: 310, path: 'M840,310 L880,305 L885,345 L850,350 Z' },
-    { name: 'Bartın', plate: '74', x: 360, y: 130, path: 'M360,130 L400,125 L405,165 L370,170 Z' },
-    { name: 'Ardahan', plate: '75', x: 800, y: 140, path: 'M800,140 L840,135 L845,175 L810,180 Z' },
-    { name: 'Iğdır', plate: '76', x: 900, y: 180, path: 'M900,180 L940,175 L945,215 L910,220 Z' },
-    { name: 'Yalova', plate: '77', x: 290, y: 200, path: 'M290,200 L320,195 L325,225 L300,230 Z' },
-    { name: 'Karabük', plate: '78', x: 400, y: 150, path: 'M400,150 L440,145 L445,185 L410,190 Z' },
-    { name: 'Kilis', plate: '79', x: 600, y: 370, path: 'M600,370 L630,365 L635,395 L610,400 Z' },
-    { name: 'Osmaniye', plate: '80', x: 560, y: 360, path: 'M560,360 L590,355 L595,385 L570,390 Z' },
-    { name: 'Düzce', plate: '81', x: 360, y: 190, path: 'M360,190 L390,185 L395,215 L370,220 Z' }
-  ];
+	interface City {
+		name: string;
+		plate: string;
+		path: string;
+		x: number;
+		y: number;
+	}
 
-  let selectedCity = $state<string | null>(null);
-  let hoveredCity = $state<string | null>(null);
+	// Turkey provinces with simplified SVG paths (approximate)
+	const cities: City[] = [
+		{ name: 'Adana', plate: '01', x: 580, y: 380, path: 'M580,380 L600,375 L610,385 L600,395 Z' },
+		{
+			name: 'Adıyaman',
+			plate: '02',
+			x: 650,
+			y: 340,
+			path: 'M650,340 L670,335 L675,350 L665,355 Z'
+		},
+		{
+			name: 'Afyonkarahisar',
+			plate: '03',
+			x: 320,
+			y: 280,
+			path: 'M320,280 L350,275 L355,295 L340,300 Z'
+		},
+		{ name: 'Ağrı', plate: '04', x: 820, y: 200, path: 'M820,200 L850,195 L855,220 L830,225 Z' },
+		{ name: 'Amasya', plate: '05', x: 500, y: 180, path: 'M500,180 L530,175 L535,195 L510,200 Z' },
+		{ name: 'Ankara', plate: '06', x: 400, y: 220, path: 'M400,220 L440,215 L445,245 L410,250 Z' },
+		{ name: 'Antalya', plate: '07', x: 350, y: 380, path: 'M350,380 L400,375 L410,400 L360,410 Z' },
+		{ name: 'Artvin', plate: '08', x: 850, y: 140, path: 'M850,140 L880,135 L885,155 L860,160 Z' },
+		{ name: 'Aydın', plate: '09', x: 220, y: 340, path: 'M220,340 L250,335 L255,355 L230,360 Z' },
+		{
+			name: 'Balıkesir',
+			plate: '10',
+			x: 220,
+			y: 240,
+			path: 'M220,240 L260,235 L265,265 L230,270 Z'
+		},
+		{ name: 'Bilecik', plate: '11', x: 320, y: 220, path: 'M320,220 L350,215 L355,235 L330,240 Z' },
+		{ name: 'Bingöl', plate: '12', x: 720, y: 240, path: 'M720,240 L750,235 L755,260 L730,265 Z' },
+		{ name: 'Bitlis', plate: '13', x: 780, y: 260, path: 'M780,260 L810,255 L815,280 L790,285 Z' },
+		{ name: 'Bolu', plate: '14', x: 380, y: 180, path: 'M380,180 L410,175 L415,200 L390,205 Z' },
+		{ name: 'Burdur', plate: '15', x: 300, y: 340, path: 'M300,340 L330,335 L335,360 L310,365 Z' },
+		{ name: 'Bursa', plate: '16', x: 280, y: 210, path: 'M280,210 L320,205 L325,230 L290,235 Z' },
+		{
+			name: 'Çanakkale',
+			plate: '17',
+			x: 180,
+			y: 220,
+			path: 'M180,220 L220,215 L225,240 L190,245 Z'
+		},
+		{ name: 'Çankırı', plate: '18', x: 450, y: 180, path: 'M450,180 L490,175 L495,205 L460,210 Z' },
+		{ name: 'Çorum', plate: '19', x: 480, y: 200, path: 'M480,200 L520,195 L525,225 L490,230 Z' },
+		{ name: 'Denizli', plate: '20', x: 280, y: 340, path: 'M280,340 L310,335 L315,365 L285,370 Z' },
+		{
+			name: 'Diyarbakır',
+			plate: '21',
+			x: 700,
+			y: 300,
+			path: 'M700,300 L740,295 L745,330 L710,335 Z'
+		},
+		{ name: 'Edirne', plate: '22', x: 150, y: 140, path: 'M150,140 L190,135 L195,165 L160,170 Z' },
+		{ name: 'Elazığ', plate: '23', x: 680, y: 280, path: 'M680,280 L710,275 L715,305 L690,310 Z' },
+		{
+			name: 'Erzincan',
+			plate: '24',
+			x: 650,
+			y: 240,
+			path: 'M650,240 L690,235 L695,270 L660,275 Z'
+		},
+		{ name: 'Erzurum', plate: '25', x: 750, y: 200, path: 'M750,200 L800,195 L805,235 L760,240 Z' },
+		{
+			name: 'Eskişehir',
+			plate: '26',
+			x: 340,
+			y: 240,
+			path: 'M340,240 L380,235 L385,265 L350,270 Z'
+		},
+		{
+			name: 'Gaziantep',
+			plate: '27',
+			x: 620,
+			y: 360,
+			path: 'M620,360 L650,355 L655,385 L630,390 Z'
+		},
+		{ name: 'Giresun', plate: '28', x: 620, y: 160, path: 'M620,160 L660,155 L665,185 L630,190 Z' },
+		{
+			name: 'Gümüşhane',
+			plate: '29',
+			x: 660,
+			y: 170,
+			path: 'M660,170 L690,165 L695,195 L670,200 Z'
+		},
+		{ name: 'Hakkari', plate: '30', x: 880, y: 280, path: 'M880,280 L910,275 L915,305 L890,310 Z' },
+		{ name: 'Hatay', plate: '31', x: 580, y: 420, path: 'M580,420 L610,415 L615,445 L590,450 Z' },
+		{ name: 'Isparta', plate: '32', x: 320, y: 320, path: 'M320,320 L350,315 L355,345 L330,350 Z' },
+		{ name: 'Mersin', plate: '33', x: 540, y: 400, path: 'M540,400 L570,395 L575,425 L550,430 Z' },
+		{
+			name: 'İstanbul',
+			plate: '34',
+			x: 260,
+			y: 170,
+			path: 'M260,170 L290,165 L295,195 L270,200 Z'
+		},
+		{ name: 'İzmir', plate: '35', x: 200, y: 300, path: 'M200,300 L240,295 L245,325 L210,330 Z' },
+		{ name: 'Kars', plate: '36', x: 820, y: 160, path: 'M820,160 L860,155 L865,185 L830,190 Z' },
+		{
+			name: 'Kastamonu',
+			plate: '37',
+			x: 420,
+			y: 140,
+			path: 'M420,140 L470,135 L475,175 L430,180 Z'
+		},
+		{ name: 'Kayseri', plate: '38', x: 520, y: 280, path: 'M520,280 L560,275 L565,315 L530,320 Z' },
+		{
+			name: 'Kırklareli',
+			plate: '39',
+			x: 180,
+			y: 130,
+			path: 'M180,130 L220,125 L225,155 L190,160 Z'
+		},
+		{
+			name: 'Kırşehir',
+			plate: '40',
+			x: 460,
+			y: 260,
+			path: 'M460,260 L500,255 L505,290 L470,295 Z'
+		},
+		{ name: 'Kocaeli', plate: '41', x: 300, y: 190, path: 'M300,190 L330,185 L335,215 L310,220 Z' },
+		{ name: 'Konya', plate: '42', x: 400, y: 320, path: 'M400,320 L460,315 L465,365 L410,370 Z' },
+		{ name: 'Kütahya', plate: '43', x: 280, y: 250, path: 'M280,250 L320,245 L325,280 L290,285 Z' },
+		{ name: 'Malatya', plate: '44', x: 620, y: 300, path: 'M620,300 L660,295 L665,335 L630,340 Z' },
+		{ name: 'Manisa', plate: '45', x: 220, y: 290, path: 'M220,290 L260,285 L265,320 L230,325 Z' },
+		{
+			name: 'Kahramanmaraş',
+			plate: '46',
+			x: 580,
+			y: 320,
+			path: 'M580,320 L620,315 L625,355 L590,360 Z'
+		},
+		{ name: 'Mardin', plate: '47', x: 720, y: 340, path: 'M720,340 L760,335 L765,370 L730,375 Z' },
+		{ name: 'Muğla', plate: '48', x: 260, y: 370, path: 'M260,370 L300,365 L305,400 L270,405 Z' },
+		{ name: 'Muş', plate: '49', x: 750, y: 260, path: 'M750,260 L790,255 L795,290 L760,295 Z' },
+		{
+			name: 'Nevşehir',
+			plate: '50',
+			x: 500,
+			y: 300,
+			path: 'M500,300 L540,295 L545,330 L510,335 Z'
+		},
+		{ name: 'Niğde', plate: '51', x: 480, y: 340, path: 'M480,340 L520,335 L525,370 L490,375 Z' },
+		{ name: 'Ordu', plate: '52', x: 580, y: 160, path: 'M580,160 L620,155 L625,185 L590,190 Z' },
+		{ name: 'Rize', plate: '53', x: 750, y: 140, path: 'M750,140 L780,135 L785,165 L760,170 Z' },
+		{ name: 'Sakarya', plate: '54', x: 340, y: 200, path: 'M340,200 L370,195 L375,225 L350,230 Z' },
+		{ name: 'Samsun', plate: '55', x: 520, y: 150, path: 'M520,150 L570,145 L575,185 L530,190 Z' },
+		{ name: 'Siirt', plate: '56', x: 800, y: 300, path: 'M800,300 L840,295 L845,330 L810,335 Z' },
+		{ name: 'Sinop', plate: '57', x: 460, y: 120, path: 'M460,120 L510,115 L515,155 L470,160 Z' },
+		{ name: 'Sivas', plate: '58', x: 560, y: 220, path: 'M560,220 L620,215 L625,265 L570,270 Z' },
+		{
+			name: 'Tekirdağ',
+			plate: '59',
+			x: 200,
+			y: 160,
+			path: 'M200,160 L240,155 L245,190 L210,195 Z'
+		},
+		{ name: 'Tokat', plate: '60', x: 540, y: 190, path: 'M540,190 L590,185 L595,225 L550,230 Z' },
+		{ name: 'Trabzon', plate: '61', x: 700, y: 140, path: 'M700,140 L740,135 L745,170 L710,175 Z' },
+		{ name: 'Tunceli', plate: '62', x: 620, y: 260, path: 'M620,260 L660,255 L665,290 L630,295 Z' },
+		{
+			name: 'Şanlıurfa',
+			plate: '63',
+			x: 620,
+			y: 380,
+			path: 'M620,380 L670,375 L675,415 L630,420 Z'
+		},
+		{ name: 'Uşak', plate: '64', x: 260, y: 300, path: 'M260,300 L300,295 L305,325 L270,330 Z' },
+		{ name: 'Van', plate: '65', x: 850, y: 240, path: 'M850,240 L890,235 L895,275 L860,280 Z' },
+		{ name: 'Yozgat', plate: '66', x: 480, y: 230, path: 'M480,230 L530,225 L535,270 L490,275 Z' },
+		{
+			name: 'Zonguldak',
+			plate: '67',
+			x: 380,
+			y: 140,
+			path: 'M380,140 L420,135 L425,175 L390,180 Z'
+		},
+		{ name: 'Aksaray', plate: '68', x: 460, y: 310, path: 'M460,310 L500,305 L505,340 L470,345 Z' },
+		{ name: 'Bayburt', plate: '69', x: 700, y: 180, path: 'M700,180 L730,175 L735,205 L710,210 Z' },
+		{ name: 'Karaman', plate: '70', x: 440, y: 370, path: 'M440,370 L480,365 L485,400 L450,405 Z' },
+		{
+			name: 'Kırıkkale',
+			plate: '71',
+			x: 440,
+			y: 240,
+			path: 'M440,240 L480,235 L485,270 L450,275 Z'
+		},
+		{ name: 'Batman', plate: '72', x: 760, y: 310, path: 'M760,310 L800,305 L805,340 L770,345 Z' },
+		{ name: 'Şırnak', plate: '73', x: 840, y: 310, path: 'M840,310 L880,305 L885,345 L850,350 Z' },
+		{ name: 'Bartın', plate: '74', x: 360, y: 130, path: 'M360,130 L400,125 L405,165 L370,170 Z' },
+		{ name: 'Ardahan', plate: '75', x: 800, y: 140, path: 'M800,140 L840,135 L845,175 L810,180 Z' },
+		{ name: 'Iğdır', plate: '76', x: 900, y: 180, path: 'M900,180 L940,175 L945,215 L910,220 Z' },
+		{ name: 'Yalova', plate: '77', x: 290, y: 200, path: 'M290,200 L320,195 L325,225 L300,230 Z' },
+		{ name: 'Karabük', plate: '78', x: 400, y: 150, path: 'M400,150 L440,145 L445,185 L410,190 Z' },
+		{ name: 'Kilis', plate: '79', x: 600, y: 370, path: 'M600,370 L630,365 L635,395 L610,400 Z' },
+		{
+			name: 'Osmaniye',
+			plate: '80',
+			x: 560,
+			y: 360,
+			path: 'M560,360 L590,355 L595,385 L570,390 Z'
+		},
+		{ name: 'Düzce', plate: '81', x: 360, y: 190, path: 'M360,190 L390,185 L395,215 L370,220 Z' }
+	];
 
-  function handleCityClick(city: City) {
-    selectedCity = city.name;
-    dispatch('select', { city: city.name, plate: city.plate });
-  }
+	let selectedCity = $state<string | null>(null);
+	let hoveredCity = $state<string | null>(null);
+	let showUsersDialog = $state(false);
+	let usersInCity = $state<any[]>([]);
+	let loadingUsers = $state(false);
 
-  function clearSelection() {
-    selectedCity = null;
-    
-  }
+	async function fetchUsersByCity() {
+		if (!selectedCity) return;
 
+		loadingUsers = true;
+		showUsersDialog = true;
 
-  // Create a map of plate codes to city data for quick lookup
-  const cityByPlate = $derived(
-    cities.reduce((acc, city) => {
-      acc[city.plate] = city;
-      return acc;
-    }, {} as Record<string, City>)
-  );
+		try {
+			const response = await fetch(`/api/users/by-city?city=${encodeURIComponent(selectedCity)}`);
+			if (response.ok) {
+				usersInCity = await response.json();
+			} else {
+				usersInCity = [];
+			}
+		} catch (error) {
+			console.error('Error fetching users:', error);
+			usersInCity = [];
+		} finally {
+			loadingUsers = false;
+		}
+	}
 
-  // Parse plate code from path ID (e.g., "TR01" -> "01", "TR75" -> "75")
-  function getPlateFromPathId(pathId: string): string | null {
-    const match = pathId.match(/^TR(\d{2})$/);
-    return match ? match[1] : null;
-  }
+	const currentUserId = $derived($page.data.user?.id || $page.data.user?._id);
 
-  function handlePathClick(pathId: string) {
-    const plate = getPlateFromPathId(pathId);
-    if (!plate) return;
-    
-    const city = cityByPlate[plate];
-    if (!city) return;
-    
-    selectedCity = city.name;
-    dispatch('select', { city: city.name, plate: city.plate });
-  }
+	async function handleFollowUser(userId: string) {
+		if (!currentUserId || userId === currentUserId) return;
 
-  function handlePathHover(pathId: string | null) {
-    if (!pathId) {
-      hoveredCity = null;
-      return;
-    }
-    const plate = getPlateFromPathId(pathId);
-    if (!plate) return;
-    
-    const city = cityByPlate[plate];
-    if (city) {
-      hoveredCity = city.name;
-    }
-  }
+		try {
+			const response = await fetch(`/api/users/${userId}/follow`, { method: 'POST' });
+			if (response.ok) {
+				usersInCity = usersInCity.map((u) => (u.id === userId ? { ...u, isFollowing: true } : u));
+			}
+		} catch (error) {
+			console.error('Error following user:', error);
+		}
+	}
 
-  function isPathSelected(pathId: string): boolean {
-    const plate = getPlateFromPathId(pathId);
-    if (!plate) return false;
-    const city = cityByPlate[plate];
-    return city ? selectedCity === city.name : false;
-  }
+	async function handleUnfollowUser(userId: string) {
+		if (!currentUserId || userId === currentUserId) return;
 
-  function isPathHovered(pathId: string): boolean {
-    const plate = getPlateFromPathId(pathId);
-    if (!plate) return false;
-    const city = cityByPlate[plate];
-    return city ? hoveredCity === city.name : false;
-  }
+		try {
+			const response = await fetch(`/api/users/${userId}/follow`, { method: 'DELETE' });
+			if (response.ok) {
+				usersInCity = usersInCity.map((u) => (u.id === userId ? { ...u, isFollowing: false } : u));
+			}
+		} catch (error) {
+			console.error('Error unfollowing user:', error);
+		}
+	}
 
-  // Get color based on city event status
-  function getCityColor(cityName: string): string {
-    const status = cityEventStatus[cityName];
-    if (status === 'future') return '#E5C84B'; // 75% yellow - bright
-    if (status === 'past') return '#E5E3A8'; // 25% yellow - pale
-    return '#333333'; // black for no events
-  }
-  
-  // Get fill color for path based on selection, hover, and event status
-  function getPathFill(pathId: string): string {
-    const plate = getPlateFromPathId(pathId);
-    if (!plate) return '#333333';
-    const city = cityByPlate[plate];
-    if (!city) return '#333333';
-    
-    if (selectedCity === city.name) return '#D4A017'; // Golden for selected
-    if (hoveredCity === city.name) return '#F4D03F'; // Yellow for hover
-    return getCityColor(city.name);
-  }
+	function handleCityClick(city: City) {
+		selectedCity = city.name;
+		dispatch('select', { city: city.name, plate: city.plate });
+	}
+
+	function clearSelection() {
+		selectedCity = null;
+	}
+
+	// Create a map of plate codes to city data for quick lookup
+	const cityByPlate = $derived(
+		cities.reduce(
+			(acc, city) => {
+				acc[city.plate] = city;
+				return acc;
+			},
+			{} as Record<string, City>
+		)
+	);
+
+	// Parse plate code from path ID (e.g., "TR01" -> "01", "TR75" -> "75")
+	function getPlateFromPathId(pathId: string): string | null {
+		const match = pathId.match(/^TR(\d{2})$/);
+		return match ? match[1] : null;
+	}
+
+	function handlePathClick(pathId: string) {
+		const plate = getPlateFromPathId(pathId);
+		if (!plate) return;
+
+		const city = cityByPlate[plate];
+		if (!city) return;
+
+		selectedCity = city.name;
+		dispatch('select', { city: city.name, plate: city.plate });
+	}
+
+	function handlePathHover(pathId: string | null) {
+		if (!pathId) {
+			hoveredCity = null;
+			return;
+		}
+		const plate = getPlateFromPathId(pathId);
+		if (!plate) return;
+
+		const city = cityByPlate[plate];
+		if (city) {
+			hoveredCity = city.name;
+		}
+	}
+
+	function isPathSelected(pathId: string): boolean {
+		const plate = getPlateFromPathId(pathId);
+		if (!plate) return false;
+		const city = cityByPlate[plate];
+		return city ? selectedCity === city.name : false;
+	}
+
+	function isPathHovered(pathId: string): boolean {
+		const plate = getPlateFromPathId(pathId);
+		if (!plate) return false;
+		const city = cityByPlate[plate];
+		return city ? hoveredCity === city.name : false;
+	}
+
+	// Get color based on city event status
+	function getCityColor(cityName: string): string {
+		const status = cityEventStatus[cityName];
+		if (status === 'future') return '#E5C84B'; // 75% yellow - bright
+		if (status === 'past') return '#E5E3A8'; // 25% yellow - pale
+		return '#333333'; // black for no events
+	}
+
+	// Get fill color for path based on selection, hover, and event status
+	function getPathFill(pathId: string): string {
+		const plate = getPlateFromPathId(pathId);
+		if (!plate) return '#333333';
+		const city = cityByPlate[plate];
+		if (!city) return '#333333';
+
+		if (selectedCity === city.name) return '#D4A017'; // Golden for selected
+		if (hoveredCity === city.name) return '#F4D03F'; // Yellow for hover
+		return getCityColor(city.name);
+	}
 </script>
 
 <div class="w-full max-w-4xl mx-auto">
-  <div class="flex items-center justify-between mb-4">
-    <h3 class="text-lg font-semibold text-foreground">
-      {selectedCity ? `${selectedCity} - ${t('events.selectedCity') || 'Seçili Şehir'}` : t('events.selectCity') || 'Şehir Seçin'}
-    </h3>
-    {#if selectedCity}
-      <button
-        onclick={clearSelection}
-        class="px-3 py-1 text-sm rounded-md bg-muted hover:bg-muted/80 transition-colors"
-      >
-        {t('common.clear') || 'Temizle'}
-      </button>
-    {/if}
-  </div>
+	<div class="flex items-center justify-between mb-4">
+		<h3 class="text-lg font-semibold text-foreground">
+			{selectedCity
+				? `${selectedCity} - ${t('events.selectedCity') || 'Seçili Şehir'}`
+				: t('events.selectCity') || 'Şehir Seçin'}
+		</h3>
+		{#if selectedCity}
+			<div class="flex gap-2">
+				<Button size="xs" onclick={fetchUsersByCity}>
+					<Users />
+					{t('common.showUsers') || 'Kullanıcıları Göster'}
+				</Button>
+				<Button variant="outline" size="xs" onclick={clearSelection}>
+					{t('common.clear') || 'Temizle'}
+				</Button>
+			</div>
+		{/if}
+	</div>
 
-    <svg xmlns="http://www.w3.org/2000/svg"  fill="#000000" height="435" stroke="#ffffff" stroke-linecap="round" stroke-linejoin="round" stroke-width=".5" version="1.2" viewbox="0 0 1000 422" width="1000" class="w-full h-auto">
- <g id="features">
-  <path d="M889.7 82.2l-3.1 1.1-4.8 2.7-7.7 3.3-7.8 3.3-5.7 3-1.1 4.8-0.7 7.5-0.9 4.5-5.7 0.6-5.5 1.1-1.4-2.6-1.9-1.9-1.4-2.1-1-2.4-1.3-1.7-1.8-1.2-2.4-3.7-1-4.9 3-5.9 4.1-4.6 4-2 1.2-4.2-1.3-4.4-0.9-2.3-0.4-0.7-0.5-1.5-0.3-2.7-0.7-3.6 0.5 0 1-0.7 1.4-2.2 1.1-1 0.5-1.1 0.4-2.6 0.5-1 0.9-0.8 0.1 0 0.2 0 0.9-0.4 2.4-0.2 6.7 0.6 0.9 0.4-0.4 0.6-0.1 0.7-0.1 0.6-0.2 0.6-0.4 0.4-1 0.8-0.4 0.7 1.3 0.7 0.9 1 0.9 0.3 1.1-1.4 0.7-0.4 0.3 0.4 0.3 0.8 0.4 0.7 0.3 0.3 1.4 0.4 0.3 0.3 0.2 0.3 0.2 0.2 0.5 0.2 0.3 0.4 1.4 2.7 0.7 0.8 3.5 2.4 2.3 2 1.5 0.7 1.4 0.2 0 0.3-0.6 0.9-0.7 0.6-2.6 1.3 1.3 0.4 1.1-0.1 0.9 0.1 1 1.1 1.1 2.8 0.7 0.5 4.4-1.2 1.3-0.1 1.5 0.4 1.3 0.8 1.3 1.2 0.7 1.5-0.5 1.6z" id="TR75" name="Ardahan"
-    fill={getPathFill('TR75')} class="cursor-pointer transition-all duration-200 hover:opacity-80"
-    onclick={() => handlePathClick('TR75')}
-    onmouseenter={() => handlePathHover('TR75')}
-    onmouseleave={() => handlePathHover(null)}
-  ></path>
-  <path d="M842.7 61.7l0.7 3.6 0.3 2.7 0.5 1.5 0.4 0.7 0.9 2.3 1.3 4.4-1.2 4.2-4 2-4.1 4.6-3 5.9-2.8 0.3-2.8 0.6-3.3-0.3-3.2 0.3-1.6 0.8-1.5 1.3-0.6 2.5 0.3 2.7-1.2 2.5-1.9 1.9-0.9 2.5-0.1 2.8-2.2 3.3-4-2.3-3.8-1.1-3.7 1.1-4 2.6-4.4 1.7-3.2-2.9 0.6-5.3 1.3-2.2-0.4-2.1-1.7-0.6-5.9-0.9-3.7-2.1 0.7-2.5 4.5-5.3 1.1-0.6 1-0.9 0.4-1.3 0.7-1.3 2.6-1.7 1.3-2.9-1.4-1.6-1.9-0.9-0.5-1.1-0.6-1.1-0.9-0.6-0.9-0.9-0.9-2.1-0.4-2.5-1.3-3.3-0.1-0.2 4.1-3.3 1.2-0.4 1-0.6 0.5-0.2 1.7-0.2 0.6-0.2 0.9-0.7 0.7-1.1 0.5-1.4 0.2-1.4 0.5-0.3 2.7-2.5 0.7-1.2 5 2.2 0.7 0.1 1.4-0.1 1.2-0.6 0.3 0 0.1 0.3-0.1 0.5 0 0.5 0.2 0.4 0.6 0.2 1.4 0.2 0.6 0.2 1.9 1.7 0.6 0.3 0.4-0.3 1.9-1.6 1.5-2.1 0.7-0.5 1.9-0.8 3.4 1.3 1.7-0.5 0.6-0.4 0.7-0.1 0.7 0.1 0.7 0.4 1.4-0.5 0.8 0 0.6 0.5 0.8 0.7 1.2 0.1 2.3-0.1 8.3 3.2 0.7 0z" id="TR08" name="Artvin"
-    fill={getPathFill('TR08')} class="cursor-pointer transition-all duration-200 hover:opacity-80"
-    onclick={() => handlePathClick('TR08')}
-    onmouseenter={() => handlePathHover('TR08')}
-    onmouseleave={() => handlePathHover(null)}
-  ></path>
-  <path d="M886 315.3l-1.3-0.9-0.6-0.1-0.8 0.1-0.5 0.2-0.4 0.4-0.4 0.1-0.4 0-0.4-0.2-6.2-3.3-0.8-0.3-1.5 0.2-1.9 0.5-1.8 0.8-1.2 0.9-2.1 0.7-1.9-0.3-3.9-1.3-0.4-0.3-0.2-1-0.4-0.4-0.6 0-0.4 0-2.4 1-0.3 0.2-0.3 0.5-0.1 0.4 0 0.4-0.2 0.5-6 8.7-0.5 1.6-0.2 0.3-0.8 0.4-4 0.7-2.8 0.9-2.1 0.2 0-1.7-0.1-0.8-0.4-0.4-0.5-0.7 0.8-3.4-0.3-0.7-0.3-0.2-1.6-1.3-0.2-0.3-0.3-0.6-0.2-0.3-0.3-0.1-0.3 0.2-0.3 0.4-0.3 0.1-1.4-0.7-0.7-0.1 0-0.3 0.1-0.6-0.1-0.7-0.5-0.6-0.9 0.7-0.7 0.4-2.4 3.2-3.5 3.3-2.1 1.3-5.4 1.3-0.9-3.8-3-2.4-5.5-1.7-0.8-2.5 2-2.2 4.5-2.5 3.5-1.7 0.6-4-1.3-5.2-2.8-7.5 6.7 3.3 9.4 0.7 3.7-3.7 6.3 0.3 9.6 2.5 10 1.4 8.1 0.8 2.9-3 0.5-3.4 3.8-2 4.1 0.5 3.6 1.5 1.2 0.3 2.3-0.1 2.3-0.3-0.3 5.5-1 3.5 0.8 3.2 1.6 3.9-0.4 5.2-1.2 3.2-0.6 1.2z" id="TR73" name="Sirnak"
-    fill={getPathFill('TR73')} class="cursor-pointer transition-all duration-200 hover:opacity-80"
-    onclick={() => handlePathClick('TR73')}
-    onmouseenter={() => handlePathHover('TR73')}
-    onmouseleave={() => handlePathHover(null)}
-  ></path>
-  <path d="M886 315.3l0.6-1.2 1.2-3.2 0.4-5.2-1.6-3.9-0.8-3.2 1-3.5 0.3-5.5 6.4 0 6.3-1.1 1.3-0.7 1.4-0.5 2 0.3 2 0.8 3 0 3.1-0.6 2.6-1.6 1.2-3.3 1.9-3.4 3.5-0.7 4.1 0.5 0.1 0-0.2 0.5 0.9 1.3 1.6 0.3 3.1-0.4 0.6 0.2 1.7 0.8 0.5 0.4 0.3 0.5 0.1 0.7 0.3 0.8 0.5 0.6 0.4 0.2 0.3-0.1 0.3-0.1 0.4 0.3 0 0.3-0.2 0.9 0 0.4 0.3 0.7 0.7 0 0.8-0.2 0.6-0.4 1.3-0.1 1.3 0.6 1.2 1 1.7 2.2 0.1 0.5-0.4 0.8-1.7 1.3-0.4 0.6-0.2 1.8 1 1.1 1 0.8 0.2 1-0.4 1.2-0.3 1.5-0.1 1.5 0.2 1.2 0.2 1-0.6 1.8 0.3 1 0.6 0.3 1.8 0.2 0.7 0.6 0.7 1.7 0.4 0.5 1.8-0.3 0.4 0.5 0.3 0.9 0.4 0.8 2.7 1.8 1.1 1.2-0.2 2-0.5 0.7-0.7 0.4-0.6 0.5-0.3 1 0.2 1.2 0.4 1 0.3 1.1-0.3 1.1-0.6-1-0.9-0.5-5-0.7-0.9 0-1.5 0.7-1.9 1.4-1.7 1.6-1.1 1.5-1.2 0.9-1.2 0.7-4.1 1.3-0.4 0.7-0.1 0.9-0.8 1.3-0.4 1-0.5 0.4-0.6 0.1-1.9-0.5-0.5-0.4-0.3-0.6-1.9-4.3-0.3-1.3 0-1.2 0.4-1.2 0.8-1.1 0.6-0.3 0.6-0.1 0.4-0.2 0.4-0.7 0.1-0.6-0.1-0.8-0.2-1.3-0.4-1.3-0.6-1.1-0.8-0.8-1-0.7-4.6-1.9-0.9-0.1-1.6-0.3-2.1 0.3-1.8 1.5-1.4 2.1-1.4 1.7-2.6 0.4-0.8 0.9-0.6 0.2-0.4-0.3-1-1-0.5-0.3-1.1-0.3-1.2-0.1-4.9 0.3-1.1-0.1-1.2-0.5-0.9-0.7-0.4-0.2-0.6-0.1-0.6 0.1-1.2 0.5-0.6 0.1-0.8-0.4-2.2-1.8-1.9-1-0.6-0.5z" id="TR30" name="Hakkari"
-    fill={getPathFill('TR30')} class="cursor-pointer transition-all duration-200 hover:opacity-80"
-    onclick={() => handlePathClick('TR30')}
-    onmouseenter={() => handlePathHover('TR30')}
-    onmouseleave={() => handlePathHover(null)}
-  ></path>
-  <path d="M938 173.5l-0.8-0.6-1.8-0.5-8.5 2-3.7-0.5-3.5-1.1-4.7 0.6-4.4-0.7-0.3-0.9-0.3-0.9-3-0.7-4.3-2-1.4-1.9-1.1-2.3-1.5-1.1-1 0-1.6-0.7-0.6-0.5-1.5-0.3-3.2 1.3-3.1 2.1-1.6-0.6-0.7-0.7-0.7-2.3 0-1.5 0.2-2.9-1-3.5 1.8-2.1 0-2.4 2.5-1.2 5.9-0.8 6.2-2.3 2.2 1.2 4.4 1.3 5.2 2.9 5.7 0.9 0.7-0.2 1.7-1.2 1-0.3 0.5 0.2 0.6 0.6 0.4 0.1 0.5-0.1 0.9-0.3 1.4-0.1 2.8-0.8 1.6 0 1.8 0.5 2.6 1.6 4 2.3 2.7 2.4 1.2 1.4 0.6 0.9 0.2 0.9 0.2 0.5 0.4 0.4 0.7 0.6 0.1 0.6 0.1 0.7 0.1 0.3 0.7-0.4 1.7 2 0.9 0.6 0.2 0 0.5-0.1 0.3 0.1 0.2 0.2 0.3 0.5 2.9 3.8 0.7 1.3 0.5 0.7 0.5 2.4 0.5 0.7-3.8-2.8-0.9-0.8-2.9-1.3-0.6-0.7-1.3-2-0.7-0.5-1.2 0.4-5.1 4.1-0.2 0.7 0.3 2-0.1 0.8z" id="TR76" name="Iğdir"
-    fill={getPathFill('TR76')} class="cursor-pointer transition-all duration-200 hover:opacity-80"
-    onclick={() => handlePathClick('TR76')}
-    onmouseenter={() => handlePathHover('TR76')}
-    onmouseleave={() => handlePathHover(null)}
-  ></path>
-  <path d="M938 173.5l0 0.2-0.3 0.8-1.6 3.2-0.2 0.8-0.1 1 0.1 0.9 0.1 0.8 0 0.7-0.5 0.7-0.2 1.4 0.2 1.2-0.1 1.1-0.8 1.2-0.9 0.7-2.4 1.1-1.1 0.3-1.2-0.1-3.3-1.7-1.1-0.1-2.6 0.7-1.1 0.1-1-0.1-0.8 0-0.7 0.2-0.9 0.7-0.6 0.7 0.3 0.7 1.3 1.5-6.7 1.8-1.8-0.3-0.8-0.3-2.8-0.3-2.4-0.7-1.8-0.3-1.8 0.2-1.3 1-1.2 1.3-1.7-0.1-4.1-0.8-2.1-1.3-2.8-2.9-3.2-1.5-3.7-0.2-2.1 1.6-1.7 2.3-1.6 0.5-2.9 0.6-1.1 0.4-0.4 1.9 1.8 1 1.9 0.8 0.3 1.9-0.3 2.1-0.1 2.1-1.2 1.3-5.5 2.3-8.8 1.9-1.6 1.3-1.6 1-2.3 0.7-2 1.3-0.2-3.2 0.4-3 0.5-2.4-0.1-0.9-0.2-0.8 0.2-4-1.7-2.5-1.2-1.2-0.8-1.7-1.5-1.7-1.5-1.4-1.9-3.4-1.4-3.8 1.5-2.5 0.5-2.9-0.1-8.3 0.5-1.7 0.6-0.4-6.7-2.8-3.9-4.7 1.7-0.7 3.6 0.6 1.7-0.6 1-1.5 1.2-0.5 0.6-0.1 1.2 0.1 1.6-0.9 1.3-1.5 9.2 1.8 14.6-4.2 5.2 0.1 2.2 0.6 2.1-0.5 2.6 1.1 1 3.5-0.2 2.9 0 1.5 0.7 2.3 0.7 0.7 1.6 0.6 3.1-2.1 3.2-1.3 1.5 0.3 0.6 0.5 1.6 0.7 1 0 1.5 1.1 1.1 2.3 1.4 1.9 4.3 2 3 0.7 0.3 0.9 0.3 0.9 4.4 0.7 4.7-0.6 3.5 1.1 3.7 0.5 8.5-2 1.8 0.5 0.8 0.6z" id="TR04" name="Agri"
-    fill={getPathFill('TR04')} class="cursor-pointer transition-all duration-200 hover:opacity-80"
-    onclick={() => handlePathClick('TR04')}
-    onmouseenter={() => handlePathHover('TR04')}
-    onmouseleave={() => handlePathHover(null)}
-  ></path>
-  <path d="M887.1 289.6l-2.3 0.3-2.3 0.1-1.2-0.3-3.6-1.5-4.1-0.5-3.8 2-1.9-4.5 0.5-1.6 0.7-1.5 0.2-3.5 0.6-2.4 0.2-2.6-0.3-2.4 0.2-2.5-0.5-4.3-3.4-1.3-3.8-0.7-3.7 0.3-2.5-0.9-0.9-3.1 0.5-2.1-0.1-1.6-0.2-0.7-1.7-3.9-0.3-1.3 0.5-2.5 0.8-0.9 5.1-2.9 3-2.1 1-1.7 0.8-1.9 4.4-6.5 2.6-2.8 3.4-2.6 1.4-4.5-1.9-3-5.6-3.4-1.4-3.1-0.1-4.6 5.5-2.3 1.2-1.3 0.1-2.1 0.3-2.1-0.3-1.9-1.9-0.8-1.8-1 0.4-1.9 1.1-0.4 2.9-0.6 1.6-0.5 1.7-2.3 2.1-1.6 3.7 0.2 3.2 1.5 2.8 2.9 2.1 1.3 4.1 0.8 1.7 0.1 1.2-1.3 1.3-1 1.8-0.2 1.8 0.3 2.4 0.7 2.8 0.3 0.8 0.3 1.8 0.3 6.7-1.8 0.2 0.6 0.3 1.3 0.5 1.2 0 0.5-0.1 0.4 0 0.6 0.2 0.5 0.5 1.2 0.1 0.5-0.3 1.1 0 0.6 1.2 0.9 2.2 1.1 1.8 1.3 0.4 1.5-1 1.9-0.2 1 0.4 2.4-0.4 0.7-0.8 0.6-0.7 1.2 0.3 0.4 0.1 0.4 0.2 1 0.3 0.4 0.5 0.3 0.3 0.4 0.1 0.6-0.1 0.5 0.2 0.5 0.2 0.4 0.4 1.4 0.7 0.9 0.8 0.8 2.5 1.2 0.2 1.8-1.3 4.4-0.2 1.2 0.1 0.7 0.3 0.8 0.2 1.1-0.2 0.4-0.4 0.4-0.2 0.4 0.6 0.3 0.9 0.3 0.3 0.2 0.4 0.4 0.3 1 0 1.3-0.2 2.4 0.4 3.1 0 1-0.6 2.5 0 0.7 0.1 1.5 0 0.6-0.2 1 0.2 0.5 0.4 0.3 0.7 0.3 2.4 0.5 1.5-0.9 0.6-0.2 0.8 0.3 0.7 0.6 0.5 0.8 0.4 1 0 0.9-1 1.6-1.8 1.3-1.3 1.5 0.2 2.9-0.2 1.2-0.2 1.2-0.4 0.9-0.3 0.5-0.9 0.3-0.3 0.4-0.1 0.5 0.4 1.1-0.3 0.4-0.9 0.4-0.6 0.5-0.5 0.8-0.4 1.3-0.4 0.9-1.1 1.3-0.5 0.9-0.4 0.7-0.3 0.8 0 0.7 0.2 0.9 0 0.8-0.4 0.6-0.5 0.6 0 0.2-0.1 0-4.1-0.5-3.5 0.7-1.9 3.4-1.2 3.3-2.6 1.6-3.1 0.6-3 0-2-0.8-2-0.3-1.4 0.5-1.3 0.7-6.3 1.1-6.4 0z" id="TR65" name="Van"
-    fill={getPathFill('TR65')} class="cursor-pointer transition-all duration-200 hover:opacity-80"
-    onclick={() => handlePathClick('TR65')}
-    onmouseenter={() => handlePathHover('TR65')}
-    onmouseleave={() => handlePathHover(null)}
-  ></path>
-  <path d="M166.1 54.8l-2.2 3-0.1 0-8.3 0.9-8.2 1.1-5.2 1.2-4.6 1.4-2.3 3.4-1.7 3.5-2.7 2.1-3.1 0.8-2.6-1.7-2.1-2.8-2.7-1.8-5.5 0-7.7 0.6-7.2 1.6-1.4-2.9 2.3-4.8 0.7-4.6 1.9-2.9 1.1-6.2-0.6-6.1-1.5-6.1-1.2-7.3 0-0.1 0.6-0.5 0.5-0.3 0.5 0 0.5 0.1 0.4 0 0.5-0.5 0.5-0.2 0.9 0.2 0.4-0.1 0.6-0.7 0.3-0.8 0.5-0.6 0.6-0.3 1-0.6 1-2 1.1-0.6 0.1 0 0.8 0 0.9 0.3 0.8 0.5 0.7 0.6 0.6-0.1 1 0.1 1.2 0.3 0.2-0.1 0-0.2 0.2-0.3 1-1.4 0.6-0.5 1-0.1 1.7 0.3 1.5 1 1.3 1.2 2 3.2 1.1 1.2 1.1 1 3.5 2 0.7 0.6 1.2 1.6 0.6 0.4 0.8-0.3-0.7-0.3 0.1-0.1 0.3-0.2 0.2-0.1-0.2-0.1-0.1-0.1-0.1-0.1-0.1-0.1 1-0.4 0.5-0.3 0.4-0.5 0.3 0.2 0.3 0 0.2-0.3 0.1-0.6 3.7-1 1.7 0.1 2.5 1.4 0.6 0.2 0.7-0.1 0.6-0.2 0.1-0.4-0.7-0.4 0.1-0.7 0-0.8 0.1-0.7 0.2 0 0.2-0.1 0.2 0.1 0.2 0 0.9-0.1 0.4 0 1.2 0.3 1.2 0.6 0.7 0.2 2.3-0.2 0.7 0.2 1.7 0.4 0.7 3 0 0.7 0.2 0.2 0.3 0.4 0.2 0.5 0 0.4-0.5 0.3-0.5-0.1-0.8-0.4-0.8 0.1-0.6 0.3-0.4 0.9-0.2 1.6 0.3 1.7 0.7 1.1 0.9 1 0.7 1.2 0.9 2.8 0.6 0.9 0.8 0.8 0.4 0.4 0.3 0.7 0.1 0.1 0.1 0.2 0.1 0.4-0.1 0.2-0.3 0-0.2 0-0.1 0.4 0.4 1 0.6 1.2 0.8 1 1.4 0.8 0.7 0.9 1 1.6 1.2 1.2z" id="TR39" name="Kirklareli"
-    fill={getPathFill('TR39')} class="cursor-pointer transition-all duration-200 hover:opacity-80"
-    onclick={() => handlePathClick('TR39')}
-    onmouseenter={() => handlePathHover('TR39')}
-    onmouseleave={() => handlePathHover(null)}
-  ></path>
-  <path d="M101.2 27.1l0 0.1 1.2 7.3 1.5 6.1 0.6 6.1-1.1 6.2-1.9 2.9-0.7 4.6-2.3 4.8 1.4 2.9 0.6 1.1 0.3 8.8-0.7 3.8-2.3 3-1.5 3.8-0.8 4.4 0.3 5.1 1.8 3.9 1.2 4.1 0 0.2-0.3 3.7 0 0.3-3.1 0.5-1.2 0.5-0.6 0.2-3.2 0-1.3 0.4-3.6 2.2-1.4-0.9-0.8-0.3-0.7-0.1-0.7 0.3-0.7 0.4-0.8 0.3-1.2-0.7-0.8 0.1-2.6 0.7-8.8 0-1.2-0.2-0.7-0.4-0.4-1-0.3-1.1-0.4-1 0.3-0.9-0.1-1.4-0.5-1.4-0.7-0.9 0.4-0.1 0.1-0.2 1.8 0.2 1.5-0.7 1-1.3 0.4-1.6 0.8-1.2 2.5-2.2-0.3-0.7 0-0.4 0.2-0.2 0.4-0.2-0.1-0.1-0.2 0 0-0.1 0-0.3 0.4-0.1 0.2-0.2 0.1-0.3 0-0.6 0.2 0.5 0.1 0.3 0.3 0 0.3-0.4 0.3-0.5 0.4-1.3 0.3 0 0.2 0.4 0.2 0.3 0.3 0.2 0.4 0 0.7-0.2-0.1-0.4-0.2-0.4-0.2-0.3 0.6-0.6 1.4-0.6 0.6-0.5 0.5-0.7-0.1-0.2-0.5-0.2-0.5-0.6-0.1-0.6 0.1-0.4 0.4-0.2 0.7-0.1 0.4-0.4 0.4-0.7-0.1-0.7-1.2-0.7-0.5-0.6-0.6-1.4-0.1-1 0.8-1.6-0.4-0.3-0.7-0.2 0-0.5 0.9-1.4-0.6-1.1-0.1-1.1 0.2-1.2 0.5-1.4-0.7-1.1 0.5-0.5 3-0.3 0.8-0.4 1.3-1.2 1.3-0.8 0.3-0.3 0.1-0.3 0.2-0.2 0.5-0.1 2.4-2.6 0.5 0.7 0.9 0.5 1 0.2 0.9 0 0.6-0.7 0.4-1 0.3-1.4 0-1.3-0.2-1.3-0.8-3.1-0.2-2.3-0.3-1.1-0.5-0.9 0.3-0.7-0.2-1.6 0.2-0.8-0.1-0.3-0.1-0.5-0.1-0.4 0-0.5-0.9 1.4-0.5-0.5-2.1-1.2-2.7-2 0.4-0.8 0.2-0.9-0.8-0.2-0.8-0.4-1.9-0.4-1.2-1.2-0.9-0.3-1.2 0.1-0.5-0.7-0.3-1.2 0.1-1.4 0.7-1.6 2-1.7 4.9 0.2 2.2-0.7 0.7-0.8 0.4-1.2 0.2-1.2 0-0.4 0-0.4 0.1-0.4 0.2-0.5 0-0.4-0.1-0.2-0.6-0.4-0.1-0.2 0.2-0.4 0.3-0.3 0.4-0.3 1.3-1.5 0.8-0.5 0.9-0.1 4.4 0.7 0.9-0.1 0.5-0.3 1-1.1 0.6-0.1 0.5 0.2 0.8 0.8 0.6 0.1 0.4-0.2 0.4-0.4z" id="TR22" name="Edirne"
-    fill={getPathFill('TR22')} class="cursor-pointer transition-all duration-200 hover:opacity-80"
-    onclick={() => handlePathClick('TR22')}
-    onmouseenter={() => handlePathHover('TR22')}
-    onmouseleave={() => handlePathHover(null)}
-  ></path>
-  <path d="M846.7 114.1l5.5-1.1 5.7-0.6 0.9-4.5 0.7-7.5 1.1-4.8 5.7-3 7.8-3.3 7.7-3.3 4.8-2.7 3.1-1.1-0.2 1.5 0.3 2 0.8 1.8 0.9 0.8 2 0.3 2.1 1.1 1.9 1.5 1.4 1.9 0.6 1.2 0.2 1.2 0.1 1.3 0.3 1.4 0.4 1.3 2 3.1 0.5 1.2 0.1 1 0.3 4.4-0.2 0.5-1 1.8-0.2 0.3 0.3 1.5-2 2.3-0.6 1.3 0 1.5-0.3-0.2-0.2-0.1-0.2 0-0.3-0.1 0.2 0.2 0.1 0.2 0.1 0.5-1.1 0.1-1.1 0.7-1.6 1.9 0.2 0.9 1 1.1 1.9 1.6 0 0.5 0 0.1-0.7 2.4-0.4 0.7-0.3 1 0.4 1 1.3 1.2 2.1 2.8 0.7 1.5 0.1 0.2-0.9 0.6 0.5 1.1 1.5 1.9 0.3 0.7-0.5 0.8-2.1 0.4-0.7 0.6 0.6 1.8-6.2 2.3-5.9 0.8-2.5 1.2 0 2.4-1.8 2.1-2.6-1.1-2.1 0.5-2.2-0.6-5.2-0.1-14.6 4.2-9.2-1.8-1.4-2.3-1.1-2.5-1.2-1.9-1.9-0.8-1-0.3-0.8-0.6-0.6-1.3-0.8-1.1-1.4-1-1.5-0.5-4.1-0.7-1.1-1.3-1-1.7-1.7-2 1.5-3.3 6.9-2.4 3-1.7 1.5-1.2 1.6-1.1 2-0.9 1.9-1.2-1.1-6.2 0.7-2.2 0.3-2.1z" id="TR36" name="Kars"
-    fill={getPathFill('TR36')} class="cursor-pointer transition-all duration-200 hover:opacity-80"
-    onclick={() => handlePathClick('TR36')}
-    onmouseenter={() => handlePathHover('TR36')}
-    onmouseleave={() => handlePathHover(null)}
-  ></path>
-  <path d="M812.6 290.8l2.8 7.5 1.3 5.2-0.6 4-3.5 1.7-4.5 2.5-2 2.2 0.8 2.5 5.5 1.7 3 2.4 0.9 3.8-19.8 4.7-13.2 0.6-1-0.3-2.1-0.9-11.4-2.2-8.9 1.3-2.3 0.9-6.4 3.5-2.1 0.7-1.1 0-1.1 0.2-1 0.4-0.9 0.6-6.3 4.2-2.1-1.1-4.3-7.5 0.5-4.8-0.6-1.2-2.4-2.5-1.5-1.3-1.4-1.5-0.6-7 4.6-6 2.1-2 5.2-3.6 2.4-0.9 5.2-4.1 3.8-0.3 2.3-3 0.6-1.4 5.2-1.1 16.6 0.5 3-1.5 1.2 0 0.9 0.4 3.4 4.3 3.3 6.9 5.1 3.2 7.3-1.5 5.3-3.9 8.8-6.3z" id="TR47" name="Mardin"
-    fill={getPathFill('TR47')} class="cursor-pointer transition-all duration-200 hover:opacity-80"
-    onclick={() => handlePathClick('TR47')}
-    onmouseenter={() => handlePathHover('TR47')}
-    onmouseleave={() => handlePathHover(null)}
-  ></path>
-  <path d="M726.3 311.1l0.6 7 1.4 1.5 1.5 1.3 2.4 2.5 0.6 1.2-0.5 4.8 4.3 7.5 2.1 1.1-3.4 2.3-1.8 0.9-1.8 0.3-1.7 0.6-4.7 2.8-10.2 3.9-15.3 2.9-9.6 1.9-2.6 0.1-7.3-2.5-2.5 0.2-1 0.3-7.7 0.3-3.4-0.4-2.9-1.5-1.3-1.5-5.1-5.3-2.3-1.3-9-2.7-3.2-0.4-1.6 0.2-3.2 1.2-4.6 3 0-0.1-0.2-0.5-0.1-0.8 0.1-0.8 0.4-0.3 0.5-0.2-0.2-0.5-0.8-0.9-0.2-0.6-0.1-0.6 0-1.5-0.2-0.5-1.3-1.2-0.7-0.8-0.1-0.5 0-0.9 0.6-1.4 0.1-0.7-0.5-0.3-0.7 0.1-1.1 0.6-0.4 0.1-0.4-0.3-0.5-0.5-0.4-0.3-0.6 0.3-0.6-0.6-0.1-0.8 0.3-1.7 0.1-1.4-0.1-0.6-0.3-0.7-0.8-1.3-0.3-0.8-0.2-0.9 0.2-1 0.4-0.4 0.4 0.1 0.3 0.7 0.3 0 0-1.3-0.3-0.9-0.6-0.6-0.7-0.5 0.6-2.1 0.2-0.6 0.4-0.3 0.4-0.2 0.2-0.2 0.4-1.5 0.5-0.8 1.6-1.6 2.1-2.7 0.7-0.6 0.8 0 0.8 0.1 0.8-0.1 0.7 0.5 0.5 0 1.4-1 0.6 0.8 0.9 0.4 2.1 0.5 0.2 0.2 0.1 0.5 0.2 0.1 0.2-0.1 0.1-0.1 0.1-0.1 0.2-0.1 0.2-0.3-0.1-0.7 0.1-0.8 0.4-0.3 2.1 0.3 0.7-0.3 0.3-1.4 0.5 0 2.8-1 1.5 0.6 5.8-1 1-0.6 2.8-3.1 0.6-1 0.5-0.3 2.3-2.4 10.5-1.6-2.3-1.8-0.9-1 1-0.6 0.1 0.2 0.6 0.6 0.2 0.1 0.4-0.1 0.3-0.1 0.3-0.1 0.2-0.1 0.2-0.2 0.2-0.5 0.4-0.3 0.8 0.6 0.4 0 0.4-0.2 0.3-0.3-1.2-1.3-0.4-0.3 0.6-0.7 1-0.2 1.1-0.1 0.9-0.2-0.6-0.9 0.1-1.5-0.5-0.5-0.6 0.1-1.3 0.9-0.7 0.2 0.4-0.9 0.5-0.8 0.7-0.5 0.7-0.2 0.4 0 0.9 0.3 0.3 0.1 0.3-0.5 0.1-0.5-0.1-0.4-0.3-0.3 0.6-0.9 0.3-0.8-0.1-0.7-0.4-0.9 2.3-0.8 0.6-0.4 0.5-0.9 0.2-2 0.2-0.9 0.6-0.7 0.8-0.4 2.9-0.9 1.9-1.3 3.7 2 3.8 0.7 2.9 0.1 2.6 1.2 2.8 3 3.1 2.6 1.5 0.8 1.6 0.5 1.8 1.7 2.3 1 0.5-0.7 0.4-0.8 1.4 0.6 1.2 1.1 0.8 0.5 0.9 0.2 0.7 1.5-0.3 6.5 0.7 4.5 0.4 1.7 0.2 0.9 1.7 4.9 1.6 3.1 2.2 2.5z" id="TR63" name="Sanliurfa"
-    fill={getPathFill('TR63')} class="cursor-pointer transition-all duration-200 hover:opacity-80"
-    onclick={() => handlePathClick('TR63')}
-    onmouseenter={() => handlePathHover('TR63')}
-    onmouseleave={() => handlePathHover(null)}
-  ></path>
-  <path d="M608.6 352.8l-3.6 2.4-2-0.1-7.7-1.4-1.1 0.1-3 0.8-0.9-0.1-0.7-0.3-0.8 0-0.9 0.4-0.8 0.7-0.3 0.6-0.5 0.1-0.9-0.5-0.9-0.8-0.2-0.7 0.4-1.9 0-1.2-0.4-0.8-1.4-1.3-0.8-0.7-0.9-0.6-0.9-0.3-0.9-0.2-3-0.2-8.8-3.1 2.6-2.5 4-1.8 3.2-2.2 0.4-3.9 1.5-1.3 1.7 1 1.5 3.3 3.2 0.6 3.7 2.5 3.9 4 2 2.4 1.4-0.9 3.5 1.9 4.4 2.4 4 3.6z" id="TR79" name="Kilis"
-    fill={getPathFill('TR79')} class="cursor-pointer transition-all duration-200 hover:opacity-80"
-    onclick={() => handlePathClick('TR79')}
-    onmouseenter={() => handlePathHover('TR79')}
-    onmouseleave={() => handlePathHover(null)}
-  ></path>
-  <path d="M633.2 306.9l-0.8 0.1-0.8-0.1-0.8 0-0.7 0.6-2.1 2.7-1.6 1.6-0.5 0.8-0.4 1.5-0.2 0.2-0.4 0.2-0.4 0.3-0.2 0.6-0.6 2.1 0.7 0.5 0.6 0.6 0.3 0.9 0 1.3-0.3 0-0.3-0.7-0.4-0.1-0.4 0.4-0.2 1 0.2 0.9 0.3 0.8 0.8 1.3 0.3 0.7 0.1 0.6-0.1 1.4-0.3 1.7 0.1 0.8 0.6 0.6 0.6-0.3 0.4 0.3 0.5 0.5 0.4 0.3 0.4-0.1 1.1-0.6 0.7-0.1 0.5 0.3-0.1 0.7-0.6 1.4 0 0.9 0.1 0.5 0.7 0.8 1.3 1.2 0.2 0.5 0 1.5 0.1 0.6 0.2 0.6 0.8 0.9 0.2 0.5-0.5 0.2-0.4 0.3-0.1 0.8 0.1 0.8 0.2 0.5 0 0.1-0.8 0.5-1.4 0.4-7.6 3.5-7.8 1.7-2.9 1.2-3.4 2.2-4-3.6-4.4-2.4-3.5-1.9-1.4 0.9-2-2.4-3.9-4-3.7-2.5-3.2-0.6-1.5-3.3-1.7-1-1.5 1.3-0.4 3.9-3.2 2.2-4 1.8-2.6 2.5-0.3-0.5-0.8-0.1-0.6-0.5-0.4-1.2-0.8-0.8-3.8-1.7-3.1-3.1 1.1-2.2 1.8-1.7 3.3-4.2 2.6-5.1 1.8-2.8 2.2-2.5 5.7-2.6 2.3-3.1 2.3 1.5 1.3 5.3 3.7 1.2 4.3-4.6 2.6-1.3 6-1.1 6.3-2.2 3-0.4 3 0.1 2-1.4 0.6-2.7-0.3-1.7 0.1-1.8 5.2-1.1 5.2 0.1 5.6 2.1 3.7 3.3z" id="TR27" name="Gaziantep"
-    fill={getPathFill('TR27')} class="cursor-pointer transition-all duration-200 hover:opacity-80"
-    onclick={() => handlePathClick('TR27')}
-    onmouseenter={() => handlePathHover('TR27')}
-    onmouseleave={() => handlePathHover(null)}
-  ></path>
-  <path d="M557.8 335.8l3.1 3.1 3.8 1.7 0.8 0.8 0.4 1.2 0.6 0.5 0.8 0.1 0.3 0.5-0.5-0.1-0.4 0.1 0.2 1.4-0.6 1.2-0.7 1-0.6 1.2-0.2 1.3-0.1 1.1-0.1 1.2-0.6 1.4-0.6 2.5 0 2.6-0.2 2.6-1.4 2.2-0.3 0.9 0.2 1 0.9 3.2 0.2 0.5 0.4 0.3 0.7 0.3 0.2 0.2 0.3 0.4 0.1 0.4 0.1 0.4-0.1 0.5-0.3 0.9-0.2 0.5-0.2 0.1 0.4 0.4 1.6 0.2 0.8 0.3 0.5 0.6 0 0.1 0.5 0.8 0.3 1 0.2 0.9 0 1.3-0.2 0.5-3.4 0.6-0.9 0-3.6-0.6-0.9 0.2-0.5 0.2-0.2 0.3 0 0.5-0.3 0.3-0.4 0.2-0.2 0-0.3-0.1-1.3-0.2-0.7-0.2-0.6-0.4-0.6-0.7-0.5 0.5 0.7 0.8-0.1 0.5-0.4 0.4-0.3 0.5 0 0.8-0.2 8.5 0.1 1.7-1 0.3-1.9-0.7-0.9 0.4-0.4 2.1-0.8 0.1-1.1-0.3-1.5 0.6-1.1 1.7-0.3 4.1-0.5 1.7-0.1 0.1-0.8 0.1-2.8-2-1.4-0.7-1.5 0-0.7-0.2-0.5-0.5-0.1-0.7 0.1-0.7 0-0.8-0.6-0.7-0.9 0.2-1 0.3-0.9 0.2-0.5-0.1 0-0.1 0.6-0.8 2-3.6 0.5-0.4 0-1.1-1.3-4-3.4-5.6-0.6-0.8-0.6-1-0.5-1.8-0.7-0.8-0.8-0.7-0.5-0.7-0.6-1.4 0.1-0.9 1.3-1.9 0.4-0.5 0.5-0.3 0.5-0.2 0.5 0 0.3-0.2 0.5-1.5 0.4-0.4 0.8-0.4 0.5-0.4 0.2-0.5 0.3-1.3 0.5-0.3 0.3-0.3 0.3-0.3 1.9-0.7 0.4-0.2 2.2-2.8 0.4-0.6 0.5-0.1 5.1-3.2 0.7-0.2 0.5-0.5 0.6-1 0.5-1.2 0.2-0.9 0-0.8-0.2-0.6-0.3-0.5-0.2-0.6 0-0.4 0-3.7-0.1-1-0.5-1-2.8-4-1.6-1.6-1.8-1.3-1.8-0.5-1.7 0.7-1.6 1.4-0.9 1.1-0.7-1.2 0-2.5 3.9-4.5 0.9-0.5 1 0.2 1 0.4 2.1-0.4 2 0.6 1.9 0 2.3-0.6 2.1 0.7 1.6 1.7 1.8 1.1 2.4 0.1 2.4-0.3z" id="TR31" name="Hatay"
-    fill={getPathFill('TR31')} class="cursor-pointer transition-all duration-200 hover:opacity-80"
-    onclick={() => handlePathClick('TR31')}
-    onmouseenter={() => handlePathHover('TR31')}
-    onmouseleave={() => handlePathHover(null)}
-  ></path>
-  <path d="M163.8 57.8l0.1 0 2.2-3 1.4 1.3 7.2 4.6 10.3 4.4 14.6 7 4.7 1.1 0.2 0.1 0.1 0.1 0.2 0.2 0.3 0 0.3-0.1 0.3-0.6 0.4-0.1 1.1 0.1 1.2 0.5 0.7 0.7-0.4 1.6-0.7 1.1-0.8 1.1-0.8 0.5-0.6 0.2 0.2 0.4 0.4 0.5 0.2 0.5 0.3 0.4 0.1 0.1 0.3 0.2-0.1 0.4-0.2 0.3-0.1 0-0.2 1.2-0.3 1.2-0.5 0.9-0.5 0.8-0.4 0.3-0.8 0.3-0.4 0.3-0.4 0.6-0.1 0.3 0.1 0.3 0 0.2 0.2 0.3-0.1 0.3-0.2 0.4-0.2 0-1.1-0.1-0.4-0.3-0.2-0.1-0.3 0.2-0.4 0.6-0.2 0.1-0.5 0.1-0.9 0.6-1.9 0.4-0.4 0.2-0.3 0.2-0.2 0.3-0.3 0.2-0.5 0.1-1.2 0-0.6-0.2-0.2-0.4-0.5-0.5-1.2 0-5.7 0.7-1.4-0.6 0.4-2-0.6-0.6-0.3-0.2-0.4-0.1 0.3-1.4-0.5-1.3-1-0.8-1.1-0.3 0.2 0.9 1.1 1 0.3 1.1 0 0.6-0.1 0.9-0.3 0.9-0.6 0.6-1.3-0.2-2.5-2.5-1.2-0.7-1.6-0.3-3.3-1.2-1.6-0.2-1.6 0-0.4-0.2-0.5-0.6-0.4-0.1-1.8 0.4-0.9 0-0.3-0.2-0.5-3.5-0.7-4.8 0.7-3.8 1.4-5.2-0.5-4.2-1.3-4.5z m52.2 38.9l-0.6-0.4-1 0.2-0.9-0.9-2.7-1.3-1-0.8-1-1.2-0.9-0.8-2.7-1.5 0.2-0.1 0.1 0 0-0.1 0.1-0.2-0.6-0.3-0.2-0.6-0.2-0.9-0.3-0.8 0.8-0.5 1-1.1 0.8-1.3 0.6-2.4 0.6-0.9 0.1-0.8-1-0.7 1.1-1.7 1.8-2 1.9-1.4 1.4 0.3 0.3 0 0.5-0.7 0.7-0.1 8.9 1.7 9.5 2.2 12.6 1.9-1 0.5 0.5 1.9 0.2 2-1.4 3.2-2.5 1.4-3.1 1.2-2.7 1.9-0.5 1.5-0.8 1.5-1.7 0.2-1.4-1.2-1.4-3.1-2.3-1.9-2.5-0.2-2.1 1.5-2 2-1.1 0.6-2.5 2.1-1.6 2.1z" id="TR34" name="Istanbul"
-    fill={getPathFill('TR34')} class="cursor-pointer transition-all duration-200 hover:opacity-80"
-    onclick={() => handlePathClick('TR34')}
-    onmouseenter={() => handlePathHover('TR34')}
-    onmouseleave={() => handlePathHover(null)}
-  ></path>
-  <path d="M99.9 68.1l7.2-1.6 7.7-0.6 5.5 0 2.7 1.8 2.1 2.8 2.6 1.7 3.1-0.8 2.7-2.1 1.7-3.5 2.3-3.4 4.6-1.4 5.2-1.2 8.2-1.1 8.3-0.9 1.3 4.5 0.5 4.2-1.4 5.2-0.7 3.8 0.7 4.8 0.5 3.5-0.4-0.2-2.3 0.8-0.4 0.3-0.4 0-2.6 1-0.7 0.2-0.9 0.5-0.7 0.5-0.5 0.5-1.1 1.8-0.3 0.8 0.1 0.5-0.9 0.2-3.8-0.4-0.7-0.5-0.7-0.6-0.8-0.4-1.8-0.6-1.8-0.1-10.2 1.5-1.4 0.9-1.1 2.1-1.2 5-1 1.9-4.5 4.4-2 3.6-4.3 3.2-0.2 0.3-0.5 0.7-0.2 0.3-0.5 0.1-1.2 0.2-1.3 0.9-2.2-0.1-1 0.1-0.8 0.7-1.4 2-0.6 0.4-1.2 0.1-1.5-4.6 0-5-6.9-0.7-1.2-4.1-1.8-3.9-0.3-5.1 0.8-4.4 1.5-3.8 2.3-3 0.7-3.8-0.3-8.8-0.6-1.1z" id="TR59" name="Tekirdag"
-    fill={getPathFill('TR59')} class="cursor-pointer transition-all duration-200 hover:opacity-80"
-    onclick={() => handlePathClick('TR59')}
-    onmouseenter={() => handlePathHover('TR59')}
-    onmouseleave={() => handlePathHover(null)}
-  ></path>
-  <path d="M98.5 110.3l0-0.3 0.3-3.7 0-0.2 6.9 0.7 0 5 1.5 4.6-0.6 0.1-1.9 0.6-2.7 1.7-0.7 0.7-0.9 0.6-2.9 0.4-0.9 0.5-1.5 1.4-0.7 0.3-0.5 0.3-0.4 1.9-0.5 0.8-1.6 0.8-0.3 0.5-0.1 1-0.3 1-0.7 0.9-2.6 2.4-0.3 0.2-1.4 0.3-0.6 0.6-1 1-0.1 0.2-0.2 0.3-1.2 1.5-0.9 0.7-1.1 0.6-1.1 0.6-1 0.1-0.6 0.6 0.1 1.1 0.6 1.2 0.7 0.5-2.3 2.2-0.7 0.5-1.9 1.1-1.4 1.4-0.6 0.3-2.5 0.9-0.5 0.1-0.5-0.4 0.1-0.7 0.4-0.7 0.3-0.4 0.8-0.6 0.5-1.3 0.4-1.3 0.2-0.6 2.2-3 0.6-2.2-0.3-1.7-0.9-1.4-1.4-1.1 0.5-0.4 0.2-0.4-0.3-0.3-0.6-0.1-0.2-0.3 0.4-0.6 0.7-0.6 0.3-0.1 0.5-0.5 2.5-0.9 0.9 0 0.7-1.3 2.4-1.5 2.2-1.9 2.8-1 2.1-1.8 1.4-0.9 1.4-0.7 1.3-0.3 2.3 0.3 0.6-0.3 0.7-0.7 1-1.6 0.6-0.7 1.2 0.5 1.5-0.5 1.3-1.1 0.6-1.3-1.4-3.1-0.4-0.6-0.5 0.1z m-5.4 68.8l-10 1.9-1 0.4-0.5 0.5-0.5 0-2.1 1.2-0.4 0.3-0.5 0-2.5-0.5-0.5 0.1-0.7 0.3-0.5 0.1-0.4 0.5-0.1 0.2-0.1 0.3-0.3-0.2-0.5-0.4-3.8 1-1.9 0-1.8-1-0.2-1.3 1.2-3.2 0.7-3.1 1.8-1.7 0.4-1.4 0.3-3.4-0.2-0.7-0.9-1.7-0.2-0.8 0.1-0.6 0.2-0.2 0.2-0.1 0.2-0.4 0-1.4 0.2-1.7-0.2-0.5-0.7-0.2 0.3-0.7 0.7-3.1 0-0.3-0.3-1.3 0-0.5 0.1-0.6 0.4-0.8 0.1-0.5 0.2-0.6 1-1.7 0.4-0.5 2.6 0.9 0.7-0.5 1.6-0.7 0.5-0.3 2-2.1 0.4-0.7 0.2-0.5 0-0.8 0.2-0.4 0-0.2 0-0.3 0-0.2 0.1-0.1 0.6 0 0.2-0.1 0.2-0.1 0.3-0.8 0.2-1.2 0-1.1-0.3-1 0.3-0.9 0.2-0.4 0.3 0 0.7 0 0.6-0.1 1.2-0.6 1.6-0.5 0.9-0.7 2.1-2.8 0.4-0.3 0.5-0.1 0.6-0.4 0.6-0.5 5.1-6.2 1-0.8 1.9-0.1 4.1 0.3 1.7-0.4 0.5 0.2 1.2 0.7 2.7 0.2 1.1-0.2 1.3-1.1 1.2-1.5 1.4-1.2 2.2-0.1 1.6 0.4 1.9 0 1-0.2 1.6-1 0.8-0.1 0.7 0.7 0.5 0.9 0.7 1.9-0.6 0.4-0.3 0-0.3-0.3 0 0.1-0.4 0.2 2.1 2.3 2.6 1.7 2.8 1.3 3.4 0.8 1.3 0 0.5-0.1 0.5-0.3 0.2 0.5-0.5 2.8-2.3 1.3-3.3 3.5-0.8 0.3-0.5 0.4 0.9 1.9 1.9 0.8 0.8 0.1 0.2 0.4-0.3 1.2-0.6 2.1-0.2 1.6-0.5 1.4-0.4 0.5-0.5 1 0.9 1.4 0.8 0.6-0.3 2.5-0.8 2.6-1 2.3-1.9 1.4-2 0.9-1.9 1.3-2 0.8-3.5-1.1-3.5-0.6-1.3 0.7-1.5-0.2-2.2 0-2 1.6-3.5 1.5-1.7 1.5-2.1 0.6-4.3-0.5-1.9 0.4-1.5 4.9 0.1 4.9z m-28.8-17.7l0.8-0.4 0.3 0.6-0.1 2.2-0.3 0.9-0.7-0.1-1.6-1.1-1.4-0.6-0.6-0.5-0.3-0.8 0.4-0.5 0.8-0.1 1.7 0 0.3 0 0.3 0 0.2 0.1 0.2 0.3z m-2.3-20.4l0 1.3-1 0.6-1.1 0.4-3.2 0.5-2.1 0.9-4.3 0.6-0.9 0-1.2-0.4-0.6-0.3-0.2-0.4-1.9-0.7 0-0.3 1-1.8 1.6-1.6 1.9-1.3 3.2-0.6 4.1-1.5 0.6-0.1 0.6 0.1 0.3 0.3 0.3 0.4 0.3 0.4 0.7 0.1 0 0.5-0.1 0.5-0.1 0.8 0 0.8 0.2 0.4-0.4 1 0.5 0.3 0.8-0.3 0.7-0.6 0.3 0z" id="TR17" name="Çanakkale"
-    fill={getPathFill('TR17')} class="cursor-pointer transition-all duration-200 hover:opacity-80"
-    onclick={() => handlePathClick('TR17')}
-    onmouseenter={() => handlePathHover('TR17')}
-    onmouseleave={() => handlePathHover(null)}
-  ></path>
-  <path d="M783.2 69.9l0.1 0.2 1.3 3.3 0.4 2.5 0.9 2.1 0.9 0.9 0.9 0.6 0.6 1.1 0.5 1.1 1.9 0.9 1.4 1.6-1.3 2.9-2.6 1.7-0.7 1.3-0.4 1.3-1 0.9-1.1 0.6-4.5 5.3-0.7 2.5-3.6 2.1-5.1 4.4-2 0.7-2.1 0-1.7 0.7-1.4 3.6-2.9 0.8-1.9 0.2-1.9 0.6-7.7 3.8-0.7-3.9 0.6-4.3-3-7.6-0.5-4.4-1.2-4.2-1.7-3.9 5.3-3.6 1.7 0.8 1.4 0.1 1.3-0.4 1.5-0.9 1.8-1.6 0.6-0.1 1.5-0.2 0.7-0.3 0.6-0.4 2.8-3.8 3.4-2.5 0.5-0.2 0.7 0.2 2.1 0.7 1.2-0.2 1.8-1.3 0.7-0.3 1-0.1 1.1-0.4 1.1-0.5 0.9-0.7 1.8-2 1-0.7 1.2-0.3 1.3 0 0.8-0.3 0.4-0.4z" id="TR53" name="Rize"
-    fill={getPathFill('TR53')} class="cursor-pointer transition-all duration-200 hover:opacity-80"
-    onclick={() => handlePathClick('TR53')}
-    onmouseenter={() => handlePathHover('TR53')}
-    onmouseleave={() => handlePathHover(null)}
-  ></path>
-  <path d="M743 89.3l1.7 3.9 1.2 4.2 0.5 4.4 3 7.6-0.6 4.3 0.7 3.9-0.9 0.2-1.9 0.6-4.9 0-2.4 0.4-2.3 0.8-2.1 0-3.9-1.3-4.1-0.1-1.9-1.1-2.9-3.3-1.5-0.5-0.3 0.2-0.6 0.6 0.3 1.5-0.7 0.8-1 0.1-2.3-3.9-3.3-2.2-1.4 1.1-0.6 2.6-0.7 0.8-1 0.2-2.8-0.3-11.1-4.5-3.2-3.3-0.7-3.7-2-1.2-0.8 1.1-1 0.9-1-0.1-0.9-0.7-0.8-2.4-0.4-5.8 0.1-3.1 1.3-7.6 0.4-0.4 0.6-0.1 1.5 0.1 0.9 0.3 1.5 1.3 1.1 0.1 0.8-0.2 1.2-0.9 1-0.1 0.6-0.2 2.5-1.6 0.3-0.2 0.2-0.3 0.2-0.2 0.6-0.2 3 0.8 0.7 0.6 1.2 1.7 2.8 2.4 1.8 1.1 1.9 0.4 0.9-0.4 1-0.4 1-0.2 1.2 1 0.6 0 1 0 0.4 0.1 2.9 2.3 0.8 0.4 0.9 0.2 0.8-0.6 3-1 1.1-0.2 2.8 2.6 1.3 0.9 2 0.4 0.8-0.1 1.4-0.6 1.1-0.3 1.7-0.6 1.1-0.8 2.2-0.6 2.4-1.6z" id="TR61" name="Trabzon"
-    fill={getPathFill('TR61')} class="cursor-pointer transition-all duration-200 hover:opacity-80"
-    onclick={() => handlePathClick('TR61')}
-    onmouseenter={() => handlePathHover('TR61')}
-    onmouseleave={() => handlePathHover(null)}
-  ></path>
-  <path d="M685.8 84.4l-1.3 7.6-0.1 3.1 0.4 5.8 0.8 2.4-5.7 0.7-0.3 0.7-0.2 0.9-0.9 0.5-1.2 0.3-1.4 1.2-1.5 1-0.6 1.6 0.6 1.9-0.9 1.7-1.4 1.5-0.5 0.7-0.1 0.5-0.3 2.8 0.1 2.2 1.3 1.6 5.6 1.4 1.3 1.1 1.3 1.3 1.1 0.3-0.3 2.3-1.4 1.2-4.8 2.6-1 1.3-0.1 2.1 0.2 2.1-0.2 2.2 0.4 2.2 1.3 1.7-0.4 2-1.9 0.9-4.2 0.3-2-0.1-4.8-2.4-5-1.6-4.8 1.2-3-1.8-2.9-2.2-2.7-1.4-1.7-2.6 0.1-3.5-3.9-14.9-4.5-5.1 0.2-1.7 0.6-1.2 0.2-2.1-0.2-2.1 0.2-2.1-0.2-2.1-0.8-1.8 0-2 0.8-1.5 1-1.2 0.7-1.9-0.1-2.2 0-0.2 2.3 0.3 1.9 0.7 1 0 2.1-0.6 0.9 0.2 2.1 1.9 1 0 1.8-0.6 1.8 0.5 1.2 0.2 0.5-0.5 3.6-0.2 0.7-0.5 1.8-1.7 0.6-0.4 1.5-0.5 0.6 0.1 0.3 0.2 0.8 1.1 0.3 0.4 0.5-0.3 0.9 0 0.5-0.1 0.3-0.3 0.4-0.4 0.5-0.4 0.6-0.2 0.9-1.2 0.2-0.3 0.2-0.2 1.1-0.4 3.3-0.7 0.8-0.5 0.7-0.7 0.9-0.3 5.5 0 3.8-0.9 0.4-0.3 0.8-0.6z" id="TR28" name="Giresun"
-    fill={getPathFill('TR28')} class="cursor-pointer transition-all duration-200 hover:opacity-80"
-    onclick={() => handlePathClick('TR28')}
-    onmouseenter={() => handlePathHover('TR28')}
-    onmouseleave={() => handlePathHover(null)}
-  ></path>
-  <path d="M636.7 91.6l0 0.2 0.1 2.2-0.7 1.9-1 1.2-0.8 1.5 0 2 0.8 1.8 0.2 2.1-0.2 2.1 0.2 2.1-0.2 2.1-0.6 1.2-0.2 1.7 4.5 5.1-1.4 1.2-1.6 0.8-2.2 0.2-1.9 0.4-0.5 0.8-0.1 1.8 0.5 0.7-0.2 1.1-1 0.6-4-0.2-1.7 1.3-1.4 1.9-1.4 1.1-1.7 0.2-3.6-2.9-2.6-5.1-0.9-3.8-1.6-3-6.4-0.4-10.9-7.6-3.1-0.3-3.3 0.5-3.4-0.3-3.1-1.3-2.5-1.5-3.9-1.4-2.7-1.6-2.1-0.5-0.6-0.4-0.5-1.9 0.8-1.6 1-0.3 0.9-0.5 2.1-0.2 1.9-0.6 1.7-1 0.7-0.6 1.9-2.1 3.8-2.1 2-3.9 2.7-2.8 2.5-3.5 0-0.3 5.3-0.1 1.7 0.5 1.1 1 0.5 0.3 1 0.3 1.2 0.1 0.8 0.3 1.1 1.3 0.8 0.6 2 0.7 0.2 0.3 1.1 1.2 0.9 0.4 1.9-0.2 0.8 0.2 0.3-0.3 0.6-0.3 0.4-0.3 0.3-0.5 0.6-1.6 0.6-1.1 0.7-1 0.8-0.8 0.9-0.6 0.4 1 0.8 0.6 0.9 0 0.8-0.7 0.3 0.4 1.2-0.2 0.1 3.9 0.8 1.1 2.5 1.2 0.6 0.5 0.5 0.7 0.8 1.4 1.9-0.8 2.2 0.3 5.8 2 0.5 0.1z" id="TR52" name="Ordu"
-    fill={getPathFill('TR52')} class="cursor-pointer transition-all duration-200 hover:opacity-80"
-    onclick={() => handlePathClick('TR52')}
-    onmouseenter={() => handlePathHover('TR52')}
-    onmouseleave={() => handlePathHover(null)}
-  ></path>
-  <path d="M591 79.7l0 0.3-2.5 3.5-2.7 2.8-2 3.9-3.8 2.1-1.9 2.1-0.7 0.6-1.7 1-1.9 0.6-2.1 0.2-0.9 0.5-1 0.3-0.8-1.6-1.7-1.1-2.5-0.1-0.3-0.2-0.3 0.4-1.6 0.8-5.2 1.3-5.1-3.7-0.8-1.4-0.6-1.4-1.3-1.5-1.7-0.6-1.9 1.2-0.9 2.9-1.4 2.5-2.2 1.5-1.7 1.4-2 0.5-3.7-1.8-6.3-0.1-1.8-0.3-3.6 0.2-1.6-0.4-1.6-2.8-6.9-5.3-1.6-0.9-2.9 0.5-14.7-4.2-1.8-0.4-3.7 0.4-0.7-2.3-0.3-2.5-0.6-2.3-2.5-4.4 0.8-0.6 1.1-0.5 0.7-0.8-0.4-1.1 0.5-0.5 0.4-0.3 1.2-0.1 0.6-0.2 1.6-1.5 2.5-1 1.2-0.7 0.5-0.9 0.5 0.5 0.4 0.9 0.3 1.2 0.1 1.1 0.3 0.6 0.8 0.5 1.5 0.8-0.5 0.8 0.5 0.3 2.1 0.3 0.4 0.2 0.8 0.9 1.5 0.8 2.1 0.3 2-0.4 1.5-1 0.9-0.4 2.5 0.6 0.9-0.7-0.4-3.8-0.3-1.8-0.6-1.3-0.3-1.5 0.2-1.9-0.1-1.8-0.8-3.1 0.2-3.2 1.9-4.2 1.4 0.4 2.2 0.3 2.1-0.2 1-0.4 1.8-1.1 2.9-0.5 5-2.2 1.2-0.2 1.1-0.3 1.9-1.6 1.1-0.3 0 0.5-0.2 0.4-0.3 0.3-0.4 0.4-0.5 0.2 0.1 0.9-0.9 2 0.2 1.1 0.4 0 0.1-1.6 0.4-1.4 0.6-1.1 0.7-0.8 0.5-0.4 0.3-0.1 2.8 2.7 0-0.9 0.4 0 3.5 4.7 0.7 1.9 0 2.5-0.2 0.7-0.4 1 0 0.3-0.1 2.1 0.2 1 0.5 1.1 2.1 2.6 1.2 0.9 1.6 3 0.7 0.6 2.4 1.3 1.4 0.3 0.2 0.3 0.2 0.5 0 0.7 0.1 0.7 0.4 0.3 0.6 0.2 0.5 0.3 0.3 0.3 0.4 0.7 0.3 0.3 0.5 0.1 0.8 0.2 0.5 0.3 0.8 0.4 1.2-0.3 2-1.1 2.5-2.3 0.4-0.6 0.2-0.6 0.7-1.1 0.1-0.4 0.1-0.2 0.3-1.3-0.1-0.1 0.7-0.5 0.6 0 0.8 0.3 1 0.2 4.1 0 3.8 1 7 3.5 1.4 1.3 0.8 2 0.1 2.8 0.3 1.1 0.8 0.4 1 0.3 1.8 1.1 0.9 0.4 0.8 0z" id="TR55" name="Samsun"
-    fill={getPathFill('TR55')} class="cursor-pointer transition-all duration-200 hover:opacity-80"
-    onclick={() => handlePathClick('TR55')}
-    onmouseenter={() => handlePathHover('TR55')}
-    onmouseleave={() => handlePathHover(null)}
-  ></path>
-  <path d="M512.6 48.4l-1.9 4.2-0.2 3.2 0.8 3.1 0.1 1.8-0.2 1.9 0.3 1.5 0.6 1.3 0.3 1.8 0.4 3.8-0.9 0.7-2.5-0.6-0.9 0.4-1.5 1-2 0.4-2.1-0.3-1.5-0.8-0.8-0.9-0.4-0.2-2.1-0.3-0.5-0.3 0.5-0.8-1.5-0.8-0.8-0.5-0.3-0.6-0.1-1.1-0.3-1.2-0.4-0.9-0.5-0.5-0.5 0.9-1.2 0.7-2.5 1-1.6 1.5-0.6 0.2-1.2 0.1-0.4 0.3-0.5 0.5 0.4 1.1-0.7 0.8-1.1 0.5-0.8 0.6-0.1 0.4-0.1 1.1-0.1 0.5-0.2 0.3-0.9 0.8-1 1.2-5.4-1.7-0.8-0.6-0.5-0.9-1.2-0.9-1.4-0.3-1.6 0.4-1.6-0.3-0.8-0.9-1-0.2-1.8 0.1-1.2-1.6 0.3-8.3-0.5-1.2-0.3-1.2 0.5-2.4 0.9-2.2 1.4-1.4 1.5-1 1.7-4.3-2.7-3.5-3.1-0.9-5.8-0.3-2.9-0.8-2-0.3-1.7 0.1-3.1-1.2 0.1-2.1 2.4-2.9 1.3-3.7-0.2-3.6 5.5 0.7 5.4-1.6 1.8-0.1 0.7 0.2 1.4 0.7 1.6 0.6 6.3 0.4 2.5-0.3 2.5-0.8 0.8-0.4 1.7-1.4 1.8-1.1 1.4-1.8 1.1-2.1 0.3-1.9 0.6 0.2 1.4 0.3 0.6 0.4 0.1-0.4 0.2-0.1 0.3 0 0.4 0 0.3 0.8 0.5 0.5 0.4 0.4-0.3 0.5 0 0.4 1.8 1.4 1.1 0.5 1.4-0.1 0.5-0.3 0.8-0.8 0.5-0.2 0.7 0.1 0.4 0.3 1 0.9 0 0.4-2.5-0.3-1.2 0.2-1 0.8-0.5 0.9-0.4 1.4-0.2 1.5-0.1 1.2 0.3 1 1.3 2.4 1.4 1.9 2.6 2.1 0 0.5-0.7 0 0.3 0.8 0.5 1 0.6 0.9 1.4 0.7 1.4 1.7 0.7 0.6 2.8 1.1 2.1 0.4 0.8 0.5 1.5 1.4 1.7 1 0.7 0.3z" id="TR57" name="Sinop"
-    fill={getPathFill('TR57')} class="cursor-pointer transition-all duration-200 hover:opacity-80"
-    onclick={() => handlePathClick('TR57')}
-    onmouseenter={() => handlePathHover('TR57')}
-    onmouseleave={() => handlePathHover(null)}
-  ></path>
-  <path d="M451.6 28.1l0.2 3.6-1.3 3.7-2.4 2.9-0.1 2.1 3.1 1.2 1.7-0.1 2 0.3 2.9 0.8 5.8 0.3 3.1 0.9 2.7 3.5-1.7 4.3-1.5 1-1.4 1.4-0.9 2.2-0.5 2.4 0.3 1.2 0.5 1.2-0.3 8.3-2.5 0.6-1.7 2.4-1.3 3.4-1.1 1.3-2.2 2-1.7 4.2-1.6 2-0.5 1.2 0.9 2.4 1 0.4 1.6 1.7-1.2 3.1-6.7 2.8-4.2 0.9-1.9-0.1-2-0.4-1.6-1.2-1.5-1.4-2.8-1-1.7-3 0.5-1.9 1.2-1.4 1.5-2-0.5-2.5-0.7-0.4-1.6 0.6-7.7 4.1-3.7 0.7-5 3-1.8 0.6-2.2-0.7-1.8-2.1-4.3-2.9-6.1-0.6-0.7-0.6-1.1-1.4-0.4-0.8-1-1.5-2.5-1.1-2.7-0.4-0.9-6.8 0.4-2.1 2.2-3 2.5-2.5 4.6-0.9-1.3-3.1-1.3-5.6-3.5-2.6-3.5 1.2-2.9 0.4-1.6-1.8-0.4-4.5 3-2.2-1.7-4.7-1.3-2.8-0.5-3.8 1.4-0.4 0.8-0.5 0.5 0.3 3.4-0.8 1.7-0.8 2.1-1.5 7.5-2.5 7.6-4 1.7-0.1 3.5 0.6 5 0 1.1 0.2 2.4 0.9 10.1 1 0.9-0.3 1.3 0.5 6.2-0.5 10.1 1.5z" id="TR37" name="Kastamonu"
-    fill={getPathFill('TR37')} class="cursor-pointer transition-all duration-200 hover:opacity-80"
-    onclick={() => handlePathClick('TR37')}
-    onmouseenter={() => handlePathHover('TR37')}
-    onmouseleave={() => handlePathHover(null)}
-  ></path>
-  <path d="M384.3 34.5l0.5 3.8 1.3 2.8 1.7 4.7-3 2.2 0.4 4.5-4.5 4.3-2.7 0.8-2.1 4.6-5.7 4.8-5 1.3-5.2-0.2 1-5.4-1.8-4.4-0.9-3.3-2.9-1.3-2.7-2.7 1.4-0.8 0.7-1.6 3.1-3.5 0.3-0.3 0.7-1.4 1.6-0.5 2.6-0.1 0.1-0.4 0.4-0.2 0.5-0.3 0-0.4 0.2-0.3 0.2-0.1 0.3 0.1 0.4 0.6 0.2 0.1 0.8-0.4 1-1.2 0.7-0.6 3.3-1.7 0.6-0.4 0.6-0.3 0.7-0.1 0.7 0.3 0.6-0.9 1.1-0.8 1.2-0.3 1.2 0.5 0.7 0 2.9-1.1 0.7-0.4 0.7 0.1 1.4-0.1z" id="TR74" name="Bartın"
-    fill={getPathFill('TR74')} class="cursor-pointer transition-all duration-200 hover:opacity-80"
-    onclick={() => handlePathClick('TR74')}
-    onmouseenter={() => handlePathHover('TR74')}
-    onmouseleave={() => handlePathHover(null)}
-  ></path>
-  <path d="M352.7 51l2.7 2.7 2.9 1.3 0.9 3.3 1.8 4.4-1 5.4-2.5 3.5-1.7 2.1-0.8 3.3-1.5 5.1 0 5.6-10.2-0.3-3-0.8-3.5-0.3-11.5-1.1-8.2-4-1.8-1.8 1.6-1.5 0.6-0.9 0.4-0.8 0.2-1 0.1-1.4 0.1-0.5 0.4-1.3 0.1-0.8-0.2-0.3-0.9-0.6-0.2-0.5 0.5-0.8 1.1-0.4 2.2-0.2 0.2-0.2 0.8-1.2 0.2-0.3 0.5-0.1 7.2-2.8 10.1-6.8 5.8-2.8 1.7-1.4 0.4-0.3 4.5-1.5z" id="TR67" name="Zinguldak"
-    fill={getPathFill('TR67')} class="cursor-pointer transition-all duration-200 hover:opacity-80"
-    onclick={() => handlePathClick('TR67')}
-    onmouseenter={() => handlePathHover('TR67')}
-    onmouseleave={() => handlePathHover(null)}
-  ></path>
-  <path d="M315.3 79.4l1.8 1.8 8.2 4 11.5 1.1-0.8 5.5-2.3 2.7-4.4 1.1-6.1 1-2.3 1.8-0.2 3.3-1.8 4.5-3.6 2.8-4.6 0.5-5.4-2.3-7.7 0.3-3.9-1.4 1-2-0.9-1.4-0.5-1.7 0.7-1.7-0.2-1.9-0.8-1.7-0.3-1.9 1.6-3.7 2.8-2.6-0.1-1.3-0.3-1.9 0.1-0.6 6.4-0.1 1.2-0.7 0.4-0.2 0.6 0.1 1 0.3 0.5 0 2-0.4 0.3 0.1 0.4 0.3 0.3 0 0.3-0.1 0.1-0.2 0.1-0.3 0.3-0.2 2-0.8 1.5-1 1.1-1.1z" id="TR81" name="Düzce"
-    fill={getPathFill('TR81')} class="cursor-pointer transition-all duration-200 hover:opacity-80"
-    onclick={() => handlePathClick('TR81')}
-    onmouseenter={() => handlePathHover('TR81')}
-    onmouseleave={() => handlePathHover(null)}
-  ></path>
-  <path d="M296.8 83.7l-0.1 0.6 0.3 1.9 0.1 1.3-2.8 2.6-1.6 3.7 0.3 1.9 0.8 1.7 0.2 1.9-0.7 1.7 0.5 1.7 0.9 1.4-1 2-3 2.3 0.1 2.1 0.4 1.9-0.6 1.9-3.1 1.5-3.3-0.2-1.9 2.9-1.3 3.9-0.8 0.4-0.6 0.7 0.3 1.6 1 1.2 1.1 2.2-0.9 2.3-2.5-0.6-3.5 0.1-0.8-0.7-1.2-1.8-1.5-0.9-1.8 0-1.7-0.5-2.1 0.2-6.6 1.7-4.2-1.3-1.7-1.9-1.9-1.6-1.7-2.5-1.3-2.8-0.5-1.3-0.2-1.5 3.3-0.3 1.5-0.5 1.5-0.9 3.1-0.7 2.8-1.9 1.9-3.9 1.9-9.3 3.1-3.3-0.6-0.4-0.6-0.2-0.4-1.4 0.9-0.5 1.8 0.4 1.6 0.7 2.6-0.1 0.9-0.1 0.3-2.2 1.1-1.9-0.3-2.1-3.4-0.6-0.9-3.2 1.5-3.9 0.3-0.9 12.8 3.1 1.6 1.4 0.7 0.4 4.1 0.8 5.8-0.2z" id="TR54" name="Sakarya"
-    fill={getPathFill('TR54')} class="cursor-pointer transition-all duration-200 hover:opacity-80"
-    onclick={() => handlePathClick('TR54')}
-    onmouseenter={() => handlePathHover('TR54')}
-    onmouseleave={() => handlePathHover(null)}
-  ></path>
-  <path d="M216 96.7l1.6-2.1 2.5-2.1 1.1-0.6 2-2 2.1-1.5 2.5 0.2 2.3 1.9 1.4 3.1 1.4 1.2 1.7-0.2 0.8-1.5 0.5-1.5 2.7-1.9 3.1-1.2 2.5-1.4 1.4-3.2-0.2-2-0.5-1.9 1-0.5 12 0.4 1.3-0.2 0.7-0.3 1.2-0.8 0.6-0.2 0.4-0.4 0.4-0.7 0.3-0.5 0.4 0.3 0.5-0.5 0.6-1 0.5-0.3 0.6 0.5 2 0.5 1.6 1.2 2.8 0.7-0.3 0.9-1.5 3.9 0.9 3.2 3.4 0.6 0.3 2.1-1.1 1.9-0.3 2.2-0.9 0.1-2.6 0.1-1.6-0.7-1.8-0.4-0.9 0.5 0.4 1.4 0.6 0.2 0.6 0.4-3.1 3.3-1.9 9.3-1.9 3.9-2.8 1.9-3.1 0.7-1.5 0.9-1.5 0.5-3.3 0.3-6.5-2.3-3.3 0.6-8.8 3.3-2.7 0.2-2.7-0.9 0.4-2.4 0-5.6 0.4-0.3 0.6-0.2 0.5-0.3 0.2-0.5 0.2-0.4 0.5-0.4 0.5-0.2 0.5-0.1 0.5 0.1 0.8 0.4 0.7 0.7 0.3 1.2 0.5 0 9.2-2.1 5.4-0.3 1.7 0.8 1 0 0.7-1.1-0.5-1.5-1.8-0.3-3.9 0.5-0.3 0.1-0.3 0.1-0.4 0.2-0.6 0-0.5-0.3-1-0.8-0.3-0.2-0.7-0.2-1.7-0.6-1-0.1-11.2 0.5-0.9 0.3-0.8 0.6-0.8 0.3-0.9-0.4-0.4-0.5-0.2-0.6-0.3-0.4-0.5-0.2 0.2-0.1 0.1-0.2 0.2-0.1 0.2-0.1-0.2-0.6-0.3-0.4-0.3-0.4-0.5-0.2-0.2 0.3-0.5-0.3-0.4 0.3-0.5 0.2-1.3 0.3 0-0.4 0.5 0 0.3-0.3 0.1-0.4 0-0.6 0.5 0.3 0.2 0.1 0-0.2 0-0.2 0.1 0 0.2 0-0.5-0.9-1-1.1-0.4-0.4z" id="TR41" name="Kocaeli"
-    fill={getPathFill('TR41')} class="cursor-pointer transition-all duration-200 hover:opacity-80"
-    onclick={() => handlePathClick('TR41')}
-    onmouseenter={() => handlePathHover('TR41')}
-    onmouseleave={() => handlePathHover(null)}
-  ></path>
-  <path d="M224.3 108.3l0 5.6-0.4 2.4-3-0.6-3 3.2-3 0.6-7.3-3.2-1.4 0.2-3.3-0.8 0.1 6.8-0.5 0.2-2.5-0.6-4.2-2.7-2.6-0.6 0.9-1.9 1.6-1.1 3.4-1.3 1.4-0.9 2-2.1 0.8-0.3 14-1.3 2-0.7 1.9-1.1 1-0.8 0.3 0 0.4 0.3 0.3 0.6 0.5 0.4 0.6-0.3z" id="TR77" name="Yalova"
-    fill={getPathFill('TR77')} class="cursor-pointer transition-all duration-200 hover:opacity-80"
-    onclick={() => handlePathClick('TR77')}
-    onmouseenter={() => handlePathHover('TR77')}
-    onmouseleave={() => handlePathHover(null)}
-  ></path>
-  <path d="M247.9 115.4l0.2 1.5 0.5 1.3-2.5 1.4-1.1 0.8-0.9 1-0.9 1.7-0.2 2-0.5 1.7-0.6 1.5 0.2 1.9 1.1 1.4 0.2 1.7-0.8 1.7-4.6 4.9-1.3 6.2 0 3.1 2.5 3.6 1.3 1 0.6 3.1-2.3 0.8-2.7-0.5-1.5 0.1-1.3 0.7-1.5 0.2-1.6-0.1-4.9-2-2.4 1.7-1 3.7-0.5 1.4-1 1-1.3 5-2.2 1.6-1 2.8-0.3 4.1-2.6 1.6-3.4 0.1-3.4-0.4-2.1-0.5-1.8-1.4-1.1-1.3-1.5-0.6-2.2-0.1-2.2 0.4-1.8-0.3-1.2-1.8-0.7-0.5-0.9 0-0.5-0.4-0.3-0.7-0.9-1.5-0.1-1.7 0.2-1.3-0.7-1-1.3 0.5-1 1.1-3.8-0.5-12.5-9.3-0.9-1.9-0.8-4.3-0.9-1.6-2.6-1.8-1.7-2.8-0.9-2.3-0.2-1.2 0.6-2.4 0.6-1 0.5-1.2-0.9-2-1.1-0.3-0.4-2.1 1.3-1.3 1.4-1.1 2.3-3.5 0.2-0.5 6.6-0.2 2.5 0.4 4.1-0.2-0.5 0.1-0.4 0.3-0.3 0.3-0.1 0.6 1.9-0.7 2.2-0.1 2.3 0.6 2.1 1.1 0.3-0.4 0.2 0.1 0.1 0.2 0.4 0.1 0.4-0.2 0.5-0.5 0.4-0.2 2.7-0.5 0.7-0.6 0.7-0.4 0.9 0.2 1.6 0.5 1.5 0.1 1.3 0.3 0.7 0.3 1.1 0.7 0.8 0.3 0.8 0.1 3.7-0.1 0.9-0.2 0.6-0.5 0.4-0.8 0.4-1.7 0.4-0.7 0.6 0.3 0.8-0.1 0.8-0.2 0.7-0.4-0.8-1.1-1.1-0.9-1.1-0.7-1.1-0.3-2.6 0-0.4 0.2-1 0.9-0.1-6.8 3.3 0.8 1.4-0.2 7.3 3.2 3-0.6 3-3.2 3 0.6 2.7 0.9 2.7-0.2 8.8-3.3 3.3-0.6 6.5 2.3z" id="TR16" name="Bursa"
-    fill={getPathFill('TR16')} class="cursor-pointer transition-all duration-200 hover:opacity-80"
-    onclick={() => handlePathClick('TR16')}
-    onmouseenter={() => handlePathHover('TR16')}
-    onmouseleave={() => handlePathHover(null)}
-  ></path>
-  <path d="M93.1 179.1l-0.1-4.9 1.5-4.9 1.9-0.4 4.3 0.5 2.1-0.6 1.7-1.5 3.5-1.5 2-1.6 2.2 0 1.5 0.2 1.3-0.7 3.5 0.6 3.5 1.1 2-0.8 1.9-1.3 2-0.9 1.9-1.4 1-2.3 0.8-2.6 0.3-2.5-0.8-0.6-0.9-1.4 0.5-1 0.4-0.5 0.5-1.4 0.2-1.6 0.6-2.1 0.3-1.2-0.2-0.4-0.8-0.1-1.9-0.8-0.9-1.9 0.5-0.4 0.8-0.3 3.3-3.5 2.3-1.3 0.5-2.8-0.2-0.5 1.2-0.8 0.7-0.2 1.4 0.3 1.1 0.5 1.1 0.3 1.2-0.7 0.9 0.5 1.5 0.1 1.2-0.3 1.2-1.7 2.5-1.4 0.8-1-0.9-0.1-2.4-0.8-0.7 0.4-0.4 0-0.2-0.6-0.1-0.6-0.2-0.2-0.3 0-0.3-0.3-0.3-0.5-0.2-0.2-0.2-0.4 0-0.8-0.1-0.4-0.4-0.1-0.4 0-0.4-0.1-1.5-1.6-0.5-0.6 0-0.4 0.6-0.2 0.5-0.4 0.7-0.9 0.5-0.2 0.5 0.2 0.4 0.1 0.4-0.8 0.9 1.2 0.1 0.2 0.4 0.1 0.2-0.2 0.1-0.2 0.4-0.2 7.9 1.3 2.1 0.7 1 1.1-0.9 1.4-4.1 2.1-1.2 1.1 0.2 1.6 1.7 0.5 3.9-0.4 4-1.5 4.6-0.2-0.2 0.5-2.3 3.5-1.4 1.1-1.3 1.3 0.4 2.1 1.1 0.3 0.9 2-0.5 1.2-0.6 1-0.6 2.4 0.2 1.2 0.9 2.3 1.7 2.8 2.6 1.8 0.9 1.6 0.8 4.3 0.9 1.9 12.5 9.3 3.8 0.5 1-1.1 1.3-0.5 0.7 1-0.2 1.3 0.1 1.7 0.9 1.5 0.3 0.7 0.5 0.4 0.9 0 0.7 0.5 1.2 1.8 1.8 0.3 2.2-0.4 2.2 0.1 1.5 0.6 1.1 1.3-0.9 1.8-0.3 1.2 0 1.2-0.3 0.7-0.6 0.6-0.6 1.8-0.6 4.3-1.1 1.8-1.1 1.4-0.4 0.9-1.4 2.6-1.6 1.1-3.5 1.2-1.8 0.9-0.4 2.1 0.2 0.8 0.2 1.5-0.4 0.6-4.1-0.6-4.4 2.2-1.8 0.5-1.8 0.2-2-0.2-1.9 0.4-1.3 1.7-1.8 1.1-2.1 0.4-2 0.8-2.1-0.7-2.5-5.5-3.9-4.3-0.3-0.9-0.8-0.4-3.5 1.3-1.9-0.9 0.6-2.1 1.4-2.6-1.2-1.9-0.8 0-1.5 0.3-0.7-0.1-1.9-0.9-2-0.2-3.3 0.5-3.3-1-2.1-1.7-2.2-1-3.6 1.9-1.4-2.7-2.1-1.9-2.6-0.6-8.7 5.6-1.5 0.6-1.3 0.8-0.9 1.3-0.8 1.4-1 1-10.2 7.4-0.3-0.2-1-0.7-0.6-0.8 0-0.6-0.3-1.2-0.3-1.2-0.3-1-0.8-0.4-2.3 0.2-1.2-0.1-0.9-0.4 0.5-0.5 0.2-1.3 0.4-0.6 0.6-0.2 0.4 0.2 0 0.4-0.9 0.3 0 0.3 0.6 0 0.4 0.2 0.4 0.3 0.3 0.4-0.3-0.9 0.3-0.5 0.5-0.3 0.5-0.4 0.8-1.2 5-3.9-0.4-0.3-0.2-0.1 0-0.4 0.1-0.4 0-0.3-0.1-0.6 1.7-0.1 0.6-0.2 0.6-0.5-0.5-0.9 0.8-0.6 2.7-0.9 0.2-0.1 0-0.2 0.1-0.7 0.6-2.3 0-1.3-0.3-0.8-0.8-0.5-1.3-0.1-1.1 0.4-0.9 0.9-0.9 0.4-1.2-0.9-6.7 1.2z m47.1-68.4l0.7-0.2 1.4 0.2 1.2 0.6 0.2 1.1-0.9 0.7-1.7 0.3-0.9 0.3-1.6 1.4-0.9 0.4-1.1-0.5-0.5 0-1-0.4-0.7-0.7 0.1-1.3-0.3-0.5-0.3-0.5 0.2-0.7 0.4-0.4 0.4-0.3 0.2 0.2 0.2 0.7 1.1-0.6 1.3-0.4 1.2-0.1 1.3 0.7z m-0.6 12.1l0.3-0.1 0.2 0.2 0 0.5-0.5 0.1-0.7-0.4-0.8-0.1-0.8-0.1-0.7-0.5-0.1-0.7 0.5-0.4 0.4-0.8 0.4-0.6 1.5 0.7 0.1 0.5-0.2 0.5-0.1 0.7 0.5 0.5z" id="TR10" name="Balikesir"
-    fill={getPathFill('TR10')} class="cursor-pointer transition-all duration-200 hover:opacity-80"
-    onclick={() => handlePathClick('TR10')}
-    onmouseenter={() => handlePathHover('TR10')}
-    onmouseleave={() => handlePathHover(null)}
-  ></path>
-  <path d="M98.4 202.5l10.2-7.4 1-1 0.8-1.4 0.9-1.3 1.3-0.8 1.5-0.6 8.7-5.6 2.6 0.6 2.1 1.9 1.4 2.7 1.8 4.7 1.6 7.4 0.8 2.2 1.7 3.3-0.3 3.2-1.3 1.5-3.1 2.6-3 1.2-2.6 1.8-0.6 2.2-0.3 2.4-0.8 2-1.5 1.5-1.3 2.2-0.2 1.3 1.3 1.3 0.7 0.3 1.1 1.4 1.3 4.2 2.8 2.5 3.3 0.3 5.4-0.2 0.9 0.2 1.5 1.4 0.8 3.4 3.3 2.3 3.7 1.7 0.4 0.9 0.5 1.9 0.4 0.9 2 1.9 2.4-0.6 1.1-2 0.8-1.9 2.3 0.1 2.3 1 1.4 0.1 1.4-0.4 2 2.1 1.3 3 4.6-0.7 1.8-0.6 1.3 0.2 0.9 1.1 1.7 0.5 1.1 0.1 2.1 0.6 1.3 1.7 2 6.2 2.1 3.2-7.5 2.7-1.9 0.3-1.9 0.6-1.6 0.9-1.7 0.7-9.2 0.1-11 3-11.7-1-2.4 0.4-5.8 3.9-3.8 1.4-3.1 0.1-0.1 0 0-0.3 0.1-0.5 0-0.5-0.2-0.5 0.7-0.6-0.4-1.4-1.3-2.2-1.2 0.4-1.7 0-1.8-0.3-1.1-0.4-0.3-0.4-0.2-0.4-0.2-0.4-0.5-0.1-0.4 0-0.4-0.1-0.2-0.2-0.1-0.3-0.2-1-0.4-0.3-1.4-0.2-2.4-0.9-1.3-0.2-1.5 0.3-0.8 0.4-0.3 0-0.3 0.2-0.1 0.4-0.2 0.5-0.4 0.2-0.4-0.3-1.1-2.2 0.3-0.8-0.1-0.8-0.2-0.9-0.3-0.8-0.5-0.8-1-1.1-0.5-0.6-0.8 0.4-0.2-0.7 0.1-1.8-0.7-0.6-0.7 0.1-0.8 0.3-0.9 0.2-3 0-0.5 0.2-0.6 3.9-0.2-0.1 0-0.1-0.1-0.1-0.3 0 0.1 0.8 0 0.8-0.2 0.6-0.6 0.2-0.3-0.2-0.6-1.5-0.4-0.7 0 1.2-0.5 0.1-0.7-0.5-0.9-1-0.3-0.5-0.1-0.6 0.2-0.8-1.3 0.3-1.2-1-1.2-1.3-1.1-0.5 0.2 0.9 0.1 0.3-0.3 0-0.3-0.4-1-1 0.1-0.6 0.1-0.6 0-0.5-0.2-0.6-0.4 0-0.3 1.6-1 0.4-1.2-0.4-1.6-1.3-0.4-0.3-2.5-0.7-0.1-0.4 0.3-1 1.2 0.6 0.6-0.8 0.4-1.1 1.1-0.3 0-0.5-0.9-0.6-0.2-1.1 0.4-0.6 0.7 0.7 0-0.6 0.2-0.2 0.1-0.2 0.3-0.2 0.2 0.7 0 0.7-0.1 0.5-0.4 0.6 0.2 0.1 0.3 0.2 0.2 0 0.4 0 0.4 0.1 0.1 0.3 0.1 0.3 0.3 0.2 0.6 0 0.7-0.1 0.4-0.4-0.5-0.7 0-0.5 0.8 0.5 0.3 0 0.6 0 0.5-0.3 1.2-0.8 0.4-0.2 0.6-0.6 0.1-1.2-0.4-1.2-0.8-0.7 0-0.5 1.2 0.6 0.6 0.6 0.4 0 0.7-1.6-0.7-0.4-1.1-1.1-1-0.3-0.6-0.6-0.5-0.1-0.4 0.3-0.4 0.8-0.3 0.2-0.9-0.1 0-0.2 0.4-0.6 0.3-1.2-0.2-0.7-1.4-2.2 0.3 0.4-0.1-0.7-0.6-1.8-0.1-0.4 0-0.4-0.5-2.3 0-0.9 0.1-0.9 0.3-0.7 0.4-0.2 0.7-0.2 1.1-0.5 0.5-0.1 1.3 0.1 1.2 0.3 1 0.5 0.9 0.7 1.6 1.8 0.7 1.1 0.3 0.9 1.1 1.8 1.2 1.5 0.4 0.4 0.3 0.3 0.3 0.3 0.2 0.7 0.1 0.6 0 0.6 0 0.6 0.3 0.6-0.3 0.3-0.2 0.1-0.2 0-0.3-0.3-0.5-0.1-0.6 0.1-0.5 0.3 0.8 0.5 0 0.5-0.4 0.7-0.4 0.9 1.1 0.1 0.5 0.7 0.3 0.9 0.5 1 0.8 2.7 0.8 1.3 1-0.3 0.3-0.8-0.3-0.5-0.8-0.6-0.3-2.5 0.2-1 0.6-1.1 0.7-0.6 0.8 0.2 0-0.4 0.3 0 0.5 0.6 0.6 1.1 0.9 2.5 0.2-0.1 0.5-0.2 0.2-0.1 0.4 0.7 0.7-0.1 0.8-0.4 0.9-0.2 3.8-0.4 2.3-1.1 0.7-0.2 0.3-0.1 0.6-0.6 0.3-0.1 0.5 0 0.4 0.2 0.5 0.1 0.5-0.3 0.1 0.2 0.2-0.2 1.3 0.6 1.1-0.7 1.2-1.2 1.3-0.8 0-0.4-0.4-0.4-0.2 0.1-0.4 0.3-0.3-0.5-0.9 0.5-1.6-0.2-0.4 0.2-1.2-0.6-1.3 0-3 1.3-1 0.5-0.1-0.1 0.4-0.7-0.8-0.6-1.4-2.3-0.7-0.4-1.2-0.4-0.4-0.3-1.1-0.8-0.6-1 0.7 0.7 0.9 0.6 1.3 0.8 0.7 0 0-0.4-0.6-0.7-0.6-0.6-0.6-0.4-0.8-0.4 0.2-0.7 0.3-1.5 0.2-0.8-0.7-0.6-0.5 0.2-0.5 0.4-1 0 0.2-0.6 0.2-0.2-1-0.4-0.6-0.1-0.7 0.1 0.1-0.3 0.1-0.7 0.1-0.2-0.6-0.1-0.5-0.2-0.8-0.6 0.3-0.4 0.4-0.3 0.4-0.1 0.5 0-0.9-1.5-0.4-0.8-0.3-1.1 0.9-0.6 2.4-0.5 1.4-1 0.3 0.1 0.1 0.3 0.1 0.1 0.1 0 0.5 0.1 0.5 0 1.1 0.5 0.6 0.2 0.8 0-0.3-0.8 0.4-0.4 0.4-0.3 0.4-0.2 0.4 0.5 0.1-0.5 0-0.5 0-0.5-0.1-0.6-0.3 0.4-1-1.7-0.3-0.4 1.9-0.8 0.3 1.3 0.8 0.1 0.5-0.7-0.6-1.6 0.8-0.2 0.7-0.4 0.6-0.5 0.5-0.5 0.9 0.6 1-0.6 0.4-1-1-0.3 0.8-1.6 0-0.7-0.8-0.6-0.8 0.7-0.6 0.4-0.5 0.1-0.9 0-0.2-0.2-0.5-0.8-0.3-0.2-0.5 0.2-0.4 0.3-0.4 0-0.4-0.5-0.6 0.5-1.6 0.9-0.6 0.2-0.5-0.2-0.8-1.2-0.7-0.2-0.9-0.6-0.4-1.4 0.1-1.6 0.7-1 0-0.4-0.2 0-0.8 0 0.6-0.8 1.1-0.8 1.2-0.7 0.9-0.2 0.5-0.6-0.4-1.1-1.1-1.9-1.3-1.7-0.7-0.5-1.5-0.8z" id="TR35" name="Izmir"
-    fill={getPathFill('TR35')} class="cursor-pointer transition-all duration-200 hover:opacity-80"
-    onclick={() => handlePathClick('TR35')}
-    onmouseenter={() => handlePathHover('TR35')}
-    onmouseleave={() => handlePathHover(null)}
-  ></path>
-  <path d="M121.4 280.3l0.1 0 3.1-0.1 3.8-1.4 5.8-3.9 2.4-0.4 11.7 1 11-3 9.2-0.1 1.7-0.7 1.6-0.9 1.9-0.6 1.9-0.3 7.5-2.7 6.5 0.1 0.5 1.4 0.6 1.3 2.7 1.9 0.6 1.7-0.1 2.1 0.7 3.6-0.4 1.3-1.1 0.8-0.1 1.5 1 1.4 0.8 1.6 1 1.5 3 0.6 0.5 1.4-0.2 1.7-1.4 1-1.9 0.1-2.2 3.1-2.5 2.4-3.7-0.4-3.3 1-1 2.2 0.6 2.2 0.5 0.2 0.5 0.4 0.4 0.8 0.2 0.9-6.2-0.9-3.5-1.9-2.9-2.5-3.5-0.7-2.5 1.8-1.7 3.3-1.9 1.5-5.7 0.4-3.4-0.1-2-1.1-2.2 0-2.1 0.6-2.2-0.4-3.3-2.3-3.8-0.5-1.9-0.7-1.6-1.1-1.6 0-1.5 0.9-0.6 1-2.5 5.6-0.6 1-0.8 0-0.8 0.4-0.4 0.8-0.2 0.8-0.5 0.5-1.2-0.1 0 0.5 0.7 0.5-0.3 0.2-2.8 0.2-0.6 0.2-0.6 0.5-0.3-0.4-0.4-0.3-0.3 0-0.3 0.3-0.1-0.5 0-0.2-0.2-0.1-0.4 0.2-0.1 0.1-0.1-0.2-0.4-0.1 0.5-0.6 0.3-0.6 0.1-0.6-0.2-0.7 0.7-0.3 0.3-0.1 0-0.4-0.4-1.2 0.2-2.7-0.8 0.3-0.3-0.4-0.3 0-0.4 0.3-0.3 0.4 0.2-1 0.3-0.9 0.1-0.8-0.3-1 0.2-0.3-0.2-0.3-0.2-0.3 0.2-0.7 0.7 0.5 0.5-1 0.1-1.3-0.2-0.7-0.7-0.2-2.7-1.8-4.1-1.2-1.8-0.9 0.4-1.2 0.9-0.3 3.1 0.3 1.1-0.2 4.1-1.5 0.6-0.4 1.1-1.4 0.3-0.9 0.2-1.4 0.1-1.3-0.1-0.7-0.4-0.6-0.4-0.5-0.3-0.7 0.1-1.1 0.2-0.3 0.6-0.5 0.2-0.4 0.1-0.3z" id="TR09" name="Aydin"
-    fill={getPathFill('TR09')} class="cursor-pointer transition-all duration-200 hover:opacity-80"
-    onclick={() => handlePathClick('TR09')}
-    onmouseenter={() => handlePathHover('TR09')}
-    onmouseleave={() => handlePathHover(null)}
-  ></path>
-  <path d="M128.1 308.9l0.6-1 2.5-5.6 0.6-1 1.5-0.9 1.6 0 1.6 1.1 1.9 0.7 3.8 0.5 3.3 2.3 2.2 0.4 2.1-0.6 2.2 0 2 1.1 3.4 0.1 5.7-0.4 1.9-1.5 1.7-3.3 2.5-1.8 3.5 0.7 2.9 2.5 3.5 1.9 6.2 0.9 0.6 1-0.2 1.2 0 1.7 0.5 1.8 1.2 0.4 1.7 0 2.2 0.9 1.4 2.5 0.7 2.7 1.6 2.3 3.5 0.6 0.6 0.6 0.8 1.6 0.6 0.6 3.5 1.6 2.8 2.8 0.7 2.3 0.4 2.3 0.1 1.9 0.2 1 1.2 1.1 2.6 0.2 4.7 2.6 1.7-0.8 0.9-1.3 0.6-1.5 0.3-3.9 2.2-1.8 1.1 3-0.8 3.5 1.9 0.7 2.3-2.9 5.7-0.8 4 5.6-5.1 11.8 0.6 3.7-0.9 3.2-2.3 1.7-2.1 2-0.5 1.6 0.3 1.6-1.1 0.6-1.4-0.6-3 1.2-1.6 3.2-0.3 1-0.4 0.9 0 0.7 0 0.8-0.3 1.5-0.9 1.2-1.3 0.7-0.2-0.2-0.4-0.9-0.6-0.7-2.9-1-0.8-1-0.6 0.5-0.2-0.8 0-0.2 0.2-0.2 0-0.5-1.3 0 0.3-0.3-0.5-0.4-0.3-0.1-0.5 0 0.2-0.5 0.4-0.4 0.5-0.2 0.5-0.1 0-0.2-0.1-0.1-0.2-0.1 0.3-1.1-0.3-1-0.6-0.7-0.7-0.4 0-0.4 0.6-0.5 0.3-0.2 0.4-0.1 0-0.5-0.2-2-0.2-1-0.6 0.3-0.3 0-0.6-0.8-2.3 0.9-1-0.1 0.9-0.3 0.2-0.5-0.3-0.8-0.5-0.9 0.2-0.4 0.5-1.1 0.3-0.6 0.7 0.6 0.5-0.5 0.7-0.9 0.7-0.3 0 0.3-0.3 0.7 0.4 0.2 0.6-0.2 0.3-0.4-0.2-0.6-0.2-0.5-0.3-0.5-0.3-0.3-3-2.1-3.7-1.6-0.4-0.5-0.4-0.9-0.8 0.6-0.8 1.1-0.7 0.6 0 0.4 0.4 0 0 0.4-0.9 0.1-0.4 0.1-0.4 0.2-0.1 0.5 0.1 0.5 0 0.5-0.6 0.1 0.2 0.5 0.2 0.2 0.2 0.2-0.3 0.4 0.5 0.5 0.2 0.3 0.3 0 0.2-0.6 0.3-0.5 0.1-0.5-0.3-0.9 0.8 0.8-0.3 1-0.8 0.9-0.7 0.6 0.3 0.6-0.5 0.3-0.8 0.1-0.6-0.2-0.5-0.5 0-0.6 0.4-0.4 0.7-0.1 0-0.5-0.8-0.4-0.5-0.4-0.5-0.2-0.8 0.3-0.2-1.6-1.7-1.2-2.2-0.4-1.4 0.7-0.3 0-0.2-1.1-0.6-0.4-0.6 0.2-0.6 0.9-0.3-0.4-0.6-1.6 0.4-0.8 0.2-1.2-0.1-1.1-0.5-0.6 0-0.2 0-0.1 0.2 0 0.1-0.1-0.1-0.2-0.1-0.1 0-0.2 0.2-0.3-0.3 0-0.2 0.5-0.1 0.3 0 0.4-0.3-0.2 0-0.1-0.1-0.4-0.6-0.7-1.4-0.3-1.1 0.6 0.2 1.5-0.5-0.4-0.5-0.1-0.4-0.1-0.6-0.2 0.7-0.4 0-0.4-1.1 0-0.7-0.2-0.3-0.6-0.2-1.2 0.3 0 0.3 0 0.1-0.2-0.1-0.4-0.1-0.1-0.1-0.2-0.1-0.1-0.1-0.7-0.2-0.3-0.2 0-0.1 0.6-0.5 0.5-0.9 0.3-1.4 0.1-0.5 0.2 0 0.4 0.3 0.4 0.4 0.3 0.3 0 0.4-0.1 0.4 0 0.5 0.5-0.5 0.9-0.4 0.8-0.5 0.7-0.9 0-2.4-1.3-0.5-0.3-0.3 0 0.2 0.9 0.1 0.3-1.3 0.1-0.5-0.2-0.2-0.5 0.2-0.5 0.5-0.3 1.3-0.2 0-0.4-0.6-0.4-0.7-0.6-0.7-0.4-0.8 0.4-0.6 1-0.3 0.9 0.1 0.9 0.7 0.6-0.3 1.3 1.9 1.4 0.3 1.4-0.5-0.4-0.8-0.3-0.7 0.2-0.3 0.9-0.3-0.2-0.3-0.2 0 0.3-0.1 0.2-0.1 0.1-0.2 0.2 0.3 0.1 0.1 0.3-2.4 0.9-1 0.7-0.8 1.3-0.7 1.3-0.9 1.4-1.1 0.9-1.2-0.4-0.2 0.4-0.2 0.2-0.2 0.1-0.4 0.1 0.1 0.2 0.1 0.4 0.1 0.2-0.6 0.3-0.4 0-0.4-0.2-0.2-0.5-0.5 0.8-0.6 0.2-0.6-0.4-0.6-0.6 0.1-0.2 0.1-0.4 0.1-0.2-0.2-0.2-0.2-0.2-0.2-0.4 3.6 0 0.9-0.4 0.5-0.6 0.5-0.7 0.7-0.7-0.7-0.8-0.9 0.8-0.4 0.3 0-0.3 0.5-0.5 0.1-0.8-0.1-0.7-0.5-0.5-0.5-0.3-0.1 0.2 0 0.7-0.3 0.3-0.5 0-0.5-0.3-0.4-0.2-0.4 0.2-0.5 0-0.5-0.2-0.2-0.6 0.3-0.2 1.7-0.4-0.4-0.4 1 0.1 0.3-0.1 0.3-0.2 0.2-0.3 0.2-0.2 0-0.1 1.8-0.1 0.5-0.3-0.2 0.9 0.7 0.1 0.7-0.6 0.1-0.8-0.5-0.4-0.9-0.1-0.3-0.3 0.1-0.4 0.4-0.4 0.5-0.4 0.3-0.5 0.2 0.4 0.2 0.3 0.6 0.6-0.2-1.1-0.1-1.2-0.3-0.5-0.5-0.1-0.6 0-0.4 0.3-0.8 1.3-1 0.7-0.4-0.1-0.2-0.6-0.7 0.7-1.9 0.6-0.7 0.4-0.3 0-0.3-0.8-0.4 0.2-0.6 0.6-0.7 0.4-0.2-0.8-0.4 0-0.3 0.5-0.4 0.3-0.3-0.2-0.3-0.5-0.3-0.1-0.4 0.8-0.3 0-0.6-0.5-0.8-0.5-1-0.2-0.9 0.4 0-0.4-0.5 0.2-0.6 0-0.6-0.2-0.7 0-0.8 0.2-1 1.3-0.7 0.5 0 0.4 0.2 0.5-0.7 1.9-0.1 1.3-1.6-0.8-0.8-0.3-0.8-0.2-0.9 0.1-0.7 0.2-0.5 0-0.2-0.7-3.3 1.2-0.2 0.4-0.2 0.3-0.2 0.2-0.2-0.2-0.6-0.5-0.4-0.2-1.1-0.2-0.4 0-0.6 0.2-0.1-0.7-0.4-0.4-0.5 0-0.6 0.3 0-0.2 0-0.1-0.2 0-0.1-0.1 0.2-0.3 0-0.4-0.2-0.3-0.4-0.2 0-0.4 0.6 0.3 0.8 0.2 0.8 0 0.6-0.3 0.4-0.6 0.2-1 0.6-0.6 0.5-0.4 0.4-0.1 1.2 0.1 3.5-0.6 1.7 0.2 0.9-0.3 0.2-0.7 0.1-0.8 0.2-0.7 1.1-0.3 2.2 1.4 0.6-0.3 0.8 0.4 0.6 0 0.7-0.1 0.5 0.1 1.2-1.1 0.7-0.4 4.1-0.1 0.5-0.2 0.3 0.4 0.8 0.3 1 0.3 0.9 0 1.6-0.2 0.8 0.3 0.8 0.7 0.2-0.6 0.3-0.3 0.9-0.7-0.3-0.7-0.5-0.3-0.7-0.2-0.8 0 0.3-0.4 0.4 0.2 0.1-0.4-0.3-0.6-0.5-0.5 0.2 0 0.1-0.1 0.1-0.1 0.2-0.1 0.4 0.2 0.3-0.2 0.5-0.3 0.5-0.2 0-0.3-1-1-0.4-0.6-0.3-0.5 0.7 0.4 0.3-0.4-0.3-0.2-0.1-0.2-0.1-0.2-0.2-0.2 0.4 0 0.8-0.1 0.5 0.1 0-0.4-1 0 0-0.4 1.1 0 0.5 0.1 0.3 0.3 0.3-0.3 0.3-0.1 0.2 0.1 0.2 0.3 0.3 0 0.5-0.3 1.1 0.5 0.4-0.2 0.3 0 0.1 0.4 0.3 0.8 0.1-0.3 0-0.1 0-0.1-0.1-0.3 0.1-0.3 0-0.2-0.2-0.2-0.3-0.1 0-0.4 0.4-0.1 0.4 0.1 0.3 0.1 0.2 0.3 1-1.6 0.3-0.4 0-0.5-0.6 0 0.3-0.6 0.3-0.6 0.8 0.6 0.7 0.2 0.4-0.4-0.3-0.8 2.6-1 1.4-0.4 0-0.3-0.4-0.5-0.3-0.2-0.5-0.2-6.2 1-2.3-0.1-0.9 0.2 0.1 0.7 0 0.4-0.8-0.4-5-0.8-0.5 0.1-0.6 0.6-0.6 0.1-0.5-0.1-1.4-0.3-1.2 0.1-3.9 1.3-0.5-0.2-0.3 0 0 0.2-0.3 0.6-0.4-0.1-0.4-0.1-0.6 0-0.5 0.2-1-0.7-1.5 0-1.5 0.6-0.9 0.9-0.9-0.5-1.3-0.5-1.1 0.1-0.3 1.4-1.1-0.9-0.5-0.2-0.7-0.2-1.4 0.2-0.5-0.2-0.5-0.4-0.8-1.3-0.3-0.3-0.8 0-0.7 0.7-0.3-0.5 0.1-0.2-0.3 0-0.1 0.6-0.6 1.4-0.1-0.3-0.1-0.1 0.1-0.1 0.1-0.3 0-0.1-0.1 0-0.1-0.1-0.1-0.2 0.2-0.2 0.1-0.1-0.1-0.1-0.2-0.4-0.4 0.3-1.3 0.3-0.6 0.2 0 0.4 0.2 0.6-0.3 0.7-0.5 0.5-0.7 0.3 0.2 0.5 0.2 0.3-0.5-0.2-0.2 0-0.3 0.2-0.3-0.5-0.9 0.2-0.5-0.9-0.2-1.3-0.1-1-0.2-1-0.4-0.8-0.2-0.8 0.5-1.3 0.4 0 0.8-0.3 0.8-0.6 0.6-0.7-0.3-0.3-0.4-0.1-0.4 0.1-0.5 0.3-0.2-0.2-0.1-0.2-0.1-0.4 0.4 0.3 0.5-0.6 1.5 0.5 0.9-0.2 0-0.4 0.1-0.5 0.1-0.5-0.2-0.7 0.5 0.2 0.4 0.3 0.1 0.5 0 0.7 0.3 0 0.3-0.6 0.3-0.5 0.4-0.1 0.3 0.4 0.2-0.2 0-0.1 0.1-0.2 0 1 0.2 0.3 0.3 0 0.5 0 0.4 0.3 0.3 0.2 0.3 0.1 0.7-0.2-0.2 0.1 0 0.1-0.1 0-0.1 0.1 0.7 1.3 0.7 0.4 0.7-0.1 1.2-0.9 1-0.5 0.4-0.3 0.5-0.3 1.2 0 0.5-0.3 0-0.4-0.7 0.1-0.1 0.1-0.2 0.2-0.4-1.9-0.3-1-0.6-0.4 0-0.4 2.2-0.5 0.6 0.1-0.5 1.2 0.5-0.1 0.4-0.3 0.7-0.8-0.7-0.3-0.3-0.4 0-1.2 0.1-0.2 0.6-0.5 0.3-0.3 0.1-0.4 0.1-0.8 0.1-0.4-0.6-0.4 0-0.1-0.4-0.1-0.2 0.2 0 0.3-0.1 0.1-1.1-0.1-0.6 0.2-0.2 0.5-0.3 0.9-0.6 0.8-0.7 0.4-0.7-0.3 0.8-0.7 0.1-0.8-0.5-0.5-1.1 0-0.1 0.2-0.5 0.5-0.4 0.2-0.3-0.3 0.1-0.6 0.4-0.5 0.8-1.1 0-0.5 0.2-0.6 0.1-0.9-0.6-0.9-0.3 0-0.2 1.6-1.1 0.6-1.3-0.2-1-0.8-0.4-1.3 0.4-1.2 0.9-1 1.1-0.5-0.6-0.9-0.9-0.5-0.2 0.1z" id="TR48" name="Mugla"
-    fill={getPathFill('TR48')} class="cursor-pointer transition-all duration-200 hover:opacity-80"
-    onclick={() => handlePathClick('TR48')}
-    onmouseenter={() => handlePathHover('TR48')}
-    onmouseleave={() => handlePathHover(null)}
-  ></path>
-  <path d="M216.3 375.3l1.3-0.7 0.9-1.2 0.3-1.5 0-0.8 0-0.7 0.4-0.9 0.3-1 1.6-3.2 3-1.2 1.4 0.6 1.1-0.6-0.3-1.6 0.5-1.6 2.1-2 2.3-1.7 0.9-3.2-0.6-3.7 5.1-11.8 1.4-0.2 1.3-0.7 1.1-1.6 1.3-1.3 1.9-3.5 0.7-4.4 2.6-3.6 8.6-4.4 2.9-0.5 7-3 2.9 0.4 2.9 3.6 1.1 0.4 6.6-0.3 4.3 0.5 3.7 0 1.8-0.5 2.9-3.1 0.9-2.6 3.3-2.9 4.2 1.7 4.9-1.7 2.6-0.4 2.2-1.6 2.4-0.9 2.5 0.4 1 1.3 1.2 1.2 1.8 1.5 2.1 0.8 4.7 0 12.2 2.6 4 2.6 3 2.8 3.3 2.3 2.4 2.5 2.1 3 1.4 1.3 1.4 1 3.2 3 1.8 0.8 1.5 0.9 0.2 1.9-1.2 0.9-0.5 1.8 0.7 1.6 2 0.8 2.2 0.2 1.5 0.3 1 1.4 0.8 4-0.4 4 1.7 4.3 1.9 4 1.3 1.6 1.6 1.1 1.9 1 0.9 1.9-0.4 3.5 0.2 6.5-0.7 2.8-0.8 1.5-0.6 1.6-0.2 1.5-0.4 1.4-0.7 1.1-0.2 0.4-0.2-0.1-1.7-0.2-0.8-0.2-3.7-2.1-0.5-0.5-0.3-0.7-0.8-0.4-1-0.3-0.8-0.4-2.2-3-0.4-0.1-0.2-0.3-0.9-0.6-0.2-0.3-0.2-1.7-0.1-0.5-1.1-1.6-2.9-2.6-0.6-1.6-0.1-0.5-0.2-0.4-0.5-0.8-0.5-0.9-0.2-0.2-0.6-0.3-0.2 0-0.8-1.8-0.6-1-0.7-0.4-2.9-3-0.3-0.2-0.5 0-0.5 0-0.5-0.2-0.4-0.2-0.3-0.3-0.2-0.2-1.9 0.1-1-0.1-0.4-0.6-0.5-0.5-1.3-0.5-1.3-0.2-0.8 0.2-0.5-0.4-1.8-0.8-0.9-1.3-0.6-0.6-0.6 0.1-1-0.2-3.6-1.6-0.8-0.7-0.7-0.8-9-4-1.3-0.2-0.1-1.5-1.7-1-19.1-2.9-7.8 0.5-1.3-0.4-1-0.6-1.9-1.5-2.8 1.9-1.2 1.3-0.7 1.8-0.6 1.1-0.2 0.4 0 1.9-0.3 1.9 0.1 1 0.5 0.9 0 0.4-0.4 0.5-0.3 0.5-0.2 0.6-0.1 0.8 0.1 1.1 0.3 0.6 0.3 0.5 0.3 0.7 0.3-0.4-0.1 1.2-0.7 2.1 0.2 0.7-1.7 1.4-0.7 0.9-0.5 2.1-1.1 1.6 0.1 0.5-0.7 1 0.1 1 0.5 0.8 0.7 0.4-0.3 0.9 1.2 0.4-0.7 0.9-1.3 1.1-0.5 1.2 0.3 0 0.2-0.3 0 0.1 0.1 0.1 0.4 0.1-0.5 0.5-0.7 0.5-0.6 0.5-0.5 1.4-0.6 0.7-1.4 1.2 0.1-2.5-0.2-1-0.6-0.5-1.1 0.3-5-2.3-1 0-3.6 0.6-0.4 0.5-0.2 0.9 0 1.2-0.3 0-0.1-0.4-0.3-0.8-0.3 1.1 0 0.5-0.7-0.4 0.1 0.4-0.1 0.4-1.7-0.4-0.4-0.2-0.4-0.3-0.4-0.2-0.6 0.3 1 0 0 0.4-3.3 1.7-0.7-0.1-0.5 0.4-0.6-0.1-0.5-0.2-0.6-0.1-0.5 0.1-0.2 0.1-0.6 0.6-0.8 0.5-1.8 0.4-0.7 0.3 0.2 0.1 0.1 0 0.1 0.1 0 0.3-0.5 0-1.2 0.3 0 0.4 1 0-0.6 0.7-0.7 0.5-0.8 0.3-0.8 0.2 0-0.5 0.2-0.2 0.2-0.1 0.1-0.2 0.1-0.3-0.6 0.1-0.1 0.1-0.2 0.3-0.6-0.6-0.6-0.2-0.5 0.1-0.6 0.2-0.2 0.3 0 0.2-0.2 0.2-0.5 0.1 0 0.2-0.8 1.1-0.2-1.2-1.6-0.8-0.5-1.2 0.7 0.3 0.3-0.3-0.1-0.6-0.4-0.2-2.4 0.3 0-0.3 0.4-0.3 0.5-0.1 0.5-0.1 0.5 0-1-0.4-3.8 0-1.3-0.3-3-1.7-0.5 0.6-0.3-0.6-0.1-1.6-0.3 0.4-0.2-0.1-0.2-0.2-0.3-0.1-0.5 0.2-0.2 0.1-0.1 0.2-0.2 0.3-0.3 0.3-0.1 0.4-0.2 0.4-0.4 0.2-0.4-0.3-0.3-0.6-0.3-0.4-0.3 0.4-2.9-2.7z" id="TR07" name="Antalya"
-    fill={getPathFill('TR07')} class="cursor-pointer transition-all duration-200 hover:opacity-80"
-    onclick={() => handlePathClick('TR07')}
-    onmouseenter={() => handlePathHover('TR07')}
-    onmouseleave={() => handlePathHover(null)}
-  ></path>
-  <path d="M373.5 387l0.2-0.4 0.7-1.1 0.4-1.4 0.2-1.5 0.6-1.6 0.8-1.5 0.7-2.8-0.2-6.5 0.4-3.5 3.1-0.4 3.1 0.8 2.9 0 2.7-1.3 2.8-0.6 2.9 0.1 1.5-0.2 1.2-1.2 0.5-2.1 0.7-1.9 0.7-0.3 0.7-0.1 1.7 0.9 1.8 0.7 1.2-1.6-1.1-1.8-2.2-1.6-2.5-0.7-1-0.8-0.9-1.2-1.2-0.5-0.7-1.6-0.4-1.7-0.8-1.4-1-1.2-0.1-1.9 1.8-0.3 0.8-0.3 2.1-1.4 1.4-0.5 0.6 0.3 0.1 0.5 0.4 0.7 1.7 0.4 1-1.7 0.6-2.6 1.5-1.9 1.8-0.6 1.6-1.1 1.5-1.4 1.7-1 2-0.6 6-0.5 3.8-1.5 3.9-0.4 1.6 0.5 1.2-0.1 1.7-0.9 3.5-0.7 4.6-3.5 1.7-0.7 3.6-0.3 3.3-1.3 1.6-1.9 1.3-0.8 4.2-1.5 2.7-1.3 2.1-2.1 1.4-0.7 2.5-0.9 0.9-0.6 0.6-1.9 3.5-0.1 1.6-0.6 1.5-0.9 3.3-1.4 3.3 0.8 1.6 3.6 1.8 3.3 2.3 1.8 0.1 6.1 1 3.4 2.3 1.7 2.9-0.2 1.8 1.9-1.4 3.7 0 3.4 0.7 3.3 0.2 1.7-0.2 1.6-1.8 1.6-2 0.6-2.5 1.7 0 0.1-0.2 0-0.8 0.2-0.6 0.3 0.1-0.3 0.3-0.9-0.7-0.4-2-2.1-3.9-2-0.2 0.4-1.4-0.8-2 0.5-3.2 1.5-1.4 0.2-0.6 0.2-1.4 0.9-0.3 0.2-0.5 1.1-0.2 0.3-1.5 0.8-4.1 3.8-5.2 3.2-1.4 1.2-4.1 5.3-0.4 0.9-0.2 0.6-0.5 0.3-1 0.5-1.6 1.7-1.7 1-0.1 1.5 0.2 1.9-0.1 1.6-0.9 0.8-1.5 0.3-1.3 0.4-0.5 1.3 0.3-0.1 0.2-0.2-0.1 0.4-0.9 1.2-0.4 0.7-0.2 0.9 0 0.7-0.3 0.4-0.8 0 0-0.4 0.4-1-0.2-1.7-0.7-1.5-1-0.6-0.7-0.2-0.6-0.4-0.6-0.2-0.7 0.6-0.9 1.4-0.4 0.6-0.8 0.2 0.3 0.1 0.2 0.1 0.1 0.2-0.5 0.5-0.7 1.3-0.6 0.2-0.4 0.1-1.7 0.7-0.3 0.3-1.5 1.6-0.2 0.6-0.3 1.6-0.3 0.4-0.1-0.4-1.2-1.8-0.2-0.9-0.4-0.2-0.6 0.1-0.7 0.3-1.1 1-1.1 1.4-1 1-1-0.2 0.6-0.3 0-0.5-1.1-0.1-2-0.5-1-0.2-1 0.2-1.7 0.9-0.7 0.2-1.8-0.7-1-0.1-0.9 1.1-1 0.1-2.2-0.1-1.4 0.4-0.5 0.1-0.6-0.2-1-0.5-0.5-0.1-1.1 0.3-0.6 0.7-0.4 1-0.7 0.8-0.5 0.4-0.2 0-0.1-0.2-0.5-0.2-0.6-0.1-1.5 0.1-3.1-0.8-0.9 0-3.1 1.6-0.5 0.2-0.4 0.7-2.6 1.9-2-0.1-4.3-1-1.8-0.9-2.9-1.9z" id="TR33" name="Mersin"
-    fill={getPathFill('TR33')} class="cursor-pointer transition-all duration-200 hover:opacity-80"
-    onclick={() => handlePathClick('TR33')}
-    onmouseenter={() => handlePathHover('TR33')}
-    onmouseleave={() => handlePathHover(null)}
-  ></path>
-  <path d="M539.2 332.9l-1-0.4-1-0.2-0.9 0.5-3.9 4.5 0 2.5 0.7 1.2-1.8 2.3-0.7 0.5-0.8 0.2-0.4 0.4-1.6 1.8-0.7 0.6-1.8 0.4-4 0.2-1.7 0.7-0.6 0.5-0.5 1.1-0.5 0.4 0.2-0.4 0-0.3-0.2-0.3-0.4-0.2-0.4 0.9-0.7 0.7-0.5 0.7 0.4 0.9 0.7-0.9 1 0.3 0.2-1 0.2 0.1 0.2 0.2 0.1 0.2 0.1 0.3 0.3-0.4 0-0.4 0-0.4-0.3-0.4 0.7-0.4 0.3 0.3 0.2 0.6 0.3 0.3 0.5-0.1 0.5-0.4 0.5-0.2 0.6 0.3-2.8 1.3-1.3 1-0.8 1.4 0.1 0.6 0.7-0.4 2.1-2.5 0.6-0.4 0.8-0.2-1.8 1.8-0.3 0.5-0.4 1.1-0.3 0.5-0.2 0.5 0 0.8-0.1 0.7-0.4 0.2-0.4 0.1-0.7 0.6-0.5 0.1-1.5 0.1-0.6-0.1-1.5-1.4-0.4-0.2-0.7 0.2-0.4 0.3-0.1 0.6 0.4 0.1 0.4 0.1 1.7 0.7-2.1-0.6-2-0.2-0.4 0.1-1.1 0.6-0.3 0.3-0.2 0.4-0.4 0.3-1 0.3-1.2 1.1-0.1 0.2-0.5-0.3-0.8-1.1-0.5-0.3-0.7-0.2-12-7.3-1.3-0.4-1.5-1.1-1-0.3-0.7-0.1-0.6 0 0-0.1 2.5-1.7 2-0.6 1.8-1.6 0.2-1.6-0.2-1.7-0.7-3.3 0-3.4 1.4-3.7-1.8-1.9-2.9 0.2-2.3-1.7-1-3.4-0.1-6.1-2.3-1.8-1.8-3.3-1.6-3.6 0-2.8 0.2-1.3 1.2-1.9 0.7-0.6 0.7-0.7 0.7-2.5-0.3-1.7-1.2-3-0.2-3 1.5-2.2 2.4 0.2 2.4 0.8 4.7-0.8 6.2-6.3 8.2 0.7 4.3 1.1 5.8 2.3 2.5-1.2-1-11 17.6-12.2 2.6-3.5 2-4.1 1.3-1.9 2.1-5 2-1.7 3.7-2.1 3.8-1 2.5 1.1 1.8 2.8 1.2 3.2 2 2.1-2.6 2.5-1.5 3.8-2.4 10.7-1.4 3.8-0.6 4-0.1 1.8 0.3 2.9 1.5 3.7-0.1 2.4-1.6 1.6-0.9 0.5-1.3 1.7-3.6 0-4.5 0.3-2.2 3.7-2.7 6.2-3.1 7.7 0 4.6 1.4 4.4 1-0.1 3.1 0.6 1.3 1.1 0.4 0.8 0.6 3.4-0.7 3.1-1.4 3.6z" id="TR01" name="Adana"
-    fill={getPathFill('TR01')} class="cursor-pointer transition-all duration-200 hover:opacity-80"
-    onclick={() => handlePathClick('TR01')}
-    onmouseenter={() => handlePathHover('TR01')}
-    onmouseleave={() => handlePathHover(null)}
-  ></path>
-  <path d="M336.8 86.3l3.5 0.3 3 0.8 10.2 0.3 2.3 0.1 4.1 0.9-0.3 1.7 0 1.8 1.1 0.7 1.4 0.2 2.2 1.4 5.4 2.7 1.8 3.3-0.1 1.7-0.1 0.8-0.1 1-0.7 3.4-1.7 0.7-1.4 1.3-0.2 3.4 1.8 5-0.8 1.5-1.7 1.9-1.3 2.3-3.9 2.1-6.5-1-2 0.6-2 1.4-5.6 1.3-3.3 1.5-4 0.9-5.9-0.1-1.9 0.3-4.2 1.7-1.6-0.2-1.5-0.6-1.4-0.2-1-0.5-1.6-1.7-8 0.9-4.2-2.6-4.4-1.5-1.2 1.3-0.5 2.4 0.2 3.7-1.5 3.2-3.9 2.2-2.9 3.9-3.1-0.5-2.8-1-1.8-2.3-2.9-5.2-0.7-2.7 0.9-2.3-1.1-2.2-1-1.2-0.3-1.6 0.6-0.7 0.8-0.4 1.3-3.9 1.9-2.9 3.3 0.2 3.1-1.5 0.6-1.9-0.4-1.9-0.1-2.1 3-2.3 3.9 1.4 7.7-0.3 5.4 2.3 4.6-0.5 3.6-2.8 1.8-4.5 0.2-3.3 2.3-1.8 6.1-1 4.4-1.1 2.3-2.7 0.8-5.5z" id="TR14" name="Bolu"
-    fill={getPathFill('TR14')} class="cursor-pointer transition-all duration-200 hover:opacity-80"
-    onclick={() => handlePathClick('TR14')}
-    onmouseenter={() => handlePathHover('TR14')}
-    onmouseleave={() => handlePathHover(null)}
-  ></path>
-  <path d="M292.4 142.5l2.9-3.9 3.9-2.2 1.5-3.2-0.2-3.7 0.5-2.4 1.2-1.3 4.4 1.5 4.2 2.6 8-0.9 1.6 1.7 1 0.5 1.4 0.2 1.5 0.6 1.6 0.2 4.2-1.7 1.9-0.3 5.9 0.1 4-0.9 3.3-1.5 5.6-1.3 2-1.4 2-0.6 6.5 1 3.9-2.1 1.3-2.3 1.7-1.9 0.8-1.5-1.8-5 0.2-3.4 1.4-1.3 1.7-0.7 3.7-0.1 3.8 0.6 13.9 6.5 1.4 1.8 1.1 2.2 1.5 1.8 1.8 1.3 0.8 0.4 2.1 1.8 1.5 0.9 1 1.6 0.5 2.1 3.1 2.5 3.5-0.4 0.2-1.6 0.6-1.8 0.8-0.3 1 0 1.5 0.6 1.4 0.9 6.4 2.1-0.6 5.1-0.6 3.5 0 4.2 0.3 3.7-0.6 3.6-5.5 0.6-3.5 1.5-2.2 5.3-1.2 5.2-1.4 5.2 1.2 5.3 3.8 4.6 1.3 2.3 1.9 8.8 3.8 7.4 0.9 3.4 5.4 3.4 2.4 2 0.8 0.3 0.7 0.6 0.7 1.2 1 0.7 2.5 0.2 1.6 0.6 0.6 0.7 3 1.1-0.4 2-1.6 4.1 1.9 5.1-0.1 3.6-4 3.8-1.8 0.9-4.2-0.2-4.2 1.2-3.9 2.2-4.1 1.1-1-2.4-1.5-2.2-1.3-2.3-1-2.5-0.1-3.5 0.6-3.6 0.2-3.3-0.3-3.3-2.5-5.9-4.7-3.4-2.7-0.8-0.8-0.5-2.1-1.6-2 0-0.9 1.3-0.5 1.6-0.4 3.2-0.7 1.1-2.1-0.3-2.7-2.2-2.3-0.7-4.8 4-1.8 2.3-2.1 1.2-3.6-1.5-3 1.4-2.8 2.4-2-0.2-1.7-1.6-1.6-0.9-4-1.4-2.4 0.3-5 1.5-1.7-0.5-6.8-5.7-2.1-1.3-2-0.9 1.1-0.8 2.5-1.2 0.5-0.6 0.4-0.7 1-0.3 1.1-0.1 1.1-1.2 0.9-1.4-0.3-1.9-1.5-1-1-1.6-0.1-2.4-0.1-0.3-0.2-0.8 0.5-1.9 0.2-1.8 0.1-1.9-0.6-1.3-0.7-1.1-0.2-1.9-0.6-1.3-2.4-2.1-2.4-6.5-0.3-3.1 2-2.2-0.1-1.6-0.6-0.4-0.7-1.1-0.4-0.9-1.6-0.1-1.4-0.7-1.2-1.9-0.6-1.9-0.2-1.6-0.6-1.1 0-1.8-2.2 0.3-1.9-1.3-1.7 0.6-3.5 0.1-1.8 0.4-1.6-0.5-1.4 0.4-1.9-2.1-1.2 0.2-1.2 0.4-4.4-0.6-1.3 1.1-1.3 1-1.3-0.5-1.2-0.7-2.7-0.3-4.6 1.9-1.9 0.2-1.1-0.4-0.3-1.3-0.4-3.7-2.1-2.6z" id="TR06" name="Ankara"
-    fill={getPathFill('TR06')} class="cursor-pointer transition-all duration-200 hover:opacity-80"
-    onclick={() => handlePathClick('TR06')}
-    onmouseenter={() => handlePathHover('TR06')}
-    onmouseleave={() => handlePathHover(null)}
-  ></path>
-  <path d="M248.6 118.2l1.3 2.8 1.7 2.5 1.9 1.6 1.7 1.9 4.2 1.3 6.6-1.7 2.1-0.2 1.7 0.5 1.8 0 1.5 0.9 1.2 1.8 0.8 0.7 3.5-0.1 2.5 0.6 0.7 2.7 2.9 5.2 1.8 2.3-4.9 0.2-3.8 3.1-0.9 3.1-0.6 3.3-1.6 2.8-2.4 1.8-2.6 0-2.4 1-0.8 1.4-0.8 1.2-1.4 0.7-1.3 1.1-0.4 6.3-2.1 3.6-2.6 3.1-1.8 0.5-3.6 0.4-3.7 1-2.1-0.5-5.2-3.8-1.7-0.7-1.9-1.2-0.7-1-1.7-3.3-0.2-2.7 0.8-5.2 2.7 0.5 2.3-0.8-0.6-3.1-1.3-1-2.5-3.6 0-3.1 1.3-6.2 4.6-4.9 0.8-1.7-0.2-1.7-1.1-1.4-0.2-1.9 0.6-1.5 0.5-1.7 0.2-2 0.9-1.7 0.9-1 1.1-0.8 2.5-1.4z" id="TR11" name="Bilecik"
-    fill={getPathFill('TR11')} class="cursor-pointer transition-all duration-200 hover:opacity-80"
-    onclick={() => handlePathClick('TR11')}
-    onmouseenter={() => handlePathHover('TR11')}
-    onmouseleave={() => handlePathHover(null)}
-  ></path>
-  <path d="M286.5 141l2.8 1 3.1 0.5 2.1 2.6 0.4 3.7 0.3 1.3 1.1 0.4 1.9-0.2 4.6-1.9 2.7 0.3 1.2 0.7 1.3 0.5 1.3-1 1.3-1.1 4.4 0.6 1.2-0.4 1.2-0.2 1.9 2.1 1.4-0.4 1.6 0.5 1.8-0.4 3.5-0.1 1.7-0.6 1.9 1.3 2.2-0.3 0 1.8 0.6 1.1 0.2 1.6 0.6 1.9 1.2 1.9 1.4 0.7 1.6 0.1 0.4 0.9 0.7 1.1 0.6 0.4 0.1 1.6-2 2.2 0.3 3.1 2.4 6.5 2.4 2.1 0.6 1.3 0.2 1.9 0.7 1.1 0.6 1.3-0.1 1.9-0.2 1.8-0.5 1.9 0.2 0.8 0.1 0.3 0.1 2.4 1 1.6 1.5 1 0.3 1.9-0.9 1.4-1.1 1.2-1.1 0.1-1 0.3-0.4 0.7-0.5 0.6-2.5 1.2-1.1 0.8-0.2 1.8-0.3 1.8-0.7 0.9-3.8 0.7-2.8-0.3-1.8-0.5-3.7-0.1-6.1 0.6-3.6-2.7-2.3-5.4-3.4-3.5-1.9 0.5-1.7 1.5-1.7 1.1-1.8 0.5-3.5 2.7-3.4 1.5-2.1-2.4-2.4-1.1-1.6 1.3-3 3-3.2 2.1-1.7 0.8-2.2 0.4-2.1-1.2-0.8-0.6-0.8-0.5-1.1-1.4-0.7-1.9-1.3-1.3-1.7-0.4-0.9-3.9-4.7-6.3-0.6-4.7-1.3-3.7-5.2-5-1.8-3 2.6-3.1 2.1-3.6 0.4-6.3 1.3-1.1 1.4-0.7 0.8-1.2 0.8-1.4 2.4-1 2.6 0 2.4-1.8 1.6-2.8 0.6-3.3 0.9-3.1 3.8-3.1 4.9-0.2z" id="TR26" name="Eskisehir"
-    fill={getPathFill('TR26')} class="cursor-pointer transition-all duration-200 hover:opacity-80"
-    onclick={() => handlePathClick('TR26')}
-    onmouseenter={() => handlePathHover('TR26')}
-    onmouseleave={() => handlePathHover(null)}
-  ></path>
-  <path d="M397.1 83.1l1.1 1.4 0.7 0.6 6.1 0.6 4.3 2.9 1.8 2.1 2.2 0.7 1.8-0.6 5-3 3.7-0.7 7.7-4.1 1.6-0.6 0.7 0.4 0.5 2.5-1.5 2-1.2 1.4-0.5 1.9 1.7 3 2.8 1 1.5 1.4 1.6 1.2 2 0.4 1.9 0.1 2.4 3.9-0.6 2.5-1 2.5 0.3 2.6 1.2 2.4 0.3 2.2-0.1 2.2 0.6 2.3 1.2 2 0.7 1.5 0.5 1.7 0.4 1.6-0.1 1.6-0.7 0.4-1.1 2.6-1.4 2.4-0.8 0.4-1 0.2-3.8 2.2-4.4-0.4-13.1-4.2-6.4-2.1-1.4-0.9-1.5-0.6-1 0-0.8 0.3-0.6 1.8-0.2 1.6-3.5 0.4-3.1-2.5-0.5-2.1-1-1.6-1.5-0.9-2.1-1.8-0.8-0.4-1.8-1.3-1.5-1.8-1.1-2.2-1.4-1.8-13.9-6.5-3.8-0.6-3.7 0.1 0.7-3.4 0.1-1 0.1-0.8 4.9-2.3 5.6-4.5 2.3-4.2 1.7-1 4.6 0.5 4.6-2.5 2-5.1z" id="TR18" name="Çankiri"
-    fill={getPathFill('TR18')} class="cursor-pointer transition-all duration-200 hover:opacity-80"
-    onclick={() => handlePathClick('TR18')}
-    onmouseenter={() => handlePathHover('TR18')}
-    onmouseleave={() => handlePathHover(null)}
-  ></path>
-  <path d="M385.2 52.5l1.6 1.8 2.9-0.4 3.5-1.2 3.5 2.6 1.3 5.6 1.3 3.1-4.6 0.9-2.5 2.5-2.2 3-0.4 2.1 0.9 6.8 2.7 0.4 2.5 1.1 1 1.5 0.4 0.8-2 5.1-4.6 2.5-4.6-0.5-1.7 1-2.3 4.2-5.6 4.5-4.9 2.3 0.1-1.7-1.8-3.3-5.4-2.7-2.2-1.4-1.4-0.2-1.1-0.7 0-1.8 0.3-1.7-4.1-0.9-2.3-0.1 0-5.6 1.5-5.1 0.8-3.3 1.7-2.1 2.5-3.5 5.2 0.2 5-1.3 5.7-4.8 2.1-4.6 2.7-0.8 4.5-4.3z" id="TR78" name="Karabük"
-    fill={getPathFill('TR78')} class="cursor-pointer transition-all duration-200 hover:opacity-80"
-    onclick={() => handlePathClick('TR78')}
-    onmouseenter={() => handlePathHover('TR78')}
-    onmouseleave={() => handlePathHover(null)}
-  ></path>
-  <path d="M569.8 97.6l-0.8 1.6 0.5 1.9 0.6 0.4 2.1 0.5 2.7 1.6 3.9 1.4 2.5 1.5 3.1 1.3 3.4 0.3 3.3-0.5 3.1 0.3 10.9 7.6 6.4 0.4 1.6 3 0.9 3.8-2.5 4.9-2.8 4.1-1.7 0.7-1.8 0.4-0.7 0-0.6 0.2-1.7 1.3-1.7 1-4 0.6-4-0.2-4.4 0.6-6.3 1.6-1.7 0.8-5.4-0.8-1.8 0.6-1.7 1-1.3 3.6-1 3.7-0.9 2.4-1.5 1.6-7 2.7-7.9 0.4-11.1 2.2-0.5-1.3-0.9-0.9-0.9-1.8 0.1-2.4 0.3-3.5-2-1.9-2 0.6-1.9 0.8-2.3 0.5-2.2 0.2-3.7-0.8-4.4 0.4-3.8-2.6-3.3-3.7 1.9-4 1.4-1.6 2.6-1 0.9-0.3 1.6-0.7 1.4-1.6 1.3-1.9 1.4-2.5 2.1-4.7 1.2-1.5 4-0.3 3.8 1.1 1.2 1 1.3 0.7 1.1 0.3 0.9 0.4 0.8 0.7 0.9 0 2.9-1.4 3.9-2.6 0.7-0.7 0.4-0.1 0.4-0.2 0.3-3.2 3.8-0.8 2.1-3 0-2.4 0.8-2 1.7-2.5-1-2.5-0.8-0.3-0.7-0.6-1-0.9-0.5-1.1 0.6-0.8 0-0.5-0.4 0 0-0.4 1.4-0.7 5.2-1.3 1.6-0.8 0.3-0.4 0.3 0.2 2.5 0.1 1.7 1.1 0.8 1.6z" id="TR60" name="Tokat"
-    fill={getPathFill('TR60')} class="cursor-pointer transition-all duration-200 hover:opacity-80"
-    onclick={() => handlePathClick('TR60')}
-    onmouseenter={() => handlePathHover('TR60')}
-    onmouseleave={() => handlePathHover(null)}
-  ></path>
-  <path d="M638.8 118.8l3.9 14.9-0.1 3.5 1.7 2.6 2.7 1.4 2.9 2.2 3 1.8 4.8-1.2 5 1.6 4.8 2.4-0.2 3.1-1 2.4-2.2 0-2.1-0.4-2.5 0.6-2.3 1.6-2.3-0.4-2.2-1.7-2.1 1.2-1.8 5.2 0.4 1.9 3.3-0.1 3.5-0.9 1 1.2-0.5 1.7-1 0.2-0.9 0-1.8 0.9-1.2 2.1-2.3 3.1-0.6 6.4-1.1 2.2 0.6 2.3 1.7 1.6 1.5 1 1.1 1.5-0.4 1-1.7 1.1-0.5 0.5-0.4 0.5-0.4 0.5-0.6 0.1 0.2 0.7 0.1 1.1 0 2 0.6 1.8 0.3 1.8-0.2 1.1-0.1 1.2 0.3 0.9 0.2 1-0.4 2.1-1 1.6-3.7 1.3-3.4 2.6-3.1 0.9-3.2-0.5-1.7 0.3-1.6 0.7-3.7 0.1-1.8 0.9-1.7 1.1-1.8 0.8-1.7 1.1-3.9 0.9-4.1-2-2.1 0.5-1 2.4 0.5 2.9 0.8 2.7 0.6 1.3 0.3 1.3-0.8 2.3-3.4 3.7-2 1.3-1.1 0.4-2.4 2.9-2.4 2.2-2.8 1.3-10.7 0.9-1.2-0.6-1.2-0.7-6.1-0.9-6.3 1.5 0.1-2.5 1.2-2 0.3-0.9 0.2-1 1.9-5.6 1.3-4.8 0.9-2.3 1.1-2.2 2-5.8-1.7-5.4-3.8-2.1-4.1-0.7-4.4 0-4.3 1.4-2.4-0.8-2.3-1.8-7.9-1.1-3.6 1.3-4.7-0.7-4.5-3.3-1.6-0.2-1.5-0.6-0.4-0.5-0.6-1.3-0.4-0.6-2.3-1.2-2.5-0.2 1.8-2.1 2.1-1.6 1.5-2 1.2-2.3 1.4-2.3 1.7-2 4.1-3.2 3.4-3.4 1.4-5.1-0.1-1.4-0.5-1.4-1.6-0.9-2.3-4.1-1.4-4.5 11.1-2.2 7.9-0.4 7-2.7 1.5-1.6 0.9-2.4 1-3.7 1.3-3.6 1.7-1 1.8-0.6 5.4 0.8 1.7-0.8 6.3-1.6 4.4-0.6 4 0.2 4-0.6 1.7-1 1.7-1.3 0.6-0.2 0.7 0 1.8-0.4 1.7-0.7 2.8-4.1 2.5-4.9 2.6 5.1 3.6 2.9 1.7-0.2 1.4-1.1 1.4-1.9 1.7-1.3 4 0.2 1-0.6 0.2-1.1-0.5-0.7 0.1-1.8 0.5-0.8 1.9-0.4 2.2-0.2 1.6-0.8 1.4-1.2z" id="TR58" name="Sivas"
-    fill={getPathFill('TR58')} class="cursor-pointer transition-all duration-200 hover:opacity-80"
-    onclick={() => handlePathClick('TR58')}
-    onmouseenter={() => handlePathHover('TR58')}
-    onmouseleave={() => handlePathHover(null)}
-  ></path>
-  <path d="M483.5 71.9l2.5 4.4 0.6 2.3 0.3 2.5 0.7 2.3 3.7-0.4 1.8 0.4 0.4 1.8-0.7 1.6-1 1.2-0.6 1.9-0.2 6.3-0.7 4.1 0.5 1.7 1.9 4.2 1.3 2.2 1.5 1 7.9 1.3 3.6 2.2 1.6 0.3 0.8 0.3 1.2 2.9 0 2.3-1.1 4.5-4.1 6.3-0.5 1.4 0 1.7-0.5 4.2-1.9 0.7-4.6 0.4-0.5 2.8 0.6 0.7-0.1 1-0.5 1.4-0.1 1.2-1.3 1.7-3.7 2.3-2.2 0.2-4-1.2-7.2 3.5-3.8 0.2-1.9-0.2-2.8 1.1-7.3-1.3-4.6 1.5-4.5 2.1-7.5 0.9-2.7 1.3 0-3.2 1.2-2.5 1-1.5 0.2-2.1-0.7-1.8 0-0.7-0.1-0.7-0.9-1-1.2-0.1-1.2-1.2-1.9-4.5-0.6-2.9 3.8-2.2 1-0.2 0.8-0.4 1.4-2.4 1.1-2.6 0.7-0.4 0.1-1.6-0.4-1.6-0.5-1.7-0.7-1.5-1.2-2-0.6-2.3 0.1-2.2-0.3-2.2-1.2-2.4-0.3-2.6 1-2.5 0.6-2.5-2.4-3.9 4.2-0.9 6.7-2.8 1.2-3.1-1.6-1.7-1-0.4-0.9-2.4 0.5-1.2 1.6-2 1.7-4.2 2.2-2 1.1-1.3 1.3-3.4 1.7-2.4 2.5-0.6 1.2 1.6 1.8-0.1 1 0.2 0.8 0.9 1.6 0.3 1.6-0.4 1.4 0.3 1.2 0.9 0.5 0.9 0.8 0.6 5.4 1.7 1-1.2 0.9-0.8 0.2-0.3 0.1-0.5 0.1-1.1 0.1-0.4z" id="TR19" name="Çorum"
-    fill={getPathFill('TR19')} class="cursor-pointer transition-all duration-200 hover:opacity-80"
-    onclick={() => handlePathClick('TR19')}
-    onmouseenter={() => handlePathHover('TR19')}
-    onmouseleave={() => handlePathHover(null)}
-  ></path>
-  <path d="M493.1 83.4l14.7 4.2 2.9-0.5 1.6 0.9 6.9 5.3 1.6 2.8 1.6 0.4 3.6-0.2 1.8 0.3 6.3 0.1 3.7 1.8 2-0.5 1.7-1.4 2.2-1.5 1.4-2.5 0.9-2.9 1.9-1.2 1.7 0.6 1.3 1.5 0.6 1.4 0.8 1.4 5.1 3.7-1.4 0.7 0 0.4 0.4 0 0 0.5-0.6 0.8 0.5 1.1 1 0.9 0.7 0.6 0.8 0.3 1 2.5-1.7 2.5-0.8 2 0 2.4-2.1 3-3.8 0.8-0.3 3.2-0.4 0.2-0.4 0.1-0.7 0.7-3.9 2.6-2.9 1.4-0.9 0-0.8-0.7-0.9-0.4-1.1-0.3-1.3-0.7-1.2-1-3.8-1.1-4 0.3-1.2 1.5-2.1 4.7-1.4 2.5-1.3 1.9-1.4 1.6-1.6 0.7-0.9 0.3-2.6 1-1.4 1.6-1.9 4-2.3-0.8-2.5 0.2-2.1-0.2-0.9-0.6-0.4-1.3-0.4-0.2 0.5-4.2 0-1.7 0.5-1.4 4.1-6.3 1.1-4.5 0-2.3-1.2-2.9-0.8-0.3-1.6-0.3-3.6-2.2-7.9-1.3-1.5-1-1.3-2.2-1.9-4.2-0.5-1.7 0.7-4.1 0.2-6.3 0.6-1.9 1-1.2 0.7-1.6-0.4-1.8z" id="TR05" name="Amasya"
-    fill={getPathFill('TR05')} class="cursor-pointer transition-all duration-200 hover:opacity-80"
-    onclick={() => handlePathClick('TR05')}
-    onmouseenter={() => handlePathHover('TR05')}
-    onmouseleave={() => handlePathHover(null)}
-  ></path>
-  <path d="M202.3 176.8l1.8 1.4 2.1 0.5 3.4 0.4 3.4-0.1 2.6-1.6 0.3-4.1 1-2.8 2.2-1.6 1.3-5 1-1 0.5-1.4 1-3.7 2.4-1.7 4.9 2 1.6 0.1 1.5-0.2 1.3-0.7 1.5-0.1-0.8 5.2 0.2 2.7 1.7 3.3 0.7 1 1.9 1.2 1.7 0.7 5.2 3.8 2.1 0.5 3.7-1 3.6-0.4 1.8-0.5 1.8 3 5.2 5 1.3 3.7 0.6 4.7 4.7 6.3 0.9 3.9-3.3 5.1-5.7 2.6-0.9 2.5-0.7 2.7-1.3 2.6-1.3 4.1-1.9 3.2-1.4 1.8-9.8 5.9 0-6.3-2.2-2.6-1.4-0.6-5.9-1.4-3 0.1-1.4 0.4-1.2 0.7-0.8 3.5-1.2 2.8-2.7 0.2-6 1.7-3.4 0.1-3.2-0.4-2.9-1.9-2.8 0-2.6 2.3 0.2-3.9-1-2.8-1.5-2.9 0.4-3.7-0.3-1.1-0.5-1-3.1-4.7-1.3-1-7.2-1.5-1-0.8-2.4-2.7 0.4-0.6-0.2-1.5-0.2-0.8 0.4-2.1 1.8-0.9 3.5-1.2 1.6-1.1 1.4-2.6 0.4-0.9 1.1-1.4 1.1-1.8 0.6-4.3 0.6-1.8 0.6-0.6 0.3-0.7 0-1.2 0.3-1.2 0.9-1.8z" id="TR43" name="Kütahya"
-    fill={getPathFill('TR43')} class="cursor-pointer transition-all duration-200 hover:opacity-80"
-    onclick={() => handlePathClick('TR43')}
-    onmouseenter={() => handlePathHover('TR43')}
-    onmouseleave={() => handlePathHover(null)}
-  ></path>
-  <path d="M368 352.8l0.4-4-0.8-4-1-1.4-1.5-0.3-2.2-0.2-2-0.8-0.7-1.6 0.5-1.8 1.2-0.9-0.2-1.9-1.5-0.9-1.8-0.8-3.2-3-1.4-1-1.4-1.3-2.1-3-2.4-2.5-3.3-2.3-3-2.8-4-2.6-12.2-2.6-4.7 0-2.1-0.8-1.8-1.5-1.2-1.2-1-1.3 1.3-3.3 0.4-3.6-0.6-2.2-1.2-1.8 0-2.1 2.1-0.6 1.5-2 0.2-2.8 2-3.1-0.1-4.7-1.1-4.7 1-4 1.6-0.9 3.3-1.3 3-1.9 0.4-2-3.5-3-1.1-1.6-1.6-0.7-3.3-2.8-2.9-3.7-3.7-3-1.3-4.5 8.3-5.5 3.7-3.8 4.1-5.4 0.2-1.4-0.2-1.2-0.1-1.2 0.8-3.3 1.4-2.9 3.6-6 0.4-2.4-0.8-0.5-1.5-1.5 0.2-0.8 0.3-0.8 0.6-4 2.8 0.3 3.8-0.7 0.7-0.9 0.3-1.8 0.2-1.8 2 0.9 2.1 1.3 6.8 5.7 1.7 0.5 5-1.5 2.4-0.3 4 1.4 1.6 0.9 1.7 1.6 2 0.2 2.8-2.4 3-1.4 3.6 1.5 2.1-1.2 1.8-2.3 4.8-4 2.3 0.7 2.7 2.2 2.1 0.3 0.7-1.1 0.4-3.2 0.5-1.6 0.9-1.3 2 0 2.1 1.6 0.8 0.5 2.7 0.8 4.7 3.4 2.5 5.9 0.3 3.3-0.2 3.3-0.6 3.6 0.1 3.5 1 2.5 1.3 2.3 1.5 2.2 1 2.4-0.9 1.7-2.7 3.1-1.1 2-0.7 4.8-1.7 2.6-1.1 3.2-0.3 2.3-0.7 2-0.4 5 1.8 4.6 0.6 0.5 0.5 0.6 0.4 2.5 0.7 2.3 3.2 4 1.9 1.8 2.1 0.1 5.6-1.2 7.4-0.5 3.8 0.1 3.7-0.9 3.7-1.5 3.6-0.8 3.5 0.6 0.7 3.1 1.5 2.4 2.3 0.9 2.2 1.2 1.8 2.6 1.7 2.9 1.9 1.8 1.5 2.2 0.5 3.4-1.1 3.1-1.1 1.3-0.7 1.6-0.3 2.7 0 1.7 1.8 2.6 1.2 1 1.8 1.9 1.1 2.6-0.6 1.9-0.9 0.6-2.5 0.9-1.4 0.7-2.1 2.1-2.7 1.3-4.2 1.5-1.3 0.8-1.6 1.9-1.1-2.3-3.2-5.4-2.8-3.1-3.9-4.1-5.3-5.9-1.1-3.8 0.2-0.9-0.4-3-1.9-0.7-4.7-0.2-2.2 1.4-1.4 1.8-2.3 3.1-4.8 1.8-7.4 0.5-7.1 0.9-4.5 1.8-2.5 2.8-5.6 6.2-5.7 7.9-4.5 5.8-1.2 4 0.3 2.1 2.9 1.3 2.9 0.2 0.7 1.6-0.2 1.8-1.4 2.2-6.8 6.7-5.4 4.1z" id="TR42" name="Konya"
-    fill={getPathFill('TR42')} class="cursor-pointer transition-all duration-200 hover:opacity-80"
-    onclick={() => handlePathClick('TR42')}
-    onmouseenter={() => handlePathHover('TR42')}
-    onmouseleave={() => handlePathHover(null)}
-  ></path>
-  <path d="M377.3 366.7l-0.9-1.9-1.9-1-1.6-1.1-1.3-1.6-1.9-4-1.7-4.3 5.4-4.1 6.8-6.7 1.4-2.2 0.2-1.8-0.7-1.6-2.9-0.2-2.9-1.3-0.3-2.1 1.2-4 4.5-5.8 5.7-7.9 5.6-6.2 2.5-2.8 4.5-1.8 7.1-0.9 7.4-0.5 4.8-1.8 2.3-3.1 1.4-1.8 2.2-1.4 4.7 0.2 1.9 0.7 0.4 3-0.2 0.9 1.1 3.8 5.3 5.9 3.9 4.1 2.8 3.1 3.2 5.4 1.1 2.3-3.3 1.3-3.6 0.3-1.7 0.7-4.6 3.5-3.5 0.7-1.7 0.9-1.2 0.1-1.6-0.5-3.9 0.4-3.8 1.5-6 0.5-2 0.6-1.7 1-1.5 1.4-1.6 1.1-1.8 0.6-1.5 1.9-0.6 2.6-1 1.7-1.7-0.4-0.4-0.7-0.1-0.5-0.6-0.3-1.4 0.5-2.1 1.4-0.8 0.3-1.8 0.3 0.1 1.9 1 1.2 0.8 1.4 0.4 1.7 0.7 1.6 1.2 0.5 0.9 1.2 1 0.8 2.5 0.7 2.2 1.6 1.1 1.8-1.2 1.6-1.8-0.7-1.7-0.9-0.7 0.1-0.7 0.3-0.7 1.9-0.5 2.1-1.2 1.2-1.5 0.2-2.9-0.1-2.8 0.6-2.7 1.3-2.9 0-3.1-0.8-3.1 0.4z" id="TR70" name="Karaman"
-    fill={getPathFill('TR70')} class="cursor-pointer transition-all duration-200 hover:opacity-80"
-    onclick={() => handlePathClick('TR70')}
-    onmouseenter={() => handlePathHover('TR70')}
-    onmouseleave={() => handlePathHover(null)}
-  ></path>
-  <path d="M478.9 310.3l-3.3-0.8-3.3 1.4-1.5 0.9-1.6 0.6-3.5 0.1-1.1-2.6-1.8-1.9-1.2-1-1.8-2.6 0-1.7 0.3-2.7 0.7-1.6 1.1-1.3 1.1-3.1-0.5-3.4-1.5-2.2-1.9-1.8-1.7-2.9-1.8-2.6-2.2-1.2-2.3-0.9-1.5-2.4-0.7-3.1 15.7-23.4 2.7 0.4 4.1-1.2 2.7-0.1 1.3 0.7 2 2 2.4 0.7 5-1.9 3.3 9.2 2.8 2.9 7.7 0.1 1.3 4.1-0.5 2.5 0.3 2.6 0.9 2.1 0.5 2.2-2.2 1.4-0.2 3.1-0.8 3.6-6.2 6.3-4.7 0.8-2.4-0.8-2.4-0.2-1.5 2.2 0.2 3 1.2 3 0.3 1.7-0.7 2.5-0.7 0.7-0.7 0.6-1.2 1.9-0.2 1.3 0 2.8z" id="TR51" name="Nigde"
-    fill={getPathFill('TR51')} class="cursor-pointer transition-all duration-200 hover:opacity-80"
-    onclick={() => handlePathClick('TR51')}
-    onmouseenter={() => handlePathHover('TR51')}
-    onmouseleave={() => handlePathHover(null)}
-  ></path>
-  <path d="M560.3 254.1l-2-2.1-1.2-3.2-1.8-2.8-2.5-1.1-3.8 1-3.7 2.1-2 1.7-2.1 5-1.3 1.9-2 4.1-2.6 3.5-17.6 12.2 1 11-2.5 1.2-5.8-2.3-4.3-1.1-8.2-0.7 0.8-3.6 0.2-3.1 2.2-1.4-0.5-2.2-0.9-2.1-0.3-2.6 0.5-2.5-1.3-4.1-7.7-0.1-2.8-2.9-3.3-9.2 1.3-2.6 1.9-2 4.2-6.7 0.2-2.9-0.5-2.8 0.2-2.8-3.3-4.3-2.2-4.4 1.3-3.1 1-3.3 0-1.5 0.1-1.5 0.5-1.3 0.7-1.1 10.7 1.7 5.4-3.4 2.1-0.7 15.4-10 4-5.6 2.5 0.2 2.3 1.2 0.4 0.6 0.6 1.3 0.4 0.5 1.5 0.6 1.6 0.2 4.5 3.3 4.7 0.7 3.6-1.3 7.9 1.1 2.3 1.8 2.4 0.8 4.3-1.4 4.4 0 4.1 0.7 3.8 2.1 1.7 5.4-2 5.8-1.1 2.2-0.9 2.3-1.3 4.8-1.9 5.6-0.2 1-0.3 0.9-1.2 2-0.1 2.5-1.6 1-0.9 1.9-0.6 3.2-1.5 2.4-3.7 4.3-1.5 2.2-1.7 1.8z" id="TR38" name="Kayseri"
-    fill={getPathFill('TR38')} class="cursor-pointer transition-all duration-200 hover:opacity-80"
-    onclick={() => handlePathClick('TR38')}
-    onmouseenter={() => handlePathHover('TR38')}
-    onmouseleave={() => handlePathHover(null)}
-  ></path>
-  <path d="M314.6 308.3l-2.5-0.4-2.4 0.9-2.2 1.6-2.6 0.4-4.9 1.7-4.2-1.7-0.7-1.7-1-1.4-1.4-0.2-0.7 0.1-0.9-1.1-0.4-1-2.9-4.4-1.3-2.9-1.6-4.8-2.8-1.8-3 0.1-3.3-0.6-2.1-1.6-1.8-2-2.2-3-2.3-1.6-2.2 2.3-1.3 0.9-1.4 0.7-5.2 3.8-1.8 0.8-1.8-0.6-0.9-1.8-0.7-2 3.7-0.1 3.4-1.9 1.6-2.9 0.6-6.2 1-1.9 3.2-1.9 4.3-4.2 1.9-1.1 2.4-2.2 2.4-2.7 1.7-0.7 1.9-0.5 2.6-2.2 1-0.2 1.1-0.1 3.6-1.4 3-2.8 2.9-3.4 5.9-4.8 2.4-2.6 0.9-0.8 1.2 0.2 0.9 0.6 0.9 0.7 2.1 3.1 1.1 0.7 1.2 0.3 1.3 4.5 3.7 3 2.9 3.7 3.3 2.8 1.6 0.7 1.1 1.6 3.5 3-0.4 2-3 1.9-3.3 1.3-1.6 0.9-1 4 1.1 4.7 0.1 4.7-2 3.1-0.2 2.8-1.5 2-2.1 0.6 0 2.1 1.2 1.8 0.6 2.2-0.4 3.6-1.3 3.3z" id="TR32" name="Isparta"
-    fill={getPathFill('TR32')} class="cursor-pointer transition-all duration-200 hover:opacity-80"
-    onclick={() => handlePathClick('TR32')}
-    onmouseenter={() => handlePathHover('TR32')}
-    onmouseleave={() => handlePathHover(null)}
-  ></path>
-  <path d="M128.9 189.6l3.6-1.9 2.2 1 2.1 1.7 3.3 1 3.3-0.5 2 0.2 1.9 0.9 0.7 0.1 1.5-0.3 0.8 0 1.2 1.9-1.4 2.6-0.6 2.1 1.9 0.9 3.5-1.3 0.8 0.4 0.3 0.9 3.9 4.3 2.5 5.5 2.1 0.7 2-0.8 2.1-0.4 1.8-1.1 1.3-1.7 1.9-0.4 2 0.2 1.8-0.2 1.8-0.5 4.4-2.2 4.1 0.6 2.4 2.7 1 0.8 7.2 1.5 1.3 1 3.1 4.7 0.5 1 0.3 1.1-0.4 3.7 1.5 2.9 1 2.8-0.2 3.9-1.7 1.7-3.7 2.9-0.5 1.2-1.4 1.6-1.4 0.5 0.2 2.1 1.3 0.5 1.1 1.3 0.2 1.4 0 1.4 0.4 3-0.3 2.8-0.7 1.9-0.9 1.5-1.3 1.2-0.5 0.9 1.2 0.9 1.5 0 1.7 2-4.4 1-2.1 4.1 0.2 1.6-0.6 1.5-2 0.9-2.1 0-6.5-0.1-2.1-3.2-2-6.2-1.3-1.7-2.1-0.6-1.1-0.1-1.7-0.5-0.9-1.1-1.3-0.2-1.8 0.6-4.6 0.7-1.3-3-2-2.1-1.4 0.4-1.4-0.1-2.3-1-2.3-0.1-0.8 1.9-1.1 2-2.4 0.6-2-1.9-0.4-0.9-0.5-1.9-0.4-0.9-3.7-1.7-3.3-2.3-0.8-3.4-1.5-1.4-0.9-0.2-5.4 0.2-3.3-0.3-2.8-2.5-1.3-4.2-1.1-1.4-0.7-0.3-1.3-1.3 0.2-1.3 1.3-2.2 1.5-1.5 0.8-2 0.3-2.4 0.6-2.2 2.6-1.8 3-1.2 3.1-2.6 1.3-1.5 0.3-3.2-1.7-3.3-0.8-2.2-1.6-7.4-1.8-4.7z" id="TR45" name="Manisa"
-    fill={getPathFill('TR45')} class="cursor-pointer transition-all duration-200 hover:opacity-80"
-    onclick={() => handlePathClick('TR45')}
-    onmouseenter={() => handlePathHover('TR45')}
-    onmouseleave={() => handlePathHover(null)}
-  ></path>
-  <path d="M185.3 305l-0.2-0.9-0.4-0.8-0.5-0.4-0.5-0.2-0.6-2.2 1-2.2 3.3-1 3.7 0.4 2.5-2.4 2.2-3.1 1.9-0.1 1.4-1 0.2-1.7-0.5-1.4-3-0.6-1-1.5-0.8-1.6-1-1.4 0.1-1.5 1.1-0.8 0.4-1.3-0.7-3.6 0.1-2.1-0.6-1.7-2.7-1.9-0.6-1.3-0.5-1.4 2.1 0 2-0.9 0.6-1.5-0.2-1.6 2.1-4.1 4.4-1 2.9 0.6 2.5 1.6 2.7 0 2.4-1.7 1.7 0.3 1.5 1.7 1.6 0.1 1.5-0.5 0.7-0.4 0.6-0.3 1.2 0.8 0.5-0.1 0.7-1.2 0-0.7 2.4-1.9 3.4 0.4 3.6-0.1 1.7-0.5 1.5-1.4-0.4-3.6 0.5-3.6 5.9-1.3 6.5 1.5 5.1 8.6 1.3 1.5 0.7 4-1.3 1.5-12.8 9.6-1.5 0.8-1.5 0.6-0.7 1.8-0.1 6.1 1.2 0.5 2.2-0.1 0.6 0.3 1.3 0.7 0.7 0.2 0.5 0.4 2.2 3.7-3.4 2.8-2 1.2-0.7 0.3-1.4 0.8-0.6 1.3-0.5 1.3-6 3.3-0.1 1.5 0.5 1.7-0.1 2.4 0.6 2.2 0.4 0 0.2 0 0.3 0.3 0.3 0.4 0.2 0.9-0.1 0.5-2.1 4.2-4.7 7-1.3 2.9-0.8 3.1-0.4 3.2-2.2 1.8-0.3 3.9-0.6 1.5-0.9 1.3-1.7 0.8-4.7-2.6-2.6-0.2-1.2-1.1-0.2-1-0.1-1.9-0.4-2.3-0.7-2.3-2.8-2.8-3.5-1.6-0.6-0.6-0.8-1.6-0.6-0.6-3.5-0.6-1.6-2.3-0.7-2.7-1.4-2.5-2.2-0.9-1.7 0-1.2-0.4-0.5-1.8 0-1.7 0.2-1.2-0.6-1z" id="TR20" name="Denizli"
-    fill={getPathFill('TR20')} class="cursor-pointer transition-all duration-200 hover:opacity-80"
-    onclick={() => handlePathClick('TR20')}
-    onmouseenter={() => handlePathHover('TR20')}
-    onmouseleave={() => handlePathHover(null)}
-  ></path>
-  <path d="M236.6 338.5l-4-5.6-5.7 0.8-2.3 2.9-1.9-0.7 0.8-3.5-1.1-3 0.4-3.2 0.8-3.1 1.3-2.9 4.7-7 2.1-4.2 0.1-0.5-0.2-0.9-0.3-0.4-0.3-0.3-0.2 0-0.4 0-0.6-2.2 0.1-2.4-0.5-1.7 0.1-1.5 6-3.3 0.5-1.3 0.6-1.3 1.4-0.8 0.7-0.3 2-1.2 3.4-2.8 3.8-1.4 4.2 0.3 0.7 2 0.9 1.8 1.8 0.6 1.8-0.8 5.2-3.8 1.4-0.7 1.3-0.9 2.2-2.3 2.3 1.6 2.2 3 1.8 2 2.1 1.6 3.3 0.6 3-0.1 2.8 1.8 1.6 4.8 1.3 2.9 2.9 4.4 0.4 1 0.9 1.1 0.7-0.1 1.4 0.2 1 1.4 0.7 1.7-3.3 2.9-0.9 2.6-2.9 3.1-1.8 0.5-3.7 0-4.3-0.5-6.6 0.3-1.1-0.4-2.9-3.6-2.9-0.4-7 3-2.9 0.5-8.6 4.4-2.6 3.6-0.7 4.4-1.9 3.5-1.3 1.3-1.1 1.6-1.3 0.7-1.4 0.2z" id="TR15" name="Burdur"
-    fill={getPathFill('TR15')} class="cursor-pointer transition-all duration-200 hover:opacity-80"
-    onclick={() => handlePathClick('TR15')}
-    onmouseenter={() => handlePathHover('TR15')}
-    onmouseleave={() => handlePathHover(null)}
-  ></path>
-  <path d="M416 234.6l4.1-1.1 3.9-2.2 4.2-1.2 4.2 0.2 1.8-0.9 4-3.8 0.1-3.6-1.9-5.1 1.6-4.1 0.7 1 1.9 0.4 1.1-0.1 1.8 0.8 0.7 2.5 1.9 1.6 2.4-1.4 1-0.3 2 0.3 1-0.2-0.5 2.5 1.6 5.4-0.8 3.1-1.7 2.7 0.7 3.1 2.2 1.4 2.4 0.7 2-0.4 1 0.3 0.4 2.8-1.4 3.1 0 2.9 0.9 0.8 1.9 1.5 1.6 1.7 1.8 1.1-15.7 23.4-3.5-0.6-3.6 0.8-3.7 1.5-3.7 0.9-3.8-0.1-7.4 0.5-5.6 1.2-2.1-0.1-1.9-1.8-3.2-4-0.7-2.3-0.4-2.5-0.5-0.6-0.6-0.5-1.8-4.6 0.4-5 0.7-2 0.3-2.3 1.1-3.2 1.7-2.6 0.7-4.8 1.1-2 2.7-3.1 0.9-1.7z" id="TR68" name="Aksaray"
-    fill={getPathFill('TR68')} class="cursor-pointer transition-all duration-200 hover:opacity-80"
-    onclick={() => handlePathClick('TR68')}
-    onmouseenter={() => handlePathHover('TR68')}
-    onmouseleave={() => handlePathHover(null)}
-  ></path>
-  <path d="M484.8 250.7l-5 1.9-2.4-0.7-2-2-1.3-0.7-2.7 0.1-4.1 1.2-2.7-0.4-1.8-1.1-1.6-1.7-1.9-1.5-0.9-0.8 0-2.9 1.4-3.1-0.4-2.8-1-0.3-2 0.4-2.4-0.7-2.2-1.4-0.7-3.1 1.7-2.7 0.8-3.1-1.6-5.4 0.5-2.5 5.3 4.5 1.9-0.5-0.2-1.4-0.5-2.7 1-3.3 5.7-2.4 2.6-1.6 3-1.3 1.9-2.6-1-2.3-1.4-2.5 0.6-4-0.6-3.1-1-1.9-0.4-2.2 0.2-1.4 1-0.6 3 0.8 2.8-0.5 0.7 0.2 1.4 0.6 0.4 0.8 0.2 1.3 0.4 1.2 1.2 1.4 1.5 0.8 1 1.9 0.6 2.4 3.8 2.4 1.1 1.9-0.5 1.4 0.2 1.4 0.4 1.3 0.7 1.5 0.7 1.5-0.7 1.1-0.5 1.3-0.1 1.5 0 1.5-1 3.3-1.3 3.1 2.2 4.4 3.3 4.3-0.2 2.8 0.5 2.8-0.2 2.9-4.2 6.7-1.9 2-1.3 2.6z" id="TR50" name="Nevsehir"
-    fill={getPathFill('TR50')} class="cursor-pointer transition-all duration-200 hover:opacity-80"
-    onclick={() => handlePathClick('TR50')}
-    onmouseenter={() => handlePathHover('TR50')}
-    onmouseleave={() => handlePathHover(null)}
-  ></path>
-  <path d="M513 139.7l3.3 3.7 3.8 2.6 4.4-0.4 3.7 0.8 2.2-0.2 2.3-0.5 1.9-0.8 2-0.6 2 1.9-0.3 3.5-0.1 2.4 0.9 1.8 0.9 0.9 0.5 1.3 1.4 4.5 2.3 4.1 1.6 0.9 0.5 1.4 0.1 1.4-1.4 5.1-3.4 3.4-4.1 3.2-1.7 2-1.4 2.3-1.2 2.3-1.5 2-2.1 1.6-1.8 2.1-4 5.6-15.4 10-2.1 0.7-5.4 3.4-10.7-1.7-0.7-1.5-0.7-1.5-0.4-1.3-0.2-1.4 0.5-1.4-1.1-1.9-3.8-2.4-0.6-2.4-1-1.9-1.5-0.8-1.2-1.4-0.4-1.2-0.2-1.3-0.4-0.8-1.4-0.6-0.7-0.2-1.3-2.9-2-1.8-2.4-0.4-2.1-1.4-6.6-8-0.6-1.3-0.4-1.4-0.9-1.3-3.7-0.1-2.2-0.7-2.4-2.7-2.5-2.3-2.6-0.1-0.9-0.8-1-1-0.5-1.3 0.2-1.3-0.2-1.3-0.5-1.2 2.7-1.3 7.5-0.9 4.5-2.1 4.6-1.5 7.3 1.3 2.8-1.1 1.9 0.2 3.8-0.2 7.2-3.5 4 1.2 2.2-0.2 3.7-2.3 1.3-1.7 0.1-1.2 0.5-1.4 0.1-1-0.6-0.7 0.5-2.8 4.6-0.4 1.9-0.7 0.4 0.2 0.4 1.3 0.9 0.6 2.1 0.2 2.5-0.2 2.3 0.8z" id="TR66" name="Yozgat"
-    fill={getPathFill('TR66')} class="cursor-pointer transition-all duration-200 hover:opacity-80"
-    onclick={() => handlePathClick('TR66')}
-    onmouseenter={() => handlePathHover('TR66')}
-    onmouseleave={() => handlePathHover(null)}
-  ></path>
-  <path d="M438 212.8l0.4-2-3-1.1-0.6-0.7-1.6-0.6-2.5-0.2-1-0.7-0.7-1.2-0.7-0.6-0.8-0.3-2.4-2-5.4-3.4-0.9-3.4 5.3-9.3 7.7-6.3 3.3-5.2 2.1-6.3 7.6-7.3 1 1 0.9 0.8 2.6 0.1 2.5 2.3 2.4 2.7 2.2 0.7 3.7 0.1 0.9 1.3 0.4 1.4 0.6 1.3 6.6 8 2.1 1.4 2.4 0.4 2 1.8 1.3 2.9-2.8 0.5-3-0.8-1 0.6-0.2 1.4 0.4 2.2 1 1.9 0.6 3.1-0.6 4 1.4 2.5 1 2.3-1.9 2.6-3 1.3-2.6 1.6-5.7 2.4-1 3.3 0.5 2.7 0.2 1.4-1.9 0.5-5.3-4.5-1 0.2-2-0.3-1 0.3-2.4 1.4-1.9-1.6-0.7-2.5-1.8-0.8-1.1 0.1-1.9-0.4-0.7-1z" id="TR40" name="Kirsehir"
-    fill={getPathFill('TR40')} class="cursor-pointer transition-all duration-200 hover:opacity-80"
-    onclick={() => handlePathClick('TR40')}
-    onmouseenter={() => handlePathHover('TR40')}
-    onmouseleave={() => handlePathHover(null)}
-  ></path>
-  <path d="M205.4 229.4l2.6-2.3 2.8 0 2.9 1.9 3.2 0.4 3.4-0.1 6-1.7 2.7-0.2 1.2-2.8 0.8-3.5 1.2-0.7 1.4-0.4 3-0.1 5.9 1.4 1.4 0.6 2.2 2.6 0 6.3-0.3 2.5-0.7 2.3-2.9 2.8-0.6 2.4-0.9 2.5-1.1 1.4 0.1 1.7-5.9 1.3-0.5 3.6 0.4 3.6-1.5 1.4-1.7 0.5-3.6 0.1-3.4-0.4-2.4 1.9 0 0.7-0.7 1.2-0.5 0.1-1.2-0.8-0.6 0.3-0.7 0.4-1.5 0.5-1.6-0.1-1.5-1.7-1.7-0.3-2.4 1.7-2.7 0-2.5-1.6-2.9-0.6-1.7-2-1.5 0-1.2-0.9 0.5-0.9 1.3-1.2 0.9-1.5 0.7-1.9 0.3-2.8-0.4-3 0-1.4-0.2-1.4-1.1-1.3-1.3-0.5-0.2-2.1 1.4-0.5 1.4-1.6 0.5-1.2 3.7-2.9 1.7-1.7z" id="TR64" name="Usak"
-    fill={getPathFill('TR64')} class="cursor-pointer transition-all duration-200 hover:opacity-80"
-    onclick={() => handlePathClick('TR64')}
-    onmouseenter={() => handlePathHover('TR64')}
-    onmouseleave={() => handlePathHover(null)}
-  ></path>
-  <path d="M667.5 148l2 0.1 4.2-0.3 1.9-0.9 1.3 0.8 1.4 0.6 1.4 0.3 1.4 0.3 5.2 3.1 1.8 0.7 1.8 1.1 0.7 1.1 0.8 0.8 2.9 0.9 2.8 1.4 2.9 0.3 2.8-0.3 2.8 0.2 2.7-0.2 2.6-1.3 5.3-1.3 2.1-2.2 1.8-2.7 2.5-1 2.7 0.3 2.4-0.3 1.9-1.8 2.3-0.8 7.7 1.5-1.4 3.3-0.4 3.6 2.5 1.3 8.1 0.1 3.2 4.2-0.1 1.8 0.2 1.7 0.7 1.2 0.8 1.1 1.8 1.4 2 0.8 1.6 1.8-1.1 2.6-1.7 3.1-0.1 3.9-3.1-1.1-3.9-0.1-3.8-0.6-7.1-0.2-0.9-0.5-1.8-0.7-0.5 0-0.2 0.2-1.5 0.4-1.8 0.9-1 0.1-4.4 1.6-3.7-1-2.5-1.5-1.8 0.6-2.2 2.7-3.3 1.1-7.2 1.1-3.8 0.1-3.6-1-3.7-0.2-1.9 1-2 0.5-2.4-0.4-2.5 0.5-4.7 1.8-1.3 1-0.9 1.7-1.2 0.6-1.3-0.1-0.7 1-0.6 1-0.5 0.3-2.9 1.1-0.7 1.9 0.6 1.9 0.7 1.1-1.3 0.8-1.3 0.3-1.1 0.7-0.7 3.5-1.1 0.5-0.2 0-0.4 0.4-0.2 1.4 0.2 1.4 0.4 0.3 0.4 0.4 0.4 3.8-1.5 0.3-1.2 0.6-3.1-3.6-2-1.2-2.2-0.9-4.5-0.2-3.7-1.9 1-1.6 0.4-2.1-0.2-1-0.3-0.9 0.1-1.2 0.2-1.1-0.3-1.8-0.6-1.8 0-2-0.1-1.1-0.2-0.7 0.6-0.1 0.4-0.5 0.4-0.5 0.5-0.5 1.7-1.1 0.4-1-1.1-1.5-1.5-1-1.7-1.6-0.6-2.3 1.1-2.2 0.6-6.4 2.3-3.1 1.2-2.1 1.8-0.9 0.9 0 1-0.2 0.5-1.7-1-1.2-3.5 0.9-3.3 0.1-0.4-1.9 1.8-5.2 2.1-1.2 2.2 1.7 2.3 0.4 2.3-1.6 2.5-0.6 2.1 0.4 2.2 0 1-2.4 0.2-3.1z" id="TR24" name="Erzincan"
-    fill={getPathFill('TR24')} class="cursor-pointer transition-all duration-200 hover:opacity-80"
-    onclick={() => handlePathClick('TR24')}
-    onmouseenter={() => handlePathHover('TR24')}
-    onmouseleave={() => handlePathHover(null)}
-  ></path>
-  <path d="M666.7 210.6l-0.4-3.8-0.4-0.4-0.4-0.3-0.2-1.4 0.2-1.4 0.4-0.4 0.2 0 1.1-0.5 0.7-3.5 1.1-0.7 1.3-0.3 1.3-0.8-0.7-1.1-0.6-1.9 0.7-1.9 2.9-1.1 0.5-0.3 0.6-1 0.7-1 1.3 0.1 1.2-0.6 0.9-1.7 1.3-1 4.7-1.8 2.5-0.5 2.4 0.4 2-0.5 1.9-1 3.7 0.2 3.6 1 3.8-0.1 7.2-1.1 3.3-1.1 2.2-2.7 1.8-0.6 2.5 1.5 3.7 1 4.4-1.6 1-0.1 1.8-0.9 1.5-0.4 0.2-0.2 0.5 0 1.8 0.7 0.9 0.5 7.1 0.2 3.8 0.6 3.9 0.1-1.8 2.3-2.4 1.1-1.3-0.1-2.2-0.4-0.8 0.7-1.3 2.7-2.2 1.6-2.3 0-2.2 0.8-0.4 1.2-0.4 1-0.7 0.3-3.3-0.2-2.4 0.8-0.7 1.2-0.2 3-0.6 1.6-0.2 1.6 1 4.6-0.4 2.1-0.8 1.9-2.6 0.1-2.3 0.6-0.9 0.6-0.7 1 0.5 2.3 0.3 2.2-0.7 2.9-1.3 2.6-2.9 3.2-4.4 1.7-4.6 0.4-1.7-0.2-1.7 0.4-1.2 1.5-1.4 1.1-1.2-0.4-1.2-0.6-0.8 0.2-0.4 0.1-1.1-1.3-0.9-0.7-2.1-0.6-2-1.5-2.2-1-2-0.2-1.9-0.6-1.5-0.1-1.5-0.9-0.5 0-0.9 0.2-0.5 0.1-2-0.9-3.7 0.3-3.7 1-1.4-0.1-2-2 0-1.7 0.7-1.6-0.1-1.8-1.8-2.7z" id="TR62" name="Tunceli"
-    fill={getPathFill('TR62')} class="cursor-pointer transition-all duration-200 hover:opacity-80"
-    onclick={() => handlePathClick('TR62')}
-    onmouseenter={() => handlePathHover('TR62')}
-    onmouseleave={() => handlePathHover(null)}
-  ></path>
-  <path d="M272.4 200.3l1.7 0.4 1.3 1.3 0.7 1.9 1.1 1.4 0.8 0.5 0.8 0.6 2.1 1.2 2.2-0.4 1.7-0.8 3.2-2.1 3-3 1.6-1.3 2.4 1.1 2.1 2.4 3.4-1.5 3.5-2.7 1.8-0.5 1.7-1.1 1.7-1.5 1.9-0.5 3.4 3.5 2.3 5.4 3.6 2.7 6.1-0.6 3.7 0.1 1.8 0.5-0.6 4-0.3 0.8-0.2 0.8 1.5 1.5 0.8 0.5-0.4 2.4-3.6 6-1.4 2.9-0.8 3.3 0.1 1.2 0.2 1.2-0.2 1.4-4.1 5.4-3.7 3.8-8.3 5.5-1.2-0.3-1.1-0.7-2.1-3.1-0.9-0.7-0.9-0.6-1.2-0.2-0.9 0.8-2.4 2.6-5.9 4.8-2.9 3.4-3 2.8-3.6 1.4-1.1 0.1-1 0.2-2.6 2.2-1.9 0.5-1.7 0.7-2.4 2.7-2.4 2.2-1.9 1.1-4.3 4.2-3.2 1.9-1 1.9-0.6 6.2-1.6 2.9-3.4 1.9-3.7 0.1-4.2-0.3-3.8 1.4-2.2-3.7-0.5-0.4-0.7-0.2-1.3-0.7-0.6-0.3-2.2 0.1-1.2-0.5 0.1-6.1 0.7-1.8 1.5-0.6 1.5-0.8 12.8-9.6 1.3-1.5-0.7-4-1.3-1.5-5.1-8.6-6.5-1.5-0.1-1.7 1.1-1.4 0.9-2.5 0.6-2.4 2.9-2.8 0.7-2.3 0.3-2.5 9.8-5.9 1.4-1.8 1.9-3.2 1.3-4.1 1.3-2.6 0.7-2.7 0.9-2.5 5.7-2.6 3.3-5.1z" id="TR03" name="Afyonkarahisar"
-    fill={getPathFill('TR03')} class="cursor-pointer transition-all duration-200 hover:opacity-80"
-    onclick={() => handlePathClick('TR03')}
-    onmouseenter={() => handlePathHover('TR03')}
-    onmouseleave={() => handlePathHover(null)}
-  ></path>
-  <path d="M418.8 196.6l-3.8-7.4-1.9-8.8-1.3-2.3-3.8-4.6-1.2-5.3 1.4-5.2 1.2-5.2 2.2-5.3 3.5-1.5 5.5-0.6 0.6-3.6-0.3-3.7 0-4.2 0.6-3.5 0.6-5.1 13.1 4.2 4.4 0.4 0.6 2.9 1.9 4.5 1.2 1.2 1.2 0.1 0.9 1 0.1 0.7 0 0.7 0.7 1.8-0.2 2.1-1 1.5-1.2 2.5 0 3.2 0.5 1.2 0.2 1.3-0.2 1.3 0.5 1.3-7.6 7.3-2.1 6.3-3.3 5.2-7.7 6.3-5.3 9.3z" id="TR71" name="Kinkkale"
-    fill={getPathFill('TR71')} class="cursor-pointer transition-all duration-200 hover:opacity-80"
-    onclick={() => handlePathClick('TR71')}
-    onmouseenter={() => handlePathHover('TR71')}
-    onmouseleave={() => handlePathHover(null)}
-  ></path>
-  <path d="M613.5 302.5l-0.1 1.8 0.3 1.7-0.6 2.7-2 1.4-3-0.1-3 0.4-6.3 2.2-6 1.1-2.6 1.3-4.3 4.6-3.7-1.2-1.3-5.3-2.3-1.5-2.3 3.1-5.7 2.6-2.1-3.1-2.6-2.4-1.6-1.1-1.8-0.5-3.9 0.8-1.3 0.3-1.8 0.6-1.6 0.3-0.8-0.9-0.6 0.3-0.5 0.2-0.5 0.2-0.3 0.6-0.5 0.1-1.9-2.4-0.3-4-0.5-0.7-0.6-0.7-0.6-1.7 0.4-1.8 1.3-1.4 1.1-1.8 0-4.7 1.3-1.7 0.9-0.5 1.6-1.6 0.1-2.4-1.5-3.7-0.3-2.9 0.1-1.8 0.6-4 1.4-3.8 2.4-10.7 1.5-3.8 2.6-2.5 1.7-1.8 1.5-2.2 3.7-4.3 1.5-2.4 0.6-3.2 0.9-1.9 1.6-1 6.3-1.5 6.1 0.9 1.2 0.7 1.2 0.6 10.7-0.9-2.8 4.7 0.6 3.6 0.8 0 1.8-0.4 0.9-0.1 7 1.5 6.1 3.6 3.2 1 3.7 1.7 2.4 4.1-0.3 2.5-2.6 6.9-0.3 1.8-0.9 1.4-0.7 0.8-1.1 1.8-2.5 8.8-1.9 3.6-2.3 2.9-2.7 2.3-1.8 2.4-0.1 3.5 1.7 2.8 2.8 1 5.2 3.2z" id="TR46" name="K. Maras"
-    fill={getPathFill('TR46')} class="cursor-pointer transition-all duration-200 hover:opacity-80"
-    onclick={() => handlePathClick('TR46')}
-    onmouseenter={() => handlePathHover('TR46')}
-    onmouseleave={() => handlePathHover(null)}
-  ></path>
-  <path d="M841.7 182.8l1.4 3.8 1.9 3.4 1.5 1.4 1.5 1.7 0.8 1.7 1.2 1.2 1.7 2.5-0.2 4 0.2 0.8 0.1 0.9-0.5 2.4-0.4 3 0.2 3.2-3.5 2.8-3.9 1.5-7.7-0.9-1.7 0.6-1.5 1.1-1.9 0.8-2.1 0.2-0.9 0.7-0.6 2.8-1 0.9-4.2-0.1-0.9 2.2 1.5 2.4 0.3 2.6-2 1.7-2.8 3.1-3.3 1.9-8.1-0.6-7.3 2.8-0.5 0.8-2.7 0.3-2.6 0.9-1.4-0.5-0.6-1.6 0.6-2.5-0.6-2.4-3.2-2.3-2.4-3.2-0.3-1.6-0.6-1.4-1-0.9-0.6-0.2-1-1.4-1-3.5 1.4-4.8 3.3-4.1 0.6-2.4-0.3-2.7-1.3-2.4-0.9-0.9-1.1-1.9 0.1-1.9 0-1-0.4-1.1-0.3-0.5-0.8-1.8 0.3-1.4 1.3-2.4 7.6-1.3 3.8 0.9 1.8 1.2 4.6 4.6 2.8 3.9 1.1 1 4.1 1.6 4.1 0.2 1.8-1.4 2-1.2 5.8-1 1.5-1.3 0.9-1.1 3.2-2 1.4-2.3-0.3-2.8 1-2.7 6.5-3.3 1.8-0.1 1.8-0.3 0.9-0.3z" id="TR49" name="Mus"
-    fill={getPathFill('TR49')} class="cursor-pointer transition-all duration-200 hover:opacity-80"
-    onclick={() => handlePathClick('TR49')}
-    onmouseenter={() => handlePathHover('TR49')}
-    onmouseleave={() => handlePathHover(null)}
-  ></path>
-  <path d="M834.5 93.6l1 4.9 2.4 3.7 1.8 1.2 1.3 1.7 1 2.4 1.4 2.1 1.9 1.9 1.4 2.6-0.3 2.1-0.7 2.2 1.1 6.2-1.9 1.2-2 0.9-1.6 1.1-1.5 1.2-3 1.7-6.9 2.4-1.5 3.3 1.7 2 1 1.7 1.1 1.3 4.1 0.7 1.5 0.5 1.4 1 0.8 1.1 0.6 1.3 0.8 0.6 1 0.3 1.9 0.8 1.2 1.9 1.1 2.5 1.4 2.3-1.3 1.5-1.6 0.9-1.2-0.1-0.6 0.1-1.2 0.5-1 1.5-1.7 0.6-3.6-0.6-1.7 0.7 3.9 4.7 6.7 2.8-0.6 0.4-0.5 1.7 0.1 8.3-0.5 2.9-1.5 2.5-0.9 0.3-1.8 0.3-1.8 0.1-6.5 3.3-1 2.7 0.3 2.8-1.4 2.3-3.2 2-0.9 1.1-1.5 1.3-5.8 1-2 1.2-1.8 1.4-4.1-0.2-4.1-1.6-1.1-1-2.8-3.9-4.6-4.6-1.8-1.2-3.8-0.9-7.6 1.3-2-3.5-2.1-2.5-2.9-0.3-3.5-1.7-4.6-4.3-1.5-0.9-1.4 0.7-1.4 1-4.2 1.9-4.2-0.6 0.1-3.9 1.7-3.1 1.1-2.6-1.6-1.8-2-0.8-1.8-1.4-0.8-1.1-0.7-1.2-0.2-1.7 0.1-1.8-3.2-4.2-8.1-0.1-2.5-1.3 0.4-3.6 1.4-3.3 7.8 1 1.7-0.3 2.1-1.6 2-2 2.7-1.3 5.9-2.1 1.3-1.7 1.2-2.2-0.2-1.2-3.1-0.3-1.4-0.6-3.1-0.7-2.9-1.7-1.2-3.8-1.4-8.5-1.5-3.8 7.7-3.8 1.9-0.6 1.9-0.2 2.9-0.8 1.4-3.6 1.7-0.7 2.1 0 2-0.7 5.1-4.4 3.6-2.1 3.7 2.1 5.9 0.9 1.7 0.6 0.4 2.1-1.3 2.2-0.6 5.3 3.2 2.9 4.4-1.7 4-2.6 3.7-1.1 3.8 1.1 4 2.3 2.2-3.3 0.1-2.8 0.9-2.5 1.9-1.9 1.2-2.5-0.3-2.7 0.6-2.5 1.5-1.3 1.6-0.8 3.2-0.3 3.3 0.3 2.8-0.6 2.8-0.3z" id="TR25" name="Erzurum"
-    fill={getPathFill('TR25')} class="cursor-pointer transition-all duration-200 hover:opacity-80"
-    onclick={() => handlePathClick('TR25')}
-    onmouseenter={() => handlePathHover('TR25')}
-    onmouseleave={() => handlePathHover(null)}
-  ></path>
-  <path d="M597.3 237.1l2.8-1.3 2.4-2.2 2.4-2.9 1.1-0.4 2-1.3 3.4-3.7 0.8-2.3-0.3-1.3-0.6-1.3-0.8-2.7-0.5-2.9 1-2.4 2.1-0.5 4.1 2 3.9-0.9 1.7-1.1 1.8-0.8 1.7-1.1 1.8-0.9 3.7-0.1 1.6-0.7 1.7-0.3 3.2 0.5 3.1-0.9 3.4-2.6 3.7-1.3 3.7 1.9 4.5 0.2 2.2 0.9 2 1.2 3.1 3.6-3.4 0.2-1.3 1.7 0 2.5 0.8 1.6 0.6 1.8 0.2 3.7 0 1.4 0.6 1.8-0.2 0.4 0.1 0.8-0.1 0.6-0.6 0.3-5.2-0.5-1.2 0.2-0.6 0.7 0.3 1-0.3 1.1-0.5 0.9-0.7 0.4-1.2 0.2-0.9 0.5-0.7 0.8-0.6 0.9-0.2 0.7-0.3 1.1-0.7 1.3 0.1 0.4 0.3 0.3 0.2 0.6 0.1 1 0.4 1.2 0.7 1.1 0.7 0.7 0.6-0.6 0.5 0.3 0.8 1.1 0.7 0.6 0.6 0.3 0.6 0.2 2.7 0.4 1.3 0.3 0.2 0.1 0.8 0.8 0.3 0 0.3-0.2 0.4 0 3.8 2 1.4 0.1 2.9-1.1 1.5-0.2 1.1 0.8-0.3 0.5 1.2 0.8 0.4 0.4 1.1 1.8 0 0.3 1.3 0.2 0.8 0.5 1.4 1.3 1.6 0.3 3.9-1.3 1.9 0.2 0.9 0.9 0.6 1.3 0.1 1.4-1.6 5.6-2.1 2.5-2.6 1.2-2 0.5-1.9 0.9-1.3 0.3-1.4 0-3.5 0.7-3.3-0.4-3.3 0-2.8-0.8-0.8-0.5-0.8-0.4-0.3-1.3 1-0.6 1.8-1.8-0.2-1.9-2.8-0.6-2.8 0.8-3.3 0.1-3.5 3.9-3 4.5-3.7 2.1-1.2 2.3-0.1 3.2-2.9 2.6-4 1-1.7 0.8-1.7 0.6-2-0.3-2-0.6-4.4 0.6-4.2 1.7-6.7 1.3 1.9-3.6 2.5-8.8 1.1-1.8 0.7-0.8 0.9-1.4 0.3-1.8 2.6-6.9 0.3-2.5-2.4-4.1-3.7-1.7-3.2-1-6.1-3.6-7-1.5-0.9 0.1-1.8 0.4-0.8 0-0.6-3.6 2.8-4.7z" id="TR44" name="Malatya"
-    fill={getPathFill('TR44')} class="cursor-pointer transition-all duration-200 hover:opacity-80"
-    onclick={() => handlePathClick('TR44')}
-    onmouseenter={() => handlePathHover('TR44')}
-    onmouseleave={() => handlePathHover(null)}
-  ></path>
-  <path d="M664 211.5l1.2-0.6 1.5-0.3 1.8 2.7 0.1 1.8-0.7 1.6 0 1.7 2 2 1.4 0.1 3.7-1 3.7-0.3 2 0.9 0.5-0.1 0.9-0.2 0.5 0 1.5 0.9 1.5 0.1 1.9 0.6 2 0.2 2.2 1 2 1.5 2.1 0.6 0.9 0.7 1.1 1.3 0.4-0.1 0.8-0.2 1.2 0.6 1.2 0.4 1.4-1.1 1.2-1.5 1.7-0.4 1.7 0.2 4.6-0.4 4.4-1.7 2.9-3.2 1.3-2.6 0.7-2.9-0.3-2.2-0.5-2.3 0.7-1 0.9-0.6 2.3-0.6 2.6-0.1 10.9-5.9 1.6-0.5 3.9-1.7 1.5 2.9-2 3.9-2.4 3.3-1 4.3 1.2 4.8 2.9 3.5 0.8 2-0.3 2.2-0.6 2.4-0.9 1.6-1.6-0.5-1.4-0.3-2.3 6.4 2.6 3.8 0.5 2.7 0.2 2.8-15.9 0.5-0.8-0.3-1.7-1.3-1-0.5-2.2 0.4-0.7 2-1.1 1.9-1.2 1.9-1.4 0.9-1.6 0.6-3.7-0.2-3.6 0.3-1.3 0.8-3.7 0.5-2 0.8-4-0.3-3.9-1-6.6 1.1-1.9-0.2-3.9 1.3-1.6-0.3-1.4-1.3-0.8-0.5-1.3-0.2 0-0.3-1.1-1.8-0.4-0.4-1.2-0.8 0.3-0.5-1.1-0.8-1.5 0.2-2.9 1.1-1.4-0.1-3.8-2-0.4 0-0.3 0.2-0.3 0-0.8-0.8-0.2-0.1-1.3-0.3-2.7-0.4-0.6-0.2-0.6-0.3-0.7-0.6-0.8-1.1-0.5-0.3-0.6 0.6-0.7-0.7-0.7-1.1-0.4-1.2-0.1-1-0.2-0.6-0.3-0.3-0.1-0.4 0.7-1.3 0.3-1.1 0.2-0.7 0.6-0.9 0.7-0.8 0.9-0.5 1.2-0.2 0.7-0.4 0.5-0.9 0.3-1.1-0.3-1 0.6-0.7 1.2-0.2 5.2 0.5 0.6-0.3 0.1-0.6-0.1-0.8 0.2-0.4-0.6-1.8 0-1.4-0.2-3.7-0.6-1.8-0.8-1.6 0-2.5 1.3-1.7 3.4-0.2z" id="TR23" name="Elazig"
-    fill={getPathFill('TR23')} class="cursor-pointer transition-all duration-200 hover:opacity-80"
-    onclick={() => handlePathClick('TR23')}
-    onmouseenter={() => handlePathHover('TR23')}
-    onmouseleave={() => handlePathHover(null)}
-  ></path>
-  <path d="M851.1 212.8l2-1.3 2.3-0.7 1.6-1 1.6-1.3 8.8-1.9 0.1 4.6 1.4 3.1 5.6 3.4 1.9 3-1.4 4.5-3.4 2.6-2.6 2.8-4.4 6.5-0.8 1.9-1 1.7-3 2.1-5.1 2.9-0.8 0.9-0.5 2.5 0.3 1.3 1.7 3.9 0.2 0.7 0.1 1.6-0.5 2.1 0.9 3.1 2.5 0.9-1.3 4-0.6 0.7-0.5 0.8 0 1.8 0.2 1.9-0.2 2.8-1.4 2.1-1.8 0.2-3.2-2.4-4.8-2.7-3-2.2-2.1-0.9-3.3-0.8-3.4-1.4-3.1-2.4-2.8-2.8-3.2-1.5-4.1 1.6-4.1 1-5.1-0.4-4.9-1.9-0.1-1.3 0.2-1.4 0-2.2-0.2-2.2-1.1-3.3-1.7-8.2-4-1.5 0.5-0.8 7.3-2.8 8.1 0.6 3.3-1.9 2.8-3.1 2-1.7-0.3-2.6-1.5-2.4 0.9-2.2 4.2 0.1 1-0.9 0.6-2.8 0.9-0.7 2.1-0.2 1.9-0.8 1.5-1.1 1.7-0.6 7.7 0.9 3.9-1.5 3.5-2.8z" id="TR13" name="Bitlis"
-    fill={getPathFill('TR13')} class="cursor-pointer transition-all duration-200 hover:opacity-80"
-    onclick={() => handlePathClick('TR13')}
-    onmouseenter={() => handlePathHover('TR13')}
-    onmouseleave={() => handlePathHover(null)}
-  ></path>
-  <path d="M752.6 179.2l3.1 1.1 4.2 0.6 4.2-1.9 1.4-1 1.4-0.7 1.5 0.9 4.6 4.3 3.5 1.7 2.9 0.3 2.1 2.5 2 3.5-1.3 2.4-0.3 1.4 0.8 1.8 0.3 0.5 0.4 1.1 0 1-0.1 1.9 1.1 1.9 0.9 0.9 1.3 2.4 0.3 2.7-0.6 2.4-3.3 4.1-1.4 4.8 1 3.5 1 1.4 0.6 0.2 1 0.9 0.6 1.4 0.3 1.6-2.3 1.7-5.8 2.2-5.9 3.6-3.1 0.9-8.1-0.3-2.3-0.6-1.7-0.2-4.6 0.7-2.7 1.3-0.3 1.7 0 1.8-1.3 2-1.9 0.9-5.5 0.2-0.2-2.8-0.5-2.7-2.6-3.8 2.3-6.4 1.4 0.3 1.6 0.5 0.9-1.6 0.6-2.4 0.3-2.2-0.8-2-2.9-3.5-1.2-4.8 1-4.3 2.4-3.3 2-3.9-1.5-2.9-3.9 1.7-1.6 0.5-10.9 5.9 0.8-1.9 0.4-2.1-1-4.6 0.2-1.6 0.6-1.6 0.2-3 0.7-1.2 2.4-0.8 3.3 0.2 0.7-0.3 0.4-1 0.4-1.2 2.2-0.8 2.3 0 2.2-1.6 1.3-2.7 0.8-0.7 2.2 0.4 1.3 0.1 2.4-1.1 1.8-2.3z" id="TR12" name="Bingöl"
-    fill={getPathFill('TR12')} class="cursor-pointer transition-all duration-200 hover:opacity-80"
-    onclick={() => handlePathClick('TR12')}
-    onmouseenter={() => handlePathHover('TR12')}
-    onmouseleave={() => handlePathHover(null)}
-  ></path>
-  <path d="M570.6 317.3l-2.2 2.5-1.8 2.8-2.6 5.1-3.3 4.2-1.8 1.7-1.1 2.2-2.4 0.3-2.4-0.1-1.8-1.1-1.6-1.7-2.1-0.7-2.3 0.6-1.9 0-2-0.6-2.1 0.4 1.4-3.6 0.7-3.1-0.6-3.4-0.4-0.8-1.3-1.1-3.1-0.6-1 0.1-1.4-4.4 0-4.6 3.1-7.7 2.7-6.2 2.2-3.7 4.5-0.3 3.6 0 0 4.7-1.1 1.8-1.3 1.4-0.4 1.8 0.6 1.7 0.6 0.7 0.5 0.7 0.3 4 1.9 2.4 0.5-0.1 0.3-0.6 0.5-0.2 0.5-0.2 0.6-0.3 0.8 0.9 1.6-0.3 1.8-0.6 1.3-0.3 3.9-0.8 1.8 0.5 1.6 1.1 2.6 2.4 2.1 3.1z" id="TR80" name="Osmaniye"
-    fill={getPathFill('TR80')} class="cursor-pointer transition-all duration-200 hover:opacity-80"
-    onclick={() => handlePathClick('TR80')}
-    onmouseenter={() => handlePathHover('TR80')}
-    onmouseleave={() => handlePathHover(null)}
-  ></path>
-  <path d="M687.8 271l-1.9 1.3-2.9 0.9-0.8 0.4-0.6 0.7-0.2 0.9-0.2 2-0.5 0.9-0.6 0.4-2.3 0.8 0.4 0.9 0.1 0.7-0.3 0.8-0.6 0.9 0.3 0.3 0.1 0.4-0.1 0.5-0.3 0.5-0.3-0.1-0.9-0.3-0.4 0-0.7 0.2-0.7 0.5-0.5 0.8-0.4 0.9 0.7-0.2 1.3-0.9 0.6-0.1 0.5 0.5-0.1 1.5 0.6 0.9-0.9 0.2-1.1 0.1-1 0.2-0.6 0.7 0.4 0.3 1.2 1.3-0.3 0.3-0.4 0.2-0.4 0-0.8-0.6-0.4 0.3-0.2 0.5-0.2 0.2-0.2 0.1-0.3 0.1-0.3 0.1-0.4 0.1-0.2-0.1-0.6-0.6-0.1-0.2-1 0.6 0.9 1 2.3 1.8-10.5 1.6-2.3 2.4-0.5 0.3-0.6 1-2.8 3.1-1 0.6-5.8 1-1.5-0.6-2.8 1-0.5 0-0.3 1.4-0.7 0.3-2.1-0.3-0.4 0.3-0.1 0.8 0.1 0.7-0.2 0.3-0.2 0.1-0.1 0.1-0.1 0.1-0.2 0.1-0.2-0.1-0.1-0.5-0.2-0.2-2.1-0.5-0.9-0.4-0.6-0.8-1.4 1-0.5 0-0.7-0.5-3.7-3.3-5.6-2.1-5.2-0.1-5.2 1.1-5.2-3.2-2.8-1-1.7-2.8 0.1-3.5 1.8-2.4 2.7-2.3 2.3-2.9 6.7-1.3 4.2-1.7 4.4-0.6 2 0.6 2 0.3 1.7-0.6 1.7-0.8 4-1 2.9-2.6 0.1-3.2 1.2-2.3 3.7-2.1 3-4.5 3.5-3.9 3.3-0.1 2.8-0.8 2.8 0.6 0.2 1.9-1.8 1.8-1 0.6 0.3 1.3 0.8 0.4 0.8 0.5 2.8 0.8 3.3 0 3.3 0.4 3.5-0.7 1.4 0 1.3-0.3 1.9-0.9 2-0.5 2.6-1.2 2.1-2.5 1.3 0.8 3.8-1.6 1.5 1.6 0.2 1.6-0.4 1.3-1.1 2.5 0.4 0.8-0.4 0.8-1.7 1.2z" id="TR02" name="Adiyaman"
-    fill={getPathFill('TR02')} class="cursor-pointer transition-all duration-200 hover:opacity-80"
-    onclick={() => handlePathClick('TR02')}
-    onmouseenter={() => handlePathHover('TR02')}
-    onmouseleave={() => handlePathHover(null)}
-  ></path>
-  <path d="M777.3 287.7l-3 1.5-16.6-0.5-5.2 1.1-0.6 1.4-2.3 3-3.8 0.3-5.2 4.1-2.4 0.9-5.2 3.6-2.1 2-4.6 6-2.2-2.5-1.6-3.1-1.7-4.9-0.2-0.9-0.4-1.7-0.7-4.5 0.3-6.5-0.7-1.5-0.9-0.2-0.8-0.5-1.2-1.1-1.4-0.6-0.4 0.8-0.5 0.7-2.3-1-1.8-1.7-1.6-0.5-1.5-0.8-3.1-2.6-2.8-3-2.6-1.2-2.9-0.1-3.8-0.7-3.7-2 1.7-1.2 0.4-0.8-0.4-0.8 1.1-2.5 0.4-1.3-0.2-1.6-1.5-1.6-3.8 1.6-1.3-0.8 1.6-5.6-0.1-1.4-0.6-1.3-0.9-0.9 6.6-1.1 3.9 1 4 0.3 2-0.8 3.7-0.5 1.3-0.8 3.6-0.3 3.7 0.2 1.6-0.6 1.4-0.9 1.2-1.9 1.1-1.9 0.7-2 2.2-0.4 1 0.5 1.7 1.3 0.8 0.3 15.9-0.5 5.5-0.2 1.9-0.9 1.3-2 0-1.8 0.3-1.7 2.7-1.3 4.6-0.7 1.7 0.2 2.3 0.6 8.1 0.3 3.1-0.9 5.9-3.6 5.8-2.2 2.3-1.7 2.4 3.2 3.2 2.3 0.6 2.4-0.6 2.5 0.6 1.6 1.4 0.5 0.3 2-1.8 1-1.5 0.2-1.5 0.5-2.5 1.2-1.1 1.5-0.4 2.2-1 3.3-0.5 3.5 0.6 6.6-0.4 3.4-0.7 1.4-0.9 1.3-2.2 7.3-1.9 2.2-2.3 1.6-0.5 1.4 0.5 1.7 0.4 2.3 1 1.8z" id="TR21" name="Diyarbakir"
-    fill={getPathFill('TR21')} class="cursor-pointer transition-all duration-200 hover:opacity-80"
-    onclick={() => handlePathClick('TR21')}
-    onmouseenter={() => handlePathHover('TR21')}
-    onmouseleave={() => handlePathHover(null)}
-  ></path>
-  <path d="M812.6 290.8l-8.8 6.3-5.3 3.9-7.3 1.5-5.1-3.2-3.3-6.9-3.4-4.3-0.9-0.4-1.2 0-1-1.8-0.4-2.3-0.5-1.7 0.5-1.4 2.3-1.6 1.9-2.2 2.2-7.3 0.9-1.3 0.7-1.4 0.4-3.4-0.6-6.6 0.5-3.5 1-3.3 0.4-2.2 1.1-1.5 2.5-1.2 1.5-0.5 1.5-0.2 1.8-1-0.3-2 2.6-0.9 2.7-0.3 4 1.5 1.7 8.2 1.1 3.3 0.2 2.2 0 2.2-0.2 1.4 0.1 1.3-2.1 2.6-1 3.2-2.4 2.7-5.5 1.5-1.5 2.8 0.4 4 5.1 4.7 8.6 3.5 5.1 5.6z" id="TR72" name="Batman"
-    fill={getPathFill('TR72')} class="cursor-pointer transition-all duration-200 hover:opacity-80"
-    onclick={() => handlePathClick('TR72')}
-    onmouseenter={() => handlePathHover('TR72')}
-    onmouseleave={() => handlePathHover(null)}
-  ></path>
-  <path d="M869.8 289.7l-0.5 3.4-2.9 3-8.1-0.8-10-1.4-9.6-2.5-6.3-0.3-3.7 3.7-9.4-0.7-6.7-3.3-5.1-5.6-8.6-3.5-5.1-4.7-0.4-4 1.5-2.8 5.5-1.5 2.4-2.7 1-3.2 2.1-2.6 4.9 1.9 5.1 0.4 4.1-1 4.1-1.6 3.2 1.5 2.8 2.8 3.1 2.4 3.4 1.4 3.3 0.8 2.1 0.9 3 2.2 4.8 2.7 3.2 2.4 1.8-0.2 1.4-2.1 0.2-2.8-0.2-1.9 0-1.8 0.5-0.8 0.6-0.7 1.3-4 3.7-0.3 3.8 0.7 3.4 1.3 0.5 4.3-0.2 2.5 0.3 2.4-0.2 2.6-0.6 2.4-0.2 3.5-0.7 1.5-0.5 1.6 1.9 4.5z" id="TR56" name="Siirt"
-    fill={getPathFill('TR56')} class="cursor-pointer transition-all duration-200 hover:opacity-80"
-    onclick={() => handlePathClick('TR56')}
-    onmouseenter={() => handlePathHover('TR56')}
-    onmouseleave={() => handlePathHover(null)}
-  ></path>
-  <path d="M718.4 116.5l1-0.1 0.7-0.8-0.3-1.5 0.6-0.6 0.3-0.2 1.5 0.5 2.9 3.3 1.9 1.1 4.1 0.1 3.9 1.3 2.1 0 2.3-0.8 2.4-0.4 4.9 0 1.9-0.6 0.9-0.2 1.5 3.8 1.4 8.5 1.2 3.8 2.9 1.7 3.1 0.7 1.4 0.6 3.1 0.3 0.2 1.2-1.2 2.2-1.3 1.7-5.9 2.1-2.7 1.3-2 2-2.1 1.6-1.7 0.3-7.8-1-7.7-1.5-2.3 0.8-1.9 1.8-2.4 0.3-2.7-0.3-2.5 1-1.8-3.9-1-4.2 0.2-2 0.6-2 1.5-3.6 0.4-9.1-1.6-9.2z" id="TR69" name="Bayburt"
-    fill={getPathFill('TR69')} class="cursor-pointer transition-all duration-200 hover:opacity-80"
-    onclick={() => handlePathClick('TR69')}
-    onmouseenter={() => handlePathHover('TR69')}
-    onmouseleave={() => handlePathHover(null)}
-  ></path>
-  <path d="M685.6 103.3l0.9 0.7 1 0.1 1-0.9 0.8-1.1 2 1.2 0.7 3.7 3.2 3.3 11.1 4.5 2.8 0.3 1-0.2 0.7-0.8 0.6-2.6 1.4-1.1 3.3 2.2 2.3 3.9 1.6 9.2-0.4 9.1-1.5 3.6-0.6 2-0.2 2 1 4.2 1.8 3.9-1.8 2.7-2.1 2.2-5.3 1.3-2.6 1.3-2.7 0.2-2.8-0.2-2.8 0.3-2.9-0.3-2.8-1.4-2.9-0.9-0.8-0.8-0.7-1.1-1.8-1.1-1.8-0.7-5.2-3.1-1.4-0.3-1.4-0.3-1.4-0.6-1.3-0.8 0.4-2-1.3-1.7-0.4-2.2 0.2-2.2-0.2-2.1 0.1-2.1 1-1.3 4.8-2.6 1.4-1.2 0.3-2.3-1.1-0.3-1.3-1.3-1.3-1.1-5.6-1.4-1.3-1.6-0.1-2.2 0.3-2.8 0.1-0.5 0.5-0.7 1.4-1.5 0.9-1.7-0.6-1.9 0.6-1.6 1.5-1 1.4-1.2 1.2-0.3 0.9-0.5 0.2-0.9 0.3-0.7 5.7-0.7z" id="TR29" name="Gümüshane"
-    fill={getPathFill('TR29')} class="cursor-pointer transition-all duration-200 hover:opacity-80"
-    onclick={() => handlePathClick('TR29')}
-    onmouseenter={() => handlePathHover('TR29')}
-    onmouseleave={() => handlePathHover(null)}
-  ></path>
- </g>
- <g id="points">
-  <circle class="36.13372868983344|26.620445987274163" cx="90.9" cy="384.7" id="0">
-  </circle>
-  <circle class="38.645329944972325|36.192312755397474" cx="545.5" cy="234.5" id="1">
-  </circle>
-  <circle class="41.78483151389593|43.84980616989612" cx="909.1" cy="39.2" id="2">
-  </circle>
- </g>
- <g id="label_points">
-  <circle class="Ardahan" cx="859.9" cy="77.1" id="TR75">
-  </circle>
-  <circle class="Artvin" cx="807.8" cy="83.6" id="TR08">
-  </circle>
-  <circle class="Sirnak" cx="843.9" cy="306.9" id="TR73">
-  </circle>
-  <circle class="Hakkari" cx="925.7" cy="298.3" id="TR30">
-  </circle>
-  <circle class="Iğdir" cx="915.7" cy="161.9" id="TR76">
-  </circle>
-  <circle class="Agri" cx="869.6" cy="173.1" id="TR04">
-  </circle>
-  <circle class="Van" cx="900.1" cy="246.9" id="TR65">
-  </circle>
-  <circle class="Kirklareli" cx="126.1" cy="47.6" id="TR39">
-  </circle>
-  <circle class="Edirne" cx="87.9" cy="81.4" id="TR22">
-  </circle>
-  <circle class="Kars" cx="875.3" cy="126.2" id="TR36">
-  </circle>
-  <circle class="Mardin" cx="770.8" cy="307.9" id="TR47">
-  </circle>
-  <circle class="Sanliurfa" cx="688.5" cy="321" id="TR63">
-  </circle>
-  <circle class="Kilis" cx="586.2" cy="344.3" id="TR79">
-  </circle>
-  <circle class="Gaziantep" cx="604.7" cy="330" id="TR27">
-  </circle>
-  <circle class="Hatay" cx="546" cy="370.8" id="TR31">
-  </circle>
-  <circle class="Istanbul" cx="176.3" cy="73.8" id="TR34">
-  </circle>
-  <circle class="Tekirdag" cx="115.5" cy="87.1" id="TR59">
-  </circle>
-  <circle class="Çanakkale" cx="100.3" cy="147.9" id="TR17">
-  </circle>
-  <circle class="Rize" cx="768.1" cy="92.4" id="TR53">
-  </circle>
-  <circle class="Trabzon" cx="716.4" cy="101" id="TR61">
-  </circle>
-  <circle class="Giresun" cx="656.3" cy="115.1" id="TR28">
-  </circle>
-  <circle class="Ordu" cx="609.4" cy="101.2" id="TR52">
-  </circle>
-  <circle class="Samsun" cx="529.3" cy="74" id="TR55">
-  </circle>
-  <circle class="Sinop" cx="483.6" cy="48.4" id="TR57">
-  </circle>
-  <circle class="Kastamonu" cx="421" cy="56.5" id="TR37">
-  </circle>
-  <circle class="Bartın" cx="369.3" cy="53.1" id="TR74">
-  </circle>
-  <circle class="Zinguldak" cx="343.3" cy="71.5" id="TR67">
-  </circle>
-  <circle class="Düzce" cx="311.3" cy="95.8" id="TR81">
-  </circle>
-  <circle class="Sakarya" cx="274.8" cy="107.5" id="TR54">
-  </circle>
-  <circle class="Kocaeli" cx="254.3" cy="93.2" id="TR41">
-  </circle>
-  <circle class="Yalova" cx="215.4" cy="114.7" id="TR77">
-  </circle>
-  <circle class="Bursa" cx="205.6" cy="151.1" id="TR16">
-  </circle>
-  <circle class="Balikesir" cx="151.2" cy="166.5" id="TR10">
-  </circle>
-  <circle class="Izmir" cx="127.6" cy="259" id="TR35">
-  </circle>
-  <circle class="Aydin" cx="157" cy="289.6" id="TR09">
-  </circle>
-  <circle class="Mugla" cx="184.9" cy="328.4" id="TR48">
-  </circle>
-  <circle class="Antalya" cx="260.9" cy="341.5" id="TR07">
-  </circle>
-  <circle class="Mersin" cx="432.7" cy="353.6" id="TR33">
-  </circle>
-  <circle class="Adana" cx="511.6" cy="315.2" id="TR01">
-  </circle>
-  <circle class="Bolu" cx="331.9" cy="112.6" id="TR14">
-  </circle>
-  <circle class="Ankara" cx="374.2" cy="163.1" id="TR06">
-  </circle>
-  <circle class="Bilecik" cx="254.6" cy="145.8" id="TR11">
-  </circle>
-  <circle class="Eskisehir" cx="302.9" cy="174.3" id="TR26">
-  </circle>
-  <circle class="Çankiri" cx="422" cy="108.9" id="TR18">
-  </circle>
-  <circle class="Karabük" cx="378.4" cy="77.9" id="TR78">
-  </circle>
-  <circle class="Tokat" cx="568.3" cy="122.1" id="TR60">
-  </circle>
-  <circle class="Sivas" cx="600.3" cy="177.5" id="TR58">
-  </circle>
-  <circle class="Çorum" cx="471.6" cy="120.2" id="TR19">
-  </circle>
-  <circle class="Amasya" cx="520.5" cy="110" id="TR05">
-  </circle>
-  <circle class="Kütahya" cx="231.8" cy="194.5" id="TR43">
-  </circle>
-  <circle class="Konya" cx="368.1" cy="267.4" id="TR42">
-  </circle>
-  <circle class="Karaman" cx="398.4" cy="323.7" id="TR70">
-  </circle>
-  <circle class="Nigde" cx="472.6" cy="272.5" id="TR51">
-  </circle>
-  <circle class="Kayseri" cx="519.8" cy="237.9" id="TR38">
-  </circle>
-  <circle class="Isparta" cx="299.1" cy="277.4" id="TR32">
-  </circle>
-  <circle class="Manisa" cx="175.1" cy="230.6" id="TR45">
-  </circle>
-  <circle class="Denizli" cx="216.6" cy="283.6" id="TR20">
-  </circle>
-  <circle class="Burdur" cx="247.3" cy="305" id="TR15">
-  </circle>
-  <circle class="Aksaray" cx="434.1" cy="252.8" id="TR68">
-  </circle>
-  <circle class="Nevsehir" cx="473.8" cy="226.7" id="TR50">
-  </circle>
-  <circle class="Yozgat" cx="504.6" cy="176.7" id="TR66">
-  </circle>
-  <circle class="Kirsehir" cx="448.9" cy="192.6" id="TR40">
-  </circle>
-  <circle class="Usak" cx="223.2" cy="242.7" id="TR64">
-  </circle>
-  <circle class="Erzincan" cx="675.3" cy="168.3" id="TR24">
-  </circle>
-  <circle class="Tunceli" cx="704.7" cy="204" id="TR62">
-  </circle>
-  <circle class="Afyonkarahisar" cx="277.4" cy="233.6" id="TR03">
-  </circle>
-  <circle class="Kinkkale" cx="424.4" cy="166.1" id="TR71">
-  </circle>
-  <circle class="K. Maras" cx="580.1" cy="277.2" id="TR46">
-  </circle>
-  <circle class="Mus" cx="808.6" cy="219.4" id="TR49">
-  </circle>
-  <circle class="Erzurum" cx="799.5" cy="154" id="TR25">
-  </circle>
-  <circle class="Malatya" cx="630.1" cy="234.9" id="TR44">
-  </circle>
-  <circle class="Elazig" cx="686.5" cy="236.8" id="TR23">
-  </circle>
-  <circle class="Bitlis" cx="837.3" cy="242.3" id="TR13">
-  </circle>
-  <circle class="Bingöl" cx="763.2" cy="210.5" id="TR12">
-  </circle>
-  <circle class="Osmaniye" cx="550.1" cy="322.8" id="TR80">
-  </circle>
-  <circle class="Adiyaman" cx="654.1" cy="282.2" id="TR02">
-  </circle>
-  <circle class="Diyarbakir" cx="737.1" cy="269.4" id="TR21">
-  </circle>
-  <circle class="Batman" cx="794.5" cy="257.1" id="TR72">
-  </circle>
-  <circle class="Siirt" cx="822.5" cy="277.5" id="TR56">
-  </circle>
-  <circle class="Bayburt" cx="736.9" cy="133.7" id="TR69">
-  </circle>
-  <circle class="Gümüshane" cx="698.7" cy="135" id="TR29">
-  </circle>
- </g>
-</svg>
+	<svg
+		xmlns="http://www.w3.org/2000/svg"
+		fill="#000000"
+		height="435"
+		stroke="#ffffff"
+		stroke-linecap="round"
+		stroke-linejoin="round"
+		stroke-width=".5"
+		version="1.2"
+		viewBox="0 0 1000 422"
+		width="1000"
+		class="w-full h-auto"
+	>
+		<g id="features">
+			<path
+				d="M889.7 82.2l-3.1 1.1-4.8 2.7-7.7 3.3-7.8 3.3-5.7 3-1.1 4.8-0.7 7.5-0.9 4.5-5.7 0.6-5.5 1.1-1.4-2.6-1.9-1.9-1.4-2.1-1-2.4-1.3-1.7-1.8-1.2-2.4-3.7-1-4.9 3-5.9 4.1-4.6 4-2 1.2-4.2-1.3-4.4-0.9-2.3-0.4-0.7-0.5-1.5-0.3-2.7-0.7-3.6 0.5 0 1-0.7 1.4-2.2 1.1-1 0.5-1.1 0.4-2.6 0.5-1 0.9-0.8 0.1 0 0.2 0 0.9-0.4 2.4-0.2 6.7 0.6 0.9 0.4-0.4 0.6-0.1 0.7-0.1 0.6-0.2 0.6-0.4 0.4-1 0.8-0.4 0.7 1.3 0.7 0.9 1 0.9 0.3 1.1-1.4 0.7-0.4 0.3 0.4 0.3 0.8 0.4 0.7 0.3 0.3 1.4 0.4 0.3 0.3 0.2 0.3 0.2 0.2 0.5 0.2 0.3 0.4 1.4 2.7 0.7 0.8 3.5 2.4 2.3 2 1.5 0.7 1.4 0.2 0 0.3-0.6 0.9-0.7 0.6-2.6 1.3 1.3 0.4 1.1-0.1 0.9 0.1 1 1.1 1.1 2.8 0.7 0.5 4.4-1.2 1.3-0.1 1.5 0.4 1.3 0.8 1.3 1.2 0.7 1.5-0.5 1.6z"
+				id="TR75"
+				name="Ardahan"
+				fill={getPathFill('TR75')}
+				class="cursor-pointer transition-all duration-200 hover:opacity-80"
+				onclick={() => handlePathClick('TR75')}
+				onmouseenter={() => handlePathHover('TR75')}
+				onmouseleave={() => handlePathHover(null)}
+			></path>
+			<path
+				d="M842.7 61.7l0.7 3.6 0.3 2.7 0.5 1.5 0.4 0.7 0.9 2.3 1.3 4.4-1.2 4.2-4 2-4.1 4.6-3 5.9-2.8 0.3-2.8 0.6-3.3-0.3-3.2 0.3-1.6 0.8-1.5 1.3-0.6 2.5 0.3 2.7-1.2 2.5-1.9 1.9-0.9 2.5-0.1 2.8-2.2 3.3-4-2.3-3.8-1.1-3.7 1.1-4 2.6-4.4 1.7-3.2-2.9 0.6-5.3 1.3-2.2-0.4-2.1-1.7-0.6-5.9-0.9-3.7-2.1 0.7-2.5 4.5-5.3 1.1-0.6 1-0.9 0.4-1.3 0.7-1.3 2.6-1.7 1.3-2.9-1.4-1.6-1.9-0.9-0.5-1.1-0.6-1.1-0.9-0.6-0.9-0.9-0.9-2.1-0.4-2.5-1.3-3.3-0.1-0.2 4.1-3.3 1.2-0.4 1-0.6 0.5-0.2 1.7-0.2 0.6-0.2 0.9-0.7 0.7-1.1 0.5-1.4 0.2-1.4 0.5-0.3 2.7-2.5 0.7-1.2 5 2.2 0.7 0.1 1.4-0.1 1.2-0.6 0.3 0 0.1 0.3-0.1 0.5 0 0.5 0.2 0.4 0.6 0.2 1.4 0.2 0.6 0.2 1.9 1.7 0.6 0.3 0.4-0.3 1.9-1.6 1.5-2.1 0.7-0.5 1.9-0.8 3.4 1.3 1.7-0.5 0.6-0.4 0.7-0.1 0.7 0.1 0.7 0.4 1.4-0.5 0.8 0 0.6 0.5 0.8 0.7 1.2 0.1 2.3-0.1 8.3 3.2 0.7 0z"
+				id="TR08"
+				name="Artvin"
+				fill={getPathFill('TR08')}
+				class="cursor-pointer transition-all duration-200 hover:opacity-80"
+				onclick={() => handlePathClick('TR08')}
+				onmouseenter={() => handlePathHover('TR08')}
+				onmouseleave={() => handlePathHover(null)}
+			></path>
+			<path
+				d="M886 315.3l-1.3-0.9-0.6-0.1-0.8 0.1-0.5 0.2-0.4 0.4-0.4 0.1-0.4 0-0.4-0.2-6.2-3.3-0.8-0.3-1.5 0.2-1.9 0.5-1.8 0.8-1.2 0.9-2.1 0.7-1.9-0.3-3.9-1.3-0.4-0.3-0.2-1-0.4-0.4-0.6 0-0.4 0-2.4 1-0.3 0.2-0.3 0.5-0.1 0.4 0 0.4-0.2 0.5-6 8.7-0.5 1.6-0.2 0.3-0.8 0.4-4 0.7-2.8 0.9-2.1 0.2 0-1.7-0.1-0.8-0.4-0.4-0.5-0.7 0.8-3.4-0.3-0.7-0.3-0.2-1.6-1.3-0.2-0.3-0.3-0.6-0.2-0.3-0.3-0.1-0.3 0.2-0.3 0.4-0.3 0.1-1.4-0.7-0.7-0.1 0-0.3 0.1-0.6-0.1-0.7-0.5-0.6-0.9 0.7-0.7 0.4-2.4 3.2-3.5 3.3-2.1 1.3-5.4 1.3-0.9-3.8-3-2.4-5.5-1.7-0.8-2.5 2-2.2 4.5-2.5 3.5-1.7 0.6-4-1.3-5.2-2.8-7.5 6.7 3.3 9.4 0.7 3.7-3.7 6.3 0.3 9.6 2.5 10 1.4 8.1 0.8 2.9-3 0.5-3.4 3.8-2 4.1 0.5 3.6 1.5 1.2 0.3 2.3-0.1 2.3-0.3-0.3 5.5-1 3.5 0.8 3.2 1.6 3.9-0.4 5.2-1.2 3.2-0.6 1.2z"
+				id="TR73"
+				name="Sirnak"
+				fill={getPathFill('TR73')}
+				class="cursor-pointer transition-all duration-200 hover:opacity-80"
+				onclick={() => handlePathClick('TR73')}
+				onmouseenter={() => handlePathHover('TR73')}
+				onmouseleave={() => handlePathHover(null)}
+			></path>
+			<path
+				d="M886 315.3l0.6-1.2 1.2-3.2 0.4-5.2-1.6-3.9-0.8-3.2 1-3.5 0.3-5.5 6.4 0 6.3-1.1 1.3-0.7 1.4-0.5 2 0.3 2 0.8 3 0 3.1-0.6 2.6-1.6 1.2-3.3 1.9-3.4 3.5-0.7 4.1 0.5 0.1 0-0.2 0.5 0.9 1.3 1.6 0.3 3.1-0.4 0.6 0.2 1.7 0.8 0.5 0.4 0.3 0.5 0.1 0.7 0.3 0.8 0.5 0.6 0.4 0.2 0.3-0.1 0.3-0.1 0.4 0.3 0 0.3-0.2 0.9 0 0.4 0.3 0.7 0.7 0 0.8-0.2 0.6-0.4 1.3-0.1 1.3 0.6 1.2 1 1.7 2.2 0.1 0.5-0.4 0.8-1.7 1.3-0.4 0.6-0.2 1.8 1 1.1 1 0.8 0.2 1-0.4 1.2-0.3 1.5-0.1 1.5 0.2 1.2 0.2 1-0.6 1.8 0.3 1 0.6 0.3 1.8 0.2 0.7 0.6 0.7 1.7 0.4 0.5 1.8-0.3 0.4 0.5 0.3 0.9 0.4 0.8 2.7 1.8 1.1 1.2-0.2 2-0.5 0.7-0.7 0.4-0.6 0.5-0.3 1 0.2 1.2 0.4 1 0.3 1.1-0.3 1.1-0.6-1-0.9-0.5-5-0.7-0.9 0-1.5 0.7-1.9 1.4-1.7 1.6-1.1 1.5-1.2 0.9-1.2 0.7-4.1 1.3-0.4 0.7-0.1 0.9-0.8 1.3-0.4 1-0.5 0.4-0.6 0.1-1.9-0.5-0.5-0.4-0.3-0.6-1.9-4.3-0.3-1.3 0-1.2 0.4-1.2 0.8-1.1 0.6-0.3 0.6-0.1 0.4-0.2 0.4-0.7 0.1-0.6-0.1-0.8-0.2-1.3-0.4-1.3-0.6-1.1-0.8-0.8-1-0.7-4.6-1.9-0.9-0.1-1.6-0.3-2.1 0.3-1.8 1.5-1.4 2.1-1.4 1.7-2.6 0.4-0.8 0.9-0.6 0.2-0.4-0.3-1-1-0.5-0.3-1.1-0.3-1.2-0.1-4.9 0.3-1.1-0.1-1.2-0.5-0.9-0.7-0.4-0.2-0.6-0.1-0.6 0.1-1.2 0.5-0.6 0.1-0.8-0.4-2.2-1.8-1.9-1-0.6-0.5z"
+				id="TR30"
+				name="Hakkari"
+				fill={getPathFill('TR30')}
+				class="cursor-pointer transition-all duration-200 hover:opacity-80"
+				onclick={() => handlePathClick('TR30')}
+				onmouseenter={() => handlePathHover('TR30')}
+				onmouseleave={() => handlePathHover(null)}
+			></path>
+			<path
+				d="M938 173.5l-0.8-0.6-1.8-0.5-8.5 2-3.7-0.5-3.5-1.1-4.7 0.6-4.4-0.7-0.3-0.9-0.3-0.9-3-0.7-4.3-2-1.4-1.9-1.1-2.3-1.5-1.1-1 0-1.6-0.7-0.6-0.5-1.5-0.3-3.2 1.3-3.1 2.1-1.6-0.6-0.7-0.7-0.7-2.3 0-1.5 0.2-2.9-1-3.5 1.8-2.1 0-2.4 2.5-1.2 5.9-0.8 6.2-2.3 2.2 1.2 4.4 1.3 5.2 2.9 5.7 0.9 0.7-0.2 1.7-1.2 1-0.3 0.5 0.2 0.6 0.6 0.4 0.1 0.5-0.1 0.9-0.3 1.4-0.1 2.8-0.8 1.6 0 1.8 0.5 2.6 1.6 4 2.3 2.7 2.4 1.2 1.4 0.6 0.9 0.2 0.9 0.2 0.5 0.4 0.4 0.7 0.6 0.1 0.6 0.1 0.7 0.1 0.3 0.7-0.4 1.7 2 0.9 0.6 0.2 0 0.5-0.1 0.3 0.1 0.2 0.2 0.3 0.5 2.9 3.8 0.7 1.3 0.5 0.7 0.5 2.4 0.5 0.7-3.8-2.8-0.9-0.8-2.9-1.3-0.6-0.7-1.3-2-0.7-0.5-1.2 0.4-5.1 4.1-0.2 0.7 0.3 2-0.1 0.8z"
+				id="TR76"
+				name="Iğdir"
+				fill={getPathFill('TR76')}
+				class="cursor-pointer transition-all duration-200 hover:opacity-80"
+				onclick={() => handlePathClick('TR76')}
+				onmouseenter={() => handlePathHover('TR76')}
+				onmouseleave={() => handlePathHover(null)}
+			></path>
+			<path
+				d="M938 173.5l0 0.2-0.3 0.8-1.6 3.2-0.2 0.8-0.1 1 0.1 0.9 0.1 0.8 0 0.7-0.5 0.7-0.2 1.4 0.2 1.2-0.1 1.1-0.8 1.2-0.9 0.7-2.4 1.1-1.1 0.3-1.2-0.1-3.3-1.7-1.1-0.1-2.6 0.7-1.1 0.1-1-0.1-0.8 0-0.7 0.2-0.9 0.7-0.6 0.7 0.3 0.7 1.3 1.5-6.7 1.8-1.8-0.3-0.8-0.3-2.8-0.3-2.4-0.7-1.8-0.3-1.8 0.2-1.3 1-1.2 1.3-1.7-0.1-4.1-0.8-2.1-1.3-2.8-2.9-3.2-1.5-3.7-0.2-2.1 1.6-1.7 2.3-1.6 0.5-2.9 0.6-1.1 0.4-0.4 1.9 1.8 1 1.9 0.8 0.3 1.9-0.3 2.1-0.1 2.1-1.2 1.3-5.5 2.3-8.8 1.9-1.6 1.3-1.6 1-2.3 0.7-2 1.3-0.2-3.2 0.4-3 0.5-2.4-0.1-0.9-0.2-0.8 0.2-4-1.7-2.5-1.2-1.2-0.8-1.7-1.5-1.7-1.5-1.4-1.9-3.4-1.4-3.8 1.5-2.5 0.5-2.9-0.1-8.3 0.5-1.7 0.6-0.4-6.7-2.8-3.9-4.7 1.7-0.7 3.6 0.6 1.7-0.6 1-1.5 1.2-0.5 0.6-0.1 1.2 0.1 1.6-0.9 1.3-1.5 9.2 1.8 14.6-4.2 5.2 0.1 2.2 0.6 2.1-0.5 2.6 1.1 1 3.5-0.2 2.9 0 1.5 0.7 2.3 0.7 0.7 1.6 0.6 3.1-2.1 3.2-1.3 1.5 0.3 0.6 0.5 1.6 0.7 1 0 1.5 1.1 1.1 2.3 1.4 1.9 4.3 2 3 0.7 0.3 0.9 0.3 0.9 4.4 0.7 4.7-0.6 3.5 1.1 3.7 0.5 8.5-2 1.8 0.5 0.8 0.6z"
+				id="TR04"
+				name="Agri"
+				fill={getPathFill('TR04')}
+				class="cursor-pointer transition-all duration-200 hover:opacity-80"
+				onclick={() => handlePathClick('TR04')}
+				onmouseenter={() => handlePathHover('TR04')}
+				onmouseleave={() => handlePathHover(null)}
+			></path>
+			<path
+				d="M887.1 289.6l-2.3 0.3-2.3 0.1-1.2-0.3-3.6-1.5-4.1-0.5-3.8 2-1.9-4.5 0.5-1.6 0.7-1.5 0.2-3.5 0.6-2.4 0.2-2.6-0.3-2.4 0.2-2.5-0.5-4.3-3.4-1.3-3.8-0.7-3.7 0.3-2.5-0.9-0.9-3.1 0.5-2.1-0.1-1.6-0.2-0.7-1.7-3.9-0.3-1.3 0.5-2.5 0.8-0.9 5.1-2.9 3-2.1 1-1.7 0.8-1.9 4.4-6.5 2.6-2.8 3.4-2.6 1.4-4.5-1.9-3-5.6-3.4-1.4-3.1-0.1-4.6 5.5-2.3 1.2-1.3 0.1-2.1 0.3-2.1-0.3-1.9-1.9-0.8-1.8-1 0.4-1.9 1.1-0.4 2.9-0.6 1.6-0.5 1.7-2.3 2.1-1.6 3.7 0.2 3.2 1.5 2.8 2.9 2.1 1.3 4.1 0.8 1.7 0.1 1.2-1.3 1.3-1 1.8-0.2 1.8 0.3 2.4 0.7 2.8 0.3 0.8 0.3 1.8 0.3 6.7-1.8 0.2 0.6 0.3 1.3 0.5 1.2 0 0.5-0.1 0.4 0 0.6 0.2 0.5 0.5 1.2 0.1 0.5-0.3 1.1 0 0.6 1.2 0.9 2.2 1.1 1.8 1.3 0.4 1.5-1 1.9-0.2 1 0.4 2.4-0.4 0.7-0.8 0.6-0.7 1.2 0.3 0.4 0.1 0.4 0.2 1 0.3 0.4 0.5 0.3 0.3 0.4 0.1 0.6-0.1 0.5 0.2 0.5 0.2 0.4 0.4 1.4 0.7 0.9 0.8 0.8 2.5 1.2 0.2 1.8-1.3 4.4-0.2 1.2 0.1 0.7 0.3 0.8 0.2 1.1-0.2 0.4-0.4 0.4-0.2 0.4 0.6 0.3 0.9 0.3 0.3 0.2 0.4 0.4 0.3 1 0 1.3-0.2 2.4 0.4 3.1 0 1-0.6 2.5 0 0.7 0.1 1.5 0 0.6-0.2 1 0.2 0.5 0.4 0.3 0.7 0.3 2.4 0.5 1.5-0.9 0.6-0.2 0.8 0.3 0.7 0.6 0.5 0.8 0.4 1 0 0.9-1 1.6-1.8 1.3-1.3 1.5 0.2 2.9-0.2 1.2-0.2 1.2-0.4 0.9-0.3 0.5-0.9 0.3-0.3 0.4-0.1 0.5 0.4 1.1-0.3 0.4-0.9 0.4-0.6 0.5-0.5 0.8-0.4 1.3-0.4 0.9-1.1 1.3-0.5 0.9-0.4 0.7-0.3 0.8 0 0.7 0.2 0.9 0 0.8-0.4 0.6-0.5 0.6 0 0.2-0.1 0-4.1-0.5-3.5 0.7-1.9 3.4-1.2 3.3-2.6 1.6-3.1 0.6-3 0-2-0.8-2-0.3-1.4 0.5-1.3 0.7-6.3 1.1-6.4 0z"
+				id="TR65"
+				name="Van"
+				fill={getPathFill('TR65')}
+				class="cursor-pointer transition-all duration-200 hover:opacity-80"
+				onclick={() => handlePathClick('TR65')}
+				onmouseenter={() => handlePathHover('TR65')}
+				onmouseleave={() => handlePathHover(null)}
+			></path>
+			<path
+				d="M166.1 54.8l-2.2 3-0.1 0-8.3 0.9-8.2 1.1-5.2 1.2-4.6 1.4-2.3 3.4-1.7 3.5-2.7 2.1-3.1 0.8-2.6-1.7-2.1-2.8-2.7-1.8-5.5 0-7.7 0.6-7.2 1.6-1.4-2.9 2.3-4.8 0.7-4.6 1.9-2.9 1.1-6.2-0.6-6.1-1.5-6.1-1.2-7.3 0-0.1 0.6-0.5 0.5-0.3 0.5 0 0.5 0.1 0.4 0 0.5-0.5 0.5-0.2 0.9 0.2 0.4-0.1 0.6-0.7 0.3-0.8 0.5-0.6 0.6-0.3 1-0.6 1-2 1.1-0.6 0.1 0 0.8 0 0.9 0.3 0.8 0.5 0.7 0.6 0.6-0.1 1 0.1 1.2 0.3 0.2-0.1 0-0.2 0.2-0.3 1-1.4 0.6-0.5 1-0.1 1.7 0.3 1.5 1 1.3 1.2 2 3.2 1.1 1.2 1.1 1 3.5 2 0.7 0.6 1.2 1.6 0.6 0.4 0.8-0.3-0.7-0.3 0.1-0.1 0.3-0.2 0.2-0.1-0.2-0.1-0.1-0.1-0.1-0.1-0.1-0.1 1-0.4 0.5-0.3 0.4-0.5 0.3 0.2 0.3 0 0.2-0.3 0.1-0.6 3.7-1 1.7 0.1 2.5 1.4 0.6 0.2 0.7-0.1 0.6-0.2 0.1-0.4-0.7-0.4 0.1-0.7 0-0.8 0.1-0.7 0.2 0 0.2-0.1 0.2 0.1 0.2 0 0.9-0.1 0.4 0 1.2 0.3 1.2 0.6 0.7 0.2 2.3-0.2 0.7 0.2 1.7 0.4 0.7 3 0 0.7 0.2 0.2 0.3 0.4 0.2 0.5 0 0.4-0.5 0.3-0.5-0.1-0.8-0.4-0.8 0.1-0.6 0.3-0.4 0.9-0.2 1.6 0.3 1.7 0.7 1.1 0.9 1 0.7 1.2 0.9 2.8 0.6 0.9 0.8 0.8 0.4 0.4 0.3 0.7 0.1 0.1 0.1 0.2 0.1 0.4-0.1 0.2-0.3 0-0.2 0-0.1 0.4 0.4 1 0.6 1.2 0.8 1 1.4 0.8 0.7 0.9 1 1.6 1.2 1.2z"
+				id="TR39"
+				name="Kirklareli"
+				fill={getPathFill('TR39')}
+				class="cursor-pointer transition-all duration-200 hover:opacity-80"
+				onclick={() => handlePathClick('TR39')}
+				onmouseenter={() => handlePathHover('TR39')}
+				onmouseleave={() => handlePathHover(null)}
+			></path>
+			<path
+				d="M101.2 27.1l0 0.1 1.2 7.3 1.5 6.1 0.6 6.1-1.1 6.2-1.9 2.9-0.7 4.6-2.3 4.8 1.4 2.9 0.6 1.1 0.3 8.8-0.7 3.8-2.3 3-1.5 3.8-0.8 4.4 0.3 5.1 1.8 3.9 1.2 4.1 0 0.2-0.3 3.7 0 0.3-3.1 0.5-1.2 0.5-0.6 0.2-3.2 0-1.3 0.4-3.6 2.2-1.4-0.9-0.8-0.3-0.7-0.1-0.7 0.3-0.7 0.4-0.8 0.3-1.2-0.7-0.8 0.1-2.6 0.7-8.8 0-1.2-0.2-0.7-0.4-0.4-1-0.3-1.1-0.4-1 0.3-0.9-0.1-1.4-0.5-1.4-0.7-0.9 0.4-0.1 0.1-0.2 1.8 0.2 1.5-0.7 1-1.3 0.4-1.6 0.8-1.2 2.5-2.2-0.3-0.7 0-0.4 0.2-0.2 0.4-0.2-0.1-0.1-0.2 0 0-0.1 0-0.3 0.4-0.1 0.2-0.2 0.1-0.3 0-0.6 0.2 0.5 0.1 0.3 0.3 0 0.3-0.4 0.3-0.5 0.4-1.3 0.3 0 0.2 0.4 0.2 0.3 0.3 0.2 0.4 0 0.7-0.2-0.1-0.4-0.2-0.4-0.2-0.3 0.6-0.6 1.4-0.6 0.6-0.5 0.5-0.7-0.1-0.2-0.5-0.2-0.5-0.6-0.1-0.6 0.1-0.4 0.4-0.2 0.7-0.1 0.4-0.4 0.4-0.7-0.1-0.7-1.2-0.7-0.5-0.6-0.6-1.4-0.1-1 0.8-1.6-0.4-0.3-0.7-0.2 0-0.5 0.9-1.4-0.6-1.1-0.1-1.1 0.2-1.2 0.5-1.4-0.7-1.1 0.5-0.5 3-0.3 0.8-0.4 1.3-1.2 1.3-0.8 0.3-0.3 0.1-0.3 0.2-0.2 0.5-0.1 2.4-2.6 0.5 0.7 0.9 0.5 1 0.2 0.9 0 0.6-0.7 0.4-1 0.3-1.4 0-1.3-0.2-1.3-0.8-3.1-0.2-2.3-0.3-1.1-0.5-0.9 0.3-0.7-0.2-1.6 0.2-0.8-0.1-0.3-0.1-0.5-0.1-0.4 0-0.5-0.9 1.4-0.5-0.5-2.1-1.2-2.7-2 0.4-0.8 0.2-0.9-0.8-0.2-0.8-0.4-1.9-0.4-1.2-1.2-0.9-0.3-1.2 0.1-0.5-0.7-0.3-1.2 0.1-1.4 0.7-1.6 2-1.7 4.9 0.2 2.2-0.7 0.7-0.8 0.4-1.2 0.2-1.2 0-0.4 0-0.4 0.1-0.4 0.2-0.5 0-0.4-0.1-0.2-0.6-0.4-0.1-0.2 0.2-0.4 0.3-0.3 0.4-0.3 1.3-1.5 0.8-0.5 0.9-0.1 4.4 0.7 0.9-0.1 0.5-0.3 1-1.1 0.6-0.1 0.5 0.2 0.8 0.8 0.6 0.1 0.4-0.2 0.4-0.4z"
+				id="TR22"
+				name="Edirne"
+				fill={getPathFill('TR22')}
+				class="cursor-pointer transition-all duration-200 hover:opacity-80"
+				onclick={() => handlePathClick('TR22')}
+				onmouseenter={() => handlePathHover('TR22')}
+				onmouseleave={() => handlePathHover(null)}
+			></path>
+			<path
+				d="M846.7 114.1l5.5-1.1 5.7-0.6 0.9-4.5 0.7-7.5 1.1-4.8 5.7-3 7.8-3.3 7.7-3.3 4.8-2.7 3.1-1.1-0.2 1.5 0.3 2 0.8 1.8 0.9 0.8 2 0.3 2.1 1.1 1.9 1.5 1.4 1.9 0.6 1.2 0.2 1.2 0.1 1.3 0.3 1.4 0.4 1.3 2 3.1 0.5 1.2 0.1 1 0.3 4.4-0.2 0.5-1 1.8-0.2 0.3 0.3 1.5-2 2.3-0.6 1.3 0 1.5-0.3-0.2-0.2-0.1-0.2 0-0.3-0.1 0.2 0.2 0.1 0.2 0.1 0.5-1.1 0.1-1.1 0.7-1.6 1.9 0.2 0.9 1 1.1 1.9 1.6 0 0.5 0 0.1-0.7 2.4-0.4 0.7-0.3 1 0.4 1 1.3 1.2 2.1 2.8 0.7 1.5 0.1 0.2-0.9 0.6 0.5 1.1 1.5 1.9 0.3 0.7-0.5 0.8-2.1 0.4-0.7 0.6 0.6 1.8-6.2 2.3-5.9 0.8-2.5 1.2 0 2.4-1.8 2.1-2.6-1.1-2.1 0.5-2.2-0.6-5.2-0.1-14.6 4.2-9.2-1.8-1.4-2.3-1.1-2.5-1.2-1.9-1.9-0.8-1-0.3-0.8-0.6-0.6-1.3-0.8-1.1-1.4-1-1.5-0.5-4.1-0.7-1.1-1.3-1-1.7-1.7-2 1.5-3.3 6.9-2.4 3-1.7 1.5-1.2 1.6-1.1 2-0.9 1.9-1.2-1.1-6.2 0.7-2.2 0.3-2.1z"
+				id="TR36"
+				name="Kars"
+				fill={getPathFill('TR36')}
+				class="cursor-pointer transition-all duration-200 hover:opacity-80"
+				onclick={() => handlePathClick('TR36')}
+				onmouseenter={() => handlePathHover('TR36')}
+				onmouseleave={() => handlePathHover(null)}
+			></path>
+			<path
+				d="M812.6 290.8l2.8 7.5 1.3 5.2-0.6 4-3.5 1.7-4.5 2.5-2 2.2 0.8 2.5 5.5 1.7 3 2.4 0.9 3.8-19.8 4.7-13.2 0.6-1-0.3-2.1-0.9-11.4-2.2-8.9 1.3-2.3 0.9-6.4 3.5-2.1 0.7-1.1 0-1.1 0.2-1 0.4-0.9 0.6-6.3 4.2-2.1-1.1-4.3-7.5 0.5-4.8-0.6-1.2-2.4-2.5-1.5-1.3-1.4-1.5-0.6-7 4.6-6 2.1-2 5.2-3.6 2.4-0.9 5.2-4.1 3.8-0.3 2.3-3 0.6-1.4 5.2-1.1 16.6 0.5 3-1.5 1.2 0 0.9 0.4 3.4 4.3 3.3 6.9 5.1 3.2 7.3-1.5 5.3-3.9 8.8-6.3z"
+				id="TR47"
+				name="Mardin"
+				fill={getPathFill('TR47')}
+				class="cursor-pointer transition-all duration-200 hover:opacity-80"
+				onclick={() => handlePathClick('TR47')}
+				onmouseenter={() => handlePathHover('TR47')}
+				onmouseleave={() => handlePathHover(null)}
+			></path>
+			<path
+				d="M726.3 311.1l0.6 7 1.4 1.5 1.5 1.3 2.4 2.5 0.6 1.2-0.5 4.8 4.3 7.5 2.1 1.1-3.4 2.3-1.8 0.9-1.8 0.3-1.7 0.6-4.7 2.8-10.2 3.9-15.3 2.9-9.6 1.9-2.6 0.1-7.3-2.5-2.5 0.2-1 0.3-7.7 0.3-3.4-0.4-2.9-1.5-1.3-1.5-5.1-5.3-2.3-1.3-9-2.7-3.2-0.4-1.6 0.2-3.2 1.2-4.6 3 0-0.1-0.2-0.5-0.1-0.8 0.1-0.8 0.4-0.3 0.5-0.2-0.2-0.5-0.8-0.9-0.2-0.6-0.1-0.6 0-1.5-0.2-0.5-1.3-1.2-0.7-0.8-0.1-0.5 0-0.9 0.6-1.4 0.1-0.7-0.5-0.3-0.7 0.1-1.1 0.6-0.4 0.1-0.4-0.3-0.5-0.5-0.4-0.3-0.6 0.3-0.6-0.6-0.1-0.8 0.3-1.7 0.1-1.4-0.1-0.6-0.3-0.7-0.8-1.3-0.3-0.8-0.2-0.9 0.2-1 0.4-0.4 0.4 0.1 0.3 0.7 0.3 0 0-1.3-0.3-0.9-0.6-0.6-0.7-0.5 0.6-2.1 0.2-0.6 0.4-0.3 0.4-0.2 0.2-0.2 0.4-1.5 0.5-0.8 1.6-1.6 2.1-2.7 0.7-0.6 0.8 0 0.8 0.1 0.8-0.1 0.7 0.5 0.5 0 1.4-1 0.6 0.8 0.9 0.4 2.1 0.5 0.2 0.2 0.1 0.5 0.2 0.1 0.2-0.1 0.1-0.1 0.1-0.1 0.2-0.1 0.2-0.3-0.1-0.7 0.1-0.8 0.4-0.3 2.1 0.3 0.7-0.3 0.3-1.4 0.5 0 2.8-1 1.5 0.6 5.8-1 1-0.6 2.8-3.1 0.6-1 0.5-0.3 2.3-2.4 10.5-1.6-2.3-1.8-0.9-1 1-0.6 0.1 0.2 0.6 0.6 0.2 0.1 0.4-0.1 0.3-0.1 0.3-0.1 0.2-0.1 0.2-0.2 0.2-0.5 0.4-0.3 0.8 0.6 0.4 0 0.4-0.2 0.3-0.3-1.2-1.3-0.4-0.3 0.6-0.7 1-0.2 1.1-0.1 0.9-0.2-0.6-0.9 0.1-1.5-0.5-0.5-0.6 0.1-1.3 0.9-0.7 0.2 0.4-0.9 0.5-0.8 0.7-0.5 0.7-0.2 0.4 0 0.9 0.3 0.3 0.1 0.3-0.5 0.1-0.5-0.1-0.4-0.3-0.3 0.6-0.9 0.3-0.8-0.1-0.7-0.4-0.9 2.3-0.8 0.6-0.4 0.5-0.9 0.2-2 0.2-0.9 0.6-0.7 0.8-0.4 2.9-0.9 1.9-1.3 3.7 2 3.8 0.7 2.9 0.1 2.6 1.2 2.8 3 3.1 2.6 1.5 0.8 1.6 0.5 1.8 1.7 2.3 1 0.5-0.7 0.4-0.8 1.4 0.6 1.2 1.1 0.8 0.5 0.9 0.2 0.7 1.5-0.3 6.5 0.7 4.5 0.4 1.7 0.2 0.9 1.7 4.9 1.6 3.1 2.2 2.5z"
+				id="TR63"
+				name="Sanliurfa"
+				fill={getPathFill('TR63')}
+				class="cursor-pointer transition-all duration-200 hover:opacity-80"
+				onclick={() => handlePathClick('TR63')}
+				onmouseenter={() => handlePathHover('TR63')}
+				onmouseleave={() => handlePathHover(null)}
+			></path>
+			<path
+				d="M608.6 352.8l-3.6 2.4-2-0.1-7.7-1.4-1.1 0.1-3 0.8-0.9-0.1-0.7-0.3-0.8 0-0.9 0.4-0.8 0.7-0.3 0.6-0.5 0.1-0.9-0.5-0.9-0.8-0.2-0.7 0.4-1.9 0-1.2-0.4-0.8-1.4-1.3-0.8-0.7-0.9-0.6-0.9-0.3-0.9-0.2-3-0.2-8.8-3.1 2.6-2.5 4-1.8 3.2-2.2 0.4-3.9 1.5-1.3 1.7 1 1.5 3.3 3.2 0.6 3.7 2.5 3.9 4 2 2.4 1.4-0.9 3.5 1.9 4.4 2.4 4 3.6z"
+				id="TR79"
+				name="Kilis"
+				fill={getPathFill('TR79')}
+				class="cursor-pointer transition-all duration-200 hover:opacity-80"
+				onclick={() => handlePathClick('TR79')}
+				onmouseenter={() => handlePathHover('TR79')}
+				onmouseleave={() => handlePathHover(null)}
+			></path>
+			<path
+				d="M633.2 306.9l-0.8 0.1-0.8-0.1-0.8 0-0.7 0.6-2.1 2.7-1.6 1.6-0.5 0.8-0.4 1.5-0.2 0.2-0.4 0.2-0.4 0.3-0.2 0.6-0.6 2.1 0.7 0.5 0.6 0.6 0.3 0.9 0 1.3-0.3 0-0.3-0.7-0.4-0.1-0.4 0.4-0.2 1 0.2 0.9 0.3 0.8 0.8 1.3 0.3 0.7 0.1 0.6-0.1 1.4-0.3 1.7 0.1 0.8 0.6 0.6 0.6-0.3 0.4 0.3 0.5 0.5 0.4 0.3 0.4-0.1 1.1-0.6 0.7-0.1 0.5 0.3-0.1 0.7-0.6 1.4 0 0.9 0.1 0.5 0.7 0.8 1.3 1.2 0.2 0.5 0 1.5 0.1 0.6 0.2 0.6 0.8 0.9 0.2 0.5-0.5 0.2-0.4 0.3-0.1 0.8 0.1 0.8 0.2 0.5 0 0.1-0.8 0.5-1.4 0.4-7.6 3.5-7.8 1.7-2.9 1.2-3.4 2.2-4-3.6-4.4-2.4-3.5-1.9-1.4 0.9-2-2.4-3.9-4-3.7-2.5-3.2-0.6-1.5-3.3-1.7-1-1.5 1.3-0.4 3.9-3.2 2.2-4 1.8-2.6 2.5-0.3-0.5-0.8-0.1-0.6-0.5-0.4-1.2-0.8-0.8-3.8-1.7-3.1-3.1 1.1-2.2 1.8-1.7 3.3-4.2 2.6-5.1 1.8-2.8 2.2-2.5 5.7-2.6 2.3-3.1 2.3 1.5 1.3 5.3 3.7 1.2 4.3-4.6 2.6-1.3 6-1.1 6.3-2.2 3-0.4 3 0.1 2-1.4 0.6-2.7-0.3-1.7 0.1-1.8 5.2-1.1 5.2 0.1 5.6 2.1 3.7 3.3z"
+				id="TR27"
+				name="Gaziantep"
+				fill={getPathFill('TR27')}
+				class="cursor-pointer transition-all duration-200 hover:opacity-80"
+				onclick={() => handlePathClick('TR27')}
+				onmouseenter={() => handlePathHover('TR27')}
+				onmouseleave={() => handlePathHover(null)}
+			></path>
+			<path
+				d="M557.8 335.8l3.1 3.1 3.8 1.7 0.8 0.8 0.4 1.2 0.6 0.5 0.8 0.1 0.3 0.5-0.5-0.1-0.4 0.1 0.2 1.4-0.6 1.2-0.7 1-0.6 1.2-0.2 1.3-0.1 1.1-0.1 1.2-0.6 1.4-0.6 2.5 0 2.6-0.2 2.6-1.4 2.2-0.3 0.9 0.2 1 0.9 3.2 0.2 0.5 0.4 0.3 0.7 0.3 0.2 0.2 0.3 0.4 0.1 0.4 0.1 0.4-0.1 0.5-0.3 0.9-0.2 0.5-0.2 0.1 0.4 0.4 1.6 0.2 0.8 0.3 0.5 0.6 0 0.1 0.5 0.8 0.3 1 0.2 0.9 0 1.3-0.2 0.5-3.4 0.6-0.9 0-3.6-0.6-0.9 0.2-0.5 0.2-0.2 0.3 0 0.5-0.3 0.3-0.4 0.2-0.2 0-0.3-0.1-1.3-0.2-0.7-0.2-0.6-0.4-0.6-0.7-0.5 0.5 0.7 0.8-0.1 0.5-0.4 0.4-0.3 0.5 0 0.8-0.2 8.5 0.1 1.7-1 0.3-1.9-0.7-0.9 0.4-0.4 2.1-0.8 0.1-1.1-0.3-1.5 0.6-1.1 1.7-0.3 4.1-0.5 1.7-0.1 0.1-0.8 0.1-2.8-2-1.4-0.7-1.5 0-0.7-0.2-0.5-0.5-0.1-0.7 0.1-0.7 0-0.8-0.6-0.7-0.9 0.2-1 0.3-0.9 0.2-0.5-0.1 0-0.1 0.6-0.8 2-3.6 0.5-0.4 0-1.1-1.3-4-3.4-5.6-0.6-0.8-0.6-1-0.5-1.8-0.7-0.8-0.8-0.7-0.5-0.7-0.6-1.4 0.1-0.9 1.3-1.9 0.4-0.5 0.5-0.3 0.5-0.2 0.5 0 0.3-0.2 0.5-1.5 0.4-0.4 0.8-0.4 0.5-0.4 0.2-0.5 0.3-1.3 0.5-0.3 0.3-0.3 0.3-0.3 1.9-0.7 0.4-0.2 2.2-2.8 0.4-0.6 0.5-0.1 5.1-3.2 0.7-0.2 0.5-0.5 0.6-1 0.5-1.2 0.2-0.9 0-0.8-0.2-0.6-0.3-0.5-0.2-0.6 0-0.4 0-3.7-0.1-1-0.5-1-2.8-4-1.6-1.6-1.8-1.3-1.8-0.5-1.7 0.7-1.6 1.4-0.9 1.1-0.7-1.2 0-2.5 3.9-4.5 0.9-0.5 1 0.2 1 0.4 2.1-0.4 2 0.6 1.9 0 2.3-0.6 2.1 0.7 1.6 1.7 1.8 1.1 2.4 0.1 2.4-0.3z"
+				id="TR31"
+				name="Hatay"
+				fill={getPathFill('TR31')}
+				class="cursor-pointer transition-all duration-200 hover:opacity-80"
+				onclick={() => handlePathClick('TR31')}
+				onmouseenter={() => handlePathHover('TR31')}
+				onmouseleave={() => handlePathHover(null)}
+			></path>
+			<path
+				d="M163.8 57.8l0.1 0 2.2-3 1.4 1.3 7.2 4.6 10.3 4.4 14.6 7 4.7 1.1 0.2 0.1 0.1 0.1 0.2 0.2 0.3 0 0.3-0.1 0.3-0.6 0.4-0.1 1.1 0.1 1.2 0.5 0.7 0.7-0.4 1.6-0.7 1.1-0.8 1.1-0.8 0.5-0.6 0.2 0.2 0.4 0.4 0.5 0.2 0.5 0.3 0.4 0.1 0.1 0.3 0.2-0.1 0.4-0.2 0.3-0.1 0-0.2 1.2-0.3 1.2-0.5 0.9-0.5 0.8-0.4 0.3-0.8 0.3-0.4 0.3-0.4 0.6-0.1 0.3 0.1 0.3 0 0.2 0.2 0.3-0.1 0.3-0.2 0.4-0.2 0-1.1-0.1-0.4-0.3-0.2-0.1-0.3 0.2-0.4 0.6-0.2 0.1-0.5 0.1-0.9 0.6-1.9 0.4-0.4 0.2-0.3 0.2-0.2 0.3-0.3 0.2-0.5 0.1-1.2 0-0.6-0.2-0.2-0.4-0.5-0.5-1.2 0-5.7 0.7-1.4-0.6 0.4-2-0.6-0.6-0.3-0.2-0.4-0.1 0.3-1.4-0.5-1.3-1-0.8-1.1-0.3 0.2 0.9 1.1 1 0.3 1.1 0 0.6-0.1 0.9-0.3 0.9-0.6 0.6-1.3-0.2-2.5-2.5-1.2-0.7-1.6-0.3-3.3-1.2-1.6-0.2-1.6 0-0.4-0.2-0.5-0.6-0.4-0.1-1.8 0.4-0.9 0-0.3-0.2-0.5-3.5-0.7-4.8 0.7-3.8 1.4-5.2-0.5-4.2-1.3-4.5z m52.2 38.9l-0.6-0.4-1 0.2-0.9-0.9-2.7-1.3-1-0.8-1-1.2-0.9-0.8-2.7-1.5 0.2-0.1 0.1 0 0-0.1 0.1-0.2-0.6-0.3-0.2-0.6-0.2-0.9-0.3-0.8 0.8-0.5 1-1.1 0.8-1.3 0.6-2.4 0.6-0.9 0.1-0.8-1-0.7 1.1-1.7 1.8-2 1.9-1.4 1.4 0.3 0.3 0 0.5-0.7 0.7-0.1 8.9 1.7 9.5 2.2 12.6 1.9-1 0.5 0.5 1.9 0.2 2-1.4 3.2-2.5 1.4-3.1 1.2-2.7 1.9-0.5 1.5-0.8 1.5-1.7 0.2-1.4-1.2-1.4-3.1-2.3-1.9-2.5-0.2-2.1 1.5-2 2-1.1 0.6-2.5 2.1-1.6 2.1z"
+				id="TR34"
+				name="Istanbul"
+				fill={getPathFill('TR34')}
+				class="cursor-pointer transition-all duration-200 hover:opacity-80"
+				onclick={() => handlePathClick('TR34')}
+				onmouseenter={() => handlePathHover('TR34')}
+				onmouseleave={() => handlePathHover(null)}
+			></path>
+			<path
+				d="M99.9 68.1l7.2-1.6 7.7-0.6 5.5 0 2.7 1.8 2.1 2.8 2.6 1.7 3.1-0.8 2.7-2.1 1.7-3.5 2.3-3.4 4.6-1.4 5.2-1.2 8.2-1.1 8.3-0.9 1.3 4.5 0.5 4.2-1.4 5.2-0.7 3.8 0.7 4.8 0.5 3.5-0.4-0.2-2.3 0.8-0.4 0.3-0.4 0-2.6 1-0.7 0.2-0.9 0.5-0.7 0.5-0.5 0.5-1.1 1.8-0.3 0.8 0.1 0.5-0.9 0.2-3.8-0.4-0.7-0.5-0.7-0.6-0.8-0.4-1.8-0.6-1.8-0.1-10.2 1.5-1.4 0.9-1.1 2.1-1.2 5-1 1.9-4.5 4.4-2 3.6-4.3 3.2-0.2 0.3-0.5 0.7-0.2 0.3-0.5 0.1-1.2 0.2-1.3 0.9-2.2-0.1-1 0.1-0.8 0.7-1.4 2-0.6 0.4-1.2 0.1-1.5-4.6 0-5-6.9-0.7-1.2-4.1-1.8-3.9-0.3-5.1 0.8-4.4 1.5-3.8 2.3-3 0.7-3.8-0.3-8.8-0.6-1.1z"
+				id="TR59"
+				name="Tekirdag"
+				fill={getPathFill('TR59')}
+				class="cursor-pointer transition-all duration-200 hover:opacity-80"
+				onclick={() => handlePathClick('TR59')}
+				onmouseenter={() => handlePathHover('TR59')}
+				onmouseleave={() => handlePathHover(null)}
+			></path>
+			<path
+				d="M98.5 110.3l0-0.3 0.3-3.7 0-0.2 6.9 0.7 0 5 1.5 4.6-0.6 0.1-1.9 0.6-2.7 1.7-0.7 0.7-0.9 0.6-2.9 0.4-0.9 0.5-1.5 1.4-0.7 0.3-0.5 0.3-0.4 1.9-0.5 0.8-1.6 0.8-0.3 0.5-0.1 1-0.3 1-0.7 0.9-2.6 2.4-0.3 0.2-1.4 0.3-0.6 0.6-1 1-0.1 0.2-0.2 0.3-1.2 1.5-0.9 0.7-1.1 0.6-1.1 0.6-1 0.1-0.6 0.6 0.1 1.1 0.6 1.2 0.7 0.5-2.3 2.2-0.7 0.5-1.9 1.1-1.4 1.4-0.6 0.3-2.5 0.9-0.5 0.1-0.5-0.4 0.1-0.7 0.4-0.7 0.3-0.4 0.8-0.6 0.5-1.3 0.4-1.3 0.2-0.6 2.2-3 0.6-2.2-0.3-1.7-0.9-1.4-1.4-1.1 0.5-0.4 0.2-0.4-0.3-0.3-0.6-0.1-0.2-0.3 0.4-0.6 0.7-0.6 0.3-0.1 0.5-0.5 2.5-0.9 0.9 0 0.7-1.3 2.4-1.5 2.2-1.9 2.8-1 2.1-1.8 1.4-0.9 1.4-0.7 1.3-0.3 2.3 0.3 0.6-0.3 0.7-0.7 1-1.6 0.6-0.7 1.2 0.5 1.5-0.5 1.3-1.1 0.6-1.3-1.4-3.1-0.4-0.6-0.5 0.1z m-5.4 68.8l-10 1.9-1 0.4-0.5 0.5-0.5 0-2.1 1.2-0.4 0.3-0.5 0-2.5-0.5-0.5 0.1-0.7 0.3-0.5 0.1-0.4 0.5-0.1 0.2-0.1 0.3-0.3-0.2-0.5-0.4-3.8 1-1.9 0-1.8-1-0.2-1.3 1.2-3.2 0.7-3.1 1.8-1.7 0.4-1.4 0.3-3.4-0.2-0.7-0.9-1.7-0.2-0.8 0.1-0.6 0.2-0.2 0.2-0.1 0.2-0.4 0-1.4 0.2-1.7-0.2-0.5-0.7-0.2 0.3-0.7 0.7-3.1 0-0.3-0.3-1.3 0-0.5 0.1-0.6 0.4-0.8 0.1-0.5 0.2-0.6 1-1.7 0.4-0.5 2.6 0.9 0.7-0.5 1.6-0.7 0.5-0.3 2-2.1 0.4-0.7 0.2-0.5 0-0.8 0.2-0.4 0-0.2 0-0.3 0-0.2 0.1-0.1 0.6 0 0.2-0.1 0.2-0.1 0.3-0.8 0.2-1.2 0-1.1-0.3-1 0.3-0.9 0.2-0.4 0.3 0 0.7 0 0.6-0.1 1.2-0.6 1.6-0.5 0.9-0.7 2.1-2.8 0.4-0.3 0.5-0.1 0.6-0.4 0.6-0.5 5.1-6.2 1-0.8 1.9-0.1 4.1 0.3 1.7-0.4 0.5 0.2 1.2 0.7 2.7 0.2 1.1-0.2 1.3-1.1 1.2-1.5 1.4-1.2 2.2-0.1 1.6 0.4 1.9 0 1-0.2 1.6-1 0.8-0.1 0.7 0.7 0.5 0.9 0.7 1.9-0.6 0.4-0.3 0-0.3-0.3 0 0.1-0.4 0.2 2.1 2.3 2.6 1.7 2.8 1.3 3.4 0.8 1.3 0 0.5-0.1 0.5-0.3 0.2 0.5-0.5 2.8-2.3 1.3-3.3 3.5-0.8 0.3-0.5 0.4 0.9 1.9 1.9 0.8 0.8 0.1 0.2 0.4-0.3 1.2-0.6 2.1-0.2 1.6-0.5 1.4-0.4 0.5-0.5 1 0.9 1.4 0.8 0.6-0.3 2.5-0.8 2.6-1 2.3-1.9 1.4-2 0.9-1.9 1.3-2 0.8-3.5-1.1-3.5-0.6-1.3 0.7-1.5-0.2-2.2 0-2 1.6-3.5 1.5-1.7 1.5-2.1 0.6-4.3-0.5-1.9 0.4-1.5 4.9 0.1 4.9z m-28.8-17.7l0.8-0.4 0.3 0.6-0.1 2.2-0.3 0.9-0.7-0.1-1.6-1.1-1.4-0.6-0.6-0.5-0.3-0.8 0.4-0.5 0.8-0.1 1.7 0 0.3 0 0.3 0 0.2 0.1 0.2 0.3z m-2.3-20.4l0 1.3-1 0.6-1.1 0.4-3.2 0.5-2.1 0.9-4.3 0.6-0.9 0-1.2-0.4-0.6-0.3-0.2-0.4-1.9-0.7 0-0.3 1-1.8 1.6-1.6 1.9-1.3 3.2-0.6 4.1-1.5 0.6-0.1 0.6 0.1 0.3 0.3 0.3 0.4 0.3 0.4 0.7 0.1 0 0.5-0.1 0.5-0.1 0.8 0 0.8 0.2 0.4-0.4 1 0.5 0.3 0.8-0.3 0.7-0.6 0.3 0z"
+				id="TR17"
+				name="Çanakkale"
+				fill={getPathFill('TR17')}
+				class="cursor-pointer transition-all duration-200 hover:opacity-80"
+				onclick={() => handlePathClick('TR17')}
+				onmouseenter={() => handlePathHover('TR17')}
+				onmouseleave={() => handlePathHover(null)}
+			></path>
+			<path
+				d="M783.2 69.9l0.1 0.2 1.3 3.3 0.4 2.5 0.9 2.1 0.9 0.9 0.9 0.6 0.6 1.1 0.5 1.1 1.9 0.9 1.4 1.6-1.3 2.9-2.6 1.7-0.7 1.3-0.4 1.3-1 0.9-1.1 0.6-4.5 5.3-0.7 2.5-3.6 2.1-5.1 4.4-2 0.7-2.1 0-1.7 0.7-1.4 3.6-2.9 0.8-1.9 0.2-1.9 0.6-7.7 3.8-0.7-3.9 0.6-4.3-3-7.6-0.5-4.4-1.2-4.2-1.7-3.9 5.3-3.6 1.7 0.8 1.4 0.1 1.3-0.4 1.5-0.9 1.8-1.6 0.6-0.1 1.5-0.2 0.7-0.3 0.6-0.4 2.8-3.8 3.4-2.5 0.5-0.2 0.7 0.2 2.1 0.7 1.2-0.2 1.8-1.3 0.7-0.3 1-0.1 1.1-0.4 1.1-0.5 0.9-0.7 1.8-2 1-0.7 1.2-0.3 1.3 0 0.8-0.3 0.4-0.4z"
+				id="TR53"
+				name="Rize"
+				fill={getPathFill('TR53')}
+				class="cursor-pointer transition-all duration-200 hover:opacity-80"
+				onclick={() => handlePathClick('TR53')}
+				onmouseenter={() => handlePathHover('TR53')}
+				onmouseleave={() => handlePathHover(null)}
+			></path>
+			<path
+				d="M743 89.3l1.7 3.9 1.2 4.2 0.5 4.4 3 7.6-0.6 4.3 0.7 3.9-0.9 0.2-1.9 0.6-4.9 0-2.4 0.4-2.3 0.8-2.1 0-3.9-1.3-4.1-0.1-1.9-1.1-2.9-3.3-1.5-0.5-0.3 0.2-0.6 0.6 0.3 1.5-0.7 0.8-1 0.1-2.3-3.9-3.3-2.2-1.4 1.1-0.6 2.6-0.7 0.8-1 0.2-2.8-0.3-11.1-4.5-3.2-3.3-0.7-3.7-2-1.2-0.8 1.1-1 0.9-1-0.1-0.9-0.7-0.8-2.4-0.4-5.8 0.1-3.1 1.3-7.6 0.4-0.4 0.6-0.1 1.5 0.1 0.9 0.3 1.5 1.3 1.1 0.1 0.8-0.2 1.2-0.9 1-0.1 0.6-0.2 2.5-1.6 0.3-0.2 0.2-0.3 0.2-0.2 0.6-0.2 3 0.8 0.7 0.6 1.2 1.7 2.8 2.4 1.8 1.1 1.9 0.4 0.9-0.4 1-0.4 1-0.2 1.2 1 0.6 0 1 0 0.4 0.1 2.9 2.3 0.8 0.4 0.9 0.2 0.8-0.6 3-1 1.1-0.2 2.8 2.6 1.3 0.9 2 0.4 0.8-0.1 1.4-0.6 1.1-0.3 1.7-0.6 1.1-0.8 2.2-0.6 2.4-1.6z"
+				id="TR61"
+				name="Trabzon"
+				fill={getPathFill('TR61')}
+				class="cursor-pointer transition-all duration-200 hover:opacity-80"
+				onclick={() => handlePathClick('TR61')}
+				onmouseenter={() => handlePathHover('TR61')}
+				onmouseleave={() => handlePathHover(null)}
+			></path>
+			<path
+				d="M685.8 84.4l-1.3 7.6-0.1 3.1 0.4 5.8 0.8 2.4-5.7 0.7-0.3 0.7-0.2 0.9-0.9 0.5-1.2 0.3-1.4 1.2-1.5 1-0.6 1.6 0.6 1.9-0.9 1.7-1.4 1.5-0.5 0.7-0.1 0.5-0.3 2.8 0.1 2.2 1.3 1.6 5.6 1.4 1.3 1.1 1.3 1.3 1.1 0.3-0.3 2.3-1.4 1.2-4.8 2.6-1 1.3-0.1 2.1 0.2 2.1-0.2 2.2 0.4 2.2 1.3 1.7-0.4 2-1.9 0.9-4.2 0.3-2-0.1-4.8-2.4-5-1.6-4.8 1.2-3-1.8-2.9-2.2-2.7-1.4-1.7-2.6 0.1-3.5-3.9-14.9-4.5-5.1 0.2-1.7 0.6-1.2 0.2-2.1-0.2-2.1 0.2-2.1-0.2-2.1-0.8-1.8 0-2 0.8-1.5 1-1.2 0.7-1.9-0.1-2.2 0-0.2 2.3 0.3 1.9 0.7 1 0 2.1-0.6 0.9 0.2 2.1 1.9 1 0 1.8-0.6 1.8 0.5 1.2 0.2 0.5-0.5 3.6-0.2 0.7-0.5 1.8-1.7 0.6-0.4 1.5-0.5 0.6 0.1 0.3 0.2 0.8 1.1 0.3 0.4 0.5-0.3 0.9 0 0.5-0.1 0.3-0.3 0.4-0.4 0.5-0.4 0.6-0.2 0.9-1.2 0.2-0.3 0.2-0.2 1.1-0.4 3.3-0.7 0.8-0.5 0.7-0.7 0.9-0.3 5.5 0 3.8-0.9 0.4-0.3 0.8-0.6z"
+				id="TR28"
+				name="Giresun"
+				fill={getPathFill('TR28')}
+				class="cursor-pointer transition-all duration-200 hover:opacity-80"
+				onclick={() => handlePathClick('TR28')}
+				onmouseenter={() => handlePathHover('TR28')}
+				onmouseleave={() => handlePathHover(null)}
+			></path>
+			<path
+				d="M636.7 91.6l0 0.2 0.1 2.2-0.7 1.9-1 1.2-0.8 1.5 0 2 0.8 1.8 0.2 2.1-0.2 2.1 0.2 2.1-0.2 2.1-0.6 1.2-0.2 1.7 4.5 5.1-1.4 1.2-1.6 0.8-2.2 0.2-1.9 0.4-0.5 0.8-0.1 1.8 0.5 0.7-0.2 1.1-1 0.6-4-0.2-1.7 1.3-1.4 1.9-1.4 1.1-1.7 0.2-3.6-2.9-2.6-5.1-0.9-3.8-1.6-3-6.4-0.4-10.9-7.6-3.1-0.3-3.3 0.5-3.4-0.3-3.1-1.3-2.5-1.5-3.9-1.4-2.7-1.6-2.1-0.5-0.6-0.4-0.5-1.9 0.8-1.6 1-0.3 0.9-0.5 2.1-0.2 1.9-0.6 1.7-1 0.7-0.6 1.9-2.1 3.8-2.1 2-3.9 2.7-2.8 2.5-3.5 0-0.3 5.3-0.1 1.7 0.5 1.1 1 0.5 0.3 1 0.3 1.2 0.1 0.8 0.3 1.1 1.3 0.8 0.6 2 0.7 0.2 0.3 1.1 1.2 0.9 0.4 1.9-0.2 0.8 0.2 0.3-0.3 0.6-0.3 0.4-0.3 0.3-0.5 0.6-1.6 0.6-1.1 0.7-1 0.8-0.8 0.9-0.6 0.4 1 0.8 0.6 0.9 0 0.8-0.7 0.3 0.4 1.2-0.2 0.1 3.9 0.8 1.1 2.5 1.2 0.6 0.5 0.5 0.7 0.8 1.4 1.9-0.8 2.2 0.3 5.8 2 0.5 0.1z"
+				id="TR52"
+				name="Ordu"
+				fill={getPathFill('TR52')}
+				class="cursor-pointer transition-all duration-200 hover:opacity-80"
+				onclick={() => handlePathClick('TR52')}
+				onmouseenter={() => handlePathHover('TR52')}
+				onmouseleave={() => handlePathHover(null)}
+			></path>
+			<path
+				d="M591 79.7l0 0.3-2.5 3.5-2.7 2.8-2 3.9-3.8 2.1-1.9 2.1-0.7 0.6-1.7 1-1.9 0.6-2.1 0.2-0.9 0.5-1 0.3-0.8-1.6-1.7-1.1-2.5-0.1-0.3-0.2-0.3 0.4-1.6 0.8-5.2 1.3-5.1-3.7-0.8-1.4-0.6-1.4-1.3-1.5-1.7-0.6-1.9 1.2-0.9 2.9-1.4 2.5-2.2 1.5-1.7 1.4-2 0.5-3.7-1.8-6.3-0.1-1.8-0.3-3.6 0.2-1.6-0.4-1.6-2.8-6.9-5.3-1.6-0.9-2.9 0.5-14.7-4.2-1.8-0.4-3.7 0.4-0.7-2.3-0.3-2.5-0.6-2.3-2.5-4.4 0.8-0.6 1.1-0.5 0.7-0.8-0.4-1.1 0.5-0.5 0.4-0.3 1.2-0.1 0.6-0.2 1.6-1.5 2.5-1 1.2-0.7 0.5-0.9 0.5 0.5 0.4 0.9 0.3 1.2 0.1 1.1 0.3 0.6 0.8 0.5 1.5 0.8-0.5 0.8 0.5 0.3 2.1 0.3 0.4 0.2 0.8 0.9 1.5 0.8 2.1 0.3 2-0.4 1.5-1 0.9-0.4 2.5 0.6 0.9-0.7-0.4-3.8-0.3-1.8-0.6-1.3-0.3-1.5 0.2-1.9-0.1-1.8-0.8-3.1 0.2-3.2 1.9-4.2 1.4 0.4 2.2 0.3 2.1-0.2 1-0.4 1.8-1.1 2.9-0.5 5-2.2 1.2-0.2 1.1-0.3 1.9-1.6 1.1-0.3 0 0.5-0.2 0.4-0.3 0.3-0.4 0.4-0.5 0.2 0.1 0.9-0.9 2 0.2 1.1 0.4 0 0.1-1.6 0.4-1.4 0.6-1.1 0.7-0.8 0.5-0.4 0.3-0.1 2.8 2.7 0-0.9 0.4 0 3.5 4.7 0.7 1.9 0 2.5-0.2 0.7-0.4 1 0 0.3-0.1 2.1 0.2 1 0.5 1.1 2.1 2.6 1.2 0.9 1.6 3 0.7 0.6 2.4 1.3 1.4 0.3 0.2 0.3 0.2 0.5 0 0.7 0.1 0.7 0.4 0.3 0.6 0.2 0.5 0.3 0.3 0.3 0.4 0.7 0.3 0.3 0.5 0.1 0.8 0.2 0.5 0.3 0.8 0.4 1.2-0.3 2-1.1 2.5-2.3 0.4-0.6 0.2-0.6 0.7-1.1 0.1-0.4 0.1-0.2 0.3-1.3-0.1-0.1 0.7-0.5 0.6 0 0.8 0.3 1 0.2 4.1 0 3.8 1 7 3.5 1.4 1.3 0.8 2 0.1 2.8 0.3 1.1 0.8 0.4 1 0.3 1.8 1.1 0.9 0.4 0.8 0z"
+				id="TR55"
+				name="Samsun"
+				fill={getPathFill('TR55')}
+				class="cursor-pointer transition-all duration-200 hover:opacity-80"
+				onclick={() => handlePathClick('TR55')}
+				onmouseenter={() => handlePathHover('TR55')}
+				onmouseleave={() => handlePathHover(null)}
+			></path>
+			<path
+				d="M512.6 48.4l-1.9 4.2-0.2 3.2 0.8 3.1 0.1 1.8-0.2 1.9 0.3 1.5 0.6 1.3 0.3 1.8 0.4 3.8-0.9 0.7-2.5-0.6-0.9 0.4-1.5 1-2 0.4-2.1-0.3-1.5-0.8-0.8-0.9-0.4-0.2-2.1-0.3-0.5-0.3 0.5-0.8-1.5-0.8-0.8-0.5-0.3-0.6-0.1-1.1-0.3-1.2-0.4-0.9-0.5-0.5-0.5 0.9-1.2 0.7-2.5 1-1.6 1.5-0.6 0.2-1.2 0.1-0.4 0.3-0.5 0.5 0.4 1.1-0.7 0.8-1.1 0.5-0.8 0.6-0.1 0.4-0.1 1.1-0.1 0.5-0.2 0.3-0.9 0.8-1 1.2-5.4-1.7-0.8-0.6-0.5-0.9-1.2-0.9-1.4-0.3-1.6 0.4-1.6-0.3-0.8-0.9-1-0.2-1.8 0.1-1.2-1.6 0.3-8.3-0.5-1.2-0.3-1.2 0.5-2.4 0.9-2.2 1.4-1.4 1.5-1 1.7-4.3-2.7-3.5-3.1-0.9-5.8-0.3-2.9-0.8-2-0.3-1.7 0.1-3.1-1.2 0.1-2.1 2.4-2.9 1.3-3.7-0.2-3.6 5.5 0.7 5.4-1.6 1.8-0.1 0.7 0.2 1.4 0.7 1.6 0.6 6.3 0.4 2.5-0.3 2.5-0.8 0.8-0.4 1.7-1.4 1.8-1.1 1.4-1.8 1.1-2.1 0.3-1.9 0.6 0.2 1.4 0.3 0.6 0.4 0.1-0.4 0.2-0.1 0.3 0 0.4 0 0.3 0.8 0.5 0.5 0.4 0.4-0.3 0.5 0 0.4 1.8 1.4 1.1 0.5 1.4-0.1 0.5-0.3 0.8-0.8 0.5-0.2 0.7 0.1 0.4 0.3 1 0.9 0 0.4-2.5-0.3-1.2 0.2-1 0.8-0.5 0.9-0.4 1.4-0.2 1.5-0.1 1.2 0.3 1 1.3 2.4 1.4 1.9 2.6 2.1 0 0.5-0.7 0 0.3 0.8 0.5 1 0.6 0.9 1.4 0.7 1.4 1.7 0.7 0.6 2.8 1.1 2.1 0.4 0.8 0.5 1.5 1.4 1.7 1 0.7 0.3z"
+				id="TR57"
+				name="Sinop"
+				fill={getPathFill('TR57')}
+				class="cursor-pointer transition-all duration-200 hover:opacity-80"
+				onclick={() => handlePathClick('TR57')}
+				onmouseenter={() => handlePathHover('TR57')}
+				onmouseleave={() => handlePathHover(null)}
+			></path>
+			<path
+				d="M451.6 28.1l0.2 3.6-1.3 3.7-2.4 2.9-0.1 2.1 3.1 1.2 1.7-0.1 2 0.3 2.9 0.8 5.8 0.3 3.1 0.9 2.7 3.5-1.7 4.3-1.5 1-1.4 1.4-0.9 2.2-0.5 2.4 0.3 1.2 0.5 1.2-0.3 8.3-2.5 0.6-1.7 2.4-1.3 3.4-1.1 1.3-2.2 2-1.7 4.2-1.6 2-0.5 1.2 0.9 2.4 1 0.4 1.6 1.7-1.2 3.1-6.7 2.8-4.2 0.9-1.9-0.1-2-0.4-1.6-1.2-1.5-1.4-2.8-1-1.7-3 0.5-1.9 1.2-1.4 1.5-2-0.5-2.5-0.7-0.4-1.6 0.6-7.7 4.1-3.7 0.7-5 3-1.8 0.6-2.2-0.7-1.8-2.1-4.3-2.9-6.1-0.6-0.7-0.6-1.1-1.4-0.4-0.8-1-1.5-2.5-1.1-2.7-0.4-0.9-6.8 0.4-2.1 2.2-3 2.5-2.5 4.6-0.9-1.3-3.1-1.3-5.6-3.5-2.6-3.5 1.2-2.9 0.4-1.6-1.8-0.4-4.5 3-2.2-1.7-4.7-1.3-2.8-0.5-3.8 1.4-0.4 0.8-0.5 0.5 0.3 3.4-0.8 1.7-0.8 2.1-1.5 7.5-2.5 7.6-4 1.7-0.1 3.5 0.6 5 0 1.1 0.2 2.4 0.9 10.1 1 0.9-0.3 1.3 0.5 6.2-0.5 10.1 1.5z"
+				id="TR37"
+				name="Kastamonu"
+				fill={getPathFill('TR37')}
+				class="cursor-pointer transition-all duration-200 hover:opacity-80"
+				onclick={() => handlePathClick('TR37')}
+				onmouseenter={() => handlePathHover('TR37')}
+				onmouseleave={() => handlePathHover(null)}
+			></path>
+			<path
+				d="M384.3 34.5l0.5 3.8 1.3 2.8 1.7 4.7-3 2.2 0.4 4.5-4.5 4.3-2.7 0.8-2.1 4.6-5.7 4.8-5 1.3-5.2-0.2 1-5.4-1.8-4.4-0.9-3.3-2.9-1.3-2.7-2.7 1.4-0.8 0.7-1.6 3.1-3.5 0.3-0.3 0.7-1.4 1.6-0.5 2.6-0.1 0.1-0.4 0.4-0.2 0.5-0.3 0-0.4 0.2-0.3 0.2-0.1 0.3 0.1 0.4 0.6 0.2 0.1 0.8-0.4 1-1.2 0.7-0.6 3.3-1.7 0.6-0.4 0.6-0.3 0.7-0.1 0.7 0.3 0.6-0.9 1.1-0.8 1.2-0.3 1.2 0.5 0.7 0 2.9-1.1 0.7-0.4 0.7 0.1 1.4-0.1z"
+				id="TR74"
+				name="Bartın"
+				fill={getPathFill('TR74')}
+				class="cursor-pointer transition-all duration-200 hover:opacity-80"
+				onclick={() => handlePathClick('TR74')}
+				onmouseenter={() => handlePathHover('TR74')}
+				onmouseleave={() => handlePathHover(null)}
+			></path>
+			<path
+				d="M352.7 51l2.7 2.7 2.9 1.3 0.9 3.3 1.8 4.4-1 5.4-2.5 3.5-1.7 2.1-0.8 3.3-1.5 5.1 0 5.6-10.2-0.3-3-0.8-3.5-0.3-11.5-1.1-8.2-4-1.8-1.8 1.6-1.5 0.6-0.9 0.4-0.8 0.2-1 0.1-1.4 0.1-0.5 0.4-1.3 0.1-0.8-0.2-0.3-0.9-0.6-0.2-0.5 0.5-0.8 1.1-0.4 2.2-0.2 0.2-0.2 0.8-1.2 0.2-0.3 0.5-0.1 7.2-2.8 10.1-6.8 5.8-2.8 1.7-1.4 0.4-0.3 4.5-1.5z"
+				id="TR67"
+				name="Zinguldak"
+				fill={getPathFill('TR67')}
+				class="cursor-pointer transition-all duration-200 hover:opacity-80"
+				onclick={() => handlePathClick('TR67')}
+				onmouseenter={() => handlePathHover('TR67')}
+				onmouseleave={() => handlePathHover(null)}
+			></path>
+			<path
+				d="M315.3 79.4l1.8 1.8 8.2 4 11.5 1.1-0.8 5.5-2.3 2.7-4.4 1.1-6.1 1-2.3 1.8-0.2 3.3-1.8 4.5-3.6 2.8-4.6 0.5-5.4-2.3-7.7 0.3-3.9-1.4 1-2-0.9-1.4-0.5-1.7 0.7-1.7-0.2-1.9-0.8-1.7-0.3-1.9 1.6-3.7 2.8-2.6-0.1-1.3-0.3-1.9 0.1-0.6 6.4-0.1 1.2-0.7 0.4-0.2 0.6 0.1 1 0.3 0.5 0 2-0.4 0.3 0.1 0.4 0.3 0.3 0 0.3-0.1 0.1-0.2 0.1-0.3 0.3-0.2 2-0.8 1.5-1 1.1-1.1z"
+				id="TR81"
+				name="Düzce"
+				fill={getPathFill('TR81')}
+				class="cursor-pointer transition-all duration-200 hover:opacity-80"
+				onclick={() => handlePathClick('TR81')}
+				onmouseenter={() => handlePathHover('TR81')}
+				onmouseleave={() => handlePathHover(null)}
+			></path>
+			<path
+				d="M296.8 83.7l-0.1 0.6 0.3 1.9 0.1 1.3-2.8 2.6-1.6 3.7 0.3 1.9 0.8 1.7 0.2 1.9-0.7 1.7 0.5 1.7 0.9 1.4-1 2-3 2.3 0.1 2.1 0.4 1.9-0.6 1.9-3.1 1.5-3.3-0.2-1.9 2.9-1.3 3.9-0.8 0.4-0.6 0.7 0.3 1.6 1 1.2 1.1 2.2-0.9 2.3-2.5-0.6-3.5 0.1-0.8-0.7-1.2-1.8-1.5-0.9-1.8 0-1.7-0.5-2.1 0.2-6.6 1.7-4.2-1.3-1.7-1.9-1.9-1.6-1.7-2.5-1.3-2.8-0.5-1.3-0.2-1.5 3.3-0.3 1.5-0.5 1.5-0.9 3.1-0.7 2.8-1.9 1.9-3.9 1.9-9.3 3.1-3.3-0.6-0.4-0.6-0.2-0.4-1.4 0.9-0.5 1.8 0.4 1.6 0.7 2.6-0.1 0.9-0.1 0.3-2.2 1.1-1.9-0.3-2.1-3.4-0.6-0.9-3.2 1.5-3.9 0.3-0.9 12.8 3.1 1.6 1.4 0.7 0.4 4.1 0.8 5.8-0.2z"
+				id="TR54"
+				name="Sakarya"
+				fill={getPathFill('TR54')}
+				class="cursor-pointer transition-all duration-200 hover:opacity-80"
+				onclick={() => handlePathClick('TR54')}
+				onmouseenter={() => handlePathHover('TR54')}
+				onmouseleave={() => handlePathHover(null)}
+			></path>
+			<path
+				d="M216 96.7l1.6-2.1 2.5-2.1 1.1-0.6 2-2 2.1-1.5 2.5 0.2 2.3 1.9 1.4 3.1 1.4 1.2 1.7-0.2 0.8-1.5 0.5-1.5 2.7-1.9 3.1-1.2 2.5-1.4 1.4-3.2-0.2-2-0.5-1.9 1-0.5 12 0.4 1.3-0.2 0.7-0.3 1.2-0.8 0.6-0.2 0.4-0.4 0.4-0.7 0.3-0.5 0.4 0.3 0.5-0.5 0.6-1 0.5-0.3 0.6 0.5 2 0.5 1.6 1.2 2.8 0.7-0.3 0.9-1.5 3.9 0.9 3.2 3.4 0.6 0.3 2.1-1.1 1.9-0.3 2.2-0.9 0.1-2.6 0.1-1.6-0.7-1.8-0.4-0.9 0.5 0.4 1.4 0.6 0.2 0.6 0.4-3.1 3.3-1.9 9.3-1.9 3.9-2.8 1.9-3.1 0.7-1.5 0.9-1.5 0.5-3.3 0.3-6.5-2.3-3.3 0.6-8.8 3.3-2.7 0.2-2.7-0.9 0.4-2.4 0-5.6 0.4-0.3 0.6-0.2 0.5-0.3 0.2-0.5 0.2-0.4 0.5-0.4 0.5-0.2 0.5-0.1 0.5 0.1 0.8 0.4 0.7 0.7 0.3 1.2 0.5 0 9.2-2.1 5.4-0.3 1.7 0.8 1 0 0.7-1.1-0.5-1.5-1.8-0.3-3.9 0.5-0.3 0.1-0.3 0.1-0.4 0.2-0.6 0-0.5-0.3-1-0.8-0.3-0.2-0.7-0.2-1.7-0.6-1-0.1-11.2 0.5-0.9 0.3-0.8 0.6-0.8 0.3-0.9-0.4-0.4-0.5-0.2-0.6-0.3-0.4-0.5-0.2 0.2-0.1 0.1-0.2 0.2-0.1 0.2-0.1-0.2-0.6-0.3-0.4-0.3-0.4-0.5-0.2-0.2 0.3-0.5-0.3-0.4 0.3-0.5 0.2-1.3 0.3 0-0.4 0.5 0 0.3-0.3 0.1-0.4 0-0.6 0.5 0.3 0.2 0.1 0-0.2 0-0.2 0.1 0 0.2 0-0.5-0.9-1-1.1-0.4-0.4z"
+				id="TR41"
+				name="Kocaeli"
+				fill={getPathFill('TR41')}
+				class="cursor-pointer transition-all duration-200 hover:opacity-80"
+				onclick={() => handlePathClick('TR41')}
+				onmouseenter={() => handlePathHover('TR41')}
+				onmouseleave={() => handlePathHover(null)}
+			></path>
+			<path
+				d="M224.3 108.3l0 5.6-0.4 2.4-3-0.6-3 3.2-3 0.6-7.3-3.2-1.4 0.2-3.3-0.8 0.1 6.8-0.5 0.2-2.5-0.6-4.2-2.7-2.6-0.6 0.9-1.9 1.6-1.1 3.4-1.3 1.4-0.9 2-2.1 0.8-0.3 14-1.3 2-0.7 1.9-1.1 1-0.8 0.3 0 0.4 0.3 0.3 0.6 0.5 0.4 0.6-0.3z"
+				id="TR77"
+				name="Yalova"
+				fill={getPathFill('TR77')}
+				class="cursor-pointer transition-all duration-200 hover:opacity-80"
+				onclick={() => handlePathClick('TR77')}
+				onmouseenter={() => handlePathHover('TR77')}
+				onmouseleave={() => handlePathHover(null)}
+			></path>
+			<path
+				d="M247.9 115.4l0.2 1.5 0.5 1.3-2.5 1.4-1.1 0.8-0.9 1-0.9 1.7-0.2 2-0.5 1.7-0.6 1.5 0.2 1.9 1.1 1.4 0.2 1.7-0.8 1.7-4.6 4.9-1.3 6.2 0 3.1 2.5 3.6 1.3 1 0.6 3.1-2.3 0.8-2.7-0.5-1.5 0.1-1.3 0.7-1.5 0.2-1.6-0.1-4.9-2-2.4 1.7-1 3.7-0.5 1.4-1 1-1.3 5-2.2 1.6-1 2.8-0.3 4.1-2.6 1.6-3.4 0.1-3.4-0.4-2.1-0.5-1.8-1.4-1.1-1.3-1.5-0.6-2.2-0.1-2.2 0.4-1.8-0.3-1.2-1.8-0.7-0.5-0.9 0-0.5-0.4-0.3-0.7-0.9-1.5-0.1-1.7 0.2-1.3-0.7-1-1.3 0.5-1 1.1-3.8-0.5-12.5-9.3-0.9-1.9-0.8-4.3-0.9-1.6-2.6-1.8-1.7-2.8-0.9-2.3-0.2-1.2 0.6-2.4 0.6-1 0.5-1.2-0.9-2-1.1-0.3-0.4-2.1 1.3-1.3 1.4-1.1 2.3-3.5 0.2-0.5 6.6-0.2 2.5 0.4 4.1-0.2-0.5 0.1-0.4 0.3-0.3 0.3-0.1 0.6 1.9-0.7 2.2-0.1 2.3 0.6 2.1 1.1 0.3-0.4 0.2 0.1 0.1 0.2 0.4 0.1 0.4-0.2 0.5-0.5 0.4-0.2 2.7-0.5 0.7-0.6 0.7-0.4 0.9 0.2 1.6 0.5 1.5 0.1 1.3 0.3 0.7 0.3 1.1 0.7 0.8 0.3 0.8 0.1 3.7-0.1 0.9-0.2 0.6-0.5 0.4-0.8 0.4-1.7 0.4-0.7 0.6 0.3 0.8-0.1 0.8-0.2 0.7-0.4-0.8-1.1-1.1-0.9-1.1-0.7-1.1-0.3-2.6 0-0.4 0.2-1 0.9-0.1-6.8 3.3 0.8 1.4-0.2 7.3 3.2 3-0.6 3-3.2 3 0.6 2.7 0.9 2.7-0.2 8.8-3.3 3.3-0.6 6.5 2.3z"
+				id="TR16"
+				name="Bursa"
+				fill={getPathFill('TR16')}
+				class="cursor-pointer transition-all duration-200 hover:opacity-80"
+				onclick={() => handlePathClick('TR16')}
+				onmouseenter={() => handlePathHover('TR16')}
+				onmouseleave={() => handlePathHover(null)}
+			></path>
+			<path
+				d="M93.1 179.1l-0.1-4.9 1.5-4.9 1.9-0.4 4.3 0.5 2.1-0.6 1.7-1.5 3.5-1.5 2-1.6 2.2 0 1.5 0.2 1.3-0.7 3.5 0.6 3.5 1.1 2-0.8 1.9-1.3 2-0.9 1.9-1.4 1-2.3 0.8-2.6 0.3-2.5-0.8-0.6-0.9-1.4 0.5-1 0.4-0.5 0.5-1.4 0.2-1.6 0.6-2.1 0.3-1.2-0.2-0.4-0.8-0.1-1.9-0.8-0.9-1.9 0.5-0.4 0.8-0.3 3.3-3.5 2.3-1.3 0.5-2.8-0.2-0.5 1.2-0.8 0.7-0.2 1.4 0.3 1.1 0.5 1.1 0.3 1.2-0.7 0.9 0.5 1.5 0.1 1.2-0.3 1.2-1.7 2.5-1.4 0.8-1-0.9-0.1-2.4-0.8-0.7 0.4-0.4 0-0.2-0.6-0.1-0.6-0.2-0.2-0.3 0-0.3-0.3-0.3-0.5-0.2-0.2-0.2-0.4 0-0.8-0.1-0.4-0.4-0.1-0.4 0-0.4-0.1-1.5-1.6-0.5-0.6 0-0.4 0.6-0.2 0.5-0.4 0.7-0.9 0.5-0.2 0.5 0.2 0.4 0.1 0.4-0.8 0.9 1.2 0.1 0.2 0.4 0.1 0.2-0.2 0.1-0.2 0.4-0.2 7.9 1.3 2.1 0.7 1 1.1-0.9 1.4-4.1 2.1-1.2 1.1 0.2 1.6 1.7 0.5 3.9-0.4 4-1.5 4.6-0.2-0.2 0.5-2.3 3.5-1.4 1.1-1.3 1.3 0.4 2.1 1.1 0.3 0.9 2-0.5 1.2-0.6 1-0.6 2.4 0.2 1.2 0.9 2.3 1.7 2.8 2.6 1.8 0.9 1.6 0.8 4.3 0.9 1.9 12.5 9.3 3.8 0.5 1-1.1 1.3-0.5 0.7 1-0.2 1.3 0.1 1.7 0.9 1.5 0.3 0.7 0.5 0.4 0.9 0 0.7 0.5 1.2 1.8 1.8 0.3 2.2-0.4 2.2 0.1 1.5 0.6 1.1 1.3-0.9 1.8-0.3 1.2 0 1.2-0.3 0.7-0.6 0.6-0.6 1.8-0.6 4.3-1.1 1.8-1.1 1.4-0.4 0.9-1.4 2.6-1.6 1.1-3.5 1.2-1.8 0.9-0.4 2.1 0.2 0.8 0.2 1.5-0.4 0.6-4.1-0.6-4.4 2.2-1.8 0.5-1.8 0.2-2-0.2-1.9 0.4-1.3 1.7-1.8 1.1-2.1 0.4-2 0.8-2.1-0.7-2.5-5.5-3.9-4.3-0.3-0.9-0.8-0.4-3.5 1.3-1.9-0.9 0.6-2.1 1.4-2.6-1.2-1.9-0.8 0-1.5 0.3-0.7-0.1-1.9-0.9-2-0.2-3.3 0.5-3.3-1-2.1-1.7-2.2-1-3.6 1.9-1.4-2.7-2.1-1.9-2.6-0.6-8.7 5.6-1.5 0.6-1.3 0.8-0.9 1.3-0.8 1.4-1 1-10.2 7.4-0.3-0.2-1-0.7-0.6-0.8 0-0.6-0.3-1.2-0.3-1.2-0.3-1-0.8-0.4-2.3 0.2-1.2-0.1-0.9-0.4 0.5-0.5 0.2-1.3 0.4-0.6 0.6-0.2 0.4 0.2 0 0.4-0.9 0.3 0 0.3 0.6 0 0.4 0.2 0.4 0.3 0.3 0.4-0.3-0.9 0.3-0.5 0.5-0.3 0.5-0.4 0.8-1.2 5-3.9-0.4-0.3-0.2-0.1 0-0.4 0.1-0.4 0-0.3-0.1-0.6 1.7-0.1 0.6-0.2 0.6-0.5-0.5-0.9 0.8-0.6 2.7-0.9 0.2-0.1 0-0.2 0.1-0.7 0.6-2.3 0-1.3-0.3-0.8-0.8-0.5-1.3-0.1-1.1 0.4-0.9 0.9-0.9 0.4-1.2-0.9-6.7 1.2z m47.1-68.4l0.7-0.2 1.4 0.2 1.2 0.6 0.2 1.1-0.9 0.7-1.7 0.3-0.9 0.3-1.6 1.4-0.9 0.4-1.1-0.5-0.5 0-1-0.4-0.7-0.7 0.1-1.3-0.3-0.5-0.3-0.5 0.2-0.7 0.4-0.4 0.4-0.3 0.2 0.2 0.2 0.7 1.1-0.6 1.3-0.4 1.2-0.1 1.3 0.7z m-0.6 12.1l0.3-0.1 0.2 0.2 0 0.5-0.5 0.1-0.7-0.4-0.8-0.1-0.8-0.1-0.7-0.5-0.1-0.7 0.5-0.4 0.4-0.8 0.4-0.6 1.5 0.7 0.1 0.5-0.2 0.5-0.1 0.7 0.5 0.5z"
+				id="TR10"
+				name="Balikesir"
+				fill={getPathFill('TR10')}
+				class="cursor-pointer transition-all duration-200 hover:opacity-80"
+				onclick={() => handlePathClick('TR10')}
+				onmouseenter={() => handlePathHover('TR10')}
+				onmouseleave={() => handlePathHover(null)}
+			></path>
+			<path
+				d="M98.4 202.5l10.2-7.4 1-1 0.8-1.4 0.9-1.3 1.3-0.8 1.5-0.6 8.7-5.6 2.6 0.6 2.1 1.9 1.4 2.7 1.8 4.7 1.6 7.4 0.8 2.2 1.7 3.3-0.3 3.2-1.3 1.5-3.1 2.6-3 1.2-2.6 1.8-0.6 2.2-0.3 2.4-0.8 2-1.5 1.5-1.3 2.2-0.2 1.3 1.3 1.3 0.7 0.3 1.1 1.4 1.3 4.2 2.8 2.5 3.3 0.3 5.4-0.2 0.9 0.2 1.5 1.4 0.8 3.4 3.3 2.3 3.7 1.7 0.4 0.9 0.5 1.9 0.4 0.9 2 1.9 2.4-0.6 1.1-2 0.8-1.9 2.3 0.1 2.3 1 1.4 0.1 1.4-0.4 2 2.1 1.3 3 4.6-0.7 1.8-0.6 1.3 0.2 0.9 1.1 1.7 0.5 1.1 0.1 2.1 0.6 1.3 1.7 2 6.2 2.1 3.2-7.5 2.7-1.9 0.3-1.9 0.6-1.6 0.9-1.7 0.7-9.2 0.1-11 3-11.7-1-2.4 0.4-5.8 3.9-3.8 1.4-3.1 0.1-0.1 0 0-0.3 0.1-0.5 0-0.5-0.2-0.5 0.7-0.6-0.4-1.4-1.3-2.2-1.2 0.4-1.7 0-1.8-0.3-1.1-0.4-0.3-0.4-0.2-0.4-0.2-0.4-0.5-0.1-0.4 0-0.4-0.1-0.2-0.2-0.1-0.3-0.2-1-0.4-0.3-1.4-0.2-2.4-0.9-1.3-0.2-1.5 0.3-0.8 0.4-0.3 0-0.3 0.2-0.1 0.4-0.2 0.5-0.4 0.2-0.4-0.3-1.1-2.2 0.3-0.8-0.1-0.8-0.2-0.9-0.3-0.8-0.5-0.8-1-1.1-0.5-0.6-0.8 0.4-0.2-0.7 0.1-1.8-0.7-0.6-0.7 0.1-0.8 0.3-0.9 0.2-3 0-0.5 0.2-0.6 3.9-0.2-0.1 0-0.1-0.1-0.1-0.3 0 0.1 0.8 0 0.8-0.2 0.6-0.6 0.2-0.3-0.2-0.6-1.5-0.4-0.7 0 1.2-0.5 0.1-0.7-0.5-0.9-1-0.3-0.5-0.1-0.6 0.2-0.8-1.3 0.3-1.2-1-1.2-1.3-1.1-0.5 0.2 0.9 0.1 0.3-0.3 0-0.3-0.4-1-1 0.1-0.6 0.1-0.6 0-0.5-0.2-0.6-0.4 0-0.3 1.6-1 0.4-1.2-0.4-1.6-1.3-0.4-0.3-2.5-0.7-0.1-0.4 0.3-1 1.2 0.6 0.6-0.8 0.4-1.1 1.1-0.3 0-0.5-0.9-0.6-0.2-1.1 0.4-0.6 0.7 0.7 0-0.6 0.2-0.2 0.1-0.2 0.3-0.2 0.2 0.7 0 0.7-0.1 0.5-0.4 0.6 0.2 0.1 0.3 0.2 0.2 0 0.4 0 0.4 0.1 0.1 0.3 0.1 0.3 0.3 0.2 0.6 0 0.7-0.1 0.4-0.4-0.5-0.7 0-0.5 0.8 0.5 0.3 0 0.6 0 0.5-0.3 1.2-0.8 0.4-0.2 0.6-0.6 0.1-1.2-0.4-1.2-0.8-0.7 0-0.5 1.2 0.6 0.6 0.6 0.4 0 0.7-1.6-0.7-0.4-1.1-1.1-1-0.3-0.6-0.6-0.5-0.1-0.4 0.3-0.4 0.8-0.3 0.2-0.9-0.1 0-0.2 0.4-0.6 0.3-1.2-0.2-0.7-1.4-2.2 0.3 0.4-0.1-0.7-0.6-1.8-0.1-0.4 0-0.4-0.5-2.3 0-0.9 0.1-0.9 0.3-0.7 0.4-0.2 0.7-0.2 1.1-0.5 0.5-0.1 1.3 0.1 1.2 0.3 1 0.5 0.9 0.7 1.6 1.8 0.7 1.1 0.3 0.9 1.1 1.8 1.2 1.5 0.4 0.4 0.3 0.3 0.3 0.3 0.2 0.7 0.1 0.6 0 0.6 0 0.6 0.3 0.6-0.3 0.3-0.2 0.1-0.2 0-0.3-0.3-0.5-0.1-0.6 0.1-0.5 0.3 0.8 0.5 0 0.5-0.4 0.7-0.4 0.9 1.1 0.1 0.5 0.7 0.3 0.9 0.5 1 0.8 2.7 0.8 1.3 1-0.3 0.3-0.8-0.3-0.5-0.8-0.6-0.3-2.5 0.2-1 0.6-1.1 0.7-0.6 0.8 0.2 0-0.4 0.3 0 0.5 0.6 0.6 1.1 0.9 2.5 0.2-0.1 0.5-0.2 0.2-0.1 0.4 0.7 0.7-0.1 0.8-0.4 0.9-0.2 3.8-0.4 2.3-1.1 0.7-0.2 0.3-0.1 0.6-0.6 0.3-0.1 0.5 0 0.4 0.2 0.5 0.1 0.5-0.3 0.1 0.2 0.2-0.2 1.3 0.6 1.1-0.7 1.2-1.2 1.3-0.8 0-0.4-0.4-0.4-0.2 0.1-0.4 0.3-0.3-0.5-0.9 0.5-1.6-0.2-0.4 0.2-1.2-0.6-1.3 0-3 1.3-1 0.5-0.1-0.1 0.4-0.7-0.8-0.6-1.4-2.3-0.7-0.4-1.2-0.4-0.4-0.3-1.1-0.8-0.6-1 0.7 0.7 0.9 0.6 1.3 0.8 0.7 0 0-0.4-0.6-0.7-0.6-0.6-0.6-0.4-0.8-0.4 0.2-0.7 0.3-1.5 0.2-0.8-0.7-0.6-0.5 0.2-0.5 0.4-1 0 0.2-0.6 0.2-0.2-1-0.4-0.6-0.1-0.7 0.1 0.1-0.3 0.1-0.7 0.1-0.2-0.6-0.1-0.5-0.2-0.8-0.6 0.3-0.4 0.4-0.3 0.4-0.1 0.5 0-0.9-1.5-0.4-0.8-0.3-1.1 0.9-0.6 2.4-0.5 1.4-1 0.3 0.1 0.1 0.3 0.1 0.1 0.1 0 0.5 0.1 0.5 0 1.1 0.5 0.6 0.2 0.8 0-0.3-0.8 0.4-0.4 0.4-0.3 0.4-0.2 0.4 0.5 0.1-0.5 0-0.5 0-0.5-0.1-0.6-0.3 0.4-1-1.7-0.3-0.4 1.9-0.8 0.3 1.3 0.8 0.1 0.5-0.7-0.6-1.6 0.8-0.2 0.7-0.4 0.6-0.5 0.5-0.5 0.9 0.6 1-0.6 0.4-1-1-0.3 0.8-1.6 0-0.7-0.8-0.6-0.8 0.7-0.6 0.4-0.5 0.1-0.9 0-0.2-0.2-0.5-0.8-0.3-0.2-0.5 0.2-0.4 0.3-0.4 0-0.4-0.5-0.6 0.5-1.6 0.9-0.6 0.2-0.5-0.2-0.8-1.2-0.7-0.2-0.9-0.6-0.4-1.4 0.1-1.6 0.7-1 0-0.4-0.2 0-0.8 0 0.6-0.8 1.1-0.8 1.2-0.7 0.9-0.2 0.5-0.6-0.4-1.1-1.1-1.9-1.3-1.7-0.7-0.5-1.5-0.8z"
+				id="TR35"
+				name="Izmir"
+				fill={getPathFill('TR35')}
+				class="cursor-pointer transition-all duration-200 hover:opacity-80"
+				onclick={() => handlePathClick('TR35')}
+				onmouseenter={() => handlePathHover('TR35')}
+				onmouseleave={() => handlePathHover(null)}
+			></path>
+			<path
+				d="M121.4 280.3l0.1 0 3.1-0.1 3.8-1.4 5.8-3.9 2.4-0.4 11.7 1 11-3 9.2-0.1 1.7-0.7 1.6-0.9 1.9-0.6 1.9-0.3 7.5-2.7 6.5 0.1 0.5 1.4 0.6 1.3 2.7 1.9 0.6 1.7-0.1 2.1 0.7 3.6-0.4 1.3-1.1 0.8-0.1 1.5 1 1.4 0.8 1.6 1 1.5 3 0.6 0.5 1.4-0.2 1.7-1.4 1-1.9 0.1-2.2 3.1-2.5 2.4-3.7-0.4-3.3 1-1 2.2 0.6 2.2 0.5 0.2 0.5 0.4 0.4 0.8 0.2 0.9-6.2-0.9-3.5-1.9-2.9-2.5-3.5-0.7-2.5 1.8-1.7 3.3-1.9 1.5-5.7 0.4-3.4-0.1-2-1.1-2.2 0-2.1 0.6-2.2-0.4-3.3-2.3-3.8-0.5-1.9-0.7-1.6-1.1-1.6 0-1.5 0.9-0.6 1-2.5 5.6-0.6 1-0.8 0-0.8 0.4-0.4 0.8-0.2 0.8-0.5 0.5-1.2-0.1 0 0.5 0.7 0.5-0.3 0.2-2.8 0.2-0.6 0.2-0.6 0.5-0.3-0.4-0.4-0.3-0.3 0-0.3 0.3-0.1-0.5 0-0.2-0.2-0.1-0.4 0.2-0.1 0.1-0.1-0.2-0.4-0.1 0.5-0.6 0.3-0.6 0.1-0.6-0.2-0.7 0.7-0.3 0.3-0.1 0-0.4-0.4-1.2 0.2-2.7-0.8 0.3-0.3-0.4-0.3 0-0.4 0.3-0.3 0.4 0.2-1 0.3-0.9 0.1-0.8-0.3-1 0.2-0.3-0.2-0.3-0.2-0.3 0.2-0.7 0.7 0.5 0.5-1 0.1-1.3-0.2-0.7-0.7-0.2-2.7-1.8-4.1-1.2-1.8-0.9 0.4-1.2 0.9-0.3 3.1 0.3 1.1-0.2 4.1-1.5 0.6-0.4 1.1-1.4 0.3-0.9 0.2-1.4 0.1-1.3-0.1-0.7-0.4-0.6-0.4-0.5-0.3-0.7 0.1-1.1 0.2-0.3 0.6-0.5 0.2-0.4 0.1-0.3z"
+				id="TR09"
+				name="Aydin"
+				fill={getPathFill('TR09')}
+				class="cursor-pointer transition-all duration-200 hover:opacity-80"
+				onclick={() => handlePathClick('TR09')}
+				onmouseenter={() => handlePathHover('TR09')}
+				onmouseleave={() => handlePathHover(null)}
+			></path>
+			<path
+				d="M128.1 308.9l0.6-1 2.5-5.6 0.6-1 1.5-0.9 1.6 0 1.6 1.1 1.9 0.7 3.8 0.5 3.3 2.3 2.2 0.4 2.1-0.6 2.2 0 2 1.1 3.4 0.1 5.7-0.4 1.9-1.5 1.7-3.3 2.5-1.8 3.5 0.7 2.9 2.5 3.5 1.9 6.2 0.9 0.6 1-0.2 1.2 0 1.7 0.5 1.8 1.2 0.4 1.7 0 2.2 0.9 1.4 2.5 0.7 2.7 1.6 2.3 3.5 0.6 0.6 0.6 0.8 1.6 0.6 0.6 3.5 1.6 2.8 2.8 0.7 2.3 0.4 2.3 0.1 1.9 0.2 1 1.2 1.1 2.6 0.2 4.7 2.6 1.7-0.8 0.9-1.3 0.6-1.5 0.3-3.9 2.2-1.8 1.1 3-0.8 3.5 1.9 0.7 2.3-2.9 5.7-0.8 4 5.6-5.1 11.8 0.6 3.7-0.9 3.2-2.3 1.7-2.1 2-0.5 1.6 0.3 1.6-1.1 0.6-1.4-0.6-3 1.2-1.6 3.2-0.3 1-0.4 0.9 0 0.7 0 0.8-0.3 1.5-0.9 1.2-1.3 0.7-0.2-0.2-0.4-0.9-0.6-0.7-2.9-1-0.8-1-0.6 0.5-0.2-0.8 0-0.2 0.2-0.2 0-0.5-1.3 0 0.3-0.3-0.5-0.4-0.3-0.1-0.5 0 0.2-0.5 0.4-0.4 0.5-0.2 0.5-0.1 0-0.2-0.1-0.1-0.2-0.1 0.3-1.1-0.3-1-0.6-0.7-0.7-0.4 0-0.4 0.6-0.5 0.3-0.2 0.4-0.1 0-0.5-0.2-2-0.2-1-0.6 0.3-0.3 0-0.6-0.8-2.3 0.9-1-0.1 0.9-0.3 0.2-0.5-0.3-0.8-0.5-0.9 0.2-0.4 0.5-1.1 0.3-0.6 0.7 0.6 0.5-0.5 0.7-0.9 0.7-0.3 0 0.3-0.3 0.7 0.4 0.2 0.6-0.2 0.3-0.4-0.2-0.6-0.2-0.5-0.3-0.5-0.3-0.3-3-2.1-3.7-1.6-0.4-0.5-0.4-0.9-0.8 0.6-0.8 1.1-0.7 0.6 0 0.4 0.4 0 0 0.4-0.9 0.1-0.4 0.1-0.4 0.2-0.1 0.5 0.1 0.5 0 0.5-0.6 0.1 0.2 0.5 0.2 0.2 0.2 0.2-0.3 0.4 0.5 0.5 0.2 0.3 0.3 0 0.2-0.6 0.3-0.5 0.1-0.5-0.3-0.9 0.8 0.8-0.3 1-0.8 0.9-0.7 0.6 0.3 0.6-0.5 0.3-0.8 0.1-0.6-0.2-0.5-0.5 0-0.6 0.4-0.4 0.7-0.1 0-0.5-0.8-0.4-0.5-0.4-0.5-0.2-0.8 0.3-0.2-1.6-1.7-1.2-2.2-0.4-1.4 0.7-0.3 0-0.2-1.1-0.6-0.4-0.6 0.2-0.6 0.9-0.3-0.4-0.6-1.6 0.4-0.8 0.2-1.2-0.1-1.1-0.5-0.6 0-0.2 0-0.1 0.2 0 0.1-0.1-0.1-0.2-0.1-0.1 0-0.2 0.2-0.3-0.3 0-0.2 0.5-0.1 0.3 0 0.4-0.3-0.2 0-0.1-0.1-0.4-0.6-0.7-1.4-0.3-1.1 0.6 0.2 1.5-0.5-0.4-0.5-0.1-0.4-0.1-0.6-0.2 0.7-0.4 0-0.4-1.1 0-0.7-0.2-0.3-0.6-0.2-1.2 0.3 0 0.3 0 0.1-0.2-0.1-0.4-0.1-0.1-0.1-0.2-0.1-0.1-0.1-0.7-0.2-0.3-0.2 0-0.1 0.6-0.5 0.5-0.9 0.3-1.4 0.1-0.5 0.2 0 0.4 0.3 0.4 0.4 0.3 0.3 0 0.4-0.1 0.4 0 0.5 0.5-0.5 0.9-0.4 0.8-0.5 0.7-0.9 0-2.4-1.3-0.5-0.3-0.3 0 0.2 0.9 0.1 0.3-1.3 0.1-0.5-0.2-0.2-0.5 0.2-0.5 0.5-0.3 1.3-0.2 0-0.4-0.6-0.4-0.7-0.6-0.7-0.4-0.8 0.4-0.6 1-0.3 0.9 0.1 0.9 0.7 0.6-0.3 1.3 1.9 1.4 0.3 1.4-0.5-0.4-0.8-0.3-0.7 0.2-0.3 0.9-0.3-0.2-0.3-0.2 0 0.3-0.1 0.2-0.1 0.1-0.2 0.2 0.3 0.1 0.1 0.3-2.4 0.9-1 0.7-0.8 1.3-0.7 1.3-0.9 1.4-1.1 0.9-1.2-0.4-0.2 0.4-0.2 0.2-0.2 0.1-0.4 0.1 0.1 0.2 0.1 0.4 0.1 0.2-0.6 0.3-0.4 0-0.4-0.2-0.2-0.5-0.5 0.8-0.6 0.2-0.6-0.4-0.6-0.6 0.1-0.2 0.1-0.4 0.1-0.2-0.2-0.2-0.2-0.2-0.2-0.4 3.6 0 0.9-0.4 0.5-0.6 0.5-0.7 0.7-0.7-0.7-0.8-0.9 0.8-0.4 0.3 0-0.3 0.5-0.5 0.1-0.8-0.1-0.7-0.5-0.5-0.5-0.3-0.1 0.2 0 0.7-0.3 0.3-0.5 0-0.5-0.3-0.4-0.2-0.4 0.2-0.5 0-0.5-0.2-0.2-0.6 0.3-0.2 1.7-0.4-0.4-0.4 1 0.1 0.3-0.1 0.3-0.2 0.2-0.3 0.2-0.2 0-0.1 1.8-0.1 0.5-0.3-0.2 0.9 0.7 0.1 0.7-0.6 0.1-0.8-0.5-0.4-0.9-0.1-0.3-0.3 0.1-0.4 0.4-0.4 0.5-0.4 0.3-0.5 0.2 0.4 0.2 0.3 0.6 0.6-0.2-1.1-0.1-1.2-0.3-0.5-0.5-0.1-0.6 0-0.4 0.3-0.8 1.3-1 0.7-0.4-0.1-0.2-0.6-0.7 0.7-1.9 0.6-0.7 0.4-0.3 0-0.3-0.8-0.4 0.2-0.6 0.6-0.7 0.4-0.2-0.8-0.4 0-0.3 0.5-0.4 0.3-0.3-0.2-0.3-0.5-0.3-0.1-0.4 0.8-0.3 0-0.6-0.5-0.8-0.5-1-0.2-0.9 0.4 0-0.4-0.5 0.2-0.6 0-0.6-0.2-0.7 0-0.8 0.2-1 1.3-0.7 0.5 0 0.4 0.2 0.5-0.7 1.9-0.1 1.3-1.6-0.8-0.8-0.3-0.8-0.2-0.9 0.1-0.7 0.2-0.5 0-0.2-0.7-3.3 1.2-0.2 0.4-0.2 0.3-0.2 0.2-0.2-0.2-0.6-0.5-0.4-0.2-1.1-0.2-0.4 0-0.6 0.2-0.1-0.7-0.4-0.4-0.5 0-0.6 0.3 0-0.2 0-0.1-0.2 0-0.1-0.1 0.2-0.3 0-0.4-0.2-0.3-0.4-0.2 0-0.4 0.6 0.3 0.8 0.2 0.8 0 0.6-0.3 0.4-0.6 0.2-1 0.6-0.6 0.5-0.4 0.4-0.1 1.2 0.1 3.5-0.6 1.7 0.2 0.9-0.3 0.2-0.7 0.1-0.8 0.2-0.7 1.1-0.3 2.2 1.4 0.6-0.3 0.8 0.4 0.6 0 0.7-0.1 0.5 0.1 1.2-1.1 0.7-0.4 4.1-0.1 0.5-0.2 0.3 0.4 0.8 0.3 1 0.3 0.9 0 1.6-0.2 0.8 0.3 0.8 0.7 0.2-0.6 0.3-0.3 0.9-0.7-0.3-0.7-0.5-0.3-0.7-0.2-0.8 0 0.3-0.4 0.4 0.2 0.1-0.4-0.3-0.6-0.5-0.5 0.2 0 0.1-0.1 0.1-0.1 0.2-0.1 0.4 0.2 0.3-0.2 0.5-0.3 0.5-0.2 0-0.3-1-1-0.4-0.6-0.3-0.5 0.7 0.4 0.3-0.4-0.3-0.2-0.1-0.2-0.1-0.2-0.2-0.2 0.4 0 0.8-0.1 0.5 0.1 0-0.4-1 0 0-0.4 1.1 0 0.5 0.1 0.3 0.3 0.3-0.3 0.3-0.1 0.2 0.1 0.2 0.3 0.3 0 0.5-0.3 1.1 0.5 0.4-0.2 0.3 0 0.1 0.4 0.3 0.8 0.1-0.3 0-0.1 0-0.1-0.1-0.3 0.1-0.3 0-0.2-0.2-0.2-0.3-0.1 0-0.4 0.4-0.1 0.4 0.1 0.3 0.1 0.2 0.3 1-1.6 0.3-0.4 0-0.5-0.6 0 0.3-0.6 0.3-0.6 0.8 0.6 0.7 0.2 0.4-0.4-0.3-0.8 2.6-1 1.4-0.4 0-0.3-0.4-0.5-0.3-0.2-0.5-0.2-6.2 1-2.3-0.1-0.9 0.2 0.1 0.7 0 0.4-0.8-0.4-5-0.8-0.5 0.1-0.6 0.6-0.6 0.1-0.5-0.1-1.4-0.3-1.2 0.1-3.9 1.3-0.5-0.2-0.3 0 0 0.2-0.3 0.6-0.4-0.1-0.4-0.1-0.6 0-0.5 0.2-1-0.7-1.5 0-1.5 0.6-0.9 0.9-0.9-0.5-1.3-0.5-1.1 0.1-0.3 1.4-1.1-0.9-0.5-0.2-0.7-0.2-1.4 0.2-0.5-0.2-0.5-0.4-0.8-1.3-0.3-0.3-0.8 0-0.7 0.7-0.3-0.5 0.1-0.2-0.3 0-0.1 0.6-0.6 1.4-0.1-0.3-0.1-0.1 0.1-0.1 0.1-0.3 0-0.1-0.1 0-0.1-0.1-0.1-0.2 0.2-0.2 0.1-0.1-0.1-0.1-0.2-0.4-0.4 0.3-1.3 0.3-0.6 0.2 0 0.4 0.2 0.6-0.3 0.7-0.5 0.5-0.7 0.3 0.2 0.5 0.2 0.3-0.5-0.2-0.2 0-0.3 0.2-0.3-0.5-0.9 0.2-0.5-0.9-0.2-1.3-0.1-1-0.2-1-0.4-0.8-0.2-0.8 0.5-1.3 0.4 0 0.8-0.3 0.8-0.6 0.6-0.7-0.3-0.3-0.4-0.1-0.4 0.1-0.5 0.3-0.2-0.2-0.1-0.2-0.1-0.4 0.4 0.3 0.5-0.6 1.5 0.5 0.9-0.2 0-0.4 0.1-0.5 0.1-0.5-0.2-0.7 0.5 0.2 0.4 0.3 0.1 0.5 0 0.7 0.3 0 0.3-0.6 0.3-0.5 0.4-0.1 0.3 0.4 0.2-0.2 0-0.1 0.1-0.2 0 1 0.2 0.3 0.3 0 0.5 0 0.4 0.3 0.3 0.2 0.3 0.1 0.7-0.2-0.2 0.1 0 0.1-0.1 0-0.1 0.1 0.7 1.3 0.7 0.4 0.7-0.1 1.2-0.9 1-0.5 0.4-0.3 0.5-0.3 1.2 0 0.5-0.3 0-0.4-0.7 0.1-0.1 0.1-0.2 0.2-0.4-1.9-0.3-1-0.6-0.4 0-0.4 2.2-0.5 0.6 0.1-0.5 1.2 0.5-0.1 0.4-0.3 0.7-0.8-0.7-0.3-0.3-0.4 0-1.2 0.1-0.2 0.6-0.5 0.3-0.3 0.1-0.4 0.1-0.8 0.1-0.4-0.6-0.4 0-0.1-0.4-0.1-0.2 0.2 0 0.3-0.1 0.1-1.1-0.1-0.6 0.2-0.2 0.5-0.3 0.9-0.6 0.8-0.7 0.4-0.7-0.3 0.8-0.7 0.1-0.8-0.5-0.5-1.1 0-0.1 0.2-0.5 0.5-0.4 0.2-0.3-0.3 0.1-0.6 0.4-0.5 0.8-1.1 0-0.5 0.2-0.6 0.1-0.9-0.6-0.9-0.3 0-0.2 1.6-1.1 0.6-1.3-0.2-1-0.8-0.4-1.3 0.4-1.2 0.9-1 1.1-0.5-0.6-0.9-0.9-0.5-0.2 0.1z"
+				id="TR48"
+				name="Mugla"
+				fill={getPathFill('TR48')}
+				class="cursor-pointer transition-all duration-200 hover:opacity-80"
+				onclick={() => handlePathClick('TR48')}
+				onmouseenter={() => handlePathHover('TR48')}
+				onmouseleave={() => handlePathHover(null)}
+			></path>
+			<path
+				d="M216.3 375.3l1.3-0.7 0.9-1.2 0.3-1.5 0-0.8 0-0.7 0.4-0.9 0.3-1 1.6-3.2 3-1.2 1.4 0.6 1.1-0.6-0.3-1.6 0.5-1.6 2.1-2 2.3-1.7 0.9-3.2-0.6-3.7 5.1-11.8 1.4-0.2 1.3-0.7 1.1-1.6 1.3-1.3 1.9-3.5 0.7-4.4 2.6-3.6 8.6-4.4 2.9-0.5 7-3 2.9 0.4 2.9 3.6 1.1 0.4 6.6-0.3 4.3 0.5 3.7 0 1.8-0.5 2.9-3.1 0.9-2.6 3.3-2.9 4.2 1.7 4.9-1.7 2.6-0.4 2.2-1.6 2.4-0.9 2.5 0.4 1 1.3 1.2 1.2 1.8 1.5 2.1 0.8 4.7 0 12.2 2.6 4 2.6 3 2.8 3.3 2.3 2.4 2.5 2.1 3 1.4 1.3 1.4 1 3.2 3 1.8 0.8 1.5 0.9 0.2 1.9-1.2 0.9-0.5 1.8 0.7 1.6 2 0.8 2.2 0.2 1.5 0.3 1 1.4 0.8 4-0.4 4 1.7 4.3 1.9 4 1.3 1.6 1.6 1.1 1.9 1 0.9 1.9-0.4 3.5 0.2 6.5-0.7 2.8-0.8 1.5-0.6 1.6-0.2 1.5-0.4 1.4-0.7 1.1-0.2 0.4-0.2-0.1-1.7-0.2-0.8-0.2-3.7-2.1-0.5-0.5-0.3-0.7-0.8-0.4-1-0.3-0.8-0.4-2.2-3-0.4-0.1-0.2-0.3-0.9-0.6-0.2-0.3-0.2-1.7-0.1-0.5-1.1-1.6-2.9-2.6-0.6-1.6-0.1-0.5-0.2-0.4-0.5-0.8-0.5-0.9-0.2-0.2-0.6-0.3-0.2 0-0.8-1.8-0.6-1-0.7-0.4-2.9-3-0.3-0.2-0.5 0-0.5 0-0.5-0.2-0.4-0.2-0.3-0.3-0.2-0.2-1.9 0.1-1-0.1-0.4-0.6-0.5-0.5-1.3-0.5-1.3-0.2-0.8 0.2-0.5-0.4-1.8-0.8-0.9-1.3-0.6-0.6-0.6 0.1-1-0.2-3.6-1.6-0.8-0.7-0.7-0.8-9-4-1.3-0.2-0.1-1.5-1.7-1-19.1-2.9-7.8 0.5-1.3-0.4-1-0.6-1.9-1.5-2.8 1.9-1.2 1.3-0.7 1.8-0.6 1.1-0.2 0.4 0 1.9-0.3 1.9 0.1 1 0.5 0.9 0 0.4-0.4 0.5-0.3 0.5-0.2 0.6-0.1 0.8 0.1 1.1 0.3 0.6 0.3 0.5 0.3 0.7 0.3-0.4-0.1 1.2-0.7 2.1 0.2 0.7-1.7 1.4-0.7 0.9-0.5 2.1-1.1 1.6 0.1 0.5-0.7 1 0.1 1 0.5 0.8 0.7 0.4-0.3 0.9 1.2 0.4-0.7 0.9-1.3 1.1-0.5 1.2 0.3 0 0.2-0.3 0 0.1 0.1 0.1 0.4 0.1-0.5 0.5-0.7 0.5-0.6 0.5-0.5 1.4-0.6 0.7-1.4 1.2 0.1-2.5-0.2-1-0.6-0.5-1.1 0.3-5-2.3-1 0-3.6 0.6-0.4 0.5-0.2 0.9 0 1.2-0.3 0-0.1-0.4-0.3-0.8-0.3 1.1 0 0.5-0.7-0.4 0.1 0.4-0.1 0.4-1.7-0.4-0.4-0.2-0.4-0.3-0.4-0.2-0.6 0.3 1 0 0 0.4-3.3 1.7-0.7-0.1-0.5 0.4-0.6-0.1-0.5-0.2-0.6-0.1-0.5 0.1-0.2 0.1-0.6 0.6-0.8 0.5-1.8 0.4-0.7 0.3 0.2 0.1 0.1 0 0.1 0.1 0 0.3-0.5 0-1.2 0.3 0 0.4 1 0-0.6 0.7-0.7 0.5-0.8 0.3-0.8 0.2 0-0.5 0.2-0.2 0.2-0.1 0.1-0.2 0.1-0.3-0.6 0.1-0.1 0.1-0.2 0.3-0.6-0.6-0.6-0.2-0.5 0.1-0.6 0.2-0.2 0.3 0 0.2-0.2 0.2-0.5 0.1 0 0.2-0.8 1.1-0.2-1.2-1.6-0.8-0.5-1.2 0.7 0.3 0.3-0.3-0.1-0.6-0.4-0.2-2.4 0.3 0-0.3 0.4-0.3 0.5-0.1 0.5-0.1 0.5 0-1-0.4-3.8 0-1.3-0.3-3-1.7-0.5 0.6-0.3-0.6-0.1-1.6-0.3 0.4-0.2-0.1-0.2-0.2-0.3-0.1-0.5 0.2-0.2 0.1-0.1 0.2-0.2 0.3-0.3 0.3-0.1 0.4-0.2 0.4-0.4 0.2-0.4-0.3-0.3-0.6-0.3-0.4-0.3 0.4-2.9-2.7z"
+				id="TR07"
+				name="Antalya"
+				fill={getPathFill('TR07')}
+				class="cursor-pointer transition-all duration-200 hover:opacity-80"
+				onclick={() => handlePathClick('TR07')}
+				onmouseenter={() => handlePathHover('TR07')}
+				onmouseleave={() => handlePathHover(null)}
+			></path>
+			<path
+				d="M373.5 387l0.2-0.4 0.7-1.1 0.4-1.4 0.2-1.5 0.6-1.6 0.8-1.5 0.7-2.8-0.2-6.5 0.4-3.5 3.1-0.4 3.1 0.8 2.9 0 2.7-1.3 2.8-0.6 2.9 0.1 1.5-0.2 1.2-1.2 0.5-2.1 0.7-1.9 0.7-0.3 0.7-0.1 1.7 0.9 1.8 0.7 1.2-1.6-1.1-1.8-2.2-1.6-2.5-0.7-1-0.8-0.9-1.2-1.2-0.5-0.7-1.6-0.4-1.7-0.8-1.4-1-1.2-0.1-1.9 1.8-0.3 0.8-0.3 2.1-1.4 1.4-0.5 0.6 0.3 0.1 0.5 0.4 0.7 1.7 0.4 1-1.7 0.6-2.6 1.5-1.9 1.8-0.6 1.6-1.1 1.5-1.4 1.7-1 2-0.6 6-0.5 3.8-1.5 3.9-0.4 1.6 0.5 1.2-0.1 1.7-0.9 3.5-0.7 4.6-3.5 1.7-0.7 3.6-0.3 3.3-1.3 1.6-1.9 1.3-0.8 4.2-1.5 2.7-1.3 2.1-2.1 1.4-0.7 2.5-0.9 0.9-0.6 0.6-1.9 3.5-0.1 1.6-0.6 1.5-0.9 3.3-1.4 3.3 0.8 1.6 3.6 1.8 3.3 2.3 1.8 0.1 6.1 1 3.4 2.3 1.7 2.9-0.2 1.8 1.9-1.4 3.7 0 3.4 0.7 3.3 0.2 1.7-0.2 1.6-1.8 1.6-2 0.6-2.5 1.7 0 0.1-0.2 0-0.8 0.2-0.6 0.3 0.1-0.3 0.3-0.9-0.7-0.4-2-2.1-3.9-2-0.2 0.4-1.4-0.8-2 0.5-3.2 1.5-1.4 0.2-0.6 0.2-1.4 0.9-0.3 0.2-0.5 1.1-0.2 0.3-1.5 0.8-4.1 3.8-5.2 3.2-1.4 1.2-4.1 5.3-0.4 0.9-0.2 0.6-0.5 0.3-1 0.5-1.6 1.7-1.7 1-0.1 1.5 0.2 1.9-0.1 1.6-0.9 0.8-1.5 0.3-1.3 0.4-0.5 1.3 0.3-0.1 0.2-0.2-0.1 0.4-0.9 1.2-0.4 0.7-0.2 0.9 0 0.7-0.3 0.4-0.8 0 0-0.4 0.4-1-0.2-1.7-0.7-1.5-1-0.6-0.7-0.2-0.6-0.4-0.6-0.2-0.7 0.6-0.9 1.4-0.4 0.6-0.8 0.2 0.3 0.1 0.2 0.1 0.1 0.2-0.5 0.5-0.7 1.3-0.6 0.2-0.4 0.1-1.7 0.7-0.3 0.3-1.5 1.6-0.2 0.6-0.3 1.6-0.3 0.4-0.1-0.4-1.2-1.8-0.2-0.9-0.4-0.2-0.6 0.1-0.7 0.3-1.1 1-1.1 1.4-1 1-1-0.2 0.6-0.3 0-0.5-1.1-0.1-2-0.5-1-0.2-1 0.2-1.7 0.9-0.7 0.2-1.8-0.7-1-0.1-0.9 1.1-1 0.1-2.2-0.1-1.4 0.4-0.5 0.1-0.6-0.2-1-0.5-0.5-0.1-1.1 0.3-0.6 0.7-0.4 1-0.7 0.8-0.5 0.4-0.2 0-0.1-0.2-0.5-0.2-0.6-0.1-1.5 0.1-3.1-0.8-0.9 0-3.1 1.6-0.5 0.2-0.4 0.7-2.6 1.9-2-0.1-4.3-1-1.8-0.9-2.9-1.9z"
+				id="TR33"
+				name="Mersin"
+				fill={getPathFill('TR33')}
+				class="cursor-pointer transition-all duration-200 hover:opacity-80"
+				onclick={() => handlePathClick('TR33')}
+				onmouseenter={() => handlePathHover('TR33')}
+				onmouseleave={() => handlePathHover(null)}
+			></path>
+			<path
+				d="M539.2 332.9l-1-0.4-1-0.2-0.9 0.5-3.9 4.5 0 2.5 0.7 1.2-1.8 2.3-0.7 0.5-0.8 0.2-0.4 0.4-1.6 1.8-0.7 0.6-1.8 0.4-4 0.2-1.7 0.7-0.6 0.5-0.5 1.1-0.5 0.4 0.2-0.4 0-0.3-0.2-0.3-0.4-0.2-0.4 0.9-0.7 0.7-0.5 0.7 0.4 0.9 0.7-0.9 1 0.3 0.2-1 0.2 0.1 0.2 0.2 0.1 0.2 0.1 0.3 0.3-0.4 0-0.4 0-0.4-0.3-0.4 0.7-0.4 0.3 0.3 0.2 0.6 0.3 0.3 0.5-0.1 0.5-0.4 0.5-0.2 0.6 0.3-2.8 1.3-1.3 1-0.8 1.4 0.1 0.6 0.7-0.4 2.1-2.5 0.6-0.4 0.8-0.2-1.8 1.8-0.3 0.5-0.4 1.1-0.3 0.5-0.2 0.5 0 0.8-0.1 0.7-0.4 0.2-0.4 0.1-0.7 0.6-0.5 0.1-1.5 0.1-0.6-0.1-1.5-1.4-0.4-0.2-0.7 0.2-0.4 0.3-0.1 0.6 0.4 0.1 0.4 0.1 1.7 0.7-2.1-0.6-2-0.2-0.4 0.1-1.1 0.6-0.3 0.3-0.2 0.4-0.4 0.3-1 0.3-1.2 1.1-0.1 0.2-0.5-0.3-0.8-1.1-0.5-0.3-0.7-0.2-12-7.3-1.3-0.4-1.5-1.1-1-0.3-0.7-0.1-0.6 0 0-0.1 2.5-1.7 2-0.6 1.8-1.6 0.2-1.6-0.2-1.7-0.7-3.3 0-3.4 1.4-3.7-1.8-1.9-2.9 0.2-2.3-1.7-1-3.4-0.1-6.1-2.3-1.8-1.8-3.3-1.6-3.6 0-2.8 0.2-1.3 1.2-1.9 0.7-0.6 0.7-0.7 0.7-2.5-0.3-1.7-1.2-3-0.2-3 1.5-2.2 2.4 0.2 2.4 0.8 4.7-0.8 6.2-6.3 8.2 0.7 4.3 1.1 5.8 2.3 2.5-1.2-1-11 17.6-12.2 2.6-3.5 2-4.1 1.3-1.9 2.1-5 2-1.7 3.7-2.1 3.8-1 2.5 1.1 1.8 2.8 1.2 3.2 2 2.1-2.6 2.5-1.5 3.8-2.4 10.7-1.4 3.8-0.6 4-0.1 1.8 0.3 2.9 1.5 3.7-0.1 2.4-1.6 1.6-0.9 0.5-1.3 1.7-3.6 0-4.5 0.3-2.2 3.7-2.7 6.2-3.1 7.7 0 4.6 1.4 4.4 1-0.1 3.1 0.6 1.3 1.1 0.4 0.8 0.6 3.4-0.7 3.1-1.4 3.6z"
+				id="TR01"
+				name="Adana"
+				fill={getPathFill('TR01')}
+				class="cursor-pointer transition-all duration-200 hover:opacity-80"
+				onclick={() => handlePathClick('TR01')}
+				onmouseenter={() => handlePathHover('TR01')}
+				onmouseleave={() => handlePathHover(null)}
+			></path>
+			<path
+				d="M336.8 86.3l3.5 0.3 3 0.8 10.2 0.3 2.3 0.1 4.1 0.9-0.3 1.7 0 1.8 1.1 0.7 1.4 0.2 2.2 1.4 5.4 2.7 1.8 3.3-0.1 1.7-0.1 0.8-0.1 1-0.7 3.4-1.7 0.7-1.4 1.3-0.2 3.4 1.8 5-0.8 1.5-1.7 1.9-1.3 2.3-3.9 2.1-6.5-1-2 0.6-2 1.4-5.6 1.3-3.3 1.5-4 0.9-5.9-0.1-1.9 0.3-4.2 1.7-1.6-0.2-1.5-0.6-1.4-0.2-1-0.5-1.6-1.7-8 0.9-4.2-2.6-4.4-1.5-1.2 1.3-0.5 2.4 0.2 3.7-1.5 3.2-3.9 2.2-2.9 3.9-3.1-0.5-2.8-1-1.8-2.3-2.9-5.2-0.7-2.7 0.9-2.3-1.1-2.2-1-1.2-0.3-1.6 0.6-0.7 0.8-0.4 1.3-3.9 1.9-2.9 3.3 0.2 3.1-1.5 0.6-1.9-0.4-1.9-0.1-2.1 3-2.3 3.9 1.4 7.7-0.3 5.4 2.3 4.6-0.5 3.6-2.8 1.8-4.5 0.2-3.3 2.3-1.8 6.1-1 4.4-1.1 2.3-2.7 0.8-5.5z"
+				id="TR14"
+				name="Bolu"
+				fill={getPathFill('TR14')}
+				class="cursor-pointer transition-all duration-200 hover:opacity-80"
+				onclick={() => handlePathClick('TR14')}
+				onmouseenter={() => handlePathHover('TR14')}
+				onmouseleave={() => handlePathHover(null)}
+			></path>
+			<path
+				d="M292.4 142.5l2.9-3.9 3.9-2.2 1.5-3.2-0.2-3.7 0.5-2.4 1.2-1.3 4.4 1.5 4.2 2.6 8-0.9 1.6 1.7 1 0.5 1.4 0.2 1.5 0.6 1.6 0.2 4.2-1.7 1.9-0.3 5.9 0.1 4-0.9 3.3-1.5 5.6-1.3 2-1.4 2-0.6 6.5 1 3.9-2.1 1.3-2.3 1.7-1.9 0.8-1.5-1.8-5 0.2-3.4 1.4-1.3 1.7-0.7 3.7-0.1 3.8 0.6 13.9 6.5 1.4 1.8 1.1 2.2 1.5 1.8 1.8 1.3 0.8 0.4 2.1 1.8 1.5 0.9 1 1.6 0.5 2.1 3.1 2.5 3.5-0.4 0.2-1.6 0.6-1.8 0.8-0.3 1 0 1.5 0.6 1.4 0.9 6.4 2.1-0.6 5.1-0.6 3.5 0 4.2 0.3 3.7-0.6 3.6-5.5 0.6-3.5 1.5-2.2 5.3-1.2 5.2-1.4 5.2 1.2 5.3 3.8 4.6 1.3 2.3 1.9 8.8 3.8 7.4 0.9 3.4 5.4 3.4 2.4 2 0.8 0.3 0.7 0.6 0.7 1.2 1 0.7 2.5 0.2 1.6 0.6 0.6 0.7 3 1.1-0.4 2-1.6 4.1 1.9 5.1-0.1 3.6-4 3.8-1.8 0.9-4.2-0.2-4.2 1.2-3.9 2.2-4.1 1.1-1-2.4-1.5-2.2-1.3-2.3-1-2.5-0.1-3.5 0.6-3.6 0.2-3.3-0.3-3.3-2.5-5.9-4.7-3.4-2.7-0.8-0.8-0.5-2.1-1.6-2 0-0.9 1.3-0.5 1.6-0.4 3.2-0.7 1.1-2.1-0.3-2.7-2.2-2.3-0.7-4.8 4-1.8 2.3-2.1 1.2-3.6-1.5-3 1.4-2.8 2.4-2-0.2-1.7-1.6-1.6-0.9-4-1.4-2.4 0.3-5 1.5-1.7-0.5-6.8-5.7-2.1-1.3-2-0.9 1.1-0.8 2.5-1.2 0.5-0.6 0.4-0.7 1-0.3 1.1-0.1 1.1-1.2 0.9-1.4-0.3-1.9-1.5-1-1-1.6-0.1-2.4-0.1-0.3-0.2-0.8 0.5-1.9 0.2-1.8 0.1-1.9-0.6-1.3-0.7-1.1-0.2-1.9-0.6-1.3-2.4-2.1-2.4-6.5-0.3-3.1 2-2.2-0.1-1.6-0.6-0.4-0.7-1.1-0.4-0.9-1.6-0.1-1.4-0.7-1.2-1.9-0.6-1.9-0.2-1.6-0.6-1.1 0-1.8-2.2 0.3-1.9-1.3-1.7 0.6-3.5 0.1-1.8 0.4-1.6-0.5-1.4 0.4-1.9-2.1-1.2 0.2-1.2 0.4-4.4-0.6-1.3 1.1-1.3 1-1.3-0.5-1.2-0.7-2.7-0.3-4.6 1.9-1.9 0.2-1.1-0.4-0.3-1.3-0.4-3.7-2.1-2.6z"
+				id="TR06"
+				name="Ankara"
+				fill={getPathFill('TR06')}
+				class="cursor-pointer transition-all duration-200 hover:opacity-80"
+				onclick={() => handlePathClick('TR06')}
+				onmouseenter={() => handlePathHover('TR06')}
+				onmouseleave={() => handlePathHover(null)}
+			></path>
+			<path
+				d="M248.6 118.2l1.3 2.8 1.7 2.5 1.9 1.6 1.7 1.9 4.2 1.3 6.6-1.7 2.1-0.2 1.7 0.5 1.8 0 1.5 0.9 1.2 1.8 0.8 0.7 3.5-0.1 2.5 0.6 0.7 2.7 2.9 5.2 1.8 2.3-4.9 0.2-3.8 3.1-0.9 3.1-0.6 3.3-1.6 2.8-2.4 1.8-2.6 0-2.4 1-0.8 1.4-0.8 1.2-1.4 0.7-1.3 1.1-0.4 6.3-2.1 3.6-2.6 3.1-1.8 0.5-3.6 0.4-3.7 1-2.1-0.5-5.2-3.8-1.7-0.7-1.9-1.2-0.7-1-1.7-3.3-0.2-2.7 0.8-5.2 2.7 0.5 2.3-0.8-0.6-3.1-1.3-1-2.5-3.6 0-3.1 1.3-6.2 4.6-4.9 0.8-1.7-0.2-1.7-1.1-1.4-0.2-1.9 0.6-1.5 0.5-1.7 0.2-2 0.9-1.7 0.9-1 1.1-0.8 2.5-1.4z"
+				id="TR11"
+				name="Bilecik"
+				fill={getPathFill('TR11')}
+				class="cursor-pointer transition-all duration-200 hover:opacity-80"
+				onclick={() => handlePathClick('TR11')}
+				onmouseenter={() => handlePathHover('TR11')}
+				onmouseleave={() => handlePathHover(null)}
+			></path>
+			<path
+				d="M286.5 141l2.8 1 3.1 0.5 2.1 2.6 0.4 3.7 0.3 1.3 1.1 0.4 1.9-0.2 4.6-1.9 2.7 0.3 1.2 0.7 1.3 0.5 1.3-1 1.3-1.1 4.4 0.6 1.2-0.4 1.2-0.2 1.9 2.1 1.4-0.4 1.6 0.5 1.8-0.4 3.5-0.1 1.7-0.6 1.9 1.3 2.2-0.3 0 1.8 0.6 1.1 0.2 1.6 0.6 1.9 1.2 1.9 1.4 0.7 1.6 0.1 0.4 0.9 0.7 1.1 0.6 0.4 0.1 1.6-2 2.2 0.3 3.1 2.4 6.5 2.4 2.1 0.6 1.3 0.2 1.9 0.7 1.1 0.6 1.3-0.1 1.9-0.2 1.8-0.5 1.9 0.2 0.8 0.1 0.3 0.1 2.4 1 1.6 1.5 1 0.3 1.9-0.9 1.4-1.1 1.2-1.1 0.1-1 0.3-0.4 0.7-0.5 0.6-2.5 1.2-1.1 0.8-0.2 1.8-0.3 1.8-0.7 0.9-3.8 0.7-2.8-0.3-1.8-0.5-3.7-0.1-6.1 0.6-3.6-2.7-2.3-5.4-3.4-3.5-1.9 0.5-1.7 1.5-1.7 1.1-1.8 0.5-3.5 2.7-3.4 1.5-2.1-2.4-2.4-1.1-1.6 1.3-3 3-3.2 2.1-1.7 0.8-2.2 0.4-2.1-1.2-0.8-0.6-0.8-0.5-1.1-1.4-0.7-1.9-1.3-1.3-1.7-0.4-0.9-3.9-4.7-6.3-0.6-4.7-1.3-3.7-5.2-5-1.8-3 2.6-3.1 2.1-3.6 0.4-6.3 1.3-1.1 1.4-0.7 0.8-1.2 0.8-1.4 2.4-1 2.6 0 2.4-1.8 1.6-2.8 0.6-3.3 0.9-3.1 3.8-3.1 4.9-0.2z"
+				id="TR26"
+				name="Eskisehir"
+				fill={getPathFill('TR26')}
+				class="cursor-pointer transition-all duration-200 hover:opacity-80"
+				onclick={() => handlePathClick('TR26')}
+				onmouseenter={() => handlePathHover('TR26')}
+				onmouseleave={() => handlePathHover(null)}
+			></path>
+			<path
+				d="M397.1 83.1l1.1 1.4 0.7 0.6 6.1 0.6 4.3 2.9 1.8 2.1 2.2 0.7 1.8-0.6 5-3 3.7-0.7 7.7-4.1 1.6-0.6 0.7 0.4 0.5 2.5-1.5 2-1.2 1.4-0.5 1.9 1.7 3 2.8 1 1.5 1.4 1.6 1.2 2 0.4 1.9 0.1 2.4 3.9-0.6 2.5-1 2.5 0.3 2.6 1.2 2.4 0.3 2.2-0.1 2.2 0.6 2.3 1.2 2 0.7 1.5 0.5 1.7 0.4 1.6-0.1 1.6-0.7 0.4-1.1 2.6-1.4 2.4-0.8 0.4-1 0.2-3.8 2.2-4.4-0.4-13.1-4.2-6.4-2.1-1.4-0.9-1.5-0.6-1 0-0.8 0.3-0.6 1.8-0.2 1.6-3.5 0.4-3.1-2.5-0.5-2.1-1-1.6-1.5-0.9-2.1-1.8-0.8-0.4-1.8-1.3-1.5-1.8-1.1-2.2-1.4-1.8-13.9-6.5-3.8-0.6-3.7 0.1 0.7-3.4 0.1-1 0.1-0.8 4.9-2.3 5.6-4.5 2.3-4.2 1.7-1 4.6 0.5 4.6-2.5 2-5.1z"
+				id="TR18"
+				name="Çankiri"
+				fill={getPathFill('TR18')}
+				class="cursor-pointer transition-all duration-200 hover:opacity-80"
+				onclick={() => handlePathClick('TR18')}
+				onmouseenter={() => handlePathHover('TR18')}
+				onmouseleave={() => handlePathHover(null)}
+			></path>
+			<path
+				d="M385.2 52.5l1.6 1.8 2.9-0.4 3.5-1.2 3.5 2.6 1.3 5.6 1.3 3.1-4.6 0.9-2.5 2.5-2.2 3-0.4 2.1 0.9 6.8 2.7 0.4 2.5 1.1 1 1.5 0.4 0.8-2 5.1-4.6 2.5-4.6-0.5-1.7 1-2.3 4.2-5.6 4.5-4.9 2.3 0.1-1.7-1.8-3.3-5.4-2.7-2.2-1.4-1.4-0.2-1.1-0.7 0-1.8 0.3-1.7-4.1-0.9-2.3-0.1 0-5.6 1.5-5.1 0.8-3.3 1.7-2.1 2.5-3.5 5.2 0.2 5-1.3 5.7-4.8 2.1-4.6 2.7-0.8 4.5-4.3z"
+				id="TR78"
+				name="Karabük"
+				fill={getPathFill('TR78')}
+				class="cursor-pointer transition-all duration-200 hover:opacity-80"
+				onclick={() => handlePathClick('TR78')}
+				onmouseenter={() => handlePathHover('TR78')}
+				onmouseleave={() => handlePathHover(null)}
+			></path>
+			<path
+				d="M569.8 97.6l-0.8 1.6 0.5 1.9 0.6 0.4 2.1 0.5 2.7 1.6 3.9 1.4 2.5 1.5 3.1 1.3 3.4 0.3 3.3-0.5 3.1 0.3 10.9 7.6 6.4 0.4 1.6 3 0.9 3.8-2.5 4.9-2.8 4.1-1.7 0.7-1.8 0.4-0.7 0-0.6 0.2-1.7 1.3-1.7 1-4 0.6-4-0.2-4.4 0.6-6.3 1.6-1.7 0.8-5.4-0.8-1.8 0.6-1.7 1-1.3 3.6-1 3.7-0.9 2.4-1.5 1.6-7 2.7-7.9 0.4-11.1 2.2-0.5-1.3-0.9-0.9-0.9-1.8 0.1-2.4 0.3-3.5-2-1.9-2 0.6-1.9 0.8-2.3 0.5-2.2 0.2-3.7-0.8-4.4 0.4-3.8-2.6-3.3-3.7 1.9-4 1.4-1.6 2.6-1 0.9-0.3 1.6-0.7 1.4-1.6 1.3-1.9 1.4-2.5 2.1-4.7 1.2-1.5 4-0.3 3.8 1.1 1.2 1 1.3 0.7 1.1 0.3 0.9 0.4 0.8 0.7 0.9 0 2.9-1.4 3.9-2.6 0.7-0.7 0.4-0.1 0.4-0.2 0.3-3.2 3.8-0.8 2.1-3 0-2.4 0.8-2 1.7-2.5-1-2.5-0.8-0.3-0.7-0.6-1-0.9-0.5-1.1 0.6-0.8 0-0.5-0.4 0 0-0.4 1.4-0.7 5.2-1.3 1.6-0.8 0.3-0.4 0.3 0.2 2.5 0.1 1.7 1.1 0.8 1.6z"
+				id="TR60"
+				name="Tokat"
+				fill={getPathFill('TR60')}
+				class="cursor-pointer transition-all duration-200 hover:opacity-80"
+				onclick={() => handlePathClick('TR60')}
+				onmouseenter={() => handlePathHover('TR60')}
+				onmouseleave={() => handlePathHover(null)}
+			></path>
+			<path
+				d="M638.8 118.8l3.9 14.9-0.1 3.5 1.7 2.6 2.7 1.4 2.9 2.2 3 1.8 4.8-1.2 5 1.6 4.8 2.4-0.2 3.1-1 2.4-2.2 0-2.1-0.4-2.5 0.6-2.3 1.6-2.3-0.4-2.2-1.7-2.1 1.2-1.8 5.2 0.4 1.9 3.3-0.1 3.5-0.9 1 1.2-0.5 1.7-1 0.2-0.9 0-1.8 0.9-1.2 2.1-2.3 3.1-0.6 6.4-1.1 2.2 0.6 2.3 1.7 1.6 1.5 1 1.1 1.5-0.4 1-1.7 1.1-0.5 0.5-0.4 0.5-0.4 0.5-0.6 0.1 0.2 0.7 0.1 1.1 0 2 0.6 1.8 0.3 1.8-0.2 1.1-0.1 1.2 0.3 0.9 0.2 1-0.4 2.1-1 1.6-3.7 1.3-3.4 2.6-3.1 0.9-3.2-0.5-1.7 0.3-1.6 0.7-3.7 0.1-1.8 0.9-1.7 1.1-1.8 0.8-1.7 1.1-3.9 0.9-4.1-2-2.1 0.5-1 2.4 0.5 2.9 0.8 2.7 0.6 1.3 0.3 1.3-0.8 2.3-3.4 3.7-2 1.3-1.1 0.4-2.4 2.9-2.4 2.2-2.8 1.3-10.7 0.9-1.2-0.6-1.2-0.7-6.1-0.9-6.3 1.5 0.1-2.5 1.2-2 0.3-0.9 0.2-1 1.9-5.6 1.3-4.8 0.9-2.3 1.1-2.2 2-5.8-1.7-5.4-3.8-2.1-4.1-0.7-4.4 0-4.3 1.4-2.4-0.8-2.3-1.8-7.9-1.1-3.6 1.3-4.7-0.7-4.5-3.3-1.6-0.2-1.5-0.6-0.4-0.5-0.6-1.3-0.4-0.6-2.3-1.2-2.5-0.2 1.8-2.1 2.1-1.6 1.5-2 1.2-2.3 1.4-2.3 1.7-2 4.1-3.2 3.4-3.4 1.4-5.1-0.1-1.4-0.5-1.4-1.6-0.9-2.3-4.1-1.4-4.5 11.1-2.2 7.9-0.4 7-2.7 1.5-1.6 0.9-2.4 1-3.7 1.3-3.6 1.7-1 1.8-0.6 5.4 0.8 1.7-0.8 6.3-1.6 4.4-0.6 4 0.2 4-0.6 1.7-1 1.7-1.3 0.6-0.2 0.7 0 1.8-0.4 1.7-0.7 2.8-4.1 2.5-4.9 2.6 5.1 3.6 2.9 1.7-0.2 1.4-1.1 1.4-1.9 1.7-1.3 4 0.2 1-0.6 0.2-1.1-0.5-0.7 0.1-1.8 0.5-0.8 1.9-0.4 2.2-0.2 1.6-0.8 1.4-1.2z"
+				id="TR58"
+				name="Sivas"
+				fill={getPathFill('TR58')}
+				class="cursor-pointer transition-all duration-200 hover:opacity-80"
+				onclick={() => handlePathClick('TR58')}
+				onmouseenter={() => handlePathHover('TR58')}
+				onmouseleave={() => handlePathHover(null)}
+			></path>
+			<path
+				d="M483.5 71.9l2.5 4.4 0.6 2.3 0.3 2.5 0.7 2.3 3.7-0.4 1.8 0.4 0.4 1.8-0.7 1.6-1 1.2-0.6 1.9-0.2 6.3-0.7 4.1 0.5 1.7 1.9 4.2 1.3 2.2 1.5 1 7.9 1.3 3.6 2.2 1.6 0.3 0.8 0.3 1.2 2.9 0 2.3-1.1 4.5-4.1 6.3-0.5 1.4 0 1.7-0.5 4.2-1.9 0.7-4.6 0.4-0.5 2.8 0.6 0.7-0.1 1-0.5 1.4-0.1 1.2-1.3 1.7-3.7 2.3-2.2 0.2-4-1.2-7.2 3.5-3.8 0.2-1.9-0.2-2.8 1.1-7.3-1.3-4.6 1.5-4.5 2.1-7.5 0.9-2.7 1.3 0-3.2 1.2-2.5 1-1.5 0.2-2.1-0.7-1.8 0-0.7-0.1-0.7-0.9-1-1.2-0.1-1.2-1.2-1.9-4.5-0.6-2.9 3.8-2.2 1-0.2 0.8-0.4 1.4-2.4 1.1-2.6 0.7-0.4 0.1-1.6-0.4-1.6-0.5-1.7-0.7-1.5-1.2-2-0.6-2.3 0.1-2.2-0.3-2.2-1.2-2.4-0.3-2.6 1-2.5 0.6-2.5-2.4-3.9 4.2-0.9 6.7-2.8 1.2-3.1-1.6-1.7-1-0.4-0.9-2.4 0.5-1.2 1.6-2 1.7-4.2 2.2-2 1.1-1.3 1.3-3.4 1.7-2.4 2.5-0.6 1.2 1.6 1.8-0.1 1 0.2 0.8 0.9 1.6 0.3 1.6-0.4 1.4 0.3 1.2 0.9 0.5 0.9 0.8 0.6 5.4 1.7 1-1.2 0.9-0.8 0.2-0.3 0.1-0.5 0.1-1.1 0.1-0.4z"
+				id="TR19"
+				name="Çorum"
+				fill={getPathFill('TR19')}
+				class="cursor-pointer transition-all duration-200 hover:opacity-80"
+				onclick={() => handlePathClick('TR19')}
+				onmouseenter={() => handlePathHover('TR19')}
+				onmouseleave={() => handlePathHover(null)}
+			></path>
+			<path
+				d="M493.1 83.4l14.7 4.2 2.9-0.5 1.6 0.9 6.9 5.3 1.6 2.8 1.6 0.4 3.6-0.2 1.8 0.3 6.3 0.1 3.7 1.8 2-0.5 1.7-1.4 2.2-1.5 1.4-2.5 0.9-2.9 1.9-1.2 1.7 0.6 1.3 1.5 0.6 1.4 0.8 1.4 5.1 3.7-1.4 0.7 0 0.4 0.4 0 0 0.5-0.6 0.8 0.5 1.1 1 0.9 0.7 0.6 0.8 0.3 1 2.5-1.7 2.5-0.8 2 0 2.4-2.1 3-3.8 0.8-0.3 3.2-0.4 0.2-0.4 0.1-0.7 0.7-3.9 2.6-2.9 1.4-0.9 0-0.8-0.7-0.9-0.4-1.1-0.3-1.3-0.7-1.2-1-3.8-1.1-4 0.3-1.2 1.5-2.1 4.7-1.4 2.5-1.3 1.9-1.4 1.6-1.6 0.7-0.9 0.3-2.6 1-1.4 1.6-1.9 4-2.3-0.8-2.5 0.2-2.1-0.2-0.9-0.6-0.4-1.3-0.4-0.2 0.5-4.2 0-1.7 0.5-1.4 4.1-6.3 1.1-4.5 0-2.3-1.2-2.9-0.8-0.3-1.6-0.3-3.6-2.2-7.9-1.3-1.5-1-1.3-2.2-1.9-4.2-0.5-1.7 0.7-4.1 0.2-6.3 0.6-1.9 1-1.2 0.7-1.6-0.4-1.8z"
+				id="TR05"
+				name="Amasya"
+				fill={getPathFill('TR05')}
+				class="cursor-pointer transition-all duration-200 hover:opacity-80"
+				onclick={() => handlePathClick('TR05')}
+				onmouseenter={() => handlePathHover('TR05')}
+				onmouseleave={() => handlePathHover(null)}
+			></path>
+			<path
+				d="M202.3 176.8l1.8 1.4 2.1 0.5 3.4 0.4 3.4-0.1 2.6-1.6 0.3-4.1 1-2.8 2.2-1.6 1.3-5 1-1 0.5-1.4 1-3.7 2.4-1.7 4.9 2 1.6 0.1 1.5-0.2 1.3-0.7 1.5-0.1-0.8 5.2 0.2 2.7 1.7 3.3 0.7 1 1.9 1.2 1.7 0.7 5.2 3.8 2.1 0.5 3.7-1 3.6-0.4 1.8-0.5 1.8 3 5.2 5 1.3 3.7 0.6 4.7 4.7 6.3 0.9 3.9-3.3 5.1-5.7 2.6-0.9 2.5-0.7 2.7-1.3 2.6-1.3 4.1-1.9 3.2-1.4 1.8-9.8 5.9 0-6.3-2.2-2.6-1.4-0.6-5.9-1.4-3 0.1-1.4 0.4-1.2 0.7-0.8 3.5-1.2 2.8-2.7 0.2-6 1.7-3.4 0.1-3.2-0.4-2.9-1.9-2.8 0-2.6 2.3 0.2-3.9-1-2.8-1.5-2.9 0.4-3.7-0.3-1.1-0.5-1-3.1-4.7-1.3-1-7.2-1.5-1-0.8-2.4-2.7 0.4-0.6-0.2-1.5-0.2-0.8 0.4-2.1 1.8-0.9 3.5-1.2 1.6-1.1 1.4-2.6 0.4-0.9 1.1-1.4 1.1-1.8 0.6-4.3 0.6-1.8 0.6-0.6 0.3-0.7 0-1.2 0.3-1.2 0.9-1.8z"
+				id="TR43"
+				name="Kütahya"
+				fill={getPathFill('TR43')}
+				class="cursor-pointer transition-all duration-200 hover:opacity-80"
+				onclick={() => handlePathClick('TR43')}
+				onmouseenter={() => handlePathHover('TR43')}
+				onmouseleave={() => handlePathHover(null)}
+			></path>
+			<path
+				d="M368 352.8l0.4-4-0.8-4-1-1.4-1.5-0.3-2.2-0.2-2-0.8-0.7-1.6 0.5-1.8 1.2-0.9-0.2-1.9-1.5-0.9-1.8-0.8-3.2-3-1.4-1-1.4-1.3-2.1-3-2.4-2.5-3.3-2.3-3-2.8-4-2.6-12.2-2.6-4.7 0-2.1-0.8-1.8-1.5-1.2-1.2-1-1.3 1.3-3.3 0.4-3.6-0.6-2.2-1.2-1.8 0-2.1 2.1-0.6 1.5-2 0.2-2.8 2-3.1-0.1-4.7-1.1-4.7 1-4 1.6-0.9 3.3-1.3 3-1.9 0.4-2-3.5-3-1.1-1.6-1.6-0.7-3.3-2.8-2.9-3.7-3.7-3-1.3-4.5 8.3-5.5 3.7-3.8 4.1-5.4 0.2-1.4-0.2-1.2-0.1-1.2 0.8-3.3 1.4-2.9 3.6-6 0.4-2.4-0.8-0.5-1.5-1.5 0.2-0.8 0.3-0.8 0.6-4 2.8 0.3 3.8-0.7 0.7-0.9 0.3-1.8 0.2-1.8 2 0.9 2.1 1.3 6.8 5.7 1.7 0.5 5-1.5 2.4-0.3 4 1.4 1.6 0.9 1.7 1.6 2 0.2 2.8-2.4 3-1.4 3.6 1.5 2.1-1.2 1.8-2.3 4.8-4 2.3 0.7 2.7 2.2 2.1 0.3 0.7-1.1 0.4-3.2 0.5-1.6 0.9-1.3 2 0 2.1 1.6 0.8 0.5 2.7 0.8 4.7 3.4 2.5 5.9 0.3 3.3-0.2 3.3-0.6 3.6 0.1 3.5 1 2.5 1.3 2.3 1.5 2.2 1 2.4-0.9 1.7-2.7 3.1-1.1 2-0.7 4.8-1.7 2.6-1.1 3.2-0.3 2.3-0.7 2-0.4 5 1.8 4.6 0.6 0.5 0.5 0.6 0.4 2.5 0.7 2.3 3.2 4 1.9 1.8 2.1 0.1 5.6-1.2 7.4-0.5 3.8 0.1 3.7-0.9 3.7-1.5 3.6-0.8 3.5 0.6 0.7 3.1 1.5 2.4 2.3 0.9 2.2 1.2 1.8 2.6 1.7 2.9 1.9 1.8 1.5 2.2 0.5 3.4-1.1 3.1-1.1 1.3-0.7 1.6-0.3 2.7 0 1.7 1.8 2.6 1.2 1 1.8 1.9 1.1 2.6-0.6 1.9-0.9 0.6-2.5 0.9-1.4 0.7-2.1 2.1-2.7 1.3-4.2 1.5-1.3 0.8-1.6 1.9-1.1-2.3-3.2-5.4-2.8-3.1-3.9-4.1-5.3-5.9-1.1-3.8 0.2-0.9-0.4-3-1.9-0.7-4.7-0.2-2.2 1.4-1.4 1.8-2.3 3.1-4.8 1.8-7.4 0.5-7.1 0.9-4.5 1.8-2.5 2.8-5.6 6.2-5.7 7.9-4.5 5.8-1.2 4 0.3 2.1 2.9 1.3 2.9 0.2 0.7 1.6-0.2 1.8-1.4 2.2-6.8 6.7-5.4 4.1z"
+				id="TR42"
+				name="Konya"
+				fill={getPathFill('TR42')}
+				class="cursor-pointer transition-all duration-200 hover:opacity-80"
+				onclick={() => handlePathClick('TR42')}
+				onmouseenter={() => handlePathHover('TR42')}
+				onmouseleave={() => handlePathHover(null)}
+			></path>
+			<path
+				d="M377.3 366.7l-0.9-1.9-1.9-1-1.6-1.1-1.3-1.6-1.9-4-1.7-4.3 5.4-4.1 6.8-6.7 1.4-2.2 0.2-1.8-0.7-1.6-2.9-0.2-2.9-1.3-0.3-2.1 1.2-4 4.5-5.8 5.7-7.9 5.6-6.2 2.5-2.8 4.5-1.8 7.1-0.9 7.4-0.5 4.8-1.8 2.3-3.1 1.4-1.8 2.2-1.4 4.7 0.2 1.9 0.7 0.4 3-0.2 0.9 1.1 3.8 5.3 5.9 3.9 4.1 2.8 3.1 3.2 5.4 1.1 2.3-3.3 1.3-3.6 0.3-1.7 0.7-4.6 3.5-3.5 0.7-1.7 0.9-1.2 0.1-1.6-0.5-3.9 0.4-3.8 1.5-6 0.5-2 0.6-1.7 1-1.5 1.4-1.6 1.1-1.8 0.6-1.5 1.9-0.6 2.6-1 1.7-1.7-0.4-0.4-0.7-0.1-0.5-0.6-0.3-1.4 0.5-2.1 1.4-0.8 0.3-1.8 0.3 0.1 1.9 1 1.2 0.8 1.4 0.4 1.7 0.7 1.6 1.2 0.5 0.9 1.2 1 0.8 2.5 0.7 2.2 1.6 1.1 1.8-1.2 1.6-1.8-0.7-1.7-0.9-0.7 0.1-0.7 0.3-0.7 1.9-0.5 2.1-1.2 1.2-1.5 0.2-2.9-0.1-2.8 0.6-2.7 1.3-2.9 0-3.1-0.8-3.1 0.4z"
+				id="TR70"
+				name="Karaman"
+				fill={getPathFill('TR70')}
+				class="cursor-pointer transition-all duration-200 hover:opacity-80"
+				onclick={() => handlePathClick('TR70')}
+				onmouseenter={() => handlePathHover('TR70')}
+				onmouseleave={() => handlePathHover(null)}
+			></path>
+			<path
+				d="M478.9 310.3l-3.3-0.8-3.3 1.4-1.5 0.9-1.6 0.6-3.5 0.1-1.1-2.6-1.8-1.9-1.2-1-1.8-2.6 0-1.7 0.3-2.7 0.7-1.6 1.1-1.3 1.1-3.1-0.5-3.4-1.5-2.2-1.9-1.8-1.7-2.9-1.8-2.6-2.2-1.2-2.3-0.9-1.5-2.4-0.7-3.1 15.7-23.4 2.7 0.4 4.1-1.2 2.7-0.1 1.3 0.7 2 2 2.4 0.7 5-1.9 3.3 9.2 2.8 2.9 7.7 0.1 1.3 4.1-0.5 2.5 0.3 2.6 0.9 2.1 0.5 2.2-2.2 1.4-0.2 3.1-0.8 3.6-6.2 6.3-4.7 0.8-2.4-0.8-2.4-0.2-1.5 2.2 0.2 3 1.2 3 0.3 1.7-0.7 2.5-0.7 0.7-0.7 0.6-1.2 1.9-0.2 1.3 0 2.8z"
+				id="TR51"
+				name="Nigde"
+				fill={getPathFill('TR51')}
+				class="cursor-pointer transition-all duration-200 hover:opacity-80"
+				onclick={() => handlePathClick('TR51')}
+				onmouseenter={() => handlePathHover('TR51')}
+				onmouseleave={() => handlePathHover(null)}
+			></path>
+			<path
+				d="M560.3 254.1l-2-2.1-1.2-3.2-1.8-2.8-2.5-1.1-3.8 1-3.7 2.1-2 1.7-2.1 5-1.3 1.9-2 4.1-2.6 3.5-17.6 12.2 1 11-2.5 1.2-5.8-2.3-4.3-1.1-8.2-0.7 0.8-3.6 0.2-3.1 2.2-1.4-0.5-2.2-0.9-2.1-0.3-2.6 0.5-2.5-1.3-4.1-7.7-0.1-2.8-2.9-3.3-9.2 1.3-2.6 1.9-2 4.2-6.7 0.2-2.9-0.5-2.8 0.2-2.8-3.3-4.3-2.2-4.4 1.3-3.1 1-3.3 0-1.5 0.1-1.5 0.5-1.3 0.7-1.1 10.7 1.7 5.4-3.4 2.1-0.7 15.4-10 4-5.6 2.5 0.2 2.3 1.2 0.4 0.6 0.6 1.3 0.4 0.5 1.5 0.6 1.6 0.2 4.5 3.3 4.7 0.7 3.6-1.3 7.9 1.1 2.3 1.8 2.4 0.8 4.3-1.4 4.4 0 4.1 0.7 3.8 2.1 1.7 5.4-2 5.8-1.1 2.2-0.9 2.3-1.3 4.8-1.9 5.6-0.2 1-0.3 0.9-1.2 2-0.1 2.5-1.6 1-0.9 1.9-0.6 3.2-1.5 2.4-3.7 4.3-1.5 2.2-1.7 1.8z"
+				id="TR38"
+				name="Kayseri"
+				fill={getPathFill('TR38')}
+				class="cursor-pointer transition-all duration-200 hover:opacity-80"
+				onclick={() => handlePathClick('TR38')}
+				onmouseenter={() => handlePathHover('TR38')}
+				onmouseleave={() => handlePathHover(null)}
+			></path>
+			<path
+				d="M314.6 308.3l-2.5-0.4-2.4 0.9-2.2 1.6-2.6 0.4-4.9 1.7-4.2-1.7-0.7-1.7-1-1.4-1.4-0.2-0.7 0.1-0.9-1.1-0.4-1-2.9-4.4-1.3-2.9-1.6-4.8-2.8-1.8-3 0.1-3.3-0.6-2.1-1.6-1.8-2-2.2-3-2.3-1.6-2.2 2.3-1.3 0.9-1.4 0.7-5.2 3.8-1.8 0.8-1.8-0.6-0.9-1.8-0.7-2 3.7-0.1 3.4-1.9 1.6-2.9 0.6-6.2 1-1.9 3.2-1.9 4.3-4.2 1.9-1.1 2.4-2.2 2.4-2.7 1.7-0.7 1.9-0.5 2.6-2.2 1-0.2 1.1-0.1 3.6-1.4 3-2.8 2.9-3.4 5.9-4.8 2.4-2.6 0.9-0.8 1.2 0.2 0.9 0.6 0.9 0.7 2.1 3.1 1.1 0.7 1.2 0.3 1.3 4.5 3.7 3 2.9 3.7 3.3 2.8 1.6 0.7 1.1 1.6 3.5 3-0.4 2-3 1.9-3.3 1.3-1.6 0.9-1 4 1.1 4.7 0.1 4.7-2 3.1-0.2 2.8-1.5 2-2.1 0.6 0 2.1 1.2 1.8 0.6 2.2-0.4 3.6-1.3 3.3z"
+				id="TR32"
+				name="Isparta"
+				fill={getPathFill('TR32')}
+				class="cursor-pointer transition-all duration-200 hover:opacity-80"
+				onclick={() => handlePathClick('TR32')}
+				onmouseenter={() => handlePathHover('TR32')}
+				onmouseleave={() => handlePathHover(null)}
+			></path>
+			<path
+				d="M128.9 189.6l3.6-1.9 2.2 1 2.1 1.7 3.3 1 3.3-0.5 2 0.2 1.9 0.9 0.7 0.1 1.5-0.3 0.8 0 1.2 1.9-1.4 2.6-0.6 2.1 1.9 0.9 3.5-1.3 0.8 0.4 0.3 0.9 3.9 4.3 2.5 5.5 2.1 0.7 2-0.8 2.1-0.4 1.8-1.1 1.3-1.7 1.9-0.4 2 0.2 1.8-0.2 1.8-0.5 4.4-2.2 4.1 0.6 2.4 2.7 1 0.8 7.2 1.5 1.3 1 3.1 4.7 0.5 1 0.3 1.1-0.4 3.7 1.5 2.9 1 2.8-0.2 3.9-1.7 1.7-3.7 2.9-0.5 1.2-1.4 1.6-1.4 0.5 0.2 2.1 1.3 0.5 1.1 1.3 0.2 1.4 0 1.4 0.4 3-0.3 2.8-0.7 1.9-0.9 1.5-1.3 1.2-0.5 0.9 1.2 0.9 1.5 0 1.7 2-4.4 1-2.1 4.1 0.2 1.6-0.6 1.5-2 0.9-2.1 0-6.5-0.1-2.1-3.2-2-6.2-1.3-1.7-2.1-0.6-1.1-0.1-1.7-0.5-0.9-1.1-1.3-0.2-1.8 0.6-4.6 0.7-1.3-3-2-2.1-1.4 0.4-1.4-0.1-2.3-1-2.3-0.1-0.8 1.9-1.1 2-2.4 0.6-2-1.9-0.4-0.9-0.5-1.9-0.4-0.9-3.7-1.7-3.3-2.3-0.8-3.4-1.5-1.4-0.9-0.2-5.4 0.2-3.3-0.3-2.8-2.5-1.3-4.2-1.1-1.4-0.7-0.3-1.3-1.3 0.2-1.3 1.3-2.2 1.5-1.5 0.8-2 0.3-2.4 0.6-2.2 2.6-1.8 3-1.2 3.1-2.6 1.3-1.5 0.3-3.2-1.7-3.3-0.8-2.2-1.6-7.4-1.8-4.7z"
+				id="TR45"
+				name="Manisa"
+				fill={getPathFill('TR45')}
+				class="cursor-pointer transition-all duration-200 hover:opacity-80"
+				onclick={() => handlePathClick('TR45')}
+				onmouseenter={() => handlePathHover('TR45')}
+				onmouseleave={() => handlePathHover(null)}
+			></path>
+			<path
+				d="M185.3 305l-0.2-0.9-0.4-0.8-0.5-0.4-0.5-0.2-0.6-2.2 1-2.2 3.3-1 3.7 0.4 2.5-2.4 2.2-3.1 1.9-0.1 1.4-1 0.2-1.7-0.5-1.4-3-0.6-1-1.5-0.8-1.6-1-1.4 0.1-1.5 1.1-0.8 0.4-1.3-0.7-3.6 0.1-2.1-0.6-1.7-2.7-1.9-0.6-1.3-0.5-1.4 2.1 0 2-0.9 0.6-1.5-0.2-1.6 2.1-4.1 4.4-1 2.9 0.6 2.5 1.6 2.7 0 2.4-1.7 1.7 0.3 1.5 1.7 1.6 0.1 1.5-0.5 0.7-0.4 0.6-0.3 1.2 0.8 0.5-0.1 0.7-1.2 0-0.7 2.4-1.9 3.4 0.4 3.6-0.1 1.7-0.5 1.5-1.4-0.4-3.6 0.5-3.6 5.9-1.3 6.5 1.5 5.1 8.6 1.3 1.5 0.7 4-1.3 1.5-12.8 9.6-1.5 0.8-1.5 0.6-0.7 1.8-0.1 6.1 1.2 0.5 2.2-0.1 0.6 0.3 1.3 0.7 0.7 0.2 0.5 0.4 2.2 3.7-3.4 2.8-2 1.2-0.7 0.3-1.4 0.8-0.6 1.3-0.5 1.3-6 3.3-0.1 1.5 0.5 1.7-0.1 2.4 0.6 2.2 0.4 0 0.2 0 0.3 0.3 0.3 0.4 0.2 0.9-0.1 0.5-2.1 4.2-4.7 7-1.3 2.9-0.8 3.1-0.4 3.2-2.2 1.8-0.3 3.9-0.6 1.5-0.9 1.3-1.7 0.8-4.7-2.6-2.6-0.2-1.2-1.1-0.2-1-0.1-1.9-0.4-2.3-0.7-2.3-2.8-2.8-3.5-1.6-0.6-0.6-0.8-1.6-0.6-0.6-3.5-0.6-1.6-2.3-0.7-2.7-1.4-2.5-2.2-0.9-1.7 0-1.2-0.4-0.5-1.8 0-1.7 0.2-1.2-0.6-1z"
+				id="TR20"
+				name="Denizli"
+				fill={getPathFill('TR20')}
+				class="cursor-pointer transition-all duration-200 hover:opacity-80"
+				onclick={() => handlePathClick('TR20')}
+				onmouseenter={() => handlePathHover('TR20')}
+				onmouseleave={() => handlePathHover(null)}
+			></path>
+			<path
+				d="M236.6 338.5l-4-5.6-5.7 0.8-2.3 2.9-1.9-0.7 0.8-3.5-1.1-3 0.4-3.2 0.8-3.1 1.3-2.9 4.7-7 2.1-4.2 0.1-0.5-0.2-0.9-0.3-0.4-0.3-0.3-0.2 0-0.4 0-0.6-2.2 0.1-2.4-0.5-1.7 0.1-1.5 6-3.3 0.5-1.3 0.6-1.3 1.4-0.8 0.7-0.3 2-1.2 3.4-2.8 3.8-1.4 4.2 0.3 0.7 2 0.9 1.8 1.8 0.6 1.8-0.8 5.2-3.8 1.4-0.7 1.3-0.9 2.2-2.3 2.3 1.6 2.2 3 1.8 2 2.1 1.6 3.3 0.6 3-0.1 2.8 1.8 1.6 4.8 1.3 2.9 2.9 4.4 0.4 1 0.9 1.1 0.7-0.1 1.4 0.2 1 1.4 0.7 1.7-3.3 2.9-0.9 2.6-2.9 3.1-1.8 0.5-3.7 0-4.3-0.5-6.6 0.3-1.1-0.4-2.9-3.6-2.9-0.4-7 3-2.9 0.5-8.6 4.4-2.6 3.6-0.7 4.4-1.9 3.5-1.3 1.3-1.1 1.6-1.3 0.7-1.4 0.2z"
+				id="TR15"
+				name="Burdur"
+				fill={getPathFill('TR15')}
+				class="cursor-pointer transition-all duration-200 hover:opacity-80"
+				onclick={() => handlePathClick('TR15')}
+				onmouseenter={() => handlePathHover('TR15')}
+				onmouseleave={() => handlePathHover(null)}
+			></path>
+			<path
+				d="M416 234.6l4.1-1.1 3.9-2.2 4.2-1.2 4.2 0.2 1.8-0.9 4-3.8 0.1-3.6-1.9-5.1 1.6-4.1 0.7 1 1.9 0.4 1.1-0.1 1.8 0.8 0.7 2.5 1.9 1.6 2.4-1.4 1-0.3 2 0.3 1-0.2-0.5 2.5 1.6 5.4-0.8 3.1-1.7 2.7 0.7 3.1 2.2 1.4 2.4 0.7 2-0.4 1 0.3 0.4 2.8-1.4 3.1 0 2.9 0.9 0.8 1.9 1.5 1.6 1.7 1.8 1.1-15.7 23.4-3.5-0.6-3.6 0.8-3.7 1.5-3.7 0.9-3.8-0.1-7.4 0.5-5.6 1.2-2.1-0.1-1.9-1.8-3.2-4-0.7-2.3-0.4-2.5-0.5-0.6-0.6-0.5-1.8-4.6 0.4-5 0.7-2 0.3-2.3 1.1-3.2 1.7-2.6 0.7-4.8 1.1-2 2.7-3.1 0.9-1.7z"
+				id="TR68"
+				name="Aksaray"
+				fill={getPathFill('TR68')}
+				class="cursor-pointer transition-all duration-200 hover:opacity-80"
+				onclick={() => handlePathClick('TR68')}
+				onmouseenter={() => handlePathHover('TR68')}
+				onmouseleave={() => handlePathHover(null)}
+			></path>
+			<path
+				d="M484.8 250.7l-5 1.9-2.4-0.7-2-2-1.3-0.7-2.7 0.1-4.1 1.2-2.7-0.4-1.8-1.1-1.6-1.7-1.9-1.5-0.9-0.8 0-2.9 1.4-3.1-0.4-2.8-1-0.3-2 0.4-2.4-0.7-2.2-1.4-0.7-3.1 1.7-2.7 0.8-3.1-1.6-5.4 0.5-2.5 5.3 4.5 1.9-0.5-0.2-1.4-0.5-2.7 1-3.3 5.7-2.4 2.6-1.6 3-1.3 1.9-2.6-1-2.3-1.4-2.5 0.6-4-0.6-3.1-1-1.9-0.4-2.2 0.2-1.4 1-0.6 3 0.8 2.8-0.5 0.7 0.2 1.4 0.6 0.4 0.8 0.2 1.3 0.4 1.2 1.2 1.4 1.5 0.8 1 1.9 0.6 2.4 3.8 2.4 1.1 1.9-0.5 1.4 0.2 1.4 0.4 1.3 0.7 1.5 0.7 1.5-0.7 1.1-0.5 1.3-0.1 1.5 0 1.5-1 3.3-1.3 3.1 2.2 4.4 3.3 4.3-0.2 2.8 0.5 2.8-0.2 2.9-4.2 6.7-1.9 2-1.3 2.6z"
+				id="TR50"
+				name="Nevsehir"
+				fill={getPathFill('TR50')}
+				class="cursor-pointer transition-all duration-200 hover:opacity-80"
+				onclick={() => handlePathClick('TR50')}
+				onmouseenter={() => handlePathHover('TR50')}
+				onmouseleave={() => handlePathHover(null)}
+			></path>
+			<path
+				d="M513 139.7l3.3 3.7 3.8 2.6 4.4-0.4 3.7 0.8 2.2-0.2 2.3-0.5 1.9-0.8 2-0.6 2 1.9-0.3 3.5-0.1 2.4 0.9 1.8 0.9 0.9 0.5 1.3 1.4 4.5 2.3 4.1 1.6 0.9 0.5 1.4 0.1 1.4-1.4 5.1-3.4 3.4-4.1 3.2-1.7 2-1.4 2.3-1.2 2.3-1.5 2-2.1 1.6-1.8 2.1-4 5.6-15.4 10-2.1 0.7-5.4 3.4-10.7-1.7-0.7-1.5-0.7-1.5-0.4-1.3-0.2-1.4 0.5-1.4-1.1-1.9-3.8-2.4-0.6-2.4-1-1.9-1.5-0.8-1.2-1.4-0.4-1.2-0.2-1.3-0.4-0.8-1.4-0.6-0.7-0.2-1.3-2.9-2-1.8-2.4-0.4-2.1-1.4-6.6-8-0.6-1.3-0.4-1.4-0.9-1.3-3.7-0.1-2.2-0.7-2.4-2.7-2.5-2.3-2.6-0.1-0.9-0.8-1-1-0.5-1.3 0.2-1.3-0.2-1.3-0.5-1.2 2.7-1.3 7.5-0.9 4.5-2.1 4.6-1.5 7.3 1.3 2.8-1.1 1.9 0.2 3.8-0.2 7.2-3.5 4 1.2 2.2-0.2 3.7-2.3 1.3-1.7 0.1-1.2 0.5-1.4 0.1-1-0.6-0.7 0.5-2.8 4.6-0.4 1.9-0.7 0.4 0.2 0.4 1.3 0.9 0.6 2.1 0.2 2.5-0.2 2.3 0.8z"
+				id="TR66"
+				name="Yozgat"
+				fill={getPathFill('TR66')}
+				class="cursor-pointer transition-all duration-200 hover:opacity-80"
+				onclick={() => handlePathClick('TR66')}
+				onmouseenter={() => handlePathHover('TR66')}
+				onmouseleave={() => handlePathHover(null)}
+			></path>
+			<path
+				d="M438 212.8l0.4-2-3-1.1-0.6-0.7-1.6-0.6-2.5-0.2-1-0.7-0.7-1.2-0.7-0.6-0.8-0.3-2.4-2-5.4-3.4-0.9-3.4 5.3-9.3 7.7-6.3 3.3-5.2 2.1-6.3 7.6-7.3 1 1 0.9 0.8 2.6 0.1 2.5 2.3 2.4 2.7 2.2 0.7 3.7 0.1 0.9 1.3 0.4 1.4 0.6 1.3 6.6 8 2.1 1.4 2.4 0.4 2 1.8 1.3 2.9-2.8 0.5-3-0.8-1 0.6-0.2 1.4 0.4 2.2 1 1.9 0.6 3.1-0.6 4 1.4 2.5 1 2.3-1.9 2.6-3 1.3-2.6 1.6-5.7 2.4-1 3.3 0.5 2.7 0.2 1.4-1.9 0.5-5.3-4.5-1 0.2-2-0.3-1 0.3-2.4 1.4-1.9-1.6-0.7-2.5-1.8-0.8-1.1 0.1-1.9-0.4-0.7-1z"
+				id="TR40"
+				name="Kirsehir"
+				fill={getPathFill('TR40')}
+				class="cursor-pointer transition-all duration-200 hover:opacity-80"
+				onclick={() => handlePathClick('TR40')}
+				onmouseenter={() => handlePathHover('TR40')}
+				onmouseleave={() => handlePathHover(null)}
+			></path>
+			<path
+				d="M205.4 229.4l2.6-2.3 2.8 0 2.9 1.9 3.2 0.4 3.4-0.1 6-1.7 2.7-0.2 1.2-2.8 0.8-3.5 1.2-0.7 1.4-0.4 3-0.1 5.9 1.4 1.4 0.6 2.2 2.6 0 6.3-0.3 2.5-0.7 2.3-2.9 2.8-0.6 2.4-0.9 2.5-1.1 1.4 0.1 1.7-5.9 1.3-0.5 3.6 0.4 3.6-1.5 1.4-1.7 0.5-3.6 0.1-3.4-0.4-2.4 1.9 0 0.7-0.7 1.2-0.5 0.1-1.2-0.8-0.6 0.3-0.7 0.4-1.5 0.5-1.6-0.1-1.5-1.7-1.7-0.3-2.4 1.7-2.7 0-2.5-1.6-2.9-0.6-1.7-2-1.5 0-1.2-0.9 0.5-0.9 1.3-1.2 0.9-1.5 0.7-1.9 0.3-2.8-0.4-3 0-1.4-0.2-1.4-1.1-1.3-1.3-0.5-0.2-2.1 1.4-0.5 1.4-1.6 0.5-1.2 3.7-2.9 1.7-1.7z"
+				id="TR64"
+				name="Usak"
+				fill={getPathFill('TR64')}
+				class="cursor-pointer transition-all duration-200 hover:opacity-80"
+				onclick={() => handlePathClick('TR64')}
+				onmouseenter={() => handlePathHover('TR64')}
+				onmouseleave={() => handlePathHover(null)}
+			></path>
+			<path
+				d="M667.5 148l2 0.1 4.2-0.3 1.9-0.9 1.3 0.8 1.4 0.6 1.4 0.3 1.4 0.3 5.2 3.1 1.8 0.7 1.8 1.1 0.7 1.1 0.8 0.8 2.9 0.9 2.8 1.4 2.9 0.3 2.8-0.3 2.8 0.2 2.7-0.2 2.6-1.3 5.3-1.3 2.1-2.2 1.8-2.7 2.5-1 2.7 0.3 2.4-0.3 1.9-1.8 2.3-0.8 7.7 1.5-1.4 3.3-0.4 3.6 2.5 1.3 8.1 0.1 3.2 4.2-0.1 1.8 0.2 1.7 0.7 1.2 0.8 1.1 1.8 1.4 2 0.8 1.6 1.8-1.1 2.6-1.7 3.1-0.1 3.9-3.1-1.1-3.9-0.1-3.8-0.6-7.1-0.2-0.9-0.5-1.8-0.7-0.5 0-0.2 0.2-1.5 0.4-1.8 0.9-1 0.1-4.4 1.6-3.7-1-2.5-1.5-1.8 0.6-2.2 2.7-3.3 1.1-7.2 1.1-3.8 0.1-3.6-1-3.7-0.2-1.9 1-2 0.5-2.4-0.4-2.5 0.5-4.7 1.8-1.3 1-0.9 1.7-1.2 0.6-1.3-0.1-0.7 1-0.6 1-0.5 0.3-2.9 1.1-0.7 1.9 0.6 1.9 0.7 1.1-1.3 0.8-1.3 0.3-1.1 0.7-0.7 3.5-1.1 0.5-0.2 0-0.4 0.4-0.2 1.4 0.2 1.4 0.4 0.3 0.4 0.4 0.4 3.8-1.5 0.3-1.2 0.6-3.1-3.6-2-1.2-2.2-0.9-4.5-0.2-3.7-1.9 1-1.6 0.4-2.1-0.2-1-0.3-0.9 0.1-1.2 0.2-1.1-0.3-1.8-0.6-1.8 0-2-0.1-1.1-0.2-0.7 0.6-0.1 0.4-0.5 0.4-0.5 0.5-0.5 1.7-1.1 0.4-1-1.1-1.5-1.5-1-1.7-1.6-0.6-2.3 1.1-2.2 0.6-6.4 2.3-3.1 1.2-2.1 1.8-0.9 0.9 0 1-0.2 0.5-1.7-1-1.2-3.5 0.9-3.3 0.1-0.4-1.9 1.8-5.2 2.1-1.2 2.2 1.7 2.3 0.4 2.3-1.6 2.5-0.6 2.1 0.4 2.2 0 1-2.4 0.2-3.1z"
+				id="TR24"
+				name="Erzincan"
+				fill={getPathFill('TR24')}
+				class="cursor-pointer transition-all duration-200 hover:opacity-80"
+				onclick={() => handlePathClick('TR24')}
+				onmouseenter={() => handlePathHover('TR24')}
+				onmouseleave={() => handlePathHover(null)}
+			></path>
+			<path
+				d="M666.7 210.6l-0.4-3.8-0.4-0.4-0.4-0.3-0.2-1.4 0.2-1.4 0.4-0.4 0.2 0 1.1-0.5 0.7-3.5 1.1-0.7 1.3-0.3 1.3-0.8-0.7-1.1-0.6-1.9 0.7-1.9 2.9-1.1 0.5-0.3 0.6-1 0.7-1 1.3 0.1 1.2-0.6 0.9-1.7 1.3-1 4.7-1.8 2.5-0.5 2.4 0.4 2-0.5 1.9-1 3.7 0.2 3.6 1 3.8-0.1 7.2-1.1 3.3-1.1 2.2-2.7 1.8-0.6 2.5 1.5 3.7 1 4.4-1.6 1-0.1 1.8-0.9 1.5-0.4 0.2-0.2 0.5 0 1.8 0.7 0.9 0.5 7.1 0.2 3.8 0.6 3.9 0.1-1.8 2.3-2.4 1.1-1.3-0.1-2.2-0.4-0.8 0.7-1.3 2.7-2.2 1.6-2.3 0-2.2 0.8-0.4 1.2-0.4 1-0.7 0.3-3.3-0.2-2.4 0.8-0.7 1.2-0.2 3-0.6 1.6-0.2 1.6 1 4.6-0.4 2.1-0.8 1.9-2.6 0.1-2.3 0.6-0.9 0.6-0.7 1 0.5 2.3 0.3 2.2-0.7 2.9-1.3 2.6-2.9 3.2-4.4 1.7-4.6 0.4-1.7-0.2-1.7 0.4-1.2 1.5-1.4 1.1-1.2-0.4-1.2-0.6-0.8 0.2-0.4 0.1-1.1-1.3-0.9-0.7-2.1-0.6-2-1.5-2.2-1-2-0.2-1.9-0.6-1.5-0.1-1.5-0.9-0.5 0-0.9 0.2-0.5 0.1-2-0.9-3.7 0.3-3.7 1-1.4-0.1-2-2 0-1.7 0.7-1.6-0.1-1.8-1.8-2.7z"
+				id="TR62"
+				name="Tunceli"
+				fill={getPathFill('TR62')}
+				class="cursor-pointer transition-all duration-200 hover:opacity-80"
+				onclick={() => handlePathClick('TR62')}
+				onmouseenter={() => handlePathHover('TR62')}
+				onmouseleave={() => handlePathHover(null)}
+			></path>
+			<path
+				d="M272.4 200.3l1.7 0.4 1.3 1.3 0.7 1.9 1.1 1.4 0.8 0.5 0.8 0.6 2.1 1.2 2.2-0.4 1.7-0.8 3.2-2.1 3-3 1.6-1.3 2.4 1.1 2.1 2.4 3.4-1.5 3.5-2.7 1.8-0.5 1.7-1.1 1.7-1.5 1.9-0.5 3.4 3.5 2.3 5.4 3.6 2.7 6.1-0.6 3.7 0.1 1.8 0.5-0.6 4-0.3 0.8-0.2 0.8 1.5 1.5 0.8 0.5-0.4 2.4-3.6 6-1.4 2.9-0.8 3.3 0.1 1.2 0.2 1.2-0.2 1.4-4.1 5.4-3.7 3.8-8.3 5.5-1.2-0.3-1.1-0.7-2.1-3.1-0.9-0.7-0.9-0.6-1.2-0.2-0.9 0.8-2.4 2.6-5.9 4.8-2.9 3.4-3 2.8-3.6 1.4-1.1 0.1-1 0.2-2.6 2.2-1.9 0.5-1.7 0.7-2.4 2.7-2.4 2.2-1.9 1.1-4.3 4.2-3.2 1.9-1 1.9-0.6 6.2-1.6 2.9-3.4 1.9-3.7 0.1-4.2-0.3-3.8 1.4-2.2-3.7-0.5-0.4-0.7-0.2-1.3-0.7-0.6-0.3-2.2 0.1-1.2-0.5 0.1-6.1 0.7-1.8 1.5-0.6 1.5-0.8 12.8-9.6 1.3-1.5-0.7-4-1.3-1.5-5.1-8.6-6.5-1.5-0.1-1.7 1.1-1.4 0.9-2.5 0.6-2.4 2.9-2.8 0.7-2.3 0.3-2.5 9.8-5.9 1.4-1.8 1.9-3.2 1.3-4.1 1.3-2.6 0.7-2.7 0.9-2.5 5.7-2.6 3.3-5.1z"
+				id="TR03"
+				name="Afyonkarahisar"
+				fill={getPathFill('TR03')}
+				class="cursor-pointer transition-all duration-200 hover:opacity-80"
+				onclick={() => handlePathClick('TR03')}
+				onmouseenter={() => handlePathHover('TR03')}
+				onmouseleave={() => handlePathHover(null)}
+			></path>
+			<path
+				d="M418.8 196.6l-3.8-7.4-1.9-8.8-1.3-2.3-3.8-4.6-1.2-5.3 1.4-5.2 1.2-5.2 2.2-5.3 3.5-1.5 5.5-0.6 0.6-3.6-0.3-3.7 0-4.2 0.6-3.5 0.6-5.1 13.1 4.2 4.4 0.4 0.6 2.9 1.9 4.5 1.2 1.2 1.2 0.1 0.9 1 0.1 0.7 0 0.7 0.7 1.8-0.2 2.1-1 1.5-1.2 2.5 0 3.2 0.5 1.2 0.2 1.3-0.2 1.3 0.5 1.3-7.6 7.3-2.1 6.3-3.3 5.2-7.7 6.3-5.3 9.3z"
+				id="TR71"
+				name="Kinkkale"
+				fill={getPathFill('TR71')}
+				class="cursor-pointer transition-all duration-200 hover:opacity-80"
+				onclick={() => handlePathClick('TR71')}
+				onmouseenter={() => handlePathHover('TR71')}
+				onmouseleave={() => handlePathHover(null)}
+			></path>
+			<path
+				d="M613.5 302.5l-0.1 1.8 0.3 1.7-0.6 2.7-2 1.4-3-0.1-3 0.4-6.3 2.2-6 1.1-2.6 1.3-4.3 4.6-3.7-1.2-1.3-5.3-2.3-1.5-2.3 3.1-5.7 2.6-2.1-3.1-2.6-2.4-1.6-1.1-1.8-0.5-3.9 0.8-1.3 0.3-1.8 0.6-1.6 0.3-0.8-0.9-0.6 0.3-0.5 0.2-0.5 0.2-0.3 0.6-0.5 0.1-1.9-2.4-0.3-4-0.5-0.7-0.6-0.7-0.6-1.7 0.4-1.8 1.3-1.4 1.1-1.8 0-4.7 1.3-1.7 0.9-0.5 1.6-1.6 0.1-2.4-1.5-3.7-0.3-2.9 0.1-1.8 0.6-4 1.4-3.8 2.4-10.7 1.5-3.8 2.6-2.5 1.7-1.8 1.5-2.2 3.7-4.3 1.5-2.4 0.6-3.2 0.9-1.9 1.6-1 6.3-1.5 6.1 0.9 1.2 0.7 1.2 0.6 10.7-0.9-2.8 4.7 0.6 3.6 0.8 0 1.8-0.4 0.9-0.1 7 1.5 6.1 3.6 3.2 1 3.7 1.7 2.4 4.1-0.3 2.5-2.6 6.9-0.3 1.8-0.9 1.4-0.7 0.8-1.1 1.8-2.5 8.8-1.9 3.6-2.3 2.9-2.7 2.3-1.8 2.4-0.1 3.5 1.7 2.8 2.8 1 5.2 3.2z"
+				id="TR46"
+				name="K. Maras"
+				fill={getPathFill('TR46')}
+				class="cursor-pointer transition-all duration-200 hover:opacity-80"
+				onclick={() => handlePathClick('TR46')}
+				onmouseenter={() => handlePathHover('TR46')}
+				onmouseleave={() => handlePathHover(null)}
+			></path>
+			<path
+				d="M841.7 182.8l1.4 3.8 1.9 3.4 1.5 1.4 1.5 1.7 0.8 1.7 1.2 1.2 1.7 2.5-0.2 4 0.2 0.8 0.1 0.9-0.5 2.4-0.4 3 0.2 3.2-3.5 2.8-3.9 1.5-7.7-0.9-1.7 0.6-1.5 1.1-1.9 0.8-2.1 0.2-0.9 0.7-0.6 2.8-1 0.9-4.2-0.1-0.9 2.2 1.5 2.4 0.3 2.6-2 1.7-2.8 3.1-3.3 1.9-8.1-0.6-7.3 2.8-0.5 0.8-2.7 0.3-2.6 0.9-1.4-0.5-0.6-1.6 0.6-2.5-0.6-2.4-3.2-2.3-2.4-3.2-0.3-1.6-0.6-1.4-1-0.9-0.6-0.2-1-1.4-1-3.5 1.4-4.8 3.3-4.1 0.6-2.4-0.3-2.7-1.3-2.4-0.9-0.9-1.1-1.9 0.1-1.9 0-1-0.4-1.1-0.3-0.5-0.8-1.8 0.3-1.4 1.3-2.4 7.6-1.3 3.8 0.9 1.8 1.2 4.6 4.6 2.8 3.9 1.1 1 4.1 1.6 4.1 0.2 1.8-1.4 2-1.2 5.8-1 1.5-1.3 0.9-1.1 3.2-2 1.4-2.3-0.3-2.8 1-2.7 6.5-3.3 1.8-0.1 1.8-0.3 0.9-0.3z"
+				id="TR49"
+				name="Mus"
+				fill={getPathFill('TR49')}
+				class="cursor-pointer transition-all duration-200 hover:opacity-80"
+				onclick={() => handlePathClick('TR49')}
+				onmouseenter={() => handlePathHover('TR49')}
+				onmouseleave={() => handlePathHover(null)}
+			></path>
+			<path
+				d="M834.5 93.6l1 4.9 2.4 3.7 1.8 1.2 1.3 1.7 1 2.4 1.4 2.1 1.9 1.9 1.4 2.6-0.3 2.1-0.7 2.2 1.1 6.2-1.9 1.2-2 0.9-1.6 1.1-1.5 1.2-3 1.7-6.9 2.4-1.5 3.3 1.7 2 1 1.7 1.1 1.3 4.1 0.7 1.5 0.5 1.4 1 0.8 1.1 0.6 1.3 0.8 0.6 1 0.3 1.9 0.8 1.2 1.9 1.1 2.5 1.4 2.3-1.3 1.5-1.6 0.9-1.2-0.1-0.6 0.1-1.2 0.5-1 1.5-1.7 0.6-3.6-0.6-1.7 0.7 3.9 4.7 6.7 2.8-0.6 0.4-0.5 1.7 0.1 8.3-0.5 2.9-1.5 2.5-0.9 0.3-1.8 0.3-1.8 0.1-6.5 3.3-1 2.7 0.3 2.8-1.4 2.3-3.2 2-0.9 1.1-1.5 1.3-5.8 1-2 1.2-1.8 1.4-4.1-0.2-4.1-1.6-1.1-1-2.8-3.9-4.6-4.6-1.8-1.2-3.8-0.9-7.6 1.3-2-3.5-2.1-2.5-2.9-0.3-3.5-1.7-4.6-4.3-1.5-0.9-1.4 0.7-1.4 1-4.2 1.9-4.2-0.6 0.1-3.9 1.7-3.1 1.1-2.6-1.6-1.8-2-0.8-1.8-1.4-0.8-1.1-0.7-1.2-0.2-1.7 0.1-1.8-3.2-4.2-8.1-0.1-2.5-1.3 0.4-3.6 1.4-3.3 7.8 1 1.7-0.3 2.1-1.6 2-2 2.7-1.3 5.9-2.1 1.3-1.7 1.2-2.2-0.2-1.2-3.1-0.3-1.4-0.6-3.1-0.7-2.9-1.7-1.2-3.8-1.4-8.5-1.5-3.8 7.7-3.8 1.9-0.6 1.9-0.2 2.9-0.8 1.4-3.6 1.7-0.7 2.1 0 2-0.7 5.1-4.4 3.6-2.1 3.7 2.1 5.9 0.9 1.7 0.6 0.4 2.1-1.3 2.2-0.6 5.3 3.2 2.9 4.4-1.7 4-2.6 3.7-1.1 3.8 1.1 4 2.3 2.2-3.3 0.1-2.8 0.9-2.5 1.9-1.9 1.2-2.5-0.3-2.7 0.6-2.5 1.5-1.3 1.6-0.8 3.2-0.3 3.3 0.3 2.8-0.6 2.8-0.3z"
+				id="TR25"
+				name="Erzurum"
+				fill={getPathFill('TR25')}
+				class="cursor-pointer transition-all duration-200 hover:opacity-80"
+				onclick={() => handlePathClick('TR25')}
+				onmouseenter={() => handlePathHover('TR25')}
+				onmouseleave={() => handlePathHover(null)}
+			></path>
+			<path
+				d="M597.3 237.1l2.8-1.3 2.4-2.2 2.4-2.9 1.1-0.4 2-1.3 3.4-3.7 0.8-2.3-0.3-1.3-0.6-1.3-0.8-2.7-0.5-2.9 1-2.4 2.1-0.5 4.1 2 3.9-0.9 1.7-1.1 1.8-0.8 1.7-1.1 1.8-0.9 3.7-0.1 1.6-0.7 1.7-0.3 3.2 0.5 3.1-0.9 3.4-2.6 3.7-1.3 3.7 1.9 4.5 0.2 2.2 0.9 2 1.2 3.1 3.6-3.4 0.2-1.3 1.7 0 2.5 0.8 1.6 0.6 1.8 0.2 3.7 0 1.4 0.6 1.8-0.2 0.4 0.1 0.8-0.1 0.6-0.6 0.3-5.2-0.5-1.2 0.2-0.6 0.7 0.3 1-0.3 1.1-0.5 0.9-0.7 0.4-1.2 0.2-0.9 0.5-0.7 0.8-0.6 0.9-0.2 0.7-0.3 1.1-0.7 1.3 0.1 0.4 0.3 0.3 0.2 0.6 0.1 1 0.4 1.2 0.7 1.1 0.7 0.7 0.6-0.6 0.5 0.3 0.8 1.1 0.7 0.6 0.6 0.3 0.6 0.2 2.7 0.4 1.3 0.3 0.2 0.1 0.8 0.8 0.3 0 0.3-0.2 0.4 0 3.8 2 1.4 0.1 2.9-1.1 1.5-0.2 1.1 0.8-0.3 0.5 1.2 0.8 0.4 0.4 1.1 1.8 0 0.3 1.3 0.2 0.8 0.5 1.4 1.3 1.6 0.3 3.9-1.3 1.9 0.2 0.9 0.9 0.6 1.3 0.1 1.4-1.6 5.6-2.1 2.5-2.6 1.2-2 0.5-1.9 0.9-1.3 0.3-1.4 0-3.5 0.7-3.3-0.4-3.3 0-2.8-0.8-0.8-0.5-0.8-0.4-0.3-1.3 1-0.6 1.8-1.8-0.2-1.9-2.8-0.6-2.8 0.8-3.3 0.1-3.5 3.9-3 4.5-3.7 2.1-1.2 2.3-0.1 3.2-2.9 2.6-4 1-1.7 0.8-1.7 0.6-2-0.3-2-0.6-4.4 0.6-4.2 1.7-6.7 1.3 1.9-3.6 2.5-8.8 1.1-1.8 0.7-0.8 0.9-1.4 0.3-1.8 2.6-6.9 0.3-2.5-2.4-4.1-3.7-1.7-3.2-1-6.1-3.6-7-1.5-0.9 0.1-1.8 0.4-0.8 0-0.6-3.6 2.8-4.7z"
+				id="TR44"
+				name="Malatya"
+				fill={getPathFill('TR44')}
+				class="cursor-pointer transition-all duration-200 hover:opacity-80"
+				onclick={() => handlePathClick('TR44')}
+				onmouseenter={() => handlePathHover('TR44')}
+				onmouseleave={() => handlePathHover(null)}
+			></path>
+			<path
+				d="M664 211.5l1.2-0.6 1.5-0.3 1.8 2.7 0.1 1.8-0.7 1.6 0 1.7 2 2 1.4 0.1 3.7-1 3.7-0.3 2 0.9 0.5-0.1 0.9-0.2 0.5 0 1.5 0.9 1.5 0.1 1.9 0.6 2 0.2 2.2 1 2 1.5 2.1 0.6 0.9 0.7 1.1 1.3 0.4-0.1 0.8-0.2 1.2 0.6 1.2 0.4 1.4-1.1 1.2-1.5 1.7-0.4 1.7 0.2 4.6-0.4 4.4-1.7 2.9-3.2 1.3-2.6 0.7-2.9-0.3-2.2-0.5-2.3 0.7-1 0.9-0.6 2.3-0.6 2.6-0.1 10.9-5.9 1.6-0.5 3.9-1.7 1.5 2.9-2 3.9-2.4 3.3-1 4.3 1.2 4.8 2.9 3.5 0.8 2-0.3 2.2-0.6 2.4-0.9 1.6-1.6-0.5-1.4-0.3-2.3 6.4 2.6 3.8 0.5 2.7 0.2 2.8-15.9 0.5-0.8-0.3-1.7-1.3-1-0.5-2.2 0.4-0.7 2-1.1 1.9-1.2 1.9-1.4 0.9-1.6 0.6-3.7-0.2-3.6 0.3-1.3 0.8-3.7 0.5-2 0.8-4-0.3-3.9-1-6.6 1.1-1.9-0.2-3.9 1.3-1.6-0.3-1.4-1.3-0.8-0.5-1.3-0.2 0-0.3-1.1-1.8-0.4-0.4-1.2-0.8 0.3-0.5-1.1-0.8-1.5 0.2-2.9 1.1-1.4-0.1-3.8-2-0.4 0-0.3 0.2-0.3 0-0.8-0.8-0.2-0.1-1.3-0.3-2.7-0.4-0.6-0.2-0.6-0.3-0.7-0.6-0.8-1.1-0.5-0.3-0.6 0.6-0.7-0.7-0.7-1.1-0.4-1.2-0.1-1-0.2-0.6-0.3-0.3-0.1-0.4 0.7-1.3 0.3-1.1 0.2-0.7 0.6-0.9 0.7-0.8 0.9-0.5 1.2-0.2 0.7-0.4 0.5-0.9 0.3-1.1-0.3-1 0.6-0.7 1.2-0.2 5.2 0.5 0.6-0.3 0.1-0.6-0.1-0.8 0.2-0.4-0.6-1.8 0-1.4-0.2-3.7-0.6-1.8-0.8-1.6 0-2.5 1.3-1.7 3.4-0.2z"
+				id="TR23"
+				name="Elazig"
+				fill={getPathFill('TR23')}
+				class="cursor-pointer transition-all duration-200 hover:opacity-80"
+				onclick={() => handlePathClick('TR23')}
+				onmouseenter={() => handlePathHover('TR23')}
+				onmouseleave={() => handlePathHover(null)}
+			></path>
+			<path
+				d="M851.1 212.8l2-1.3 2.3-0.7 1.6-1 1.6-1.3 8.8-1.9 0.1 4.6 1.4 3.1 5.6 3.4 1.9 3-1.4 4.5-3.4 2.6-2.6 2.8-4.4 6.5-0.8 1.9-1 1.7-3 2.1-5.1 2.9-0.8 0.9-0.5 2.5 0.3 1.3 1.7 3.9 0.2 0.7 0.1 1.6-0.5 2.1 0.9 3.1 2.5 0.9-1.3 4-0.6 0.7-0.5 0.8 0 1.8 0.2 1.9-0.2 2.8-1.4 2.1-1.8 0.2-3.2-2.4-4.8-2.7-3-2.2-2.1-0.9-3.3-0.8-3.4-1.4-3.1-2.4-2.8-2.8-3.2-1.5-4.1 1.6-4.1 1-5.1-0.4-4.9-1.9-0.1-1.3 0.2-1.4 0-2.2-0.2-2.2-1.1-3.3-1.7-8.2-4-1.5 0.5-0.8 7.3-2.8 8.1 0.6 3.3-1.9 2.8-3.1 2-1.7-0.3-2.6-1.5-2.4 0.9-2.2 4.2 0.1 1-0.9 0.6-2.8 0.9-0.7 2.1-0.2 1.9-0.8 1.5-1.1 1.7-0.6 7.7 0.9 3.9-1.5 3.5-2.8z"
+				id="TR13"
+				name="Bitlis"
+				fill={getPathFill('TR13')}
+				class="cursor-pointer transition-all duration-200 hover:opacity-80"
+				onclick={() => handlePathClick('TR13')}
+				onmouseenter={() => handlePathHover('TR13')}
+				onmouseleave={() => handlePathHover(null)}
+			></path>
+			<path
+				d="M752.6 179.2l3.1 1.1 4.2 0.6 4.2-1.9 1.4-1 1.4-0.7 1.5 0.9 4.6 4.3 3.5 1.7 2.9 0.3 2.1 2.5 2 3.5-1.3 2.4-0.3 1.4 0.8 1.8 0.3 0.5 0.4 1.1 0 1-0.1 1.9 1.1 1.9 0.9 0.9 1.3 2.4 0.3 2.7-0.6 2.4-3.3 4.1-1.4 4.8 1 3.5 1 1.4 0.6 0.2 1 0.9 0.6 1.4 0.3 1.6-2.3 1.7-5.8 2.2-5.9 3.6-3.1 0.9-8.1-0.3-2.3-0.6-1.7-0.2-4.6 0.7-2.7 1.3-0.3 1.7 0 1.8-1.3 2-1.9 0.9-5.5 0.2-0.2-2.8-0.5-2.7-2.6-3.8 2.3-6.4 1.4 0.3 1.6 0.5 0.9-1.6 0.6-2.4 0.3-2.2-0.8-2-2.9-3.5-1.2-4.8 1-4.3 2.4-3.3 2-3.9-1.5-2.9-3.9 1.7-1.6 0.5-10.9 5.9 0.8-1.9 0.4-2.1-1-4.6 0.2-1.6 0.6-1.6 0.2-3 0.7-1.2 2.4-0.8 3.3 0.2 0.7-0.3 0.4-1 0.4-1.2 2.2-0.8 2.3 0 2.2-1.6 1.3-2.7 0.8-0.7 2.2 0.4 1.3 0.1 2.4-1.1 1.8-2.3z"
+				id="TR12"
+				name="Bingöl"
+				fill={getPathFill('TR12')}
+				class="cursor-pointer transition-all duration-200 hover:opacity-80"
+				onclick={() => handlePathClick('TR12')}
+				onmouseenter={() => handlePathHover('TR12')}
+				onmouseleave={() => handlePathHover(null)}
+			></path>
+			<path
+				d="M570.6 317.3l-2.2 2.5-1.8 2.8-2.6 5.1-3.3 4.2-1.8 1.7-1.1 2.2-2.4 0.3-2.4-0.1-1.8-1.1-1.6-1.7-2.1-0.7-2.3 0.6-1.9 0-2-0.6-2.1 0.4 1.4-3.6 0.7-3.1-0.6-3.4-0.4-0.8-1.3-1.1-3.1-0.6-1 0.1-1.4-4.4 0-4.6 3.1-7.7 2.7-6.2 2.2-3.7 4.5-0.3 3.6 0 0 4.7-1.1 1.8-1.3 1.4-0.4 1.8 0.6 1.7 0.6 0.7 0.5 0.7 0.3 4 1.9 2.4 0.5-0.1 0.3-0.6 0.5-0.2 0.5-0.2 0.6-0.3 0.8 0.9 1.6-0.3 1.8-0.6 1.3-0.3 3.9-0.8 1.8 0.5 1.6 1.1 2.6 2.4 2.1 3.1z"
+				id="TR80"
+				name="Osmaniye"
+				fill={getPathFill('TR80')}
+				class="cursor-pointer transition-all duration-200 hover:opacity-80"
+				onclick={() => handlePathClick('TR80')}
+				onmouseenter={() => handlePathHover('TR80')}
+				onmouseleave={() => handlePathHover(null)}
+			></path>
+			<path
+				d="M687.8 271l-1.9 1.3-2.9 0.9-0.8 0.4-0.6 0.7-0.2 0.9-0.2 2-0.5 0.9-0.6 0.4-2.3 0.8 0.4 0.9 0.1 0.7-0.3 0.8-0.6 0.9 0.3 0.3 0.1 0.4-0.1 0.5-0.3 0.5-0.3-0.1-0.9-0.3-0.4 0-0.7 0.2-0.7 0.5-0.5 0.8-0.4 0.9 0.7-0.2 1.3-0.9 0.6-0.1 0.5 0.5-0.1 1.5 0.6 0.9-0.9 0.2-1.1 0.1-1 0.2-0.6 0.7 0.4 0.3 1.2 1.3-0.3 0.3-0.4 0.2-0.4 0-0.8-0.6-0.4 0.3-0.2 0.5-0.2 0.2-0.2 0.1-0.3 0.1-0.3 0.1-0.4 0.1-0.2-0.1-0.6-0.6-0.1-0.2-1 0.6 0.9 1 2.3 1.8-10.5 1.6-2.3 2.4-0.5 0.3-0.6 1-2.8 3.1-1 0.6-5.8 1-1.5-0.6-2.8 1-0.5 0-0.3 1.4-0.7 0.3-2.1-0.3-0.4 0.3-0.1 0.8 0.1 0.7-0.2 0.3-0.2 0.1-0.1 0.1-0.1 0.1-0.2 0.1-0.2-0.1-0.1-0.5-0.2-0.2-2.1-0.5-0.9-0.4-0.6-0.8-1.4 1-0.5 0-0.7-0.5-3.7-3.3-5.6-2.1-5.2-0.1-5.2 1.1-5.2-3.2-2.8-1-1.7-2.8 0.1-3.5 1.8-2.4 2.7-2.3 2.3-2.9 6.7-1.3 4.2-1.7 4.4-0.6 2 0.6 2 0.3 1.7-0.6 1.7-0.8 4-1 2.9-2.6 0.1-3.2 1.2-2.3 3.7-2.1 3-4.5 3.5-3.9 3.3-0.1 2.8-0.8 2.8 0.6 0.2 1.9-1.8 1.8-1 0.6 0.3 1.3 0.8 0.4 0.8 0.5 2.8 0.8 3.3 0 3.3 0.4 3.5-0.7 1.4 0 1.3-0.3 1.9-0.9 2-0.5 2.6-1.2 2.1-2.5 1.3 0.8 3.8-1.6 1.5 1.6 0.2 1.6-0.4 1.3-1.1 2.5 0.4 0.8-0.4 0.8-1.7 1.2z"
+				id="TR02"
+				name="Adiyaman"
+				fill={getPathFill('TR02')}
+				class="cursor-pointer transition-all duration-200 hover:opacity-80"
+				onclick={() => handlePathClick('TR02')}
+				onmouseenter={() => handlePathHover('TR02')}
+				onmouseleave={() => handlePathHover(null)}
+			></path>
+			<path
+				d="M777.3 287.7l-3 1.5-16.6-0.5-5.2 1.1-0.6 1.4-2.3 3-3.8 0.3-5.2 4.1-2.4 0.9-5.2 3.6-2.1 2-4.6 6-2.2-2.5-1.6-3.1-1.7-4.9-0.2-0.9-0.4-1.7-0.7-4.5 0.3-6.5-0.7-1.5-0.9-0.2-0.8-0.5-1.2-1.1-1.4-0.6-0.4 0.8-0.5 0.7-2.3-1-1.8-1.7-1.6-0.5-1.5-0.8-3.1-2.6-2.8-3-2.6-1.2-2.9-0.1-3.8-0.7-3.7-2 1.7-1.2 0.4-0.8-0.4-0.8 1.1-2.5 0.4-1.3-0.2-1.6-1.5-1.6-3.8 1.6-1.3-0.8 1.6-5.6-0.1-1.4-0.6-1.3-0.9-0.9 6.6-1.1 3.9 1 4 0.3 2-0.8 3.7-0.5 1.3-0.8 3.6-0.3 3.7 0.2 1.6-0.6 1.4-0.9 1.2-1.9 1.1-1.9 0.7-2 2.2-0.4 1 0.5 1.7 1.3 0.8 0.3 15.9-0.5 5.5-0.2 1.9-0.9 1.3-2 0-1.8 0.3-1.7 2.7-1.3 4.6-0.7 1.7 0.2 2.3 0.6 8.1 0.3 3.1-0.9 5.9-3.6 5.8-2.2 2.3-1.7 2.4 3.2 3.2 2.3 0.6 2.4-0.6 2.5 0.6 1.6 1.4 0.5 0.3 2-1.8 1-1.5 0.2-1.5 0.5-2.5 1.2-1.1 1.5-0.4 2.2-1 3.3-0.5 3.5 0.6 6.6-0.4 3.4-0.7 1.4-0.9 1.3-2.2 7.3-1.9 2.2-2.3 1.6-0.5 1.4 0.5 1.7 0.4 2.3 1 1.8z"
+				id="TR21"
+				name="Diyarbakir"
+				fill={getPathFill('TR21')}
+				class="cursor-pointer transition-all duration-200 hover:opacity-80"
+				onclick={() => handlePathClick('TR21')}
+				onmouseenter={() => handlePathHover('TR21')}
+				onmouseleave={() => handlePathHover(null)}
+			></path>
+			<path
+				d="M812.6 290.8l-8.8 6.3-5.3 3.9-7.3 1.5-5.1-3.2-3.3-6.9-3.4-4.3-0.9-0.4-1.2 0-1-1.8-0.4-2.3-0.5-1.7 0.5-1.4 2.3-1.6 1.9-2.2 2.2-7.3 0.9-1.3 0.7-1.4 0.4-3.4-0.6-6.6 0.5-3.5 1-3.3 0.4-2.2 1.1-1.5 2.5-1.2 1.5-0.5 1.5-0.2 1.8-1-0.3-2 2.6-0.9 2.7-0.3 4 1.5 1.7 8.2 1.1 3.3 0.2 2.2 0 2.2-0.2 1.4 0.1 1.3-2.1 2.6-1 3.2-2.4 2.7-5.5 1.5-1.5 2.8 0.4 4 5.1 4.7 8.6 3.5 5.1 5.6z"
+				id="TR72"
+				name="Batman"
+				fill={getPathFill('TR72')}
+				class="cursor-pointer transition-all duration-200 hover:opacity-80"
+				onclick={() => handlePathClick('TR72')}
+				onmouseenter={() => handlePathHover('TR72')}
+				onmouseleave={() => handlePathHover(null)}
+			></path>
+			<path
+				d="M869.8 289.7l-0.5 3.4-2.9 3-8.1-0.8-10-1.4-9.6-2.5-6.3-0.3-3.7 3.7-9.4-0.7-6.7-3.3-5.1-5.6-8.6-3.5-5.1-4.7-0.4-4 1.5-2.8 5.5-1.5 2.4-2.7 1-3.2 2.1-2.6 4.9 1.9 5.1 0.4 4.1-1 4.1-1.6 3.2 1.5 2.8 2.8 3.1 2.4 3.4 1.4 3.3 0.8 2.1 0.9 3 2.2 4.8 2.7 3.2 2.4 1.8-0.2 1.4-2.1 0.2-2.8-0.2-1.9 0-1.8 0.5-0.8 0.6-0.7 1.3-4 3.7-0.3 3.8 0.7 3.4 1.3 0.5 4.3-0.2 2.5 0.3 2.4-0.2 2.6-0.6 2.4-0.2 3.5-0.7 1.5-0.5 1.6 1.9 4.5z"
+				id="TR56"
+				name="Siirt"
+				fill={getPathFill('TR56')}
+				class="cursor-pointer transition-all duration-200 hover:opacity-80"
+				onclick={() => handlePathClick('TR56')}
+				onmouseenter={() => handlePathHover('TR56')}
+				onmouseleave={() => handlePathHover(null)}
+			></path>
+			<path
+				d="M718.4 116.5l1-0.1 0.7-0.8-0.3-1.5 0.6-0.6 0.3-0.2 1.5 0.5 2.9 3.3 1.9 1.1 4.1 0.1 3.9 1.3 2.1 0 2.3-0.8 2.4-0.4 4.9 0 1.9-0.6 0.9-0.2 1.5 3.8 1.4 8.5 1.2 3.8 2.9 1.7 3.1 0.7 1.4 0.6 3.1 0.3 0.2 1.2-1.2 2.2-1.3 1.7-5.9 2.1-2.7 1.3-2 2-2.1 1.6-1.7 0.3-7.8-1-7.7-1.5-2.3 0.8-1.9 1.8-2.4 0.3-2.7-0.3-2.5 1-1.8-3.9-1-4.2 0.2-2 0.6-2 1.5-3.6 0.4-9.1-1.6-9.2z"
+				id="TR69"
+				name="Bayburt"
+				fill={getPathFill('TR69')}
+				class="cursor-pointer transition-all duration-200 hover:opacity-80"
+				onclick={() => handlePathClick('TR69')}
+				onmouseenter={() => handlePathHover('TR69')}
+				onmouseleave={() => handlePathHover(null)}
+			></path>
+			<path
+				d="M685.6 103.3l0.9 0.7 1 0.1 1-0.9 0.8-1.1 2 1.2 0.7 3.7 3.2 3.3 11.1 4.5 2.8 0.3 1-0.2 0.7-0.8 0.6-2.6 1.4-1.1 3.3 2.2 2.3 3.9 1.6 9.2-0.4 9.1-1.5 3.6-0.6 2-0.2 2 1 4.2 1.8 3.9-1.8 2.7-2.1 2.2-5.3 1.3-2.6 1.3-2.7 0.2-2.8-0.2-2.8 0.3-2.9-0.3-2.8-1.4-2.9-0.9-0.8-0.8-0.7-1.1-1.8-1.1-1.8-0.7-5.2-3.1-1.4-0.3-1.4-0.3-1.4-0.6-1.3-0.8 0.4-2-1.3-1.7-0.4-2.2 0.2-2.2-0.2-2.1 0.1-2.1 1-1.3 4.8-2.6 1.4-1.2 0.3-2.3-1.1-0.3-1.3-1.3-1.3-1.1-5.6-1.4-1.3-1.6-0.1-2.2 0.3-2.8 0.1-0.5 0.5-0.7 1.4-1.5 0.9-1.7-0.6-1.9 0.6-1.6 1.5-1 1.4-1.2 1.2-0.3 0.9-0.5 0.2-0.9 0.3-0.7 5.7-0.7z"
+				id="TR29"
+				name="Gümüshane"
+				fill={getPathFill('TR29')}
+				class="cursor-pointer transition-all duration-200 hover:opacity-80"
+				onclick={() => handlePathClick('TR29')}
+				onmouseenter={() => handlePathHover('TR29')}
+				onmouseleave={() => handlePathHover(null)}
+			></path>
+		</g>
+		<g id="points">
+			<circle class="36.13372868983344|26.620445987274163" cx="90.9" cy="384.7" id="0"> </circle>
+			<circle class="38.645329944972325|36.192312755397474" cx="545.5" cy="234.5" id="1"> </circle>
+			<circle class="41.78483151389593|43.84980616989612" cx="909.1" cy="39.2" id="2"> </circle>
+		</g>
+		<g id="label_points">
+			<circle class="Ardahan" cx="859.9" cy="77.1" id="TR75"> </circle>
+			<circle class="Artvin" cx="807.8" cy="83.6" id="TR08"> </circle>
+			<circle class="Sirnak" cx="843.9" cy="306.9" id="TR73"> </circle>
+			<circle class="Hakkari" cx="925.7" cy="298.3" id="TR30"> </circle>
+			<circle class="Iğdir" cx="915.7" cy="161.9" id="TR76"> </circle>
+			<circle class="Agri" cx="869.6" cy="173.1" id="TR04"> </circle>
+			<circle class="Van" cx="900.1" cy="246.9" id="TR65"> </circle>
+			<circle class="Kirklareli" cx="126.1" cy="47.6" id="TR39"> </circle>
+			<circle class="Edirne" cx="87.9" cy="81.4" id="TR22"> </circle>
+			<circle class="Kars" cx="875.3" cy="126.2" id="TR36"> </circle>
+			<circle class="Mardin" cx="770.8" cy="307.9" id="TR47"> </circle>
+			<circle class="Sanliurfa" cx="688.5" cy="321" id="TR63"> </circle>
+			<circle class="Kilis" cx="586.2" cy="344.3" id="TR79"> </circle>
+			<circle class="Gaziantep" cx="604.7" cy="330" id="TR27"> </circle>
+			<circle class="Hatay" cx="546" cy="370.8" id="TR31"> </circle>
+			<circle class="Istanbul" cx="176.3" cy="73.8" id="TR34"> </circle>
+			<circle class="Tekirdag" cx="115.5" cy="87.1" id="TR59"> </circle>
+			<circle class="Çanakkale" cx="100.3" cy="147.9" id="TR17"> </circle>
+			<circle class="Rize" cx="768.1" cy="92.4" id="TR53"> </circle>
+			<circle class="Trabzon" cx="716.4" cy="101" id="TR61"> </circle>
+			<circle class="Giresun" cx="656.3" cy="115.1" id="TR28"> </circle>
+			<circle class="Ordu" cx="609.4" cy="101.2" id="TR52"> </circle>
+			<circle class="Samsun" cx="529.3" cy="74" id="TR55"> </circle>
+			<circle class="Sinop" cx="483.6" cy="48.4" id="TR57"> </circle>
+			<circle class="Kastamonu" cx="421" cy="56.5" id="TR37"> </circle>
+			<circle class="Bartın" cx="369.3" cy="53.1" id="TR74"> </circle>
+			<circle class="Zinguldak" cx="343.3" cy="71.5" id="TR67"> </circle>
+			<circle class="Düzce" cx="311.3" cy="95.8" id="TR81"> </circle>
+			<circle class="Sakarya" cx="274.8" cy="107.5" id="TR54"> </circle>
+			<circle class="Kocaeli" cx="254.3" cy="93.2" id="TR41"> </circle>
+			<circle class="Yalova" cx="215.4" cy="114.7" id="TR77"> </circle>
+			<circle class="Bursa" cx="205.6" cy="151.1" id="TR16"> </circle>
+			<circle class="Balikesir" cx="151.2" cy="166.5" id="TR10"> </circle>
+			<circle class="Izmir" cx="127.6" cy="259" id="TR35"> </circle>
+			<circle class="Aydin" cx="157" cy="289.6" id="TR09"> </circle>
+			<circle class="Mugla" cx="184.9" cy="328.4" id="TR48"> </circle>
+			<circle class="Antalya" cx="260.9" cy="341.5" id="TR07"> </circle>
+			<circle class="Mersin" cx="432.7" cy="353.6" id="TR33"> </circle>
+			<circle class="Adana" cx="511.6" cy="315.2" id="TR01"> </circle>
+			<circle class="Bolu" cx="331.9" cy="112.6" id="TR14"> </circle>
+			<circle class="Ankara" cx="374.2" cy="163.1" id="TR06"> </circle>
+			<circle class="Bilecik" cx="254.6" cy="145.8" id="TR11"> </circle>
+			<circle class="Eskisehir" cx="302.9" cy="174.3" id="TR26"> </circle>
+			<circle class="Çankiri" cx="422" cy="108.9" id="TR18"> </circle>
+			<circle class="Karabük" cx="378.4" cy="77.9" id="TR78"> </circle>
+			<circle class="Tokat" cx="568.3" cy="122.1" id="TR60"> </circle>
+			<circle class="Sivas" cx="600.3" cy="177.5" id="TR58"> </circle>
+			<circle class="Çorum" cx="471.6" cy="120.2" id="TR19"> </circle>
+			<circle class="Amasya" cx="520.5" cy="110" id="TR05"> </circle>
+			<circle class="Kütahya" cx="231.8" cy="194.5" id="TR43"> </circle>
+			<circle class="Konya" cx="368.1" cy="267.4" id="TR42"> </circle>
+			<circle class="Karaman" cx="398.4" cy="323.7" id="TR70"> </circle>
+			<circle class="Nigde" cx="472.6" cy="272.5" id="TR51"> </circle>
+			<circle class="Kayseri" cx="519.8" cy="237.9" id="TR38"> </circle>
+			<circle class="Isparta" cx="299.1" cy="277.4" id="TR32"> </circle>
+			<circle class="Manisa" cx="175.1" cy="230.6" id="TR45"> </circle>
+			<circle class="Denizli" cx="216.6" cy="283.6" id="TR20"> </circle>
+			<circle class="Burdur" cx="247.3" cy="305" id="TR15"> </circle>
+			<circle class="Aksaray" cx="434.1" cy="252.8" id="TR68"> </circle>
+			<circle class="Nevsehir" cx="473.8" cy="226.7" id="TR50"> </circle>
+			<circle class="Yozgat" cx="504.6" cy="176.7" id="TR66"> </circle>
+			<circle class="Kirsehir" cx="448.9" cy="192.6" id="TR40"> </circle>
+			<circle class="Usak" cx="223.2" cy="242.7" id="TR64"> </circle>
+			<circle class="Erzincan" cx="675.3" cy="168.3" id="TR24"> </circle>
+			<circle class="Tunceli" cx="704.7" cy="204" id="TR62"> </circle>
+			<circle class="Afyonkarahisar" cx="277.4" cy="233.6" id="TR03"> </circle>
+			<circle class="Kinkkale" cx="424.4" cy="166.1" id="TR71"> </circle>
+			<circle class="K. Maras" cx="580.1" cy="277.2" id="TR46"> </circle>
+			<circle class="Mus" cx="808.6" cy="219.4" id="TR49"> </circle>
+			<circle class="Erzurum" cx="799.5" cy="154" id="TR25"> </circle>
+			<circle class="Malatya" cx="630.1" cy="234.9" id="TR44"> </circle>
+			<circle class="Elazig" cx="686.5" cy="236.8" id="TR23"> </circle>
+			<circle class="Bitlis" cx="837.3" cy="242.3" id="TR13"> </circle>
+			<circle class="Bingöl" cx="763.2" cy="210.5" id="TR12"> </circle>
+			<circle class="Osmaniye" cx="550.1" cy="322.8" id="TR80"> </circle>
+			<circle class="Adiyaman" cx="654.1" cy="282.2" id="TR02"> </circle>
+			<circle class="Diyarbakir" cx="737.1" cy="269.4" id="TR21"> </circle>
+			<circle class="Batman" cx="794.5" cy="257.1" id="TR72"> </circle>
+			<circle class="Siirt" cx="822.5" cy="277.5" id="TR56"> </circle>
+			<circle class="Bayburt" cx="736.9" cy="133.7" id="TR69"> </circle>
+			<circle class="Gümüshane" cx="698.7" cy="135" id="TR29"> </circle>
+		</g>
+	</svg>
 
+	<Dialog.Root bind:open={showUsersDialog}>
+		<Dialog.Content class="w-15/16  sm:w-1/2 md:w-2/7 ">
+			<Dialog.Header>
+				<Dialog.Title>{selectedCity} - {t('profile.usersInCity') || 'Üyeler'}</Dialog.Title>
+			</Dialog.Header>
+
+			<ScrollArea class="max-h-[60vh]">
+				{#if loadingUsers}
+					<div class="flex items-center justify-center p-8">
+						<Loader2 class="h-8 w-8 animate-spin text-primary" />
+					</div>
+				{:else if usersInCity.length > 0}
+					<ul class="space-y-3">
+						{#each usersInCity as user (user.id)}
+							<li
+								class="flex items-center justify-between gap-3 rounded-lg border p-3 transition-colors hover:bg-muted/50"
+							>
+								<a href={`/${user.username}`} class="flex items-center gap-3 flex-1 min-w-0">
+									<Avatar class="h-10 w-10 flex-shrink-0">
+										{#if user.avatar}
+											<AvatarImage src={user.avatar} alt={user.username} class="object-cover" />
+										{/if}
+										<AvatarFallback>
+											{(user.username?.[0] ?? '?').toUpperCase()}
+										</AvatarFallback>
+									</Avatar>
+									<div class="flex flex-col text-sm truncate">
+										<span class="font-semibold text-foreground truncate">
+											{user.name && user.surname
+												? `${user.name} ${user.surname}`
+												: user.name || user.username}
+										</span>
+										<span class="text-muted-foreground truncate">@{user.username}</span>
+									</div>
+								</a>
+
+								{#if currentUserId && user.id !== currentUserId}
+									{#if user.isFollowing}
+										<Button
+											size="icon"
+											variant="outline"
+											onclick={() => handleUnfollowUser(user.id)}
+											class="h-8 w-8"
+										>
+											<UserMinus class="h-4 w-4" />
+										</Button>
+									{:else}
+										<Button size="icon" onclick={() => handleFollowUser(user.id)} class="h-8 w-8">
+											<UserPlus class="h-4 w-4" />
+										</Button>
+									{/if}
+								{:else if !currentUserId}
+									<Button size="sm" variant="ghost" href={`/${user.username}`}>
+										{t('common.view') || 'Görüntüle'}
+									</Button>
+								{/if}
+							</li>
+						{/each}
+					</ul>
+				{:else}
+					<div
+						class="flex flex-col items-center justify-center p-8 text-center text-muted-foreground"
+					>
+						<Users class="h-12 w-12 mb-2 opacity-20" />
+						<p class="text-sm">
+							{t('profile.noUsersInCity') || 'Bu şehirde henüz üye bulunmuyor.'}
+						</p>
+					</div>
+				{/if}
+			</ScrollArea>
+		</Dialog.Content>
+	</Dialog.Root>
 </div>

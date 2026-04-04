@@ -2,7 +2,7 @@
   import { cn } from "$lib/utils";
   import { Badge } from "$lib/components/ui/badge";
   import { Calendar, Clock, User, Sparkles, Eye, MessageCircle, ThumbsUp, ThumbsDown } from "@lucide/svelte";
-  import { t, getCurrentLocale } from '$lib/stores/i18n.svelte.ts';
+  import { t, getCurrentLocale } from '$lib/stores/i18n.svelte';
   import A from "$lib/components/ui/a.svelte";
   import MagicCard from '$lib/components/magic/magic-card/magic-card.svelte';
   import * as Tooltip from "$lib/components/ui/tooltip";
@@ -66,7 +66,10 @@
   };
 
   const getCollaboratorDisplayName = (collaborator: any) => {
-    return collaborator.name || collaborator.nickname || 'Unknown User';
+    if (collaborator.name || collaborator.surname) {
+      return [collaborator.name, collaborator.surname].filter(Boolean).join(' ').trim();
+    }
+    return collaborator.nickname || 'Unknown User';
   };
 
   const getCollaboratorIdentifier = (collaborator: any) => {
@@ -85,14 +88,34 @@
   const getAuthorDisplayName = (article: Article) => {
     const name = article.author?.name;
     const surname = article.author?.surname;
-    if (name && surname) {
-      return `${name} ${surname}`;
+    if (name || surname) {
+      return [name, surname].filter(Boolean).join(' ').trim();
     }
     return article.author?.nickname || article.author_nickname || 'Unknown User';
   };
 
-  // Limit to 3 articles
-  const recommendedArticles = $derived(articles.slice(0, 3));
+  // Limit to 3 articles and apply translations based on current locale
+  const recommendedArticles = $derived(
+    articles.slice(0, 3).map((article: any) => {
+      const translations = article.translations || {};
+      const translationKeys = Object.keys(translations);
+      const currentLocale = getCurrentLocale();
+      const fallbackKey = translationKeys[0] || article.language || article.defaultLanguage || article.default_language || 'tr';
+      const displayLanguage = currentLocale && translations[currentLocale]
+        ? currentLocale
+        : fallbackKey;
+
+      const translation = translations[displayLanguage] || translations[fallbackKey] || {};
+
+      return {
+        ...article,
+        title: translation.title || article.title || 'Başlıksız',
+        excerpt: translation.excerpt || article.excerpt || '',
+        slug: translation.slug || article.slug,
+        language: displayLanguage,
+      };
+    })
+  );
 </script>
 
 <div class={cn("w-full", className)} {...restProps}>
@@ -128,7 +151,7 @@
                 />
                 <div class="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent"></div>
                 <Badge class="absolute top-4 left-4 bg-primary/90 text-primary-foreground">
-                  {t(`categories.${article.category}`)}
+                  {t(`${article.category}`)}
                 </Badge>
               </div>
             {/if}
@@ -139,7 +162,7 @@
               <div class="flex items-center gap-3 text-xs text-muted-foreground">
                 {#if !article.coverImage}
                   <Badge variant="secondary" class="text-xs">
-                    {t(`categories.${article.category}`)}
+                    {t(`${article.category}`)}
                   </Badge>
                 {/if}
                 <div class="flex items-center gap-1">
