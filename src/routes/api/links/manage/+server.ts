@@ -5,8 +5,6 @@ import { extname, resolve } from 'path';
 import { env } from '$env/dynamic/private';
 import type { RequestHandler } from './$types';
 
-const UPLOAD_BASE_DIR = env.UPLOAD_DIR || 'static/uploads';
-
 // GET /api/links/manage - List all links (admin/moderator only)
 export const GET: RequestHandler = async ({ locals, url }) => {
     const user = (locals as any)?.user;
@@ -35,6 +33,7 @@ export const GET: RequestHandler = async ({ locals, url }) => {
 
 // POST /api/links/manage - Create link with icon upload (admin/moderator only)
 export const POST: RequestHandler = async ({ request, locals }) => {
+    const UPLOAD_BASE_DIR = env.UPLOAD_DIR || 'uploads';
     const user = (locals as any)?.user;
     
     if (!user) {
@@ -112,6 +111,7 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 
 // PUT /api/links/manage - Update link with icon upload (admin/moderator only)
 export const PUT: RequestHandler = async ({ request, locals }) => {
+    const UPLOAD_BASE_DIR = env.UPLOAD_DIR || 'uploads';
     const user = (locals as any)?.user;
     
     if (!user) {

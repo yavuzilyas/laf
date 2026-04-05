@@ -203,7 +203,7 @@ function collectArticleMediaUrls(article: any): Set<string> {
     return urls;
 }
 
-async function cleanupUnusedMedia(existing: any, updated: any, articleId: string) {
+async function cleanupUnusedMedia(existing: any, updated: any, articleId: string, UPLOAD_BASE_DIR: string) {
     if (!existing) return;
 
     const previousUrls = collectArticleMediaUrls(existing);
@@ -211,7 +211,7 @@ async function cleanupUnusedMedia(existing: any, updated: any, articleId: string
 
     if (!previousUrls.size) return;
 
-    const baseUploadsDir = resolve(env.UPLOAD_DIR || 'uploads');
+    const baseUploadsDir = resolve(UPLOAD_BASE_DIR);
     const allowedPrefix = `/uploads/articles/${articleId}/`;
 
     const toDelete: string[] = [];
@@ -516,7 +516,7 @@ async function cleanupUnusedMedia(existing: any, updated: any, articleId: string
             // Taslağı temizle
             await deleteDraft(articleId);
 
-            await cleanupUnusedMedia(existingArticle, articleData, articleId);
+            await cleanupUnusedMedia(existingArticle, articleData, articleId, env.UPLOAD_DIR || 'uploads');
             
             // Get collaborators list
             const collaborators = articleData.collaborators || [];
