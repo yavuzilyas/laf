@@ -549,6 +549,7 @@
     "view": "Görüntüle",
     "remove": "Kaldır",
     "cancel": "İptal",
+    "save": "Kaydet",
     "close": "Kapat",
     "generate": "Oluştur",
     "apply": "Uygula",
@@ -1001,6 +1002,18 @@
         "edit": "Bağlantıyı Düzenle",
         "url": "URL",
         "openInNewTab": "Yeni sekmede aç"
+      },
+      "upload": {
+        "tooltip": "Dosya Yükle",
+        "title": "Dosya Yükle",
+        "description": "Dosya türü seçin ve yükleyin",
+        "image": "Resim",
+        "audio": "Ses",
+        "video": "Video",
+        "selectFile": "Dosya seç",
+        "selected": "Seçildi",
+        "uploading": "Yükleniyor...",
+        "upload": "Yükle"
       },
       "textFormatting": {
         "bold": "Kalın",

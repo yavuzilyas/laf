@@ -76,6 +76,10 @@
       "other": "Other"
     }
   },
+  "common": {
+    "cancel": "Cancel",
+    "save": "Save"
+  },
   "ThePage": "page.",
   "Articles": "Articles",
   "Lexicon": "Lexicon",
@@ -942,6 +946,18 @@
         "edit": "Edit Link",
         "url": "URL",
         "openInNewTab": "Open in new tab"
+      },
+      "upload": {
+        "tooltip": "Upload File",
+        "title": "Upload File",
+        "description": "Select a file type and upload",
+        "image": "Image",
+        "audio": "Audio",
+        "video": "Video",
+        "selectFile": "Select file",
+        "selected": "Selected",
+        "uploading": "Uploading...",
+        "upload": "Upload"
       },
       "textFormatting": {
         "bold": "Kalın",

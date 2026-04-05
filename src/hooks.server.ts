@@ -54,14 +54,15 @@ export const handle: Handle = async ({ event, resolve }) => {
 	const pathParts = url.pathname.split('/').filter(Boolean);
 	const firstSegment = pathParts[0];
 	
-	// Skip API routes and static files
+	// Skip API routes, static files, and uploads
 	const isApiRoute = url.pathname.startsWith('/api/');
 	const isStaticFile = url.pathname.includes('.') && !url.pathname.endsWith('.html');
+	const isUploadRoute = url.pathname.startsWith('/uploads/');
 	
 	// If no lang prefix and not API/static, redirect to locale-prefixed URL
 	// Skip POST requests (login/register form submissions)
 	const isPostRequest = event.request.method === 'POST';
-	if (!isApiRoute && !isStaticFile && !isPostRequest && firstSegment && !SUPPORTED_LOCALES.includes(firstSegment)) {
+	if (!isApiRoute && !isStaticFile && !isUploadRoute && !isPostRequest && firstSegment && !SUPPORTED_LOCALES.includes(firstSegment)) {
 		const locale = getLocaleFromRequest(event);
 		const newUrl = `/${locale}${url.pathname}${url.search}`;
 		throw redirect(302, newUrl);

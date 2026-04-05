@@ -437,23 +437,44 @@
 	// Get fill color for path based on selection, hover, events and user counts
 	function getPathFill(pathId: string): string {
 		const plate = getPlateFromPathId(pathId);
-		if (!plate) return 'var(--muted)';
+		if (!plate) return 'var(--muted-foreground)';
 		const city = cityByPlate[plate];
-		if (!city) return 'var(--muted)';
+		if (!city) return 'var(--muted-foreground)';
 
-		// Priority 1: Selection
-		if (selectedCity === city.name) return 'var(--foreground)'; // Foreground color for selected
-		if (hoveredCity === city.name) return 'var(--muted-foreground)'; // Muted foreground for hover
-
-		// Priority 2: Future Event (Requirement: Full Primary)
+		// Priority 1: Future Event (Requirement: Full Primary)
 		const normName = normalizeCityName(city.name);
 		if (normName && normalizedEventStatus[normName] === 'future') return 'var(--primary)'; // Pure Primary for future events
 
-		// Priority 3: Hover
+		// Priority 2: Hover
 		if (hoveredCity === city.name) return 'color-mix(in srgb, var(--primary), var(--foreground) 20%)'; // Lighter primary for hover
 
-		// Default: Dynamic User Density color
+		// Default: Dynamic User Density color (includes selected city - keeps its color)
 		return getCityColor(city.name);
+	}
+
+	// Get stroke color for path - highlight selected city with outline
+	function getPathStroke(pathId: string): string {
+		const plate = getPlateFromPathId(pathId);
+		if (!plate) return 'var(--border)';
+		const city = cityByPlate[plate];
+		if (!city) return 'var(--border)';
+
+		// Selected city gets a prominent secondary color outline
+		if (selectedCity === city.name) return 'var(--foreground)';
+
+		return 'var(--border)';
+	}
+
+	// Get stroke width for path - thicker for selected city
+	function getPathStrokeWidth(pathId: string): string {
+		const plate = getPlateFromPathId(pathId);
+		if (!plate) return '0.5';
+		const city = cityByPlate[plate];
+		if (!city) return '0.5';
+
+		if (selectedCity === city.name) return '4';
+
+		return '0.5';
 	}
 </script>
 
@@ -498,6 +519,8 @@
 				tabindex="0"
 				aria-label="Ardahan"
 				fill={getPathFill('TR75')}
+				stroke={getPathStroke('TR75')}
+				stroke-width={getPathStrokeWidth('TR75')}
 				class="cursor-pointer transition-all duration-200 hover:opacity-80 focus:outline-none focus:ring-1 focus:ring-primary"
 				onclick={() => handlePathClick('TR75')}
 				onkeydown={(e) => e.key === 'Enter' && handlePathClick('TR75')}
@@ -509,6 +532,8 @@
 				id="TR08"
 				name="Artvin"
 				fill={getPathFill('TR08')}
+				stroke={getPathStroke('TR08')}
+				stroke-width={getPathStrokeWidth('TR08')}
 				class="cursor-pointer transition-all duration-200 hover:opacity-80"
 				onclick={() => handlePathClick('TR08')}
 				onmouseenter={() => handlePathHover('TR08')}
@@ -519,6 +544,8 @@
 				id="TR73"
 				name="Sirnak"
 				fill={getPathFill('TR73')}
+				stroke={getPathStroke('TR73')}
+				stroke-width={getPathStrokeWidth('TR73')}
 				class="cursor-pointer transition-all duration-200 hover:opacity-80"
 				onclick={() => handlePathClick('TR73')}
 				onmouseenter={() => handlePathHover('TR73')}
@@ -529,6 +556,8 @@
 				id="TR30"
 				name="Hakkari"
 				fill={getPathFill('TR30')}
+				stroke={getPathStroke('TR30')}
+				stroke-width={getPathStrokeWidth('TR30')}
 				class="cursor-pointer transition-all duration-200 hover:opacity-80"
 				onclick={() => handlePathClick('TR30')}
 				onmouseenter={() => handlePathHover('TR30')}
@@ -539,6 +568,8 @@
 				id="TR76"
 				name="Iğdir"
 				fill={getPathFill('TR76')}
+				stroke={getPathStroke('TR76')}
+				stroke-width={getPathStrokeWidth('TR76')}
 				class="cursor-pointer transition-all duration-200 hover:opacity-80"
 				onclick={() => handlePathClick('TR76')}
 				onmouseenter={() => handlePathHover('TR76')}
@@ -549,6 +580,8 @@
 				id="TR04"
 				name="Agri"
 				fill={getPathFill('TR04')}
+				stroke={getPathStroke('TR04')}
+				stroke-width={getPathStrokeWidth('TR04')}
 				class="cursor-pointer transition-all duration-200 hover:opacity-80"
 				onclick={() => handlePathClick('TR04')}
 				onmouseenter={() => handlePathHover('TR04')}
@@ -559,6 +592,8 @@
 				id="TR65"
 				name="Van"
 				fill={getPathFill('TR65')}
+				stroke={getPathStroke('TR65')}
+				stroke-width={getPathStrokeWidth('TR65')}
 				class="cursor-pointer transition-all duration-200 hover:opacity-80"
 				onclick={() => handlePathClick('TR65')}
 				onmouseenter={() => handlePathHover('TR65')}
@@ -569,6 +604,8 @@
 				id="TR39"
 				name="Kirklareli"
 				fill={getPathFill('TR39')}
+				stroke={getPathStroke('TR39')}
+				stroke-width={getPathStrokeWidth('TR39')}
 				class="cursor-pointer transition-all duration-200 hover:opacity-80"
 				onclick={() => handlePathClick('TR39')}
 				onmouseenter={() => handlePathHover('TR39')}
@@ -579,6 +616,8 @@
 				id="TR22"
 				name="Edirne"
 				fill={getPathFill('TR22')}
+				stroke={getPathStroke('TR22')}
+				stroke-width={getPathStrokeWidth('TR22')}
 				class="cursor-pointer transition-all duration-200 hover:opacity-80"
 				onclick={() => handlePathClick('TR22')}
 				onmouseenter={() => handlePathHover('TR22')}
@@ -589,6 +628,8 @@
 				id="TR36"
 				name="Kars"
 				fill={getPathFill('TR36')}
+				stroke={getPathStroke('TR36')}
+				stroke-width={getPathStrokeWidth('TR36')}
 				class="cursor-pointer transition-all duration-200 hover:opacity-80"
 				onclick={() => handlePathClick('TR36')}
 				onmouseenter={() => handlePathHover('TR36')}
@@ -599,6 +640,8 @@
 				id="TR47"
 				name="Mardin"
 				fill={getPathFill('TR47')}
+				stroke={getPathStroke('TR47')}
+				stroke-width={getPathStrokeWidth('TR47')}
 				class="cursor-pointer transition-all duration-200 hover:opacity-80"
 				onclick={() => handlePathClick('TR47')}
 				onmouseenter={() => handlePathHover('TR47')}
@@ -609,6 +652,8 @@
 				id="TR63"
 				name="Sanliurfa"
 				fill={getPathFill('TR63')}
+				stroke={getPathStroke('TR63')}
+				stroke-width={getPathStrokeWidth('TR63')}
 				class="cursor-pointer transition-all duration-200 hover:opacity-80"
 				onclick={() => handlePathClick('TR63')}
 				onmouseenter={() => handlePathHover('TR63')}
@@ -619,6 +664,8 @@
 				id="TR79"
 				name="Kilis"
 				fill={getPathFill('TR79')}
+				stroke={getPathStroke('TR79')}
+				stroke-width={getPathStrokeWidth('TR79')}
 				class="cursor-pointer transition-all duration-200 hover:opacity-80"
 				onclick={() => handlePathClick('TR79')}
 				onmouseenter={() => handlePathHover('TR79')}
@@ -629,6 +676,8 @@
 				id="TR27"
 				name="Gaziantep"
 				fill={getPathFill('TR27')}
+				stroke={getPathStroke('TR27')}
+				stroke-width={getPathStrokeWidth('TR27')}
 				class="cursor-pointer transition-all duration-200 hover:opacity-80"
 				onclick={() => handlePathClick('TR27')}
 				onmouseenter={() => handlePathHover('TR27')}
@@ -639,6 +688,8 @@
 				id="TR31"
 				name="Hatay"
 				fill={getPathFill('TR31')}
+				stroke={getPathStroke('TR31')}
+				stroke-width={getPathStrokeWidth('TR31')}
 				class="cursor-pointer transition-all duration-200 hover:opacity-80"
 				onclick={() => handlePathClick('TR31')}
 				onmouseenter={() => handlePathHover('TR31')}
@@ -649,6 +700,8 @@
 				id="TR34"
 				name="Istanbul"
 				fill={getPathFill('TR34')}
+				stroke={getPathStroke('TR34')}
+				stroke-width={getPathStrokeWidth('TR34')}
 				class="cursor-pointer transition-all duration-200 hover:opacity-80"
 				onclick={() => handlePathClick('TR34')}
 				onmouseenter={() => handlePathHover('TR34')}
@@ -659,6 +712,8 @@
 				id="TR59"
 				name="Tekirdag"
 				fill={getPathFill('TR59')}
+				stroke={getPathStroke('TR59')}
+				stroke-width={getPathStrokeWidth('TR59')}
 				class="cursor-pointer transition-all duration-200 hover:opacity-80"
 				onclick={() => handlePathClick('TR59')}
 				onmouseenter={() => handlePathHover('TR59')}
@@ -669,6 +724,8 @@
 				id="TR17"
 				name="Çanakkale"
 				fill={getPathFill('TR17')}
+				stroke={getPathStroke('TR17')}
+				stroke-width={getPathStrokeWidth('TR17')}
 				class="cursor-pointer transition-all duration-200 hover:opacity-80"
 				onclick={() => handlePathClick('TR17')}
 				onmouseenter={() => handlePathHover('TR17')}
@@ -679,6 +736,8 @@
 				id="TR53"
 				name="Rize"
 				fill={getPathFill('TR53')}
+				stroke={getPathStroke('TR53')}
+				stroke-width={getPathStrokeWidth('TR53')}
 				class="cursor-pointer transition-all duration-200 hover:opacity-80"
 				onclick={() => handlePathClick('TR53')}
 				onmouseenter={() => handlePathHover('TR53')}
@@ -689,6 +748,8 @@
 				id="TR61"
 				name="Trabzon"
 				fill={getPathFill('TR61')}
+				stroke={getPathStroke('TR61')}
+				stroke-width={getPathStrokeWidth('TR61')}
 				class="cursor-pointer transition-all duration-200 hover:opacity-80"
 				onclick={() => handlePathClick('TR61')}
 				onmouseenter={() => handlePathHover('TR61')}
@@ -699,6 +760,8 @@
 				id="TR28"
 				name="Giresun"
 				fill={getPathFill('TR28')}
+				stroke={getPathStroke('TR28')}
+				stroke-width={getPathStrokeWidth('TR28')}
 				class="cursor-pointer transition-all duration-200 hover:opacity-80"
 				onclick={() => handlePathClick('TR28')}
 				onmouseenter={() => handlePathHover('TR28')}
@@ -709,6 +772,8 @@
 				id="TR52"
 				name="Ordu"
 				fill={getPathFill('TR52')}
+				stroke={getPathStroke('TR52')}
+				stroke-width={getPathStrokeWidth('TR52')}
 				class="cursor-pointer transition-all duration-200 hover:opacity-80"
 				onclick={() => handlePathClick('TR52')}
 				onmouseenter={() => handlePathHover('TR52')}
@@ -719,6 +784,8 @@
 				id="TR55"
 				name="Samsun"
 				fill={getPathFill('TR55')}
+				stroke={getPathStroke('TR55')}
+				stroke-width={getPathStrokeWidth('TR55')}
 				class="cursor-pointer transition-all duration-200 hover:opacity-80"
 				onclick={() => handlePathClick('TR55')}
 				onmouseenter={() => handlePathHover('TR55')}
@@ -729,6 +796,8 @@
 				id="TR57"
 				name="Sinop"
 				fill={getPathFill('TR57')}
+				stroke={getPathStroke('TR57')}
+				stroke-width={getPathStrokeWidth('TR57')}
 				class="cursor-pointer transition-all duration-200 hover:opacity-80"
 				onclick={() => handlePathClick('TR57')}
 				onmouseenter={() => handlePathHover('TR57')}
@@ -739,6 +808,8 @@
 				id="TR37"
 				name="Kastamonu"
 				fill={getPathFill('TR37')}
+				stroke={getPathStroke('TR37')}
+				stroke-width={getPathStrokeWidth('TR37')}
 				class="cursor-pointer transition-all duration-200 hover:opacity-80"
 				onclick={() => handlePathClick('TR37')}
 				onmouseenter={() => handlePathHover('TR37')}
@@ -749,6 +820,8 @@
 				id="TR74"
 				name="Bartın"
 				fill={getPathFill('TR74')}
+				stroke={getPathStroke('TR74')}
+				stroke-width={getPathStrokeWidth('TR74')}
 				class="cursor-pointer transition-all duration-200 hover:opacity-80"
 				onclick={() => handlePathClick('TR74')}
 				onmouseenter={() => handlePathHover('TR74')}
@@ -759,6 +832,8 @@
 				id="TR67"
 				name="Zinguldak"
 				fill={getPathFill('TR67')}
+				stroke={getPathStroke('TR67')}
+				stroke-width={getPathStrokeWidth('TR67')}
 				class="cursor-pointer transition-all duration-200 hover:opacity-80"
 				onclick={() => handlePathClick('TR67')}
 				onmouseenter={() => handlePathHover('TR67')}
@@ -769,6 +844,8 @@
 				id="TR81"
 				name="Düzce"
 				fill={getPathFill('TR81')}
+				stroke={getPathStroke('TR81')}
+				stroke-width={getPathStrokeWidth('TR81')}
 				class="cursor-pointer transition-all duration-200 hover:opacity-80"
 				onclick={() => handlePathClick('TR81')}
 				onmouseenter={() => handlePathHover('TR81')}
@@ -779,6 +856,8 @@
 				id="TR54"
 				name="Sakarya"
 				fill={getPathFill('TR54')}
+				stroke={getPathStroke('TR54')}
+				stroke-width={getPathStrokeWidth('TR54')}
 				class="cursor-pointer transition-all duration-200 hover:opacity-80"
 				onclick={() => handlePathClick('TR54')}
 				onmouseenter={() => handlePathHover('TR54')}
@@ -789,6 +868,8 @@
 				id="TR41"
 				name="Kocaeli"
 				fill={getPathFill('TR41')}
+				stroke={getPathStroke('TR41')}
+				stroke-width={getPathStrokeWidth('TR41')}
 				class="cursor-pointer transition-all duration-200 hover:opacity-80"
 				onclick={() => handlePathClick('TR41')}
 				onmouseenter={() => handlePathHover('TR41')}
@@ -799,6 +880,8 @@
 				id="TR77"
 				name="Yalova"
 				fill={getPathFill('TR77')}
+				stroke={getPathStroke('TR77')}
+				stroke-width={getPathStrokeWidth('TR77')}
 				class="cursor-pointer transition-all duration-200 hover:opacity-80"
 				onclick={() => handlePathClick('TR77')}
 				onmouseenter={() => handlePathHover('TR77')}
@@ -809,6 +892,8 @@
 				id="TR16"
 				name="Bursa"
 				fill={getPathFill('TR16')}
+				stroke={getPathStroke('TR16')}
+				stroke-width={getPathStrokeWidth('TR16')}
 				class="cursor-pointer transition-all duration-200 hover:opacity-80"
 				onclick={() => handlePathClick('TR16')}
 				onmouseenter={() => handlePathHover('TR16')}
@@ -819,6 +904,8 @@
 				id="TR10"
 				name="Balikesir"
 				fill={getPathFill('TR10')}
+				stroke={getPathStroke('TR10')}
+				stroke-width={getPathStrokeWidth('TR10')}
 				class="cursor-pointer transition-all duration-200 hover:opacity-80"
 				onclick={() => handlePathClick('TR10')}
 				onmouseenter={() => handlePathHover('TR10')}
@@ -829,6 +916,8 @@
 				id="TR35"
 				name="Izmir"
 				fill={getPathFill('TR35')}
+				stroke={getPathStroke('TR35')}
+				stroke-width={getPathStrokeWidth('TR35')}
 				class="cursor-pointer transition-all duration-200 hover:opacity-80"
 				onclick={() => handlePathClick('TR35')}
 				onmouseenter={() => handlePathHover('TR35')}
@@ -839,6 +928,8 @@
 				id="TR09"
 				name="Aydin"
 				fill={getPathFill('TR09')}
+				stroke={getPathStroke('TR09')}
+				stroke-width={getPathStrokeWidth('TR09')}
 				class="cursor-pointer transition-all duration-200 hover:opacity-80"
 				onclick={() => handlePathClick('TR09')}
 				onmouseenter={() => handlePathHover('TR09')}
@@ -849,6 +940,8 @@
 				id="TR48"
 				name="Mugla"
 				fill={getPathFill('TR48')}
+				stroke={getPathStroke('TR48')}
+				stroke-width={getPathStrokeWidth('TR48')}
 				class="cursor-pointer transition-all duration-200 hover:opacity-80"
 				onclick={() => handlePathClick('TR48')}
 				onmouseenter={() => handlePathHover('TR48')}
@@ -859,6 +952,8 @@
 				id="TR07"
 				name="Antalya"
 				fill={getPathFill('TR07')}
+				stroke={getPathStroke('TR07')}
+				stroke-width={getPathStrokeWidth('TR07')}
 				class="cursor-pointer transition-all duration-200 hover:opacity-80"
 				onclick={() => handlePathClick('TR07')}
 				onmouseenter={() => handlePathHover('TR07')}
@@ -869,6 +964,8 @@
 				id="TR33"
 				name="Mersin"
 				fill={getPathFill('TR33')}
+				stroke={getPathStroke('TR33')}
+				stroke-width={getPathStrokeWidth('TR33')}
 				class="cursor-pointer transition-all duration-200 hover:opacity-80"
 				onclick={() => handlePathClick('TR33')}
 				onmouseenter={() => handlePathHover('TR33')}
@@ -879,6 +976,8 @@
 				id="TR01"
 				name="Adana"
 				fill={getPathFill('TR01')}
+				stroke={getPathStroke('TR01')}
+				stroke-width={getPathStrokeWidth('TR01')}
 				class="cursor-pointer transition-all duration-200 hover:opacity-80"
 				onclick={() => handlePathClick('TR01')}
 				onmouseenter={() => handlePathHover('TR01')}
@@ -889,6 +988,8 @@
 				id="TR14"
 				name="Bolu"
 				fill={getPathFill('TR14')}
+				stroke={getPathStroke('TR14')}
+				stroke-width={getPathStrokeWidth('TR14')}
 				class="cursor-pointer transition-all duration-200 hover:opacity-80"
 				onclick={() => handlePathClick('TR14')}
 				onmouseenter={() => handlePathHover('TR14')}
@@ -899,6 +1000,8 @@
 				id="TR06"
 				name="Ankara"
 				fill={getPathFill('TR06')}
+				stroke={getPathStroke('TR06')}
+				stroke-width={getPathStrokeWidth('TR06')}
 				class="cursor-pointer transition-all duration-200 hover:opacity-80"
 				onclick={() => handlePathClick('TR06')}
 				onmouseenter={() => handlePathHover('TR06')}
@@ -909,6 +1012,8 @@
 				id="TR11"
 				name="Bilecik"
 				fill={getPathFill('TR11')}
+				stroke={getPathStroke('TR11')}
+				stroke-width={getPathStrokeWidth('TR11')}
 				class="cursor-pointer transition-all duration-200 hover:opacity-80"
 				onclick={() => handlePathClick('TR11')}
 				onmouseenter={() => handlePathHover('TR11')}
@@ -919,6 +1024,8 @@
 				id="TR26"
 				name="Eskisehir"
 				fill={getPathFill('TR26')}
+				stroke={getPathStroke('TR26')}
+				stroke-width={getPathStrokeWidth('TR26')}
 				class="cursor-pointer transition-all duration-200 hover:opacity-80"
 				onclick={() => handlePathClick('TR26')}
 				onmouseenter={() => handlePathHover('TR26')}
@@ -929,6 +1036,8 @@
 				id="TR18"
 				name="Çankiri"
 				fill={getPathFill('TR18')}
+				stroke={getPathStroke('TR18')}
+				stroke-width={getPathStrokeWidth('TR18')}
 				class="cursor-pointer transition-all duration-200 hover:opacity-80"
 				onclick={() => handlePathClick('TR18')}
 				onmouseenter={() => handlePathHover('TR18')}
@@ -939,6 +1048,8 @@
 				id="TR78"
 				name="Karabük"
 				fill={getPathFill('TR78')}
+				stroke={getPathStroke('TR78')}
+				stroke-width={getPathStrokeWidth('TR78')}
 				class="cursor-pointer transition-all duration-200 hover:opacity-80"
 				onclick={() => handlePathClick('TR78')}
 				onmouseenter={() => handlePathHover('TR78')}
@@ -949,6 +1060,8 @@
 				id="TR60"
 				name="Tokat"
 				fill={getPathFill('TR60')}
+				stroke={getPathStroke('TR60')}
+				stroke-width={getPathStrokeWidth('TR60')}
 				class="cursor-pointer transition-all duration-200 hover:opacity-80"
 				onclick={() => handlePathClick('TR60')}
 				onmouseenter={() => handlePathHover('TR60')}
@@ -959,6 +1072,8 @@
 				id="TR58"
 				name="Sivas"
 				fill={getPathFill('TR58')}
+				stroke={getPathStroke('TR58')}
+				stroke-width={getPathStrokeWidth('TR58')}
 				class="cursor-pointer transition-all duration-200 hover:opacity-80"
 				onclick={() => handlePathClick('TR58')}
 				onmouseenter={() => handlePathHover('TR58')}
@@ -969,6 +1084,8 @@
 				id="TR19"
 				name="Çorum"
 				fill={getPathFill('TR19')}
+				stroke={getPathStroke('TR19')}
+				stroke-width={getPathStrokeWidth('TR19')}
 				class="cursor-pointer transition-all duration-200 hover:opacity-80"
 				onclick={() => handlePathClick('TR19')}
 				onmouseenter={() => handlePathHover('TR19')}
@@ -979,6 +1096,8 @@
 				id="TR05"
 				name="Amasya"
 				fill={getPathFill('TR05')}
+				stroke={getPathStroke('TR05')}
+				stroke-width={getPathStrokeWidth('TR05')}
 				class="cursor-pointer transition-all duration-200 hover:opacity-80"
 				onclick={() => handlePathClick('TR05')}
 				onmouseenter={() => handlePathHover('TR05')}
@@ -989,6 +1108,8 @@
 				id="TR43"
 				name="Kütahya"
 				fill={getPathFill('TR43')}
+				stroke={getPathStroke('TR43')}
+				stroke-width={getPathStrokeWidth('TR43')}
 				class="cursor-pointer transition-all duration-200 hover:opacity-80"
 				onclick={() => handlePathClick('TR43')}
 				onmouseenter={() => handlePathHover('TR43')}
@@ -999,6 +1120,8 @@
 				id="TR42"
 				name="Konya"
 				fill={getPathFill('TR42')}
+				stroke={getPathStroke('TR42')}
+				stroke-width={getPathStrokeWidth('TR42')}
 				class="cursor-pointer transition-all duration-200 hover:opacity-80"
 				onclick={() => handlePathClick('TR42')}
 				onmouseenter={() => handlePathHover('TR42')}
@@ -1009,6 +1132,8 @@
 				id="TR70"
 				name="Karaman"
 				fill={getPathFill('TR70')}
+				stroke={getPathStroke('TR70')}
+				stroke-width={getPathStrokeWidth('TR70')}
 				class="cursor-pointer transition-all duration-200 hover:opacity-80"
 				onclick={() => handlePathClick('TR70')}
 				onmouseenter={() => handlePathHover('TR70')}
@@ -1019,6 +1144,8 @@
 				id="TR51"
 				name="Nigde"
 				fill={getPathFill('TR51')}
+				stroke={getPathStroke('TR51')}
+				stroke-width={getPathStrokeWidth('TR51')}
 				class="cursor-pointer transition-all duration-200 hover:opacity-80"
 				onclick={() => handlePathClick('TR51')}
 				onmouseenter={() => handlePathHover('TR51')}
@@ -1029,6 +1156,8 @@
 				id="TR38"
 				name="Kayseri"
 				fill={getPathFill('TR38')}
+				stroke={getPathStroke('TR38')}
+				stroke-width={getPathStrokeWidth('TR38')}
 				class="cursor-pointer transition-all duration-200 hover:opacity-80"
 				onclick={() => handlePathClick('TR38')}
 				onmouseenter={() => handlePathHover('TR38')}
@@ -1039,6 +1168,8 @@
 				id="TR32"
 				name="Isparta"
 				fill={getPathFill('TR32')}
+				stroke={getPathStroke('TR32')}
+				stroke-width={getPathStrokeWidth('TR32')}
 				class="cursor-pointer transition-all duration-200 hover:opacity-80"
 				onclick={() => handlePathClick('TR32')}
 				onmouseenter={() => handlePathHover('TR32')}
@@ -1049,6 +1180,8 @@
 				id="TR45"
 				name="Manisa"
 				fill={getPathFill('TR45')}
+				stroke={getPathStroke('TR45')}
+				stroke-width={getPathStrokeWidth('TR45')}
 				class="cursor-pointer transition-all duration-200 hover:opacity-80"
 				onclick={() => handlePathClick('TR45')}
 				onmouseenter={() => handlePathHover('TR45')}
@@ -1059,6 +1192,8 @@
 				id="TR20"
 				name="Denizli"
 				fill={getPathFill('TR20')}
+				stroke={getPathStroke('TR20')}
+				stroke-width={getPathStrokeWidth('TR20')}
 				class="cursor-pointer transition-all duration-200 hover:opacity-80"
 				onclick={() => handlePathClick('TR20')}
 				onmouseenter={() => handlePathHover('TR20')}
@@ -1069,6 +1204,8 @@
 				id="TR15"
 				name="Burdur"
 				fill={getPathFill('TR15')}
+				stroke={getPathStroke('TR15')}
+				stroke-width={getPathStrokeWidth('TR15')}
 				class="cursor-pointer transition-all duration-200 hover:opacity-80"
 				onclick={() => handlePathClick('TR15')}
 				onmouseenter={() => handlePathHover('TR15')}
@@ -1079,6 +1216,8 @@
 				id="TR68"
 				name="Aksaray"
 				fill={getPathFill('TR68')}
+				stroke={getPathStroke('TR68')}
+				stroke-width={getPathStrokeWidth('TR68')}
 				class="cursor-pointer transition-all duration-200 hover:opacity-80"
 				onclick={() => handlePathClick('TR68')}
 				onmouseenter={() => handlePathHover('TR68')}
@@ -1089,6 +1228,8 @@
 				id="TR50"
 				name="Nevsehir"
 				fill={getPathFill('TR50')}
+				stroke={getPathStroke('TR50')}
+				stroke-width={getPathStrokeWidth('TR50')}
 				class="cursor-pointer transition-all duration-200 hover:opacity-80"
 				onclick={() => handlePathClick('TR50')}
 				onmouseenter={() => handlePathHover('TR50')}
@@ -1099,6 +1240,8 @@
 				id="TR66"
 				name="Yozgat"
 				fill={getPathFill('TR66')}
+				stroke={getPathStroke('TR66')}
+				stroke-width={getPathStrokeWidth('TR66')}
 				class="cursor-pointer transition-all duration-200 hover:opacity-80"
 				onclick={() => handlePathClick('TR66')}
 				onmouseenter={() => handlePathHover('TR66')}
@@ -1109,6 +1252,8 @@
 				id="TR40"
 				name="Kirsehir"
 				fill={getPathFill('TR40')}
+				stroke={getPathStroke('TR40')}
+				stroke-width={getPathStrokeWidth('TR40')}
 				class="cursor-pointer transition-all duration-200 hover:opacity-80"
 				onclick={() => handlePathClick('TR40')}
 				onmouseenter={() => handlePathHover('TR40')}
@@ -1119,6 +1264,8 @@
 				id="TR64"
 				name="Usak"
 				fill={getPathFill('TR64')}
+				stroke={getPathStroke('TR64')}
+				stroke-width={getPathStrokeWidth('TR64')}
 				class="cursor-pointer transition-all duration-200 hover:opacity-80"
 				onclick={() => handlePathClick('TR64')}
 				onmouseenter={() => handlePathHover('TR64')}
@@ -1129,6 +1276,8 @@
 				id="TR24"
 				name="Erzincan"
 				fill={getPathFill('TR24')}
+				stroke={getPathStroke('TR24')}
+				stroke-width={getPathStrokeWidth('TR24')}
 				class="cursor-pointer transition-all duration-200 hover:opacity-80"
 				onclick={() => handlePathClick('TR24')}
 				onmouseenter={() => handlePathHover('TR24')}
@@ -1139,6 +1288,8 @@
 				id="TR62"
 				name="Tunceli"
 				fill={getPathFill('TR62')}
+				stroke={getPathStroke('TR62')}
+				stroke-width={getPathStrokeWidth('TR62')}
 				class="cursor-pointer transition-all duration-200 hover:opacity-80"
 				onclick={() => handlePathClick('TR62')}
 				onmouseenter={() => handlePathHover('TR62')}
@@ -1149,6 +1300,8 @@
 				id="TR03"
 				name="Afyonkarahisar"
 				fill={getPathFill('TR03')}
+				stroke={getPathStroke('TR03')}
+				stroke-width={getPathStrokeWidth('TR03')}
 				class="cursor-pointer transition-all duration-200 hover:opacity-80"
 				onclick={() => handlePathClick('TR03')}
 				onmouseenter={() => handlePathHover('TR03')}
@@ -1159,6 +1312,8 @@
 				id="TR71"
 				name="Kinkkale"
 				fill={getPathFill('TR71')}
+				stroke={getPathStroke('TR71')}
+				stroke-width={getPathStrokeWidth('TR71')}
 				class="cursor-pointer transition-all duration-200 hover:opacity-80"
 				onclick={() => handlePathClick('TR71')}
 				onmouseenter={() => handlePathHover('TR71')}
@@ -1169,6 +1324,8 @@
 				id="TR46"
 				name="K. Maras"
 				fill={getPathFill('TR46')}
+				stroke={getPathStroke('TR46')}
+				stroke-width={getPathStrokeWidth('TR46')}
 				class="cursor-pointer transition-all duration-200 hover:opacity-80"
 				onclick={() => handlePathClick('TR46')}
 				onmouseenter={() => handlePathHover('TR46')}
@@ -1179,6 +1336,8 @@
 				id="TR49"
 				name="Mus"
 				fill={getPathFill('TR49')}
+				stroke={getPathStroke('TR49')}
+				stroke-width={getPathStrokeWidth('TR49')}
 				class="cursor-pointer transition-all duration-200 hover:opacity-80"
 				onclick={() => handlePathClick('TR49')}
 				onmouseenter={() => handlePathHover('TR49')}
@@ -1189,6 +1348,8 @@
 				id="TR25"
 				name="Erzurum"
 				fill={getPathFill('TR25')}
+				stroke={getPathStroke('TR25')}
+				stroke-width={getPathStrokeWidth('TR25')}
 				class="cursor-pointer transition-all duration-200 hover:opacity-80"
 				onclick={() => handlePathClick('TR25')}
 				onmouseenter={() => handlePathHover('TR25')}
@@ -1199,6 +1360,8 @@
 				id="TR44"
 				name="Malatya"
 				fill={getPathFill('TR44')}
+				stroke={getPathStroke('TR44')}
+				stroke-width={getPathStrokeWidth('TR44')}
 				class="cursor-pointer transition-all duration-200 hover:opacity-80"
 				onclick={() => handlePathClick('TR44')}
 				onmouseenter={() => handlePathHover('TR44')}
@@ -1209,6 +1372,8 @@
 				id="TR23"
 				name="Elazig"
 				fill={getPathFill('TR23')}
+				stroke={getPathStroke('TR23')}
+				stroke-width={getPathStrokeWidth('TR23')}
 				class="cursor-pointer transition-all duration-200 hover:opacity-80"
 				onclick={() => handlePathClick('TR23')}
 				onmouseenter={() => handlePathHover('TR23')}
@@ -1219,6 +1384,8 @@
 				id="TR13"
 				name="Bitlis"
 				fill={getPathFill('TR13')}
+				stroke={getPathStroke('TR13')}
+				stroke-width={getPathStrokeWidth('TR13')}
 				class="cursor-pointer transition-all duration-200 hover:opacity-80"
 				onclick={() => handlePathClick('TR13')}
 				onmouseenter={() => handlePathHover('TR13')}
@@ -1229,6 +1396,8 @@
 				id="TR12"
 				name="Bingöl"
 				fill={getPathFill('TR12')}
+				stroke={getPathStroke('TR12')}
+				stroke-width={getPathStrokeWidth('TR12')}
 				class="cursor-pointer transition-all duration-200 hover:opacity-80"
 				onclick={() => handlePathClick('TR12')}
 				onmouseenter={() => handlePathHover('TR12')}
@@ -1239,6 +1408,8 @@
 				id="TR80"
 				name="Osmaniye"
 				fill={getPathFill('TR80')}
+				stroke={getPathStroke('TR80')}
+				stroke-width={getPathStrokeWidth('TR80')}
 				class="cursor-pointer transition-all duration-200 hover:opacity-80"
 				onclick={() => handlePathClick('TR80')}
 				onmouseenter={() => handlePathHover('TR80')}
@@ -1249,6 +1420,8 @@
 				id="TR02"
 				name="Adiyaman"
 				fill={getPathFill('TR02')}
+				stroke={getPathStroke('TR02')}
+				stroke-width={getPathStrokeWidth('TR02')}
 				class="cursor-pointer transition-all duration-200 hover:opacity-80"
 				onclick={() => handlePathClick('TR02')}
 				onmouseenter={() => handlePathHover('TR02')}
@@ -1259,6 +1432,8 @@
 				id="TR21"
 				name="Diyarbakir"
 				fill={getPathFill('TR21')}
+				stroke={getPathStroke('TR21')}
+				stroke-width={getPathStrokeWidth('TR21')}
 				class="cursor-pointer transition-all duration-200 hover:opacity-80"
 				onclick={() => handlePathClick('TR21')}
 				onmouseenter={() => handlePathHover('TR21')}
@@ -1269,6 +1444,8 @@
 				id="TR72"
 				name="Batman"
 				fill={getPathFill('TR72')}
+				stroke={getPathStroke('TR72')}
+				stroke-width={getPathStrokeWidth('TR72')}
 				class="cursor-pointer transition-all duration-200 hover:opacity-80"
 				onclick={() => handlePathClick('TR72')}
 				onmouseenter={() => handlePathHover('TR72')}
@@ -1279,6 +1456,8 @@
 				id="TR56"
 				name="Siirt"
 				fill={getPathFill('TR56')}
+				stroke={getPathStroke('TR56')}
+				stroke-width={getPathStrokeWidth('TR56')}
 				class="cursor-pointer transition-all duration-200 hover:opacity-80"
 				onclick={() => handlePathClick('TR56')}
 				onmouseenter={() => handlePathHover('TR56')}
@@ -1289,6 +1468,8 @@
 				id="TR69"
 				name="Bayburt"
 				fill={getPathFill('TR69')}
+				stroke={getPathStroke('TR69')}
+				stroke-width={getPathStrokeWidth('TR69')}
 				class="cursor-pointer transition-all duration-200 hover:opacity-80"
 				onclick={() => handlePathClick('TR69')}
 				onmouseenter={() => handlePathHover('TR69')}
@@ -1299,6 +1480,8 @@
 				id="TR29"
 				name="Gümüshane"
 				fill={getPathFill('TR29')}
+				stroke={getPathStroke('TR29')}
+				stroke-width={getPathStrokeWidth('TR29')}
 				class="cursor-pointer transition-all duration-200 hover:opacity-80"
 				onclick={() => handlePathClick('TR29')}
 				onmouseenter={() => handlePathHover('TR29')}

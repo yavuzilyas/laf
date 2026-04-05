@@ -323,7 +323,8 @@
             twitter: "",
             github: "",
             linkedin: ""
-        }
+        },
+        badges: userProfileData?.badges || []
     });
 
     const persistProfileUpdate = async (fields: Record<string, unknown>) => {
@@ -394,7 +395,8 @@
                 twitter: "",
                 github: "",
                 linkedin: ""
-            }
+            },
+            badges: userProfileData?.badges || []
         };
         isEditing = false;
     };

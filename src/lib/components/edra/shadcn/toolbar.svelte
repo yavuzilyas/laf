@@ -7,6 +7,7 @@
 	import Headings from './components/toolbar/Headings.svelte';
 	import QuickColors from './components/toolbar/QuickColors.svelte';
 	import SearchAndReplace from './components/toolbar/SearchAndReplace.svelte';
+	import FileUploadDialog from './components/toolbar/FileUploadDialog.svelte';
 	import ToolBarIcon from './components/ToolBarIcon.svelte';
 	import LinkDialog from './components/toolbar/LinkDialog.svelte';
 	const { editor, class: className, excludedCommands, children }: EdraToolbarProps = $props();
@@ -28,6 +29,9 @@
 				{#each commandGroup as command (command)}
 					{#if command.name === 'link'}
 						<LinkDialog editor={editor} />
+					{:else if command.name === 'image-placeholder'}
+						<FileUploadDialog {editor} />
+						<ToolBarIcon {editor} {command} />
 					{:else}
 						<ToolBarIcon {editor} {command} />
 					{/if}

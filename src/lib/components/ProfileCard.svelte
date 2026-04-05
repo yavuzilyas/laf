@@ -445,8 +445,8 @@
       <div class="absolute inset-0 bg-gradient-to-b from-background/10  to-background"></div>
     {:else}
       <div
-        class="absolute inset-0"
-        style={`background: ${profileData?.bannerColor || '#0f172a'}`}
+        class="absolute inset-0 bg-primary"
+        style={profileData?.bannerColor ? `background: ${profileData.bannerColor}` : ''}
       ></div>
     {/if}
 
