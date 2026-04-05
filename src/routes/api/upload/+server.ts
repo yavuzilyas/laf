@@ -32,7 +32,6 @@ function isRateLimited(userId: string): boolean {
 }
 
 export async function POST({ request, locals }) {
-  const UPLOAD_BASE_DIR = env.UPLOAD_DIR || 'uploads';
   const user = (locals as any)?.user;
   if (!user) return json({ error: 'Unauthorized' }, { status: 401 });
 
@@ -160,7 +159,6 @@ export async function POST({ request, locals }) {
         await rm(previousFsPath, { force: true });
       }
     } catch (error) {
-      // Silme hatası durumunda sessizce devam et
     }
   }
 
@@ -168,7 +166,6 @@ export async function POST({ request, locals }) {
 }
 
 export async function DELETE({ request, locals }) {
-  const UPLOAD_BASE_DIR = env.UPLOAD_DIR || 'uploads';
   const user = (locals as any)?.user;
   if (!user) return json({ error: 'Unauthorized' }, { status: 401 });
 

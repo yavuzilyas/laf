@@ -1,9 +1,11 @@
 import { json } from '@sveltejs/kit';
-import { getLinks, createLink, updateLink, deleteLink, getLinkByDisplayOrder } from '$db/queries-links';
+import { getLinks, createLink, updateLink, deleteLink } from '$db/queries-links';
 import { writeFile, mkdir } from 'fs/promises';
 import { extname, resolve } from 'path';
 import { env } from '$env/dynamic/private';
 import type { RequestHandler } from './$types';
+
+const UPLOAD_BASE_DIR = env.UPLOAD_DIR || 'static/uploads';
 
 // GET /api/links/manage - List all links (admin/moderator only)
 export const GET: RequestHandler = async ({ locals, url }) => {
@@ -33,7 +35,6 @@ export const GET: RequestHandler = async ({ locals, url }) => {
 
 // POST /api/links/manage - Create link with icon upload (admin/moderator only)
 export const POST: RequestHandler = async ({ request, locals }) => {
-    const UPLOAD_BASE_DIR = env.UPLOAD_DIR || 'uploads';
     const user = (locals as any)?.user;
     
     if (!user) {
@@ -57,12 +58,6 @@ export const POST: RequestHandler = async ({ request, locals }) => {
         
         if (!title || !url) {
             return json({ error: 'Title and URL are required' }, { status: 400 });
-        }
-
-        // Check for duplicate display_order
-        const existingLinkWithOrder = await getLinkByDisplayOrder(display_order);
-        if (existingLinkWithOrder) {
-            return json({ error: `Sıra numarası ${display_order} zaten kullanımda. Lütfen farklı bir sıra numarası seçin.` }, { status: 400 });
         }
 
         try {
@@ -117,7 +112,6 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 
 // PUT /api/links/manage - Update link with icon upload (admin/moderator only)
 export const PUT: RequestHandler = async ({ request, locals }) => {
-    const UPLOAD_BASE_DIR = env.UPLOAD_DIR || 'uploads';
     const user = (locals as any)?.user;
     
     if (!user) {
@@ -145,14 +139,6 @@ export const PUT: RequestHandler = async ({ request, locals }) => {
         if (formData.has('platform')) updateData.platform = formData.get('platform') as string;
         if (formData.has('display_order')) updateData.display_order = parseInt(formData.get('display_order') as string);
         if (formData.has('is_active')) updateData.is_active = formData.get('is_active') === 'true';
-
-        // Check for duplicate display_order when updating
-        if (updateData.display_order !== undefined) {
-            const existingLinkWithOrder = await getLinkByDisplayOrder(updateData.display_order, id);
-            if (existingLinkWithOrder) {
-                return json({ error: `Sıra numarası ${updateData.display_order} zaten kullanımda. Lütfen farklı bir sıra numarası seçin.` }, { status: 400 });
-            }
-        }
 
         if (updateData.url) {
             try {
