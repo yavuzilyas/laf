@@ -6,7 +6,7 @@
 	import { Badge } from '$lib/components/ui/badge';
 	import { Button } from '$lib/components/ui/button';
 	import { Separator } from '$lib/components/ui/separator';
-	import { t, getCurrentLocale } from '$lib/stores/i18n.svelte';
+	import { t, getCurrentLocale, localeConfig } from '$lib/stores/i18n.svelte';
 
 	// Locale-aware URL helper
 	const l = (path: string) => `/${currentLocale}${path}`;
@@ -2173,21 +2173,21 @@
 						{t('articles.backToArticles')}
 					</Button>
 					<div class="flex flex-row items-center gap-2">
-						{#if article.availableTranslations}
-							<span class="text-xs text-muted-foreground flex items-center gap-1">
-								<Languages class="w-4 h-4" />
-								{t('articles.languages')}:
-							</span>
-							{#each Object.keys(article.availableTranslations) as lang}
-								<Button
-									size="xs"
-									variant={lang === article.language ? 'default' : 'outline'}
-									onclick={() => switchToLanguage(lang)}
-								>
-									{lang.toUpperCase()}
-								</Button>
-							{/each}
-						{/if}
+						<span class="text-xs text-muted-foreground flex items-center gap-1">
+							<Languages class="w-4 h-4" />
+							{t('articles.languages')}:
+						</span>
+						{#each localeConfig.availableLocales as lang}
+							{@const hasTranslation = article.availableTranslations?.[lang]}
+							<Button
+								size="xs"
+								variant={lang === article.language ? 'default' : 'outline'}
+								disabled={!hasTranslation}
+								onclick={() => switchToLanguage(lang)}
+							>
+								{lang.toUpperCase()}
+							</Button>
+						{/each}
 					</div>
 				</div>
 				<Separator />

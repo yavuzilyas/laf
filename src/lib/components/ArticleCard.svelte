@@ -4,11 +4,10 @@
   import { Badge } from "$lib/components/ui/badge";
   import { Calendar, Clock, User, Eye, MessageCircle, ThumbsUp, ThumbsDown } from "@lucide/svelte";
   import { t, getCurrentLocale } from '$lib/stores/i18n.svelte.ts';
-
-  // Locale-aware URL helper
-  const currentLocale = $derived(getCurrentLocale() || 'tr');
-  const l = (path: string) => `/${currentLocale}${path}`;
+  import Image from '$lib/components/Image.svelte';
   import Lens from '$lib/components/Lens.svelte';
+  import A from "$lib/components/ui/a.svelte";
+  import { ScrollArea } from "$lib/components/ui/scroll-area";
   import A from "$lib/components/ui/a.svelte";
     import { ScrollArea } from "$lib/components/ui/scroll-area";
 
@@ -175,7 +174,7 @@
   )} {...restProps}>
     {#if article.coverImage}
       <div class="relative overflow-hidden md:order-2">
-        <img 
+        <Image 
           src={article.coverImage} 
           alt={translatedContent.title}
           class="aspect-[16/9] w-full object-cover transition-transform duration-300 group-hover:scale-105 md:aspect-[4/3]"
@@ -234,7 +233,7 @@
           <div class="flex items-center gap-2">
             <A href={l(`/${getAuthorIdentifier(article)}`)} class="flex items-center gap-2 hover:opacity-80 transition-opacity">
               {#if article.author?.avatar}
-                <img 
+                <Image 
                   src={article.author.avatar} 
                   alt={getAuthorDisplayName(article)}
                   class="h-8 w-8 rounded-full object-cover"
@@ -254,7 +253,7 @@
                   {#each article.collaborators.slice(0, 3) as collaborator}
                     <A href={l(`/${getCollaboratorIdentifier(collaborator)}`)} class="hover:opacity-80 transition-opacity">
                       {#if collaborator.avatar}
-                        <img 
+                        <Image 
                           src={collaborator.avatar} 
                           alt={getCollaboratorDisplayName(collaborator)}
                           class="h-6 w-6 rounded-full object-cover border-2 border-background"
@@ -300,7 +299,7 @@
   )} {...restProps}>
     {#if article.coverImage}
       <div class="relative flex-shrink-0 overflow-hidden rounded-md">
-        <img 
+        <Image 
           src={article.coverImage} 
           alt={translatedContent.title}
           class="h-32 w-full object-cover transition-transform duration-300 group-hover:scale-105"
@@ -337,7 +336,7 @@
         <div class="flex items-center gap-2">
           <A href={l(`/${getAuthorIdentifier(article)}`)} class="flex items-center gap-2 hover:opacity-80 transition-opacity">
             {#if article.author?.avatar}
-              <img 
+              <Image 
                 src={article.author.avatar} 
                 alt={getAuthorDisplayName(article)}
                 class="h-10 w-10 rounded-full object-cover"
@@ -357,7 +356,7 @@
                 {#each article.collaborators.slice(0, 2) as collaborator}
                   <A href={l(`/${getCollaboratorIdentifier(collaborator)}`)} class="hover:opacity-80 transition-opacity">
                     {#if collaborator.avatar}
-                      <img 
+                      <Image 
                         src={collaborator.avatar} 
                         alt={getCollaboratorDisplayName(collaborator)}
                         class="h-8 w-8 rounded-full object-cover border-2 border-background"
@@ -491,7 +490,7 @@
       <div class="relative p-3 sm:p-4 pb-0 overflow-hidden">
         <Lens>
         <A href={translatedContent.slug ? `/article/${translatedContent.slug}` : undefined}>
-          <img 
+          <Image 
             src={article.coverImage} 
             alt={translatedContent.title}
             class="aspect-[16/9] rounded-2xl w-full object-cover transition-transform duration-300 "
@@ -545,7 +544,7 @@
         <div class="flex items-center gap-2">
           <A href={l(`/${getAuthorIdentifier(article)}`)} class="flex items-center gap-2 hover:opacity-80 transition-opacity">
             {#if article.author?.avatar}
-              <img 
+              <Image 
                 src={article.author.avatar} 
                 alt={getAuthorDisplayName(article)}
                 class="h-7 w-7 rounded-full object-cover"
@@ -565,7 +564,7 @@
                 {#each article.collaborators.slice(0, 2) as collaborator}
                   <A href={l(`/${getCollaboratorIdentifier(collaborator)}`)} class="hover:opacity-80 transition-opacity">
                     {#if collaborator.avatar}
-                      <img 
+                      <Image 
                         src={collaborator.avatar} 
                         alt={getCollaboratorDisplayName(collaborator)}
                         class="h-6 w-6 rounded-full object-cover border-2 border-background"
