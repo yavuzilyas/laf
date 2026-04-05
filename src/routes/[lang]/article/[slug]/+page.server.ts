@@ -141,6 +141,7 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 
   // Load viewer block lists
   let viewerBlockedIds = new Set<string>();
+  const viewerId = viewer?.id;
   if (viewer) {
     const blockedData = await getBlockedUsers(viewer.id);
     if (blockedData && blockedData.blocked_actor_ids) {
@@ -225,6 +226,7 @@ export const load: PageServerLoad = async ({ params, locals }) => {
   if (authorDoc) {
     const authorId = authorDoc.id;
     const viewerId = viewer?.id;
+    
     
     // Check if viewer is the author
     isOwnProfile = viewerId ? viewerId === authorId : false;
