@@ -13,6 +13,10 @@ COPY . .
 # Sync ve environment
 RUN npx svelte-kit sync
 
+# Environment ve memory optimizasyonları
+ENV NODE_OPTIONS="--max-old-space-size=3500"
+ENV ESBUILD_WORKER_THREADS=1
+
 
 # Build
 RUN pnpm build
