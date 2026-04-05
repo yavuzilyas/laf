@@ -27,6 +27,21 @@ export async function getLinkById(id: string): Promise<Link | null> {
     return result.rows[0] || null;
 }
 
+export async function getLinkByDisplayOrder(displayOrder: number, excludeId?: string): Promise<Link | null> {
+    let query = 'SELECT * FROM links WHERE display_order = $1';
+    const params: any[] = [displayOrder];
+    
+    if (excludeId) {
+        query += ' AND id != $2';
+        params.push(excludeId);
+    }
+    
+    query += ' LIMIT 1';
+    
+    const result = await db.query(query, params);
+    return result.rows[0] || null;
+}
+
 export async function createLink(link: LinkInput, userId: string): Promise<Link> {
     const result = await db.query(
         `INSERT INTO links (title, url, description, icon_url, type, platform, display_order, is_active, created_by)

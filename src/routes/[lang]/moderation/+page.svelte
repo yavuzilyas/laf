@@ -1247,7 +1247,11 @@
               </div>
             {:else}
               <div class="grid gap-4">
-                {#each links.sort((a, b) => a.display_order - b.display_order) as link (link.id)}
+                {#each [...links].sort((a, b) => {
+                  const orderDiff = a.display_order - b.display_order;
+                  // If display_order is the same, use id as tiebreaker for stable sort
+                  return orderDiff !== 0 ? orderDiff : a.id.localeCompare(b.id);
+                }) as link (link.id)}
                   <div class="flex flex-col sm:flex-row items-start sm:items-center gap-4 p-4 border rounded-lg bg-card hover:shadow-sm transition-shadow">
                     <!-- Icon -->
                     <div class="flex-shrink-0">
