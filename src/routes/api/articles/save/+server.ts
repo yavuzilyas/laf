@@ -211,7 +211,7 @@ async function cleanupUnusedMedia(existing: any, updated: any, articleId: string
 
     if (!previousUrls.size) return;
 
-    const baseUploadsDir = resolve(env.UPLOAD_DIR || 'uploads');
+    const baseUploadsDir = resolve(env.UPLOAD_DIR);
     const allowedPrefix = `/uploads/articles/${articleId}/`;
 
     const toDelete: string[] = [];
