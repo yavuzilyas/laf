@@ -248,7 +248,7 @@ import { User, KeyRound, Eye, EyeOff, ArrowLeft, Lock } from "@lucide/svelte";
 
                 <Button type="submit" class="w-full" disabled={loading}>
                   {#if loading}
-                    <BarSpinner class="text-primary" />mr-2" />
+                    <BarSpinner class="text-primary" />
                     {t('Loading') || 'Yükleniyor...'}
                   {:else}
                     {t('Continue') || 'Devam Et'}
@@ -299,7 +299,7 @@ import { User, KeyRound, Eye, EyeOff, ArrowLeft, Lock } from "@lucide/svelte";
                   </Button>
                   <Button type="submit" class="w-1/2" disabled={loading}>
                     {#if loading}
-                      <BarSpinner class="text-primary" />mr-2" />
+                      <BarSpinner class="text-primary"/>
                       {t('Verifying') || 'Doğrulanıyor...'}
                     {:else}
                       {t('Verify') || 'Doğrula'}
@@ -385,12 +385,9 @@ import { User, KeyRound, Eye, EyeOff, ArrowLeft, Lock } from "@lucide/svelte";
                 </div>
 
                 <div class="flex gap-2">
-                  <Button type="button" variant="outline" class="w-1/2" onclick={goBack} disabled={loading}>
-                    {t('Back') || 'Geri'}
-                  </Button>
-                  <Button type="submit" class="w-1/2" disabled={loading || !meetsPasswordPolicy(newPassword)}>
+                  <Button type="submit" class="w-full" disabled={loading || !meetsPasswordPolicy(newPassword)}>
                     {#if loading}
-                      <BarSpinner class="text-primary" />mr-2" />
+                      <BarSpinner class="text-primary"/>
                       {t('Saving') || 'Kaydediliyor...'}
                     {:else}
                       {t('ResetPassword') || 'Şifreyi Sıfırla'}

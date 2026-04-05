@@ -12,8 +12,10 @@
     // Locale-aware URL helper
     const currentLocale = $derived(getCurrentLocale() || 'tr');
     const l = (path: string) => `/${currentLocale}${path}`;
-    import { Calendar, MapPin, Clock, Users, Bell, Megaphone, ExternalLink } from '@lucide/svelte';
+    import { Calendar, MapPin, Clock, Users, Bell, Megaphone, ExternalLink, Share2 } from '@lucide/svelte';
     import { showToast } from '$lib/hooks/toast';
+    import { afterNavigate } from '$app/navigation';
+    import { onMount, tick } from 'svelte';
 
     // Types
     interface Event {
@@ -66,13 +68,19 @@
             result = result.filter(e => e.isPast);
         }
 
-        // City filter
-        if (selectedCity) {
-            result = result.filter(e => e.city === selectedCity || e.city === 'Türkiye');
-        }
-
-        // Sort by date
-        return result.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+        // Sort: Selected city events first, then by date
+        return result.sort((a, b) => {
+            if (selectedCity) {
+                const aIsSelectedCity = a.city === selectedCity || a.city === 'Türkiye';
+                const bIsSelectedCity = b.city === selectedCity || b.city === 'Türkiye';
+                
+                if (aIsSelectedCity && !bIsSelectedCity) return -1;
+                if (!aIsSelectedCity && bIsSelectedCity) return 1;
+            }
+            
+            // Same group - sort by date
+            return new Date(a.date).getTime() - new Date(b.date).getTime();
+        });
     });
 
     // City event status for map coloring
@@ -167,27 +175,81 @@
         timeFilter = 'all';
     }
 
-    // Scroll to event from URL hash
+    // Handle hash on initial page load
+    onMount(() => {
+        handleHash();
+    });
+
+    // Handle hash on client-side navigation
+    afterNavigate(() => {
+        handleHash();
+    });
+
+    // Watch for data.events to be ready (for SSR initial load)
+    let hashProcessed = $state(false);
     $effect(() => {
-        if (typeof window !== 'undefined') {
+        if (!hashProcessed && data.events && data.events.length > 0) {
             const hash = window.location.hash;
             if (hash && hash.startsWith('#event-')) {
-                const eventId = hash.replace('#event-', '');
-                // Wait for DOM to be ready
-                setTimeout(() => {
-                    const eventElement = document.getElementById(`event-${eventId}`);
-                    if (eventElement) {
-                        eventElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                        // Add highlight effect
-                        eventElement.classList.add('ring-2', 'ring-primary', 'ring-offset-2');
-                        setTimeout(() => {
-                            eventElement.classList.remove('ring-2', 'ring-primary', 'ring-offset-2');
-                        }, 3000);
-                    }
-                }, 500);
+                hashProcessed = true;
+                handleHash();
             }
         }
     });
+
+    async function handleHash() {
+        if (typeof window === 'undefined') return;
+        
+        const hash = window.location.hash;
+        if (!hash || !hash.startsWith('#event-')) return;
+        
+        let eventId = hash.replace('#event-', '');
+        
+        // Handle case where URL has extra characters after event ID
+        const uuidMatch = eventId.match(/^([a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})/i);
+        if (uuidMatch) {
+            eventId = uuidMatch[1];
+        }
+        
+        // Find the event in data
+        const event = data.events?.find((e: Event) => e.id === eventId);
+        if (!event) return;
+        
+        // Determine which page the event is on
+        if (event.type === 'announcement') {
+            const allAnnouncements = filteredAnnouncements();
+            const index = allAnnouncements.findIndex((e: Event) => e.id === eventId);
+            if (index !== -1) {
+                const page = Math.floor(index / ITEMS_PER_PAGE) + 1;
+                announcementsPage = page;
+            }
+        } else {
+            const allEvents = filteredEventsList();
+            const index = allEvents.findIndex((e: Event) => e.id === eventId);
+            if (index !== -1) {
+                const page = Math.floor(index / ITEMS_PER_PAGE) + 1;
+                eventsPage = page;
+            }
+        }
+        
+        // Wait for Svelte to update DOM
+        await tick();
+        await new Promise(r => setTimeout(r, 200));
+        
+        // Now try to find and scroll to the element
+        const eventElement = document.getElementById(`event-${eventId}`);
+        if (eventElement) {
+            eventElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            eventElement.classList.add('ring-2', 'ring-primary', 'ring-offset-2');
+            setTimeout(() => {
+                eventElement.classList.remove('ring-2', 'ring-primary', 'ring-offset-2');
+            }, 3000);
+        }
+        
+        // Open dialog
+        selectedEvent = event;
+        dialogOpen = true;
+    }
     async function joinEvent(eventId: string) {
         if (!user) {
             showToast(t('events.loginRequired'), 'error');
@@ -215,6 +277,30 @@
             }
         } catch (error) {
             showToast(t('events.genericError'), 'error');
+        }
+    }
+    async function shareEvent(event: Event) {
+        const url = `${window.location.origin}${window.location.pathname}#event-${event.id}`;
+        const shareData = {
+            title: event.title,
+            text: event.description,
+            url: url
+        };
+        
+        if (navigator.share) {
+            try {
+                await navigator.share(shareData);
+            } catch (err) {
+                // User cancelled or share failed
+            }
+        } else {
+            // Fallback: copy to clipboard
+            try {
+                await navigator.clipboard.writeText(url);
+                showToast(t('events.linkCopied'), 'success');
+            } catch (err) {
+                showToast(t('events.copyFailed'), 'error');
+            }
         }
     }
 </script>
@@ -343,15 +429,20 @@
                                         <Calendar class="w-3 h-3" />
                                         {formatDate(announcement.date)}
                                     </span>
+{#if announcement.city}
                                     <span class="flex items-center gap-1">
                                         <MapPin class="w-3 h-3" />
                                         {announcement.city}
                                     </span>
+                                    {/if}
                                 </div>
                                 
-                                <div class="mt-2">
-                                    <Button variant="outline" size="xs" class="w-full h-7 text-xs" onclick={() => openDialog(announcement)}>
+                                <div class="mt-2 flex gap-2">
+                                    <Button variant="outline" size="xs" class="flex-1 h-7 text-xs" onclick={() => openDialog(announcement)}>
                                         {t('common.view')}
+                                    </Button>
+                                    <Button variant="ghost" size="icon" class="h-7 w-7" onclick={() => shareEvent(announcement)}>
+                                        <Share2 class="w-4 h-4" />
                                     </Button>
                                 </div>
                             </div>
@@ -426,10 +517,12 @@
                                             {formatTime(event.date)}
                                         </span>
                                     {/if}
+{#if event.city || event.location}
                                     <span class="flex items-center gap-1">
                                         <MapPin class="w-3 h-3" />
-                                        {event.city}
+                                        {event.city}{event.location ? ` - ${event.location}` : ''}
                                     </span>
+                                    {/if}
                                     {#if event.attendeeCount !== undefined}
                                         <span class="flex items-center gap-1">
                                             <Users class="w-3 h-3" />
@@ -459,11 +552,17 @@
                                                 {t('events.login')}
                                             </Button>
                                         {/if}
+                                        <Button variant="ghost" size="icon" class="h-7 w-7" onclick={() => shareEvent(event)}>
+                                            <Share2 class="w-4 h-4" />
+                                        </Button>
                                     </div>
                                 {:else}
-                                    <div class="mt-2">
-                                        <Button variant="outline" size="xs" class="w-full h-7 text-xs" onclick={() => openDialog(event)}>
+                                    <div class="mt-2 flex gap-2">
+                                        <Button variant="outline" size="xs" class="flex-1 h-7 text-xs" onclick={() => openDialog(event)}>
                                             {t('events.details')}
+                                        </Button>
+                                        <Button variant="ghost" size="icon" class="h-7 w-7" onclick={() => shareEvent(event)}>
+                                            <Share2 class="w-4 h-4" />
                                         </Button>
                                     </div>
                                 {/if}
@@ -511,21 +610,28 @@
 <!-- Event/Announcement Details Dialog -->
 <Dialog.Root bind:open={dialogOpen}>
     <Dialog.Content class="sm:max-w-2/3 md:max-w-1/2">
-        <Dialog.Header>
-            <Dialog.Title>{selectedEvent?.title}</Dialog.Title>
-            <Dialog.Description>
-                <div class="flex items-center gap-2 mt-2">
-                    <Badge variant={selectedEvent?.type === 'announcement' ? 'secondary' : 'default'} class="text-xs">
-                        {selectedEvent?.category ? t(`${selectedEvent.category}`) : ''}
-                    </Badge>
-                    {#if selectedEvent?.isPast}
-                        <Badge variant="outline" class="text-xs">{t('events.completed')}</Badge>
-                    {:else if selectedEvent?.type === 'event'}
-                        <Badge variant="outline" class="text-xs text-green-600 border-green-600">{t('events.upcoming')}</Badge>
-                    {/if}
-                </div>
-            </Dialog.Description>
-        </Dialog.Header>
+        <div class="flex items-start justify-between">
+            <Dialog.Header class="flex-1">
+                <Dialog.Title>{selectedEvent?.title}</Dialog.Title>
+                <Dialog.Description>
+                    <div class="flex items-center gap-2 mt-2">
+                        <Badge variant={selectedEvent?.type === 'announcement' ? 'secondary' : 'default'} class="text-xs">
+                            {selectedEvent?.category ? t(`${selectedEvent.category}`) : ''}
+                        </Badge>
+                        {#if selectedEvent?.isPast && selectedEvent?.type === 'event'}
+                            <Badge variant="outline" class="text-xs">{t('events.completed')}</Badge>
+                        {:else if selectedEvent?.type === 'event'}
+                            <Badge variant="outline" class="text-xs text-green-600 border-green-600">{t('events.upcoming')}</Badge>
+                        {/if}
+                    </div>
+                </Dialog.Description>
+            </Dialog.Header>
+            {#if selectedEvent}
+                <Button variant="ghost" size="icon" class="h-8 w-8 mt-5 -mr-4" onclick={() => selectedEvent && shareEvent(selectedEvent)}>
+                    <Share2 class="w-4 h-4" />
+                </Button>
+            {/if}
+        </div>
         
         <div class="space-y-4 py-4">
             <p class="text-sm text-foreground">{selectedEvent?.description}</p>
@@ -547,10 +653,12 @@
                         <span>{formatTime(selectedEvent.date)}</span>
                     </div>
                 {/if}
+                {#if selectedEvent?.city || selectedEvent?.location}
                 <div class="flex items-center gap-2">
                     <MapPin class="w-4 h-4" />
                     <span>{selectedEvent?.city}{selectedEvent?.location ? ` - ${selectedEvent.location}` : ''}</span>
                 </div>
+                {/if}
                 {#if selectedEvent?.link}
                     <div class="flex items-center gap-2">
                         <ExternalLink class="w-4 h-4" />
@@ -559,7 +667,7 @@
                         </a>
                     </div>
                 {/if}
-                {#if selectedEvent?.attendeeCount !== undefined}
+                {#if selectedEvent?.attendeeCount && selectedEvent.attendeeCount > 0}
                     <div class="flex items-center gap-2">
                         <Users class="w-4 h-4" />
                         <span>{selectedEvent.attendeeCount} {t('events.attendees').toLowerCase()}</span>

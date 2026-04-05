@@ -431,26 +431,26 @@
 		if (count > 10) return 'color-mix(in srgb, var(--primary), transparent 70%)';
 		if (count > 0) return 'color-mix(in srgb, var(--primary), transparent 85%)';
 
-		return '#2a2a2a'; // Base color for 0 users
+		return 'var(--muted)'; // Base color for 0 users - theme aware
 	}
 
 	// Get fill color for path based on selection, hover, events and user counts
 	function getPathFill(pathId: string): string {
 		const plate = getPlateFromPathId(pathId);
-		if (!plate) return '#333333';
+		if (!plate) return 'var(--muted)';
 		const city = cityByPlate[plate];
-		if (!city) return '#333333';
+		if (!city) return 'var(--muted)';
 
 		// Priority 1: Selection
-		if (selectedCity === city.name) return '#fff'; // Golden for selected
-		if (hoveredCity === city.name) return 'gray'; // Yellow for hover
+		if (selectedCity === city.name) return 'var(--foreground)'; // Foreground color for selected
+		if (hoveredCity === city.name) return 'var(--muted-foreground)'; // Muted foreground for hover
 
-		// Priority 2: Future Event (Requirement: Full Yellow)
+		// Priority 2: Future Event (Requirement: Full Primary)
 		const normName = normalizeCityName(city.name);
 		if (normName && normalizedEventStatus[normName] === 'future') return 'var(--primary)'; // Pure Primary for future events
 
 		// Priority 3: Hover
-		if (hoveredCity === city.name) return 'color-mix(in srgb, var(--primary), white 20%)'; // Lighter primary for hover
+		if (hoveredCity === city.name) return 'color-mix(in srgb, var(--primary), var(--foreground) 20%)'; // Lighter primary for hover
 
 		// Default: Dynamic User Density color
 		return getCityColor(city.name);
@@ -481,7 +481,7 @@
 		xmlns="http://www.w3.org/2000/svg"
 		fill="#000000"
 		height="435"
-		stroke="#ffffff"
+		stroke="var(--border)"
 		stroke-linecap="round"
 		stroke-linejoin="round"
 		stroke-width=".5"

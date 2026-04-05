@@ -231,7 +231,14 @@ import { ScrollProgress } from "$lib/components/magic/scroll-progress";
     if (currentUser) {
       items = loggedInItems;
     } else {
-      items = baseLoggedOut.map((it) => ({ ...it, href: loginHref }));
+      items = baseLoggedOut.map((it) => {
+        // Only redirect the Login item to login page
+        if (it.name === t('Login')) {
+          return { ...it, href: loginHref };
+        }
+        // Keep other items (Links, Donations) with their original behavior
+        return it;
+      });
     }
   }); 
 
