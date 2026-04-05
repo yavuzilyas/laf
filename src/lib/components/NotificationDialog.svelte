@@ -6,14 +6,20 @@
 	import * as DropdownMenu from '$lib/components/ui/dropdown-menu/index.js';
 	import { Trash2, UserX, Ellipsis, ChevronDown, ChevronUp, Edit, CheckCircle2, XCircle } from '@lucide/svelte';
 	import type { NotificationRecord, TranslationObject } from '$lib/types/notification';
-	import { t, getCurrentLocale } from '$lib/stores/i18n.svelte';
 	import { Badge } from '$lib/components/ui/badge';
 	import { Avatar, AvatarFallback, AvatarImage } from '$lib/components/ui/avatar';
+	import { t, getCurrentLocale } from '$lib/stores/i18n.svelte';
 
-	export let open = false;
-	export let notifications: NotificationRecord[] = [];
-	export let unreadCount = 0;
-	export let blockedActorIds: string[] = [];
+	// Locale-aware URL helper
+	const locale = $derived(getCurrentLocale() || 'tr');
+	const l = (path: string) => `/${locale}${path}`;
+
+	let { open = $bindable(false), notifications = [], unreadCount = 0, blockedActorIds = [] }: {
+		open?: boolean;
+		notifications?: NotificationRecord[];
+		unreadCount?: number;
+		blockedActorIds?: string[];
+	} = $props();
 
 	interface NotificationGroup {
 		notifications: NotificationRecord[];
@@ -23,14 +29,16 @@
 		latestTimestamp: number;
 	}
 
-	// Group notifications by type and actor
-	let groupedNotifications: Record<string, NotificationGroup> = {};
-	$: groupedNotifications = (notifications || []).reduce((groups: Record<string, NotificationGroup>, notification) => {
+	// Separate state for tracking expanded groups (persists across re-groups)
+	let expandedGroups = $state<Record<string, boolean>>({});
+
+	// Group notifications by type and actor (derived, no state mutation)
+	let groupedNotifications = $derived((notifications || []).reduce((groups: Record<string, NotificationGroup>, notification) => {
 		const key = `${notification.type}-${notification.actor?.id || 'system'}`;
 		if (!groups[key]) {
 			groups[key] = {
 				notifications: [],
-				expanded: false,
+				expanded: expandedGroups[key] ?? false,
 				type: notification.type,
 				actor: notification.actor,
 				latestTimestamp: new Date(notification.createdAt).getTime()
@@ -42,17 +50,15 @@
 			groups[key].latestTimestamp = timestamp;
 		}
 		return groups;
-	}, {});
+	}, {} as Record<string, NotificationGroup>));
 
 	// Sort groups by latest timestamp
-	let sortedGroups: [string, NotificationGroup][] = [];
-	$: sortedGroups = Object.entries(groupedNotifications)
-		.sort(([, a], [, b]) => (b as NotificationGroup).latestTimestamp - (a as NotificationGroup).latestTimestamp);
+	let sortedGroups = $derived(Object.entries(groupedNotifications)
+		.sort(([, a], [, b]) => (b as NotificationGroup).latestTimestamp - (a as NotificationGroup).latestTimestamp));
 
-	// Toggle group expansion
+	// Toggle group expansion - only updates expandedGroups state
 	function toggleGroup(key: string) {
-		groupedNotifications[key].expanded = !groupedNotifications[key].expanded;
-		groupedNotifications = { ...groupedNotifications }; // Trigger reactivity
+		expandedGroups[key] = !(expandedGroups[key] ?? false);
 	}
 
 	// Get display name for actor
@@ -107,8 +113,8 @@
 		dispatch('rejectTranslation', { notification: n });
 	}
 
-	function handleMarkAll() {
-		dispatch('markAll', {});
+		function handleMarkAll() {
+		dispatch('markAll');
 	}
 
 	function formatTimestamp(value: string) {
@@ -275,7 +281,7 @@
                 <div class="flex items-center p-2 justify-between">
                   <div class="flex items-center gap-2">
                     {#if group.actor && group.actor.nickname}
-                      <a href={`/${group.actor.nickname}`} class="flex-shrink-0">
+                      <a href={l(`/${group.actor.nickname}`)} class="flex-shrink-0">
                         <Avatar class="h-10 w-10">
                           <AvatarFallback>
                             {(group.actor.nickname?.[0] || '?').toUpperCase()}
@@ -286,7 +292,7 @@
                     <div class="text-left">
                       <div class="text-sm">
                         {#if group.actor && group.actor.nickname}
-                          <a href={`/${group.actor.nickname}`} class="hover:text-primary transition-colors">
+                          <a href={l(`/${group.actor.nickname}`)} class="hover:text-primary transition-colors">
                             {getDisplayName(group.actor)}
                           </a>
                         {:else}

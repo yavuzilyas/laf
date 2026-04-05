@@ -5,7 +5,11 @@
     import ArticleFilterPopover from "$lib/components/ArticleFilterPopover.svelte";
     import ArticleSearch from "$lib/components/ArticleSearch.svelte";
     import { Button } from "$lib/components/ui/button";
-    import { t } from '$lib/stores/i18n.svelte';
+    import { t, getCurrentLocale } from '$lib/stores/i18n.svelte';
+
+    // Locale-aware URL helper
+    const currentLocale = $derived(getCurrentLocale() || 'tr');
+    const l = (path: string) => `/${currentLocale}${path}`;
 
     import Loader from '$lib/components/load.svelte';
     import {BookTextIcon, NotebookPenIcon} from 'svelte-animate-icons';
@@ -406,7 +410,7 @@
                     <p class="text-sm  text-muted-foreground max-w-2xl">
                         {t('articles.subtitle')}
                     </p>
-                    <Button size="xs"  onmouseenter={() => notebookPenIcon?.start()} onmouseleave={() => notebookPenIcon?.stop()} href="/write"  class="shrink-0">
+                    <Button size="xs"  onmouseenter={() => notebookPenIcon?.start()} onmouseleave={() => notebookPenIcon?.stop()} href={l('/write')}  class="shrink-0">
                         <NotebookPenIcon loop={true} triggers={{ custom: true }}  bind:this={notebookPenIcon} class="w-4 h-4" />
                         {t('articles.writeArticle')}
                     </Button>

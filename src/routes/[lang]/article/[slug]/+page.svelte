@@ -3045,7 +3045,7 @@
 														<div class="flex items-start gap-3" id={`comment-${reply.id}`}>
 															<div class="flex-1">
 																<div class="flex items-center gap-2 mb-3">
-																	<a href="/{getAuthorIdentifier(reply.author)}">
+																	<a href={l(`/${getAuthorIdentifier(reply.author)}`)}>
 																		<div
 																			class="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0"
 																		>
@@ -3076,7 +3076,7 @@
 																			</Avatar>
 																		</div>
 																	</a>
-																	<a href="/{getAuthorIdentifier(reply.author)}">
+																	<a href={l(`/${getAuthorIdentifier(reply.author)}`)}>
 																		<span class="font-medium text-sm">
 																			{reply.author?.name && reply.author?.surname
 																				? `${reply.author.name} ${reply.author.surname}`
@@ -3392,7 +3392,7 @@
 		<div class="flex items-start gap-3" id={`comment-${reply.id}`}>
 			<div class="flex-1">
 				<div class="flex items-center gap-2 mb-1">
-					<a href="/{getAuthorIdentifier(reply.author)}">
+					<a href={l(`/${getAuthorIdentifier(reply.author)}`)}>
 						<div class="w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0">
 							<Avatar class="w-6 h-6">
 								{#if reply.author?.avatar}
@@ -3421,7 +3421,7 @@
 							</Avatar>
 						</div>
 					</a>
-					<a href="/{getAuthorIdentifier(reply.author)}">
+					<a href={l(`/${getAuthorIdentifier(reply.author)}`)}>
 						<span class="font-medium text-xs">
 							{reply.author?.name && reply.author?.surname
 								? `${reply.author.name} ${reply.author.surname}`
@@ -3729,7 +3729,7 @@
 					<div class="flex items-start gap-3">
 						<div class="flex-1">
 							<div class="flex items-center gap-2 mb-2">
-								<a href="/{getAuthorIdentifier(comment.author)}">
+								<a href={l(`/${getAuthorIdentifier(comment.author)}`)}>
 									<div
 										class="w-7.5 h-7.5 rounded-full flex items-center justify-center flex-shrink-0"
 									>
@@ -3760,7 +3760,7 @@
 										</Avatar>
 									</div>
 								</a>
-								<a href="/{getAuthorIdentifier(comment.author)}">
+								<a href={l(`/${getAuthorIdentifier(comment.author)}`)}>
 									<span class="font-medium text-xs">
 										{comment.author?.name && comment.author?.surname
 											? `${comment.author.name} ${comment.author.surname}`
@@ -4026,7 +4026,7 @@
 		<div class="flex items-start gap-3">
 			<div class="flex-1">
 				<div class="flex items-center gap-2 mb-2">
-					<a href="/{getAuthorIdentifier(reply.author)}">
+					<a href={l(`/${getAuthorIdentifier(reply.author)}`)}>
 						<div class="w-7.5 h-7.5 rounded-full flex items-center justify-center flex-shrink-0">
 							<Avatar class="w-7.5 h-7.5">
 								{#if reply.author?.avatar}
@@ -4055,7 +4055,7 @@
 							</Avatar>
 						</div>
 					</a>
-					<a href="/{getAuthorIdentifier(reply.author)}">
+					<a href={l(`/${getAuthorIdentifier(reply.author)}`)}>
 						<span class="font-medium text-xs">
 							{reply.author?.name && reply.author?.surname
 								? `${reply.author.name} ${reply.author.surname}`

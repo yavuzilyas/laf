@@ -4,8 +4,12 @@ import { onMount, onDestroy } from 'svelte';
   import { goto } from '$app/navigation';
   import { page } from '$app/stores';
   import { articleEditor } from '$lib/stores/article-editor.svelte.js';
-  import { t } from '$lib/stores/i18n.svelte.js';
+  import { t, getCurrentLocale } from '$lib/stores/i18n.svelte.js';
   import { browser } from '$app/environment';
+
+  // Locale-aware URL helper
+  const currentLocale = $derived(getCurrentLocale() || 'tr');
+  const l = (path: string) => `/${currentLocale}${path}`;
 
   import { Button } from '$lib/components/ui/button';
   import { Input } from '$lib/components/ui/input';
@@ -204,7 +208,7 @@ import { onMount, onDestroy } from 'svelte';
     try {
       const result = await articleEditor.publishArticle();
       if (result) {
-        await goto(`/article/${result.slug}`);
+        await goto(l(`/article/${result.slug}`));
       }
     } catch (error: any) {
       alert(error.message);

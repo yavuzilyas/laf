@@ -3,7 +3,7 @@ import { goto } from '$app/navigation';
 import { derived, writable, type Writable } from 'svelte/store';
 import { showToast, showToastKey } from '$lib/hooks/toast';
 import type { NotificationRecord, TranslationObject } from '$lib/types/notification';
-import { t } from '$lib/stores/i18n.svelte';
+import { t, getCurrentLocale } from '$lib/stores/i18n.svelte';
 import { notificationPreferences, loadNotificationPreferences } from '$lib/stores/notification-preferences';
 
 const notificationsStore: Writable<NotificationRecord[]> = writable<NotificationRecord[]>([]);
@@ -114,8 +114,12 @@ export async function fetchNotifications(): Promise<void> {
 					}
 					
 					if (typeof processedText === 'string') {
+						// Check if link already has locale prefix
+						const availableLocales = ['tr', 'en', 'de', 'fr', 'es'];
+						const hasLocalePrefix = item.link && availableLocales.some(loc => item.link!.startsWith(`/${loc}/`) || item.link! === `/${loc}`);
+						const localeAwareLink = (!hasLocalePrefix && item.link?.startsWith('/')) ? `/${getCurrentLocale() || 'tr'}${item.link}` : item.link;
 						showToast(processedText, 'info', 6000, {
-							link: item.link || undefined
+							link: localeAwareLink || undefined
 						});
 					} else {
 						// Process values and replace {user} with actor name
@@ -167,8 +171,12 @@ export async function fetchNotifications(): Promise<void> {
 						}
 						
 						const translatedText = t(processedText.key, processedValues);
+						// Check if link already has locale prefix
+						const availableLocales2 = ['tr', 'en', 'de', 'fr', 'es'];
+						const hasLocalePrefix2 = item.link && availableLocales2.some(loc => item.link!.startsWith(`/${loc}/`) || item.link! === `/${loc}`);
+						const localeAwareLink2 = (!hasLocalePrefix2 && item.link?.startsWith('/')) ? `/${getCurrentLocale() || 'tr'}${item.link}` : item.link;
 						showToast(translatedText, 'info', 6000, {
-							link: item.link || undefined
+							link: localeAwareLink2 || undefined
 						});
 					}
 				}
@@ -423,7 +431,15 @@ export async function goToNotificationLink(link?: string | null): Promise<void> 
 	if (!browser || !link) return;
 
 	try {
-		const url = new URL(link, window.location.origin);
+		// Check if link already has a locale prefix
+		const locale = getCurrentLocale() || 'tr';
+		const availableLocales = ['tr', 'en', 'de', 'fr', 'es'];
+		const hasLocalePrefix = availableLocales.some(loc => link.startsWith(`/${loc}/`) || link === `/${loc}`);
+		
+		// Only prepend locale if link doesn't already have one
+		const localeAwareLink = (!hasLocalePrefix && link.startsWith('/')) ? `/${locale}${link}` : link;
+
+		const url = new URL(localeAwareLink, window.location.origin);
 		const hash = url.hash?.replace(/^#/, '') ?? '';
 		const pathWithQuery = `${url.pathname}${url.search}`;
 
