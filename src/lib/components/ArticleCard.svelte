@@ -74,45 +74,13 @@
     class?: string;
   } = $props();
 
-  // Get translated content based on current locale
-  const getTranslatedContent = (article: Article) => {
-    const currentLocale = getCurrentLocale() || 'tr';
-    const defaultLocale = article.defaultLanguage || 'tr';
-    const translations = article.translations || {};
-    
-    // Try current locale first
-    const currentTranslation = translations[currentLocale];
-    if (currentTranslation?.title) {
-      return {
-        title: currentTranslation.title,
-        excerpt: currentTranslation.excerpt || '',
-        slug: currentTranslation.slug || article.slug,
-        content: currentTranslation.content || ''
-      };
-    }
-    
-    // Fallback to default locale
-    const defaultTranslation = translations[defaultLocale];
-    if (defaultTranslation?.title) {
-      return {
-        title: defaultTranslation.title,
-        excerpt: defaultTranslation.excerpt || '',
-        slug: defaultTranslation.slug || article.slug,
-        content: defaultTranslation.content || ''
-      };
-    }
-    
-    // Final fallback to article's direct fields (for backward compatibility)
-    return {
-      title: article.title,
-      excerpt: article.excerpt,
-      slug: article.slug,
-      content: article.content || ''
-    };
-  };
-
-  // Reactive translated content
-  const translatedContent = $derived(getTranslatedContent(article));
+  // Article displays in its own language - no site language mixing
+  const translatedContent = $derived({
+    title: article.title,
+    excerpt: article.excerpt,
+    slug: article.slug,
+    content: article.content || ''
+  });
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);

@@ -3,7 +3,7 @@ import { readFile } from 'fs/promises';
 import { resolve } from 'path';
 import { env } from '$env/dynamic/private';
 
-const UPLOAD_BASE_DIR = env.UPLOAD_DIR || 'uploads';
+const UPLOAD_BASE_DIR = env.UPLOAD_DIR;
 
 export const GET: RequestHandler = async ({ params }) => {
   try {

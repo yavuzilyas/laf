@@ -1109,7 +1109,6 @@
 
 	const article = $derived({
 		...data.article,
-		...(data.article?.translations?.[currentLocale] || {}),
 		translations: data.article?.translations || {}
 	} as Article);
 
@@ -2178,7 +2177,7 @@
 							{t('articles.languages')}:
 						</span>
 						{#each localeConfig.availableLocales as lang}
-							{@const hasTranslation = article.availableTranslations?.[lang]}
+							{@const hasTranslation = lang === article.language || article.availableTranslations?.[lang]}
 							<Button
 								size="xs"
 								variant={lang === article.language ? 'default' : 'outline'}
@@ -2496,12 +2495,14 @@
 				</header>
 
 				<div class="mt-6 prose max-w-none text-base leading-7">
-					{#if typeof article.content === 'string'}
+					{#if typeof article.content === 'string' && article.content.trim()}
 						{@html article.content}
-					{:else}
+					{:else if article.content && (article.content.content?.length > 0 || article.content.type)}
 						<div class="rounded-md">
 							<EdraEditor content={article.content} editable={false} />
 						</div>
+					{:else}
+						<p class="text-muted-foreground italic">{t('articles.noContent')}</p>
 					{/if}
 				</div>
 
