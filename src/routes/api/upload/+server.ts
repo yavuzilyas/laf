@@ -5,9 +5,6 @@ import { extname, resolve } from 'path';
 import { slugify } from '$lib/utils/slugify';
 import { env } from '$env/dynamic/private';
 
-// Get upload directory from environment variable or fallback to static/uploads
-const UPLOAD_BASE_DIR = env.UPLOAD_DIR;
-
 // Simple rate limiting: max 10 uploads per 5 minutes per user
 const uploadAttempts = new Map<string, number[]>();
 const RATE_LIMIT_WINDOW_MS = 5 * 60 * 1000; // 5 minutes
@@ -31,7 +28,7 @@ function isRateLimited(userId: string): boolean {
 }
 
 export async function POST({ request, locals }) {
-  const UPLOAD_BASE_DIR = env.UPLOAD_DIR || 'uploads';
+  const UPLOAD_BASE_DIR = env.UPLOAD_DIR || '/app/uploads';
   const user = (locals as any)?.user;
   if (!user) return json({ error: 'Unauthorized' }, { status: 401 });
 
@@ -167,7 +164,7 @@ export async function POST({ request, locals }) {
 }
 
 export async function DELETE({ request, locals }) {
-  const UPLOAD_BASE_DIR = env.UPLOAD_DIR || 'uploads';
+  const UPLOAD_BASE_DIR = env.UPLOAD_DIR || '/app/uploads';
   const user = (locals as any)?.user;
   if (!user) return json({ error: 'Unauthorized' }, { status: 401 });
 
