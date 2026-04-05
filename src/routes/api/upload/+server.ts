@@ -29,6 +29,9 @@ function isRateLimited(userId: string): boolean {
 
 export async function POST({ request, locals }) {
   const UPLOAD_BASE_DIR = env.UPLOAD_DIR || '/app/uploads';
+  console.log('[UPLOAD] UPLOAD_DIR from env:', env.UPLOAD_DIR);
+  console.log('[UPLOAD] Using UPLOAD_BASE_DIR:', UPLOAD_BASE_DIR);
+  console.log('[UPLOAD] CWD:', process.cwd());
   const user = (locals as any)?.user;
   if (!user) return json({ error: 'Unauthorized' }, { status: 401 });
 
@@ -141,9 +144,16 @@ export async function POST({ request, locals }) {
     }
   }
 
-  await mkdir(dir, { recursive: true });
-  const filePath = resolve(dir, fileName);
-  await writeFile(filePath, buffer);
+  try {
+    await mkdir(dir, { recursive: true });
+    const filePath = resolve(dir, fileName);
+    console.log('[UPLOAD] Writing file to:', filePath);
+    await writeFile(filePath, buffer);
+    console.log('[UPLOAD] File written successfully');
+  } catch (err: any) {
+    console.error('[UPLOAD] Error writing file:', err);
+    return json({ error: 'Failed to save file', details: err.message }, { status: 500 });
+  }
 
   // Public URL under /uploads/
   const url = `${publicBase}/${fileName}`;
