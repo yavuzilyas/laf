@@ -96,14 +96,14 @@ import { cn } from "$lib/utils";
 
 <section class="w-full py-12 px-4 sm:px-6 lg:px-8 bg-background flex flex-col items-center justify-center relative">
 <img class="h-16 w-auto mb-5 text-primary" src="{logo}" alt="LAF" />
-<h1 class=" text-3xl font-bold mb-24">{t('lafFull')}</h1>
+<h1 class="text-center text-3xl font-bold mb-24">{t('lafFull')}</h1>
   <div class="max-w-7xl mx-auto">
     <!-- Three Column Layout -->
-    <div class="grid md:grid-cols-3 gap-12 items-start">
+    <div class="grid gap-12 items-start">
       
       <!-- Who We Are Column -->
-      <div class="text-center">
-        <h1 class="text-xl  font-bold mb-6 text-primary">{t('whoWeAre')}</h1>
+      <div>
+        <h1 class="text-xl  font-bold mb-1 text-primary">{t('whoWeAre')}</h1>
         <p class="text-base text-foreground leading-relaxed">
           {t('whoWeAreDescription')}
           
@@ -130,8 +130,8 @@ import { cn } from "$lib/utils";
 
 
       <!-- Why Anarcho Capitalism Column -->
-      <div class="text-center">
-        <h1 class="text-xl font-bold mb-6 text-primary">{t('whyAnarchoCapitalism')}</h1>
+      <div >
+        <h1 class="text-xl font-bold mb-1 text-primary">{t('whyAnarchoCapitalism')}</h1>
         <p class="text-base text-foreground leading-relaxed">
           {t('whyAnarchoCapitalismDescription')}
         </p>
@@ -139,8 +139,8 @@ import { cn } from "$lib/utils";
       </div>
 
       <!-- Our Goal Column -->
-      <div class="text-center">
-        <h1 class="text-xl  font-bold mb-6 text-primary">{t('ourGoal')}</h1>
+      <div >
+        <h1 class="text-xl  font-bold mb-1 text-primary">{t('ourGoal')}</h1>
         <p class="text-base text-foreground leading-relaxed">
           {t('ourGoalDescription')}
         </p>
