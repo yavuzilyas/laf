@@ -15,6 +15,7 @@
     languages: { label: string; value: string }[];
     categories: string[];
     dateRanges: { label: string; value: string }[];
+    statuses?: { label: string; value: string }[];
   }
 
   interface ActiveFilters {
@@ -24,6 +25,7 @@
     customDateRange?: any; // For DateRangePicker value
     nickname?: string;
     onlyFollowing?: boolean;
+    status?: string;
   }
 
   let {
@@ -31,6 +33,7 @@
     activeFilters = {},
     onFiltersChange,
     enableFollowingFilter = false,
+    enableStatusFilter = false,
     class: className,
     ...restProps
   }: {
@@ -38,6 +41,7 @@
     activeFilters?: ActiveFilters;
     onFiltersChange?: (filters: ActiveFilters) => void;
     enableFollowingFilter?: boolean;
+    enableStatusFilter?: boolean;
     class?: string;
   } = $props();
 
@@ -47,7 +51,8 @@
     dateRange: "",
     customDateRange: undefined,
     nickname: "",
-    onlyFollowing: false
+    onlyFollowing: false,
+    status: ""
   };
 
   // Default empty filters
@@ -75,7 +80,8 @@
     filters.category || 
     filters.dateRange ||
     filters.customDateRange ||
-    filters.nickname
+    filters.nickname ||
+    filters.status
   );
 
   const getActiveFilterCount = $derived(
@@ -172,6 +178,25 @@
           class="w-full px-3 py-2 text-sm border rounded-md focus:outline-none focus:ring-2 focus:ring-primary/20"
         />
       </div>
+
+      {#if enableStatusFilter && options.statuses && options.statuses.length > 0}
+        <Separator />
+        <div class="space-y-2">
+          <label class="text-xs font-medium flex items-center gap-2">
+            <Filter class="h-3 w-3" />
+            {t('articles.filters.status') ?? 'Durum'}
+          </label>
+          <select
+            bind:value={filters.status}
+            class="w-full px-3 py-2 text-sm border rounded-md focus:outline-none focus:ring-2 focus:ring-primary/20 bg-background"
+          >
+            <option value="">{t('articles.filters.allStatuses') ?? 'Tümü'}</option>
+            {#each options.statuses as status}
+              <option value={status.value}>{status.label}</option>
+            {/each}
+          </select>
+        </div>
+      {/if}
 
       {#if enableFollowingFilter}
         <Separator />

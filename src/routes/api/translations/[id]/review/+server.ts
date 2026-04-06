@@ -62,6 +62,29 @@ export async function POST({ params, request, locals }) {
             await updateArticle(status.article_id, { translations });
         }
 
+        // If approved, add translator as collaborator if different from author
+        if (action === 'approve') {
+            const translatorId = status.translator_id;
+            const authorId = article.author_id;
+            
+            // Only add if translator is different from author
+            if (String(translatorId) !== String(authorId)) {
+                const currentCollaborators = article.collaborators || [];
+                
+                // Check if translator is already a collaborator
+                const isAlreadyCollaborator = currentCollaborators.some(
+                    (id: string) => String(id) === String(translatorId)
+                );
+                
+                if (!isAlreadyCollaborator) {
+                    const { updateArticle } = await import('$db/queries');
+                    const updatedCollaborators = [...currentCollaborators, translatorId];
+                    await updateArticle(status.article_id, { collaborators: updatedCollaborators });
+                    console.log(`[TRANSLATION] Added translator ${translatorId} as collaborator to article ${status.article_id}`);
+                }
+            }
+        }
+
         return json({
             success: true,
             status: newStatus,

@@ -2285,9 +2285,11 @@
 										</Tooltip.Root>
 									</Tooltip.Provider>
 								{/if}
-								<Badge variant="default">{t(`${article.category}`)}</Badge>
+								<Badge variant="default">            {t(`categories.${article.category}`)}
+</Badge>
 								{#if article.subcategory}
-									<Badge variant="secondary">{t(`${article.subcategory}`)}</Badge>
+									<Badge variant="secondary">            {t(`categories.${article.subcategory}`)}
+</Badge>
 								{/if}
 							</div>
 						</div>
@@ -2494,7 +2496,7 @@
 					</div>
 				</header>
 
-				<div class="mt-6 prose max-w-none text-base leading-7">
+				<div class="mt-6 prose prose-ac:text-primary max-w-none text-base leading-7">
 					{#if typeof article.content === 'string' && article.content.trim()}
 						{@html article.content}
 					{:else if article.content && (article.content.content?.length > 0 || article.content.type)}
@@ -2727,6 +2729,7 @@
 								class="min-h-[140px]"
 								onUpdate={onCommentEditorUpdate}
 								placeholder={t('articles.comments.writeComment')}
+								commentId={null}
 							/>
 						</div>
 						<div class="flex justify-end mt-2">
@@ -2841,6 +2844,7 @@
 															class="min-h-[100px] rounded-lg h-min text-sm"
 															onUpdate={onEditingEditorUpdate}
 															placeholder={t('articles.comments.editPlaceholder')}
+															commentId={editingCommentId}
 														/>
 														<div class="flex justify-end gap-2 mt-2">
 															<Button variant="ghost" size="sm" onclick={cancelEditComment}>
@@ -3003,6 +3007,7 @@
 																class="min-h-[100px] rounded-lg h-min text-sm"
 																onUpdate={() => onReplyEditorUpdate(comment.id)}
 																placeholder={t('articles.comments.replyPlaceholder')}
+																commentId={comment.id}
 															/>
 														</div>
 													{/key}

@@ -18,7 +18,7 @@
     title: string;
     excerpt: string;
     content?: string;
-    status?: 'published' | 'pending' | 'draft';
+    status?: 'published' | 'pending' | 'draft' | 'rejected';
     author: {
       name: string;
       avatar?: string;
@@ -161,7 +161,7 @@
       <div class="space-y-4">
         <div class="flex items-center gap-2 text-xs text-muted-foreground">
           <Badge variant="secondary" class="text-xs">
-            {t(`${article.category}`)}
+            {t(`categories.${article.category}`)}
           </Badge>
           <span>•</span>
           <div class="flex items-center gap-1">
@@ -179,6 +179,8 @@
               <Badge variant="outline">{t('articles.status.pending')}</Badge>
             {:else if article.status === 'draft'}
               <Badge variant="outline">{t('articles.status.draft')}</Badge>
+            {:else if article.status === 'rejected'}
+              <Badge variant="destructive">{t('articles.status.rejected')}</Badge>
             {:else if article.status === 'published'}
               <Badge variant="default">{t('articles.status.noFlaws')}</Badge>
             {/if}
@@ -279,7 +281,7 @@
     <div class="flex-1 space-y-2">
       <div class="flex items-center gap-2 text-xs text-muted-foreground">
         <Badge variant="secondary" class="text-xs">
-            {t(`${article.category}`)}
+            {t(`categories.${article.category}`)}
         </Badge>
         <time>{formatDate(article.publishedAt)}</time>
       </div>
@@ -292,6 +294,8 @@
           <Badge variant="outline">{t('articles.status.pending')}</Badge>
         {:else if article.status === 'draft'}
           <Badge variant="outline">{t('articles.status.draft')}</Badge>
+        {:else if article.status === 'rejected'}
+          <Badge variant="destructive">{t('articles.status.rejected')}</Badge>
         {:else if article.status === 'published'}
           <Badge variant="default">No flaws</Badge>
         {/if}
@@ -392,6 +396,8 @@
         <Badge variant="outline">{t('articles.status.pending')}</Badge>
       {:else if article.status === 'draft'}
         <Badge variant="outline">{t('articles.status.draft')}</Badge>
+      {:else if article.status === 'rejected'}
+        <Badge variant="destructive">{t('articles.status.rejected')}</Badge>
       {:else if article.status === 'published'}
         <Badge variant="default">No flaws</Badge>
       {/if}
@@ -462,7 +468,7 @@
           <img 
             src={article.coverImage} 
             alt={translatedContent.title}
-            class="aspect-[16/9] rounded-2xl w-full object-cover transition-transform duration-300 "
+            class="aspect-[16/9] rounded-xl w-full object-cover transition-transform duration-300 "
           />
         </A>
         </Lens>
@@ -476,9 +482,13 @@
           <div class="flex flex-row gap-1">
                               {#if article.status === 'pending'}
             <Badge variant="outline">{t('articles.status.pending')}</Badge>
+          {:else if article.status === 'draft'}
+            <Badge variant="outline">{t('articles.status.draft')}</Badge>
+          {:else if article.status === 'rejected'}
+            <Badge variant="destructive">{t('articles.status.rejected')}</Badge>
           {/if}
         <Badge variant="secondary">
-            {t(`${article.category}`)}
+            {t(`categories.${article.category}`)}
         </Badge>
 
       </div>

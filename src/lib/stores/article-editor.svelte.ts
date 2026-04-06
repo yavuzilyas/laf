@@ -293,6 +293,61 @@ class ArticleEditorStore {
     }
   }
 
+  async saveAsDraft() {
+    if (!browser) return false;
+
+    // Validation (same as publish)
+    const defaultLang = this._articleData.defaultLanguage || getCurrentLocale();
+    const primaryTranslation =
+      this._articleData.translations[defaultLang] ||
+      this._articleData.translations[this._activeLanguage] ||
+      this._articleData.translations[getCurrentLocale()];
+
+    if (!primaryTranslation || !primaryTranslation.title?.trim() || !primaryTranslation.content) {
+      throw new Error('Title and content are required for the primary language');
+    }
+
+    this._isSaving = true;
+    try {
+      // Get honeypot field value
+      const honeypotField = document.querySelector('input[name="website"]') as HTMLInputElement;
+      const honeypotValue = honeypotField?.value || '';
+
+      const response = await fetch('/api/articles/save', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ...this._articleData,
+          status: 'draft',
+          website: honeypotValue,
+          isTranslator: this._isTranslator
+        })
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        this._articleData.id = result.articleId || this._articleData.id;
+        this._articleData.status = 'draft';
+        return result;
+      } else if (response.status === 429) {
+        throw new Error('Too many articles created. Please wait before creating another article.');
+      } else {
+        const errorData = await response.json().catch(() => ({}));
+        const errorMessage = errorData.error || 'Failed to save draft';
+        if (errorData.reasons && Array.isArray(errorData.reasons)) {
+          throw new Error(`${errorMessage}: ${errorData.reasons.join(', ')}`);
+        } else {
+          throw new Error(errorMessage);
+        }
+      }
+      return false;
+    } catch (error) {
+      throw error;
+    } finally {
+      this._isSaving = false;
+    }
+  }
+
   async saveDraft() {
     if (!browser) return false;
 
@@ -332,6 +387,67 @@ class ArticleEditorStore {
 
     if (!primaryTranslation || !primaryTranslation.title?.trim() || !primaryTranslation.content) {
       throw new Error('Title and content are required for the primary language');
+    }
+
+    // Title validation: at least 5 characters
+    if (primaryTranslation.title.trim().length < 5) {
+      throw new Error('Title must be at least 5 characters long');
+    }
+
+    // Excerpt/description validation: at least 20 characters
+    if (!primaryTranslation.excerpt || primaryTranslation.excerpt.trim().length < 20) {
+      throw new Error('Description must be at least 20 characters long');
+    }
+
+    // Thumbnail validation: required
+    if (!this._articleData.thumbnail || this._articleData.thumbnail.trim() === '') {
+      throw new Error('Thumbnail image is required');
+    }
+
+    // Category validation: must be selected
+    if (!this._articleData.category || this._articleData.category.trim() === '') {
+      throw new Error('Category is required');
+    }
+
+    // Tags validation: at least 5 tags
+    if (!this._articleData.tags || this._articleData.tags.length < 5) {
+      throw new Error('At least 5 tags are required');
+    }
+
+    // Content validation: at least 2 paragraphs
+    const content = primaryTranslation.content;
+    if (content && typeof content === 'object') {
+      const paragraphs = content.content?.filter((node: any) => node.type === 'paragraph') || [];
+      const nonEmptyParagraphs = paragraphs.filter((p: any) => {
+        const hasContent = p.content?.some((node: any) => node.text && node.text.trim() !== '');
+        return hasContent;
+      });
+      if (nonEmptyParagraphs.length < 2) {
+        throw new Error('Content must contain at least 2 paragraphs');
+      }
+    } else {
+      throw new Error('Content is required');
+    }
+
+    // Translation size validation: each translation must be within +/-15% of original content size
+    const originalContent = this._articleData.translations[defaultLang]?.content;
+    if (originalContent) {
+      const originalSize = new Blob([JSON.stringify(originalContent)]).size;
+      const minSize = Math.floor(originalSize * 0.80); // -15%
+      const maxSize = Math.ceil(originalSize * 1.20); // +15%
+      
+      for (const [lang, translation] of Object.entries(this._articleData.translations)) {
+        if (lang === defaultLang) continue; // Skip default language
+        if (!translation?.content) continue; // Skip empty translations
+        
+        const translationSize = new Blob([JSON.stringify(translation.content)]).size;
+        if (translationSize < minSize) {
+          throw new Error(`${lang.toUpperCase()} translation is too small (${translationSize} bytes vs ${originalSize} bytes original). Must be within -15%/+15% (${minSize}-${maxSize} bytes)`);
+        }
+        if (translationSize > maxSize) {
+          throw new Error(`${lang.toUpperCase()} translation is too large (${translationSize} bytes vs ${originalSize} bytes original). Must be within -15%/+15% (${minSize}-${maxSize} bytes)`);
+        }
+      }
     }
 
     this._isSaving = true;

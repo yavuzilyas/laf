@@ -7,10 +7,19 @@
 	import Headings from './components/toolbar/Headings.svelte';
 	import QuickColors from './components/toolbar/QuickColors.svelte';
 	import SearchAndReplace from './components/toolbar/SearchAndReplace.svelte';
-	import FileUploadDialog from './components/toolbar/FileUploadDialog.svelte';
 	import ToolBarIcon from './components/ToolBarIcon.svelte';
 	import LinkDialog from './components/toolbar/LinkDialog.svelte';
-	const { editor, class: className, excludedCommands, children }: EdraToolbarProps = $props();
+
+	interface Props {
+		editor: Editor | null;
+		articleId?: string | null;
+		commentId?: string | null;
+		class?: string;
+		excludedCommands?: string[];
+		children?: any;
+	}
+
+	const { editor = null, articleId = null, commentId = null, class: className = '', excludedCommands = [], children }: Props = $props();
 
 	const toolbarCommands = Object.keys(commands).filter((key) => !excludedCommands?.includes(key));
 </script>
@@ -30,7 +39,6 @@
 					{#if command.name === 'link'}
 						<LinkDialog editor={editor} />
 					{:else if command.name === 'image-placeholder'}
-						<FileUploadDialog {editor} />
 						<ToolBarIcon {editor} {command} />
 					{:else}
 						<ToolBarIcon {editor} {command} />

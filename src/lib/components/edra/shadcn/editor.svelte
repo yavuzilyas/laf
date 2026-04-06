@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { onDestroy, onMount } from 'svelte';
+	import { onDestroy, onMount, setContext } from 'svelte';
 	import { nanoid } from 'nanoid';
 	import DragHandle from '../components/DragHandle.svelte';
 	import type { EdraEditorProps } from '../types.js';
@@ -21,6 +21,10 @@
 	import { AudioExtended } from '../extensions/audio/AudiExtended.js';
 	import AudioPlaceHolderComp from './components/AudioPlaceHolder.svelte';
 	import AudioExtendedComp from './components/AudioExtended.svelte';
+	import { FilePlaceholder } from '../extensions/file-attachment/FilePlaceholder.js';
+	import { FileExtended } from '../extensions/file-attachment/FileExtended.js';
+	import FilePlaceholderComp from './components/FilePlaceholder.svelte';
+	import FileAttachmentComp from './components/FileAttachment.svelte';
 	import { IFramePlaceholder } from '../extensions/iframe/IFramePlaceholder.js';
 	import { IFrameExtended } from '../extensions/iframe/IFrameExtended.js';
 	import IFramePlaceHolderComp from './components/IFramePlaceHolder.svelte';
@@ -50,8 +54,12 @@
 		onUpdate,
 		autofocus = false,
 		class: className,
-		id = editorId
-	}: EdraEditorProps & { id?: string } = $props();
+		id = editorId,
+		commentId = null
+	}: EdraEditorProps & { id?: string; commentId?: string | null } = $props();
+
+	// Provide commentId to child components via context
+	setContext('edraCommentId', () => commentId);
 
 	onMount(() => {
 		// Clean up any existing editor with the same ID
@@ -80,6 +88,8 @@
 					VideoExtended(VideoExtendedComp),
 					AudioPlaceholder(AudioPlaceHolderComp),
 					AudioExtended(AudioExtendedComp),
+					FilePlaceholder(FilePlaceholderComp),
+					FileExtended(FileAttachmentComp),
 					IFramePlaceholder(IFramePlaceHolderComp),
 					IFrameExtended(IFrameExtendedComp),
 					slashcommand(SlashCommandList)

@@ -181,7 +181,8 @@
         category: '',
         type: '',
         customDateRange: undefined,
-        tags: []
+        tags: [],
+        status: ''
     });
     let loadingArticles = $state(false);
     let hasMore = $state(false);
@@ -713,7 +714,13 @@
             { label: "Son hafta", value: "week" },
             { label: "Son ay", value: "month" },
             { label: "Son yıl", value: "year" }
-        ]
+        ],
+        statuses: isOwnProfile ? [
+            { label: t('articles.status.published') ?? 'Yayında', value: 'published' },
+            { label: t('articles.status.draft') ?? 'Taslak', value: 'draft' },
+            { label: t('articles.status.pending') ?? 'Beklemede', value: 'pending' },
+            { label: t('articles.status.rejected') ?? 'Reddedildi', value: 'rejected' }
+        ] : undefined
     });
 
     const recentSearches = profileUser?.recentSearches || [];
@@ -773,6 +780,10 @@
                     return pubMs >= startMs && pubMs <= endMs;
                 });
             }
+        }
+
+        if (activeFilters.status) {
+            result = result.filter(article => article.status === activeFilters.status);
         }
 
         filteredArticles = result;
@@ -944,6 +955,7 @@
                             options={filterOptions}
                             activeFilters={activeFilters}
                             onFiltersChange={handleFiltersChange}
+                            enableStatusFilter={isOwnProfile}
                         />
 
                 </div>

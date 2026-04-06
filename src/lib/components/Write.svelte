@@ -29,7 +29,7 @@ import { onMount, onDestroy } from 'svelte';
   import UserSearch from '$lib/components/UserSearch.svelte';
 
 
-  import { EdraEditor, EdraToolBar, EdraDragHandleExtended } from '$lib/components/edra/shadcn/index.js';
+  import { EdraEditor, EdraToolBar, EdraDragHandleExtended, EdraBubbleMenu } from '$lib/components/edra/shadcn/index.js';
   import {
     Save,
     Eye,
@@ -47,7 +47,10 @@ import { onMount, onDestroy } from 'svelte';
     Info,
     User,
     UserPlus,
-    LogIn  } from '@lucide/svelte';
+    LogIn,
+    FileArchive,
+    NotebookPenIcon
+  } from '@lucide/svelte';
 
     let { article, mode, isTranslator = false } = $props();
     const user = $derived($page.data.user);
@@ -211,7 +214,23 @@ import { onMount, onDestroy } from 'svelte';
         await goto(l(`/article/${result.slug}`));
       }
     } catch (error: any) {
-      alert(error.message);
+      import('$lib/hooks/toast').then(({ showToast }) => {
+        showToast(error.message, 'error', 5000);
+      });
+    }
+  }
+
+  async function saveAsDraft() {
+    try {
+      const result = await articleEditor.saveAsDraft();
+      if (result) {
+        // Redirect to user profile after saving draft
+        await goto(l(`/${user?.nickname || user?.username}`));
+      }
+    } catch (error: any) {
+      import('$lib/hooks/toast').then(({ showToast }) => {
+        showToast(error.message, 'error', 5000);
+      });
     }
   }
 
@@ -264,18 +283,12 @@ import { onMount, onDestroy } from 'svelte';
       articleEditor.updateMetadata('authorId', user.id);
     }
   });
-
-  onDestroy(() => {
-    articleEditor.destroy();
-  });
-    import { PlusIcon, FolderCheckIcon } from 'svelte-animate-icons';
-import {NotebookPenIcon} from 'svelte-animate-icons';
 </script>
     <Dialog.Root bind:open={showCategoryDialog}>
       <Dialog.Content class="w-full sm:w-1/2 md:w-2/7 ">
         <Dialog.Header>
           <Dialog.Title class="flex items-center gap-2">
-            <PlusIcon animationState="loading" size={24} class="text-primary" />
+            <Plus animationState="loading" size={24} class="text-primary" />
             {rt()('article.selectCategory')}
           </Dialog.Title>
           <Dialog.Description>
@@ -323,7 +336,7 @@ import {NotebookPenIcon} from 'svelte-animate-icons';
 
       <div class="grid grid-re grid-cols-1 {isTranslator ? '' : 'lg:grid-cols-9'} gap-4">
         {#if !isTranslator}
-        <div class="lg:col-span-2 space-y-4 sm:sticky md:top-12 sm:self-start md:max-h-[calc(100vh-8rem] overflow-x-hidden">
+        <div class="lg:col-span-2 space-y-4 md:sticky md:top-12 md:self-start md:max-h-[calc(100vh-8rem] overflow-x-hidden">
           <Card>
             <CardHeader>
               <CardTitle class="flex items-center gap-2">
@@ -634,15 +647,26 @@ import {NotebookPenIcon} from 'svelte-animate-icons';
 
             </CardContent>
           </Card>
-                                  <Button class="w-full" onclick={publishArticle} disabled={articleEditor.isSaving}>
-            {#if articleEditor.isSaving}
-              <div class="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-              {isTranslator ? 'Yayınlanıyor...' : rt()('article.publishing')}
-            {:else}
-              <Send class="w-4 h-4 mr-2" />
-              {isTranslator ? 'Çeviriyi Yayınla' : rt()('article.publish')}
-            {/if}
-          </Button>
+          <div class="space-y-2">
+            <Button class="w-full" onclick={publishArticle} disabled={articleEditor.isSaving}>
+              {#if articleEditor.isSaving}
+                <div class="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                {isTranslator ? 'Yayınlanıyor...' : rt()('article.publishing')}
+              {:else}
+                <Send class="w-4 h-4 mr-2" />
+                {isTranslator ? 'Çeviriyi Yayınla' : rt()('article.publish')}
+              {/if}
+            </Button>
+            <Button class="w-full" variant="outline" onclick={saveAsDraft} disabled={articleEditor.isSaving}>
+              {#if articleEditor.isSaving}
+                <div class="animate-spin rounded-full h-4 w-4 border-b-2 border-primary mr-2"></div>
+                Kaydediliyor...
+              {:else}
+                <FileArchive class="w-4 h-4 mr-2" />
+                Taslak Olarak Kaydet
+              {/if}
+            </Button>
+          </div>
         </div>
         {/if}
         <div class="{isTranslator ? 'lg:col-span-12' : 'lg:col-span-7'}">
@@ -727,21 +751,19 @@ import {NotebookPenIcon} from 'svelte-animate-icons';
                     disabled={isTranslator && isDefaultLanguage}
                     oninput={(e) => canEditTranslation && articleEditor.updateTranslation(lang, 'excerpt', (e.target as HTMLTextAreaElement).value)}
                   />
-                  <div class="bg-background relative rounded-md border overflow-visible {isTranslator && isDefaultLanguage ? 'opacity-75 pointer-events-none' : ''}">
+                  <div class="bg-background z-50 mt-4 size-full max-w-5xl rounded-md border border-dashed {isTranslator && isDefaultLanguage ? 'opacity-75 pointer-events-none' : ''}">
                     {#if browser && editors[lang] && !editors[lang].isDestroyed && (!isTranslator || !isDefaultLanguage)}
                       <EdraToolBar
-                        class="bg-background/44 pb-1 sm:p-0.5 backdrop-blur-sm border-b rounded-md rounded-b-none  flex w-full items-center overflow-x-scroll sm:overflow-x-auto sm:p-0.5 sticky top-0 z-10 self-start"
+                        class="bg-secondary/50 flex w-full items-center overflow-x-auto border-b border-dashed p-0.5"
                         editor={editors[lang]}
+                        articleId={articleEditor.articleId}
                       />
                     {/if}
-                    
-                    <ScrollArea orientation="vertical" class="z-0 h-[500px] sm:h-[600px] lg:h-[700px] overflow-auto">
-                      {#if browser}
+                            {#if browser}
                         <EdraEditor
                           bind:editor={editors[lang]}
                           content={translation.content}
-                          class="py-2 p-3  md:py-7 sm:p-10"
-                          editable={!isTranslator || !isDefaultLanguage}
+class="h-120 max-h-screen overflow-y-scroll pr-2 pl-6 py-4"                          editable={!isTranslator || !isDefaultLanguage}
                           onUpdate={onEditorUpdate(lang)}
                         />
                       {:else}
@@ -752,7 +774,6 @@ import {NotebookPenIcon} from 'svelte-animate-icons';
                       {#if browser}
                         <EdraDragHandleExtended editor={editors[lang]} />
                       {/if}
-                    </ScrollArea>
                   </div>
                 </Tabs.Content>
               {:else}

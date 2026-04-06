@@ -4,18 +4,28 @@ import { query } from './pg';
 export async function createTranslationStatus(
     articleId: string, 
     languageCode: string, 
-    translatorId: string
+    translatorId: string,
+    initialStatus: 'pending' | 'approved' = 'pending'
 ): Promise<string | null> {
     try {
+        const reviewedAtValue = initialStatus === 'approved' ? 'NOW()' : 'NULL';
+        const onConflictReviewedAt = initialStatus === 'approved' 
+            ? 'COALESCE(article_translation_statuses.reviewed_at, NOW())' 
+            : 'article_translation_statuses.reviewed_at';
+        
         const sql = `
             INSERT INTO article_translation_statuses 
-            (article_id, language_code, translator_id, status, submitted_at)
-            VALUES ($1, $2, $3, 'pending', NOW())
+            (article_id, language_code, translator_id, status, submitted_at, reviewed_at)
+            VALUES ($1, $2, $3, $4, NOW(), ${reviewedAtValue})
             ON CONFLICT (article_id, language_code, translator_id) 
-            DO UPDATE SET status = 'pending', submitted_at = NOW(), reviewed_at = NULL, review_notes = NULL
+            DO UPDATE SET 
+                status = $4, 
+                submitted_at = NOW(), 
+                reviewed_at = ${onConflictReviewedAt},
+                review_notes = NULL
             RETURNING id
         `;
-        const result = await query(sql, [articleId, languageCode, translatorId]);
+        const result = await query(sql, [articleId, languageCode, translatorId, initialStatus]);
         return result.rows[0]?.id || null;
     } catch (error) {
         console.error('Error creating translation status:', error);

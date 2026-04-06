@@ -1,10 +1,9 @@
 <script lang="ts">
 	import MediaPlaceHolder from '../../components/MediaPlaceHolder.svelte';
 	import type { NodeViewProps } from '@tiptap/core';
-	import { getContext } from 'svelte';
 
 	const { editor }: NodeViewProps = $props();
-	import Image from '@lucide/svelte/icons/image';
+	import FileIcon from '@lucide/svelte/icons/file';
 	import { buttonVariants } from '$lib/components/ui/button/button.svelte';
 	import * as AlertDialog from '$lib/components/ui/alert-dialog/index.js';
 	import Button from '$lib/components/ui/button/button.svelte';
@@ -12,39 +11,38 @@
 	import { getFileSizeLimit, isFileSizeValid, getFileSizeError } from '../../config/file-limits.js';
 	import { articleEditor } from '$lib/stores/article-editor.svelte.js';
 
-	// Get commentId from context (if in comment editing mode)
-	const getCommentId = getContext<() => string | null>('edraCommentId');
-	const commentId = getCommentId?.() ?? null;
-
 	let fileInput: HTMLInputElement;
 	let dialogOpen = $state(false);
-	let url = $state('');
 	let baseUploadsUrl = $state<string | null>(null);
 
 	function handleClick() {
 		dialogOpen = true;
 	}
 
+	function formatFileSize(bytes: number): string {
+		if (bytes === 0) return '0 B';
+		const k = 1024;
+		const sizes = ['B', 'KB', 'MB', 'GB'];
+		const i = Math.floor(Math.log(bytes) / Math.log(k));
+		return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+	}
+
 	async function uploadFile(file: File) {
-		if (!isFileSizeValid(file, 'image')) {
-			throw new Error(getFileSizeError(file, 'image'));
+		if (!isFileSizeValid(file, 'file')) {
+			throw new Error(getFileSizeError(file, 'file'));
 		}
+
+		// Ensure articleId is available before upload
+		const articleId = await articleEditor.ensureArticleId();
 
 		const fd = new FormData();
 		fd.append('file', file);
-		fd.append('folder', 'photos');
+		fd.append('folder', 'files');
+		fd.append('fileType', 'attachment');
 		
-		// If commentId exists (in comment editing mode), use it
-		// Otherwise use articleId from articleEditor
-		if (commentId) {
-			fd.append('commentId', commentId);
-			fd.append('type', 'photos');
-		} else {
-			const articleId = await articleEditor.ensureArticleId();
-			if (articleId) {
-				fd.append('articleId', articleId);
-				fd.append('type', 'photos');
-			}
+		if (articleId) {
+			fd.append('articleId', articleId);
+			fd.append('type', 'files');
 		}
 
 		if (baseUploadsUrl) {
@@ -62,7 +60,12 @@
 		if (!res.ok) {
 			throw new Error(data?.error || 'Upload failed');
 		}
-		return data.url as string;
+		return {
+			url: data.url as string,
+			filename: file.name,
+			size: formatFileSize(file.size),
+			type: file.name.split('.').pop() || 'file'
+		};
 	}
 
 	function onFileChange(e: Event) {
@@ -71,11 +74,16 @@
 		if (!file) return;
 		(async () => {
 			try {
-				const urlFromServer = await uploadFile(file);
-				if (!urlFromServer) throw new Error('No URL received');
-				editor.chain().focus().setImage({ src: urlFromServer }).run();
+				const result = await uploadFile(file);
+				if (!result.url) throw new Error('No URL received');
+				editor.chain().focus().insertFileAttachment({
+					url: result.url,
+					filename: result.filename,
+					size: result.size,
+					type: result.type
+				}).run();
 				dialogOpen = false;
-				baseUploadsUrl = urlFromServer;
+				baseUploadsUrl = result.url;
 			} catch (err) {
 				alert(err instanceof Error ? err.message : 'Upload failed');
 			} finally {
@@ -83,40 +91,26 @@
 			}
 		})();
 	}
-
-	function insertFromUrl() {
-		if (!url) return;
-		editor.chain().focus().setImage({ src: url }).run();
-		url = '';
-		dialogOpen = false;
-	}
 </script>
 
 <MediaPlaceHolder
 	class={buttonVariants({ variant: 'secondary', class: 'my-2 w-full justify-start p-6' })}
-	icon={Image}
-	title={t('editor.media.insertImage')}
-	onclick={handleClick}
+	icon={FileIcon}
+	title={t('editor.media.insertFile')}
+	onClick={handleClick}
 >
 	<AlertDialog.Root bind:open={dialogOpen}>
-		<Button variant="ghost" onclick={(e) => { e.stopPropagation(); dialogOpen = true; }}>{t('editor.media.addMedia')}</Button>
+		<Button variant="ghost" onclick={(e) => { e.stopPropagation(); dialogOpen = true; }}>{t('editor.media.addFile')}</Button>
 		<AlertDialog.Content>
 			<AlertDialog.Header>
-				<AlertDialog.Title>{t('editor.media.addImage')}</AlertDialog.Title>
-				<AlertDialog.Description>{t('editor.media.urlOrFile')}</AlertDialog.Description>
+				<AlertDialog.Title>{t('editor.media.addFile')}</AlertDialog.Title>
+				<AlertDialog.Description>{t('editor.media.selectFile')}</AlertDialog.Description>
 			</AlertDialog.Header>
 			<div class="space-y-3">
-				<div class="flex gap-2">
-					<input type="url" bind:value={url} placeholder="https://..." class="w-full border rounded px-3 py-2" />
-					<Button onclick={(e) => { e.stopPropagation(); insertFromUrl(); }} disabled={!url}>{t('editor.media.insertFromUrl')}</Button>
-				</div>
-
 				<div class="flex items-center gap-3">
-
 					<input
-					placeholder={t('editor.media.insertFromFile')}
+						placeholder={t('editor.media.selectFile')}
 						type="file"
-						accept="image/*"
 						onclick={(e) => e.stopPropagation()}
 						onchange={onFileChange}
 						class="block w-full text-sm text-muted-foreground file:mr-3 file:rounded file:border file:bg-secondary file:px-3 file:py-2 file:text-foreground file:hover:bg-secondary/80"
@@ -130,5 +124,4 @@
 			</AlertDialog.Footer>
 		</AlertDialog.Content>
 	</AlertDialog.Root>
-	<!-- off-screen input no longer needed when using visible input in dialog -->
 </MediaPlaceHolder>

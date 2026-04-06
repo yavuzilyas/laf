@@ -33,23 +33,19 @@
       },
       "forgotPassword": {
         "question": "I forgot my password, what should I do?",
-        "answer": "Click the 'Forgot Password' link on the login page and enter your email address. A password reset link will be sent to your email."
+        "answer": "Click the 'Forgot Password' link on the login page and enter your BIP-39. and type your new password."
       },
       "editProfile": {
         "question": "How can I edit my profile?",
-        "answer": "Go to 'Profile Settings' from the settings menu. Here you can update your name, profile picture, and other information."
-      },
-      "twoFactor": {
-        "question": "How do I enable two-factor authentication?",
-        "answer": "Find the 'Two-Factor Authentication' option in security settings and follow the steps. Scan the QR code with an authenticator app."
+        "answer": "Go to 'Account' from the hamburger menu icon. Here you can update your name, profile picture, and other information."
       },
       "createContent": {
         "question": "How can I create content?",
-        "answer": "Click the 'Write' button in the main menu. You can create content using the text editor, add media, and preview before publishing."
+        "answer": "Click the 'Write' button in the Articles. You can create content using the text editor, add media, and preview before publishing."
       },
       "collaborate": {
         "question": "How can I collaborate with other users?",
-        "answer": "Use the 'Share' button on the content page to invite other users. You can use real-time editing and commenting features."
+        "answer": "Use the 'Add Colloborator' button on the write page to invite other users."
       }
     }
   },

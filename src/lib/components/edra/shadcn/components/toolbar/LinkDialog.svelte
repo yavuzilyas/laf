@@ -65,7 +65,7 @@
 	};
 </script>
 
-<AlertDialog.Root open={isOpen} onOpenChange={handleOpenChange} role="dialog1">
+<AlertDialog.Root open={isOpen} onOpenChange={handleOpenChange}>
 	<AlertDialog.Trigger>
 		<EdraToolTip tooltip={t('editor.toolbar.link.add')}>
 			<div
@@ -83,7 +83,7 @@
 	</AlertDialog.Trigger>
 	<AlertDialog.Content class="sm:max-w-[425px]">
 		<AlertDialog.Header>
-			<AlertDialog.Title>{editor.isActive('link') ? t('editor.toolbar.link.edit') : t('editor.toolbar.link.add')}</AlertDialog.Title>
+			<AlertDialog.Title>{editor?.isActive('link') ? t('editor.toolbar.link.edit') : t('editor.toolbar.link.add')}</AlertDialog.Title>
 			<AlertDialog.Description>{t('editor.toolbar.link.enterUrl')}</AlertDialog.Description>
 		</AlertDialog.Header>
 		<div class="grid gap-4 py-4">
@@ -94,7 +94,7 @@
 					class="col-span-4 h-10 rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
 					bind:this={inputRef}
 					bind:value={url}
-					on:keydown={handleKeyDown}
+					onkeydown={handleKeyDown}
 					placeholder={t('editor.toolbar.link.urlPlaceholder')}
 				/>
 			</div>
@@ -105,7 +105,7 @@
 			</AlertDialog.Cancel>
 			<AlertDialog.Action
 				class={buttonVariants({ variant: 'default' })}
-				on:click={setLink}
+				onclick={setLink}
 			>
 				{t('common.save')}
 			</AlertDialog.Action>

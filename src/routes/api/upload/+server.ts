@@ -50,14 +50,22 @@ export async function POST({ request, locals }) {
   const commentIdRaw = form.get('commentId') as string | null;
   const uploadType = (form.get('type') as string | null) || undefined;
   const previousUrl = (form.get('previousUrl') as string | null) || undefined;
+  const articleStatus = (form.get('articleStatus') as string | null) || undefined;
+  
+  console.log('[UPLOAD] articleId:', articleIdRaw, 'articleStatus:', articleStatus, 'previousUrl:', previousUrl);
 
   if (!file) return json({ error: 'No file' }, { status: 400 });
 
-  // Validate type (image, audio or video) and size (<= 4MB)
+  // Validate type (image, audio, video, or any file for attachments) and size (<= 4MB)
   const type = (file as any)?.type as string | undefined;
-  const allowedPrefixes = ['image/', 'audio/', 'video/'];
-  if (!type || !allowedPrefixes.some((prefix) => type.startsWith(prefix))) {
-    return json({ error: 'Only image, audio or video uploads are allowed' }, { status: 400 });
+  const fileType = (form.get('fileType') as string) || 'media';
+  
+  // Allow all file types for attachments, restrict for media uploads
+  if (fileType !== 'attachment') {
+    const allowedPrefixes = ['image/', 'audio/', 'video/'];
+    if (!type || !allowedPrefixes.some((prefix) => type.startsWith(prefix))) {
+      return json({ error: 'Only image, audio or video uploads are allowed' }, { status: 400 });
+    }
   }
   
   // In environments where File.size is available, enforce 4MB here as well
@@ -107,8 +115,8 @@ export async function POST({ request, locals }) {
         }
       }
 
-      if (type.startsWith('audio/')) return 'sounds';
-      if (type.startsWith('video/')) return 'videos';
+      if (type?.startsWith('audio/')) return 'sounds';
+      if (type?.startsWith('video/')) return 'videos';
       return 'photos';
     })();
     const articleBaseDir = resolve(baseUploadsDir, 'users', safeUserId, 'articles', safeArticleId);
@@ -118,8 +126,8 @@ export async function POST({ request, locals }) {
   } else if (safeCommentId) {
     // Comment uploads go to user's comment folder: /uploads/users/{userId}/comments/{commentId}/{type}/
     const section = (() => {
-      if (type.startsWith('audio/')) return 'sounds';
-      if (type.startsWith('video/')) return 'videos';
+      if (type?.startsWith('audio/')) return 'sounds';
+      if (type?.startsWith('video/')) return 'videos';
       return 'photos';
     })();
     dir = resolve(baseUploadsDir, 'users', safeUserId, 'comments', safeCommentId, section);
@@ -135,8 +143,8 @@ export async function POST({ request, locals }) {
       publicBase = `/uploads/users/${safeUserId}/${folder}`;
     } else {
       const section = (() => {
-        if (type.startsWith('audio/')) return 'sounds';
-        if (type.startsWith('video/')) return 'videos';
+        if (type?.startsWith('audio/')) return 'sounds';
+        if (type?.startsWith('video/')) return 'videos';
         return 'photos';
       })();
       dir = resolve(baseUploadsDir, 'users', safeUserId, 'comments', section);
@@ -158,16 +166,20 @@ export async function POST({ request, locals }) {
   // Public URL under /uploads/
   const url = `${publicBase}/${fileName}`;
 
-  if (previousUrl && previousUrl !== url) {
+  if (previousUrl && previousUrl !== url && articleStatus !== 'draft') {
     try {
+      console.log('[UPLOAD] Deleting previous file:', previousUrl);
       const normalizedPrevious = previousUrl.startsWith('/') ? previousUrl : `/${previousUrl}`;
       const previousFsPath = resolve(UPLOAD_BASE_DIR, normalizedPrevious.replace(/^\//, '').replace(/^uploads\//, ''));
       if (previousFsPath.startsWith(resolve(UPLOAD_BASE_DIR))) {
         await rm(previousFsPath, { force: true });
+        console.log('[UPLOAD] Previous file deleted successfully');
       }
     } catch (error) {
-      // Silme hatası durumunda sessizce devam et
+      console.error('[UPLOAD] Error deleting previous file:', error);
     }
+  } else if (previousUrl && articleStatus === 'draft') {
+    console.log('[UPLOAD] Skipping previous file deletion because article is draft');
   }
 
   return json({ url });

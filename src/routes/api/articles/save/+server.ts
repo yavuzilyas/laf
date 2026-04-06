@@ -25,7 +25,7 @@ const profanityList = [
   'fuck', 'shit', 'cunt', 'dick', 'pussy'
 ];
 
-function checkArticleRateLimit(userId: string, limit: number = 3, windowMs: number = 3600000): boolean {
+function checkArticleRateLimit(userId: string, limit: number = 5, windowMs: number = 3600000): boolean {
   const now = Date.now();
   const key = `article:${userId}`;
   const record = articleRateLimitStore.get(key);
@@ -203,7 +203,13 @@ function collectArticleMediaUrls(article: any): Set<string> {
     return urls;
 }
 
-async function cleanupUnusedMedia(existing: any, updated: any, articleId: string) {
+async function cleanupUnusedMedia(existing: any, updated: any, articleId: string, status?: string) {
+    // Skip cleanup for drafts - don't delete uploaded files when saving as draft
+    if (status === 'draft' || updated?.status === 'draft') {
+        console.log('[cleanupUnusedMedia] Skipping cleanup for draft article:', articleId);
+        return;
+    }
+    
     if (!existing) return;
 
     const previousUrls = collectArticleMediaUrls(existing);
@@ -283,9 +289,9 @@ async function cleanupUnusedMedia(existing: any, updated: any, articleId: string
                 new Date(article.created_at) >= oneHourAgo
             );
 
-            if (publishedLastHour.length >= 2) {
+            if (publishedLastHour.length >= 4) {
                 return json({ 
-                    error: 'Saatlik makale yayınlama limitinize ulaştınız. Saatte en fazla 2 makale yayınlayabilirsiniz.' 
+                    error: 'Saatlik makale yayınlama limitinize ulaştınız. Saatte en fazla 4 makale yayınlayabilirsiniz.' 
                 }, { status: 403 });
             }
 
@@ -383,17 +389,18 @@ async function cleanupUnusedMedia(existing: any, updated: any, articleId: string
             let canEdit = isAuthor || isCollaborator;
             let isPrivilegedEdit = false;
             
-            if (!canEdit && isPrivileged) {
-                if (userRole === 'admin') {
+            // Admin ve moderator her zaman privileged kabul edilir
+            if (userRole === 'admin') {
+                isPrivilegedEdit = true;
+                if (!canEdit) {
+                    canEdit = true;
+                }
+            } else if (userRole === 'moderator' && !canEdit) {
+                const authorData = await getUsers({ id: existingArticle.author_id });
+                const authorRole = authorData[0]?.role || 'user';
+                if (authorRole === 'user') {
                     canEdit = true;
                     isPrivilegedEdit = true;
-                } else if (userRole === 'moderator') {
-                    const authorData = await getUsers({ id: existingArticle.author_id });
-                    const authorRole = authorData[0]?.role || 'user';
-                    if (authorRole === 'user') {
-                        canEdit = true;
-                        isPrivilegedEdit = true;
-                    }
                 }
             }
             
@@ -456,15 +463,24 @@ async function cleanupUnusedMedia(existing: any, updated: any, articleId: string
                     if (lang !== defaultLang && data.translations[lang]) {
                         await addDailyTranslation(user.id, articleId, lang);
                         
+                        // Check if translator is author, admin, or moderator (privileged)
+                        // Only privileged users get auto-approval
+                        const isPrivilegedTranslator = isAuthor || isPrivileged;
+                        
+                        console.log(`[TRANSLATION] Translator mode - lang: ${lang}, isPrivileged: ${isPrivilegedTranslator}`);
+                        
                         // Create translation status record for approval workflow
                         const translationStatusId = await createTranslationStatus(
                             articleId,
                             lang,
-                            user.id
+                            user.id,
+                            isPrivilegedTranslator ? 'approved' : 'pending'
                         );
                         
-                        // Send notification to article author for translation review
-                        if (translationStatusId && existingArticle?.author_id) {
+                        console.log(`[TRANSLATION] Created status for ${lang}: ${translationStatusId} (${isPrivilegedTranslator ? 'approved' : 'pending'})`);
+                        
+                        // Send notification to author for review (only for non-privileged translators)
+                        if (translationStatusId && existingArticle?.author_id && !isPrivilegedTranslator) {
                             try {
                                 await notifyTranslationReview({
                                     articleId: articleId,
@@ -475,6 +491,7 @@ async function cleanupUnusedMedia(existing: any, updated: any, articleId: string
                                     articleTitle: data.translations[lang]?.title || existingArticle.translations?.[defaultLang]?.title,
                                     translationStatusId: translationStatusId
                                 });
+                                console.log(`[TRANSLATION] Notification sent to author ${existingArticle.author_id} for ${lang}`);
                             } catch (notificationError) {
                                 console.error('Failed to send translation notification:', notificationError);
                             }
@@ -482,19 +499,107 @@ async function cleanupUnusedMedia(existing: any, updated: any, articleId: string
                     }
                 }
             } else if (isCollaboratorEdit || isPrivilegedEdit) {
+                console.log(`[TRANSLATION] Edit mode (privileged/collaborator) by ${user.id}, role: ${userRole} - auto-approving all new translations`);
                 const collaboratorArticleData = {
                     ...articleData,
                     author_id: originalAuthorId // Orijinal yazarı koru
                 };
                 await updateArticle(articleId, collaboratorArticleData);
+                
+                // Handle new languages added by collaborator/admin/moderator - auto-approve
+                const existingTranslations = existingArticle.translations || {};
+                const updatedTranslations = articleData.translations || {};
+                
+                for (const [lang, translation] of Object.entries(updatedTranslations)) {
+                    // Skip default language
+                    if (lang === articleData.default_language) continue;
+                    
+                    // Skip if language already existed before with content
+                    if (existingTranslations[lang]?.title) continue;
+                    
+                    // This is a new language being added - create approved translation status
+                    if (translation && typeof translation === 'object' && (translation as any).title) {
+                        try {
+                            const statusId = await createTranslationStatus(
+                                articleId,
+                                lang,
+                                user.id,
+                                'approved'
+                            );
+                            if (statusId) {
+                                console.log(`[TRANSLATION] ✓ Auto-approved ${lang} (edit mode): ${statusId}`);
+                            }
+                        } catch (err) {
+                            console.error(`[TRANSLATION] Error creating status for ${lang}:`, err);
+                        }
+                    }
+                }
             } else {
                 // Yazar düzenlemesi: normal güncelleme
+                console.log(`[TRANSLATION] Edit mode (author) by ${user.id} - auto-approving all new translations`);
                 await updateArticle(articleId, articleData);
+                
+                // Handle new languages added by author - auto-approve
+                const existingTranslations = existingArticle.translations || {};
+                const updatedTranslations = articleData.translations || {};
+                
+                for (const [lang, translation] of Object.entries(updatedTranslations)) {
+                    // Skip default language
+                    if (lang === articleData.default_language) continue;
+                    
+                    // Skip if language already existed before with content
+                    if (existingTranslations[lang]?.title) continue;
+                    
+                    // This is a new language being added - create approved translation status
+                    if (translation && typeof translation === 'object' && (translation as any).title) {
+                        try {
+                            const statusId = await createTranslationStatus(
+                                articleId,
+                                lang,
+                                user.id,
+                                'approved'
+                            );
+                            if (statusId) {
+                                console.log(`[TRANSLATION] Created approved status for ${lang} by author/admin: ${statusId}`);
+                            } else {
+                                console.error(`[TRANSLATION] Failed to create status for ${lang}`);
+                            }
+                        } catch (err) {
+                            console.error(`[TRANSLATION] Error creating status for ${lang}:`, err);
+                        }
+                    }
+                }
             }
         } else {
             // Yeni makale
             const result = await createArticle(articleData);
             articleId = result.id;
+            
+            // Yeni makaledeki tüm çevirileri otomatik onayla kaydet (edit yetkisi olan herkes için)
+            const newTranslations = articleData.translations || {};
+            const defaultLang = articleData.default_language || 'tr';
+            
+            for (const [lang, translation] of Object.entries(newTranslations)) {
+                // Skip default language
+                if (lang === defaultLang) continue;
+                
+                // Geçerli çeviri varsa kaydet
+                if (translation && typeof translation === 'object' && (translation as any).title) {
+                    try {
+                        const statusId = await createTranslationStatus(
+                            articleId,
+                            lang,
+                            user.id,
+                            'approved'
+                        );
+                        if (statusId) {
+                            console.log(`[TRANSLATION] ✓ New article - auto-approved ${lang}: ${statusId}`);
+                        }
+                    } catch (err) {
+                        console.error(`[TRANSLATION] Error creating status for new article ${lang}:`, err);
+                    }
+                }
+            }
         }
 
         // Taslak kaydetme
@@ -503,6 +608,9 @@ async function cleanupUnusedMedia(existing: any, updated: any, articleId: string
                 data: articleData,
                 has_unpublished_changes: true
             });
+            
+            // Taslak için de cleanup çalıştır (draft ise dosya silinmeyecek)
+            await cleanupUnusedMedia(existingArticle, articleData, articleId, articleData.status);
         } else {
             // Yayınlama - versiyon kaydet
             const versionCount = await countVersions(articleId);
@@ -513,10 +621,10 @@ async function cleanupUnusedMedia(existing: any, updated: any, articleId: string
                 changeNote: `Version ${versionCount + 1}`
             });
 
+            await cleanupUnusedMedia(existingArticle, articleData, articleId, articleData.status);
+            
             // Taslağı temizle
             await deleteDraft(articleId);
-
-            await cleanupUnusedMedia(existingArticle, articleData, articleId);
             
             // Get collaborators list
             const collaborators = articleData.collaborators || [];

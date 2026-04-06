@@ -1,6 +1,9 @@
 import { json } from '@sveltejs/kit';
 import { query } from '$db/pg';
 import { TRASH_HOLD_MS } from '$lib/server/moderation/constants';
+import { rm } from 'fs/promises';
+import { resolve } from 'path';
+import { env } from '$env/dynamic/private';
 
 const resolveRole = (user?: { role?: string; type?: string }) => user?.role ?? user?.type ?? 'user';
 
@@ -27,8 +30,9 @@ export async function POST({ request, locals }) {
     const cutoffTime = new Date(Date.now() - TRASH_HOLD_MS);
 
     // Find users with status 'silinecek' who were deleted more than 48 hours ago
+    // Include avatar_url and preferences (for bannerImage) to delete files
     const findSql = `
-      SELECT id, username, email, role, deleted_at, moderation_action
+      SELECT id, username, email, role, deleted_at, moderation_action, avatar_url, preferences
       FROM users
       WHERE status = 'silinecek'
         AND deleted_at IS NOT NULL
@@ -65,9 +69,43 @@ export async function POST({ request, locals }) {
     // Permanently delete the users
     const deletedIds: string[] = [];
     const failedIds: string[] = [];
+    const UPLOAD_BASE_DIR = env.UPLOAD_DIR || '/app/uploads';
 
     for (const user of deletableUsers) {
       try {
+        // Delete user's avatar file if exists
+        if (user.avatar_url && typeof user.avatar_url === 'string') {
+          try {
+            const normalizedAvatar = user.avatar_url.startsWith('/') ? user.avatar_url : `/${user.avatar_url}`;
+            const avatarFsPath = resolve(UPLOAD_BASE_DIR, normalizedAvatar.replace(/^\//, '').replace(/^uploads\//, ''));
+            const baseUploadsDir = resolve(UPLOAD_BASE_DIR);
+            if (avatarFsPath.startsWith(baseUploadsDir)) {
+              await rm(avatarFsPath, { force: true });
+              console.log(`[CLEANUP] Deleted avatar: ${avatarFsPath}`);
+            }
+          } catch (fileError) {
+            console.error(`[CLEANUP] Error deleting avatar for user ${user.id}:`, fileError);
+          }
+        }
+
+        // Delete user's banner file if exists (stored in preferences.bannerImage)
+        if (user.preferences && typeof user.preferences === 'object') {
+          const preferences = user.preferences;
+          if (preferences.bannerImage && typeof preferences.bannerImage === 'string') {
+            try {
+              const normalizedBanner = preferences.bannerImage.startsWith('/') ? preferences.bannerImage : `/${preferences.bannerImage}`;
+              const bannerFsPath = resolve(UPLOAD_BASE_DIR, normalizedBanner.replace(/^\//, '').replace(/^uploads\//, ''));
+              const baseUploadsDir = resolve(UPLOAD_BASE_DIR);
+              if (bannerFsPath.startsWith(baseUploadsDir)) {
+                await rm(bannerFsPath, { force: true });
+                console.log(`[CLEANUP] Deleted banner: ${bannerFsPath}`);
+              }
+            } catch (fileError) {
+              console.error(`[CLEANUP] Error deleting banner for user ${user.id}:`, fileError);
+            }
+          }
+        }
+
         // Delete user's related data first (articles, comments, likes, etc.)
         // Articles will be handled separately (soft delete or reassignment)
         await query('DELETE FROM comments WHERE author_id = $1', [user.id]);

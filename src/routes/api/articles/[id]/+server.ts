@@ -32,15 +32,19 @@ export async function DELETE({ params, locals }) {
     // Look for article folder in any user's directory
     const { readdir } = await import('fs/promises');
     try {
-      const users = await readdir(articleUploadsDir);
-      for (const userId of users) {
-        const articleDir = resolve(baseUploadsDir, 'users', userId, 'articles', params.id);
-        if (existsSync(articleDir)) {
+      if (!existsSync(articleUploadsDir)) {
+        console.log('[DELETE] Users directory does not exist:', articleUploadsDir);
+      } else {
+        const users = await readdir(articleUploadsDir);
+        for (const userId of users) {
+          const articleDir = resolve(baseUploadsDir, 'users', userId, 'articles', params.id);
+          console.log('[DELETE] Attempting to delete article directory:', articleDir);
           await rm(articleDir, { recursive: true, force: true });
+          console.log('[DELETE] Successfully deleted article directory:', articleDir);
         }
       }
     } catch (error) {
-      // Directory might not exist, ignore
+      console.error('[DELETE] Error deleting article directory:', error);
     }
 
     return json({ success: true, message: 'Article deleted successfully' });

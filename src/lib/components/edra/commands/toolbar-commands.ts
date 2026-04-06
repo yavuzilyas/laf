@@ -27,6 +27,7 @@ import Video from '@lucide/svelte/icons/video';
 import Audio from '@lucide/svelte/icons/audio-lines';
 import IFrame from '@lucide/svelte/icons/code-xml';
 import Table from '@lucide/svelte/icons/table';
+import FileIcon from '@lucide/svelte/icons/file';
 
 const commands: Record<string, EdraToolBarCommands[]> = {
 	'undo-redo': [
@@ -693,6 +694,26 @@ const commands: Record<string, EdraToolBarCommands[]> = {
 					return editor?.isActive?.('audio-placeholder') ?? false;
 				} catch (e) {
 					console.error('Error checking audio placeholder active state:', e);
+					return false;
+				}
+			}
+		},
+		{
+			icon: FileIcon,
+			name: 'file-placeholder',
+			tooltip: 'File Attachment',
+			onClick: (editor) => {
+				try {
+					editor?.chain()?.focus()?.insertFilePlaceholder()?.run();
+				} catch (e) {
+					console.error('Error inserting file placeholder:', e);
+				}
+			},
+			isActive: (editor) => {
+				try {
+					return editor?.isActive?.('file-placeholder') ?? false;
+				} catch (e) {
+					console.error('Error checking file placeholder active state:', e);
 					return false;
 				}
 			}
