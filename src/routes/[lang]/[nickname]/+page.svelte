@@ -29,6 +29,7 @@
     import Loader from "$lib/components/load.svelte";
     import ArticleList from '$lib/components/ArticleList.svelte';
     import { showToast } from "$lib/hooks/toast";
+    import { getCurrentLocale } from '$lib/stores/i18n.svelte';
 
     // Layout mode state
     let layoutMode = $state<"grid" | "list" | "masonry">("grid");
@@ -155,15 +156,29 @@
         serverArticles.map((article) => {
             const translations = article.translations || {};
             const translationKeys = Object.keys(translations);
-            const fallbackKey = translationKeys[0] || article.language || article.defaultLanguage || 'tr';
-            const translation = translations[fallbackKey] || {};
+            const currentLang = getCurrentLocale() || 'tr';
+            
+            // Önce mevcut locale'deki çeviriyi dene
+            let selectedKey = translationKeys.find(key => key === currentLang);
+            
+            // Yoksa defaultLanguage'i dene
+            if (!selectedKey && article.defaultLanguage) {
+                selectedKey = translationKeys.find(key => key === article.defaultLanguage);
+            }
+            
+            // Hala yoksa ilk mevcut çeviriyi kullan
+            if (!selectedKey) {
+                selectedKey = translationKeys[0] || article.defaultLanguage || 'tr';
+            }
+            
+            const translation = translations[selectedKey] || {};
 
             return {
                 ...article,
                 title: translation.title || article.title || 'Başlıksız',
                 excerpt: translation.excerpt || article.excerpt || '',
                 slug: translation.slug || article.slug,
-                language: fallbackKey,
+                language: selectedKey,
                 translations
             };
         })

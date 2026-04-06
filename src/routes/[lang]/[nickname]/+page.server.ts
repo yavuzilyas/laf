@@ -61,6 +61,25 @@ interface Article {
     authorId: any;
 }
 
+const sanitizeContent = (content: unknown): string => {
+  if (!content) return '';
+  if (typeof content === 'string') return content;
+
+  try {
+    return JSON.stringify(content);
+  } catch {
+    return '';
+  }
+};
+
+const calculateReadTime = (content: unknown): number => {
+  const text = sanitizeContent(content).replace(/<[^>]*>/g, ' ').trim();
+  if (!text) return 1;
+
+  const wordCount = text.split(/\s+/).filter(Boolean).length;
+  return Math.max(1, Math.ceil(wordCount / 200));
+};
+
 export const load: PageServerLoad = async ({ params, locals }: any) => {
 	const requestedNickname = slugify(params.nickname);
 	
@@ -181,6 +200,9 @@ export const load: PageServerLoad = async ({ params, locals }: any) => {
 		const excerpt = primaryTranslation.excerpt || article.content?.substring(0, 200) || '';
 		const content = primaryTranslation.content || article.content || '';
 		
+		// Calculate read time from content
+		const readTime = calculateReadTime(content);
+		
 		// Get author information from the query result
 		const authorId = article.author_id;
 		const authorName = article.author_full_name 
@@ -261,6 +283,7 @@ export const load: PageServerLoad = async ({ params, locals }: any) => {
 			availableLanguages: translationKeys,
 			collaborators,
 			collaboratorProfiles,
+			readTime,
 			status: article.status,
 			category: article.category || '',
 			subcategory: article.subcategory || ''
