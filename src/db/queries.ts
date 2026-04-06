@@ -739,6 +739,16 @@ export const deleteDraft = async (articleId: string) => {
     return result.rowCount > 0;
 };
 
+export const countDraftsByUser = async (authorId: string, since: Date) => {
+    const sql = `
+        SELECT COUNT(*) as count FROM drafts 
+        WHERE author_id = $1 
+        AND last_saved >= $2
+    `;
+    const result = await query(sql, [authorId, since]);
+    return parseInt(result.rows[0].count);
+};
+
 // Versions
 export const getVersionsCollection = () => {
     return {
@@ -861,7 +871,8 @@ export const getComments = async (filters: any = {}) => {
 };
 
 export const createComment = async (commentData: any) => {
-    const id = uuidv4();
+    // Use client-provided ID if available (for pre-submission file uploads), otherwise generate new UUID
+    const id = commentData.id || uuidv4();
     const content = typeof commentData.content === 'object' 
         ? JSON.stringify(commentData.content) 
         : commentData.content;

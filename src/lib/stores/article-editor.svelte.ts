@@ -296,17 +296,6 @@ class ArticleEditorStore {
   async saveAsDraft() {
     if (!browser) return false;
 
-    // Validation (same as publish)
-    const defaultLang = this._articleData.defaultLanguage || getCurrentLocale();
-    const primaryTranslation =
-      this._articleData.translations[defaultLang] ||
-      this._articleData.translations[this._activeLanguage] ||
-      this._articleData.translations[getCurrentLocale()];
-
-    if (!primaryTranslation || !primaryTranslation.title?.trim() || !primaryTranslation.content) {
-      throw new Error('Title and content are required for the primary language');
-    }
-
     this._isSaving = true;
     try {
       // Get honeypot field value

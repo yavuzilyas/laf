@@ -1,6 +1,6 @@
 // src/routes/api/articles/save/+server.ts
 import { json } from '@sveltejs/kit';
-import { getArticles, createArticle, updateArticle, getArticleById, getUsers, upsertDraft, createVersion, countVersions, deleteDraft } from '$db/queries';
+import { getArticles, createArticle, updateArticle, getArticleById, getUsers, upsertDraft, createVersion, countVersions, deleteDraft, countDraftsByUser } from '$db/queries';
 import { checkDailyTranslationLimit, addDailyTranslation } from '$db/queries-translations';
 import { slugify } from '$lib/utils/slugify';
 import { rm } from 'fs/promises';
@@ -295,6 +295,19 @@ async function cleanupUnusedMedia(existing: any, updated: any, articleId: string
                 }, { status: 403 });
             }
 
+            // Check draft limit for non-privileged users (hourly: max 4 drafts per hour)
+            // Only check for NEW drafts (not when editing existing draft/article)
+            if (!data.id && !data._id) {
+                const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
+                const draftCount = await countDraftsByUser(user.id, oneHourAgo);
+                
+                if (draftCount >= 4) {
+                    return json({ 
+                        error: 'Saatlik taslak oluşturma limitinize ulaştınız. Saatte en fazla 4 taslak oluşturabilirsiniz.' 
+                    }, { status: 403 });
+                }
+            }
+
             // Set status to pending for non-privileged users
             data.status = 'pending';
         }
@@ -307,8 +320,13 @@ async function cleanupUnusedMedia(existing: any, updated: any, articleId: string
 
         // Slug kontrolü ve oluşturma (dil bazlı)
         for (const [lang, translation] of Object.entries<any>(data.translations || {})) {
-            if (translation.title && !translation.slug) {
-                translation.slug = slugify(translation.title);
+            // Başlık yoksa veya boşsa "undefined" kullan, yoksa başlıktan oluştur
+            if (!translation.slug) {
+                if (translation.title && translation.title.trim()) {
+                    translation.slug = slugify(translation.title);
+                } else {
+                    translation.slug = 'undefined';
+                }
             }
 
             // Slug benzersizlik kontrolü - check if slug exists for this language

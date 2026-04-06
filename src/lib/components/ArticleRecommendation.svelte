@@ -155,7 +155,7 @@
                 />
                 <div class="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent"></div>
                 <Badge class="absolute top-4 left-4 bg-primary/90 text-primary-foreground">
-                  {t(`${article.category}`)}
+                  {t(`categories.${article.category}`)}
                 </Badge>
               </div>
             {/if}
@@ -166,7 +166,7 @@
               <div class="flex items-center gap-3 text-xs text-muted-foreground">
                 {#if !article.coverImage}
                   <Badge variant="secondary" class="text-xs">
-                    {t(`${article.category}`)}
+                    {t(`categories.${article.category}`)}
                   </Badge>
                 {/if}
                 <div class="flex items-center gap-1">

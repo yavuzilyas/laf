@@ -1138,6 +1138,9 @@
 	let replyEditor = $state<Editor | null>(null);
 	let userReactions = $state<Record<string, 'like' | 'dislike' | null>>({});
 
+	// Generate a pending comment ID for file uploads before submission
+	let pendingCommentId = $state<string>(crypto.randomUUID());
+
 	let replyEditors = $state<Record<string, Editor | null>>({});
 	let replyContents = $state<Record<string, any>>({});
 
@@ -1471,7 +1474,45 @@
 	function isCommentEmpty(content: any): boolean {
 		if (!content) return true;
 		if (typeof content === 'string') return content.trim() === '';
+		
+		// Check if content has media attachments
+		const hasMedia = checkContentForMedia(content);
+		if (hasMedia) return false; // Not empty if it has media
+		
 		return extractPlainText(content) === '';
+	}
+
+	function checkContentForMedia(content: any): boolean {
+		if (!content || typeof content !== 'object') return false;
+		
+		const mediaTypes = ['image', 'video', 'audio', 'file', 'fileAttachment', 'iframe', 'image-extended', 'video-extended', 'audio-extended'];
+		
+		function traverse(node: any): boolean {
+			if (!node || typeof node !== 'object') return false;
+			
+			// Check if this node is a media type
+			if (node.type && mediaTypes.includes(node.type)) {
+				return true;
+			}
+			
+			// Check attrs for media indicators
+			if (node.attrs) {
+				if (node.attrs.src || node.attrs.url || node.attrs.fileUrl || node.attrs.filename) {
+					return true;
+				}
+			}
+			
+			// Recursively check content
+			if (node.content && Array.isArray(node.content)) {
+				for (const child of node.content) {
+					if (traverse(child)) return true;
+				}
+			}
+			
+			return false;
+		}
+		
+		return traverse(content);
 	}
 
 	function onCommentEditorUpdate() {
@@ -1576,7 +1617,8 @@
 				headers: { 'Content-Type': 'application/json' },
 				body: JSON.stringify({
 					content: newComment,
-					timestamp: now
+					timestamp: now,
+					clientCommentId: pendingCommentId // Send the pre-generated comment ID
 				})
 			});
 
@@ -1587,6 +1629,8 @@
 				await loadComments();
 				newComment = emptyDoc;
 				if (commentEditor) commentEditor.commands.setContent('');
+				// Generate a new pending comment ID for next uploads
+				pendingCommentId = crypto.randomUUID();
 				lastCommentTime = now;
 				commentCooldown = 60000; // 1 minute cooldown
 			} else if (res.status === 429) {
@@ -2729,11 +2773,11 @@
 								class="min-h-[140px]"
 								onUpdate={onCommentEditorUpdate}
 								placeholder={t('articles.comments.writeComment')}
-								commentId={null}
+								commentId={pendingCommentId}
 							/>
 						</div>
 						<div class="flex justify-end mt-2">
-							<Button onclick={postComment} disabled={isCommentEmpty(newComment) || postingComment}>
+							<Button onclick={postComment}>
 								{#if postingComment}
 									<BarSpinner class="text-primary" size={28} />
 									{t('articles.comments.sending')}

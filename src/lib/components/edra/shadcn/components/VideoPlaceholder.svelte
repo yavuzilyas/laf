@@ -1,7 +1,6 @@
 <script lang="ts">
 	import MediaPlaceHolder from '../../components/MediaPlaceHolder.svelte';
 	import type { NodeViewProps } from '@tiptap/core';
-	import { getContext } from 'svelte';
 	import { t } from '$lib/stores/i18n.svelte';
 	import { getFileSizeLimit, isFileSizeValid, getFileSizeError } from '../../config/file-limits.js';
 	import { articleEditor } from '$lib/stores/article-editor.svelte.js';
@@ -11,10 +10,6 @@
 	import { buttonVariants } from '$lib/components/ui/button/button.svelte';
 	import * as AlertDialog from '$lib/components/ui/alert-dialog/index.js';
 	import Button from '$lib/components/ui/button/button.svelte';
-
-	// Get commentId from context (if in comment editing mode)
-	const getCommentId = getContext<() => string | null>('edraCommentId');
-	const commentId = getCommentId?.() ?? null;
 
 	let fileInput: HTMLInputElement;
 	let dialogOpen = $state(false);
@@ -33,10 +28,11 @@
 		fd.append('file', file);
 		fd.append('folder', 'videos');
 		
-		// If commentId exists (in comment editing mode), use it
+		// Get commentId dynamically from editor.storage (for comment uploads)
 		// Otherwise use articleId from articleEditor
-		if (commentId) {
-			fd.append('commentId', commentId);
+		const currentCommentId = (editor?.storage as any)?.commentId ?? null;
+		if (currentCommentId) {
+			fd.append('commentId', currentCommentId);
 			fd.append('type', 'videos');
 		} else {
 			const articleId = await articleEditor.ensureArticleId();

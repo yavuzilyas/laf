@@ -58,8 +58,16 @@
 		commentId = null
 	}: EdraEditorProps & { id?: string; commentId?: string | null } = $props();
 
-	// Provide commentId to child components via context
+	// Provide commentId to child components via context and editor storage
 	setContext('edraCommentId', () => commentId);
+
+	// Reactively update editor.storage when commentId changes
+	$effect(() => {
+		if (editor && commentId) {
+			editor.storage.commentId = commentId;
+			console.log('[EdraEditor] commentId updated in editor.storage:', commentId);
+		}
+	});
 
 	onMount(() => {
 		// Clean up any existing editor with the same ID
@@ -106,6 +114,12 @@
 					}
 				}
 			);
+
+			// Store commentId in editor.storage for node views to access
+			if (editor && commentId) {
+				editor.storage.commentId = commentId;
+				console.log('[EdraEditor] onMount: commentId stored in editor.storage:', commentId);
+			}
 
 			// Store the editor instance in a weak map for cleanup
 			if (typeof window !== 'undefined') {

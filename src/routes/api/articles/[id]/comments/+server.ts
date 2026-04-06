@@ -41,20 +41,47 @@ function checkRateLimit(userId: string, limit: number = 5, windowMs: number = 60
   return true;
 }
 
-function detectSpam(content: any): { isSpam: boolean; reasons: string[] } {
+function detectSpam(content: any): { isSpam: boolean; reasons: string[]; hasMedia: boolean } {
   const reasons: string[] = [];
   let textContent = '';
+  let hasMedia = false;
 
   if (typeof content === 'string') {
     textContent = content;
   } else if (typeof content === 'object' && content !== null) {
     // Extract text from TipTap JSON content
     textContent = extractTextFromContent(content);
+    // Check for media attachments
+    hasMedia = checkForMedia(content);
   }
 
   const lowerText = textContent.toLowerCase();
 
-  // Check for spam patterns
+  // If comment has media, only check for extreme spam (honeypot caught, way too many URLs)
+  // Skip other spam checks for media-rich comments
+  if (hasMedia) {
+    // Only flag obvious spam in media comments
+    const urlMatches = lowerText.match(/https?:\/\/[^\s]+/g) || [];
+    if (urlMatches.length > 5) {
+      reasons.push('Too many URLs');
+    }
+    
+    // Still check for profanity in media comments
+    for (const word of profanityList) {
+      if (lowerText.includes(word)) {
+        reasons.push('Contains inappropriate language');
+        break;
+      }
+    }
+
+    return {
+      isSpam: reasons.length > 0,
+      reasons,
+      hasMedia
+    };
+  }
+
+  // Check for spam patterns (only for text-only comments)
   for (const pattern of spamPatterns) {
     if (pattern.test(lowerText)) {
       reasons.push('Contains spam keywords');
@@ -70,11 +97,18 @@ function detectSpam(content: any): { isSpam: boolean; reasons: string[] } {
     }
   }
 
-  // Check length limits
-  if (textContent.length < 3) {
-    reasons.push('Comment too short');
-  } else if (textContent.length > 2000) {
-    reasons.push('Comment too long');
+  // Check length limits (skip for media comments)
+  if (!hasMedia) {
+    if (textContent.length < 3) {
+      reasons.push('Comment too short');
+    } else if (textContent.length > 2000) {
+      reasons.push('Comment too long');
+    }
+  } else {
+    // For media comments, only check upper limit
+    if (textContent.length > 2000) {
+      reasons.push('Comment too long');
+    }
   }
 
   // Check for excessive repetition
@@ -92,7 +126,8 @@ function detectSpam(content: any): { isSpam: boolean; reasons: string[] } {
 
   return {
     isSpam: reasons.length > 0,
-    reasons
+    reasons,
+    hasMedia
   };
 }
 
@@ -116,6 +151,40 @@ function extractTextFromContent(content: any): string {
   
   traverse(content);
   return text.trim();
+}
+
+function checkForMedia(content: any): boolean {
+  if (!content || typeof content !== 'object') return false;
+  
+  // Media node types in TipTap/Edra
+  const mediaTypes = ['image', 'video', 'audio', 'file', 'fileAttachment', 'iframe', 'image-extended', 'video-extended', 'audio-extended'];
+  
+  function traverse(node: any): boolean {
+    if (!node || typeof node !== 'object') return false;
+    
+    // Check if this node is a media type
+    if (node.type && mediaTypes.includes(node.type)) {
+      return true;
+    }
+    
+    // Check attrs for media indicators
+    if (node.attrs) {
+      if (node.attrs.src || node.attrs.url || node.attrs.fileUrl || node.attrs.filename) {
+        return true;
+      }
+    }
+    
+    // Recursively check content
+    if (node.content && Array.isArray(node.content)) {
+      for (const child of node.content) {
+        if (traverse(child)) return true;
+      }
+    }
+    
+    return false;
+  }
+  
+  return traverse(content);
 }
 
 export async function GET({ params, locals }) {
@@ -269,6 +338,7 @@ export async function POST({ params, request, locals }) {
   const content = body?.content;
   const parentId = body?.parentId;
   const honeypot = body?.website; // Honeypot field for bots
+  const clientCommentId = body?.clientCommentId; // Client-generated comment ID for file uploads
   
   // Honeypot check - bots usually fill all fields
   if (honeypot && honeypot.trim() !== '') {
@@ -295,12 +365,21 @@ export async function POST({ params, request, locals }) {
     return json({ error: 'Article not found' }, { status: 404 });
   }
   
-  const commentData = {
+  const commentData: any = {
     article_id: params.id,
     author_id: user.id,
     content,
     parent_id: parentId || null
   };
+  
+  // If client provided a comment ID (for pre-submission file uploads), use it
+  if (clientCommentId && typeof clientCommentId === 'string') {
+    // Validate UUID format
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+    if (uuidRegex.test(clientCommentId)) {
+      commentData.id = clientCommentId;
+    }
+  }
   
   const newComment = await createComment(commentData);
 

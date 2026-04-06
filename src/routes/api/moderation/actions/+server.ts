@@ -1,6 +1,10 @@
 // src/routes/api/moderation/actions/+server.ts
 import { json } from '@sveltejs/kit';
-import { getUsers, updateUser, getArticles, updateArticle, getComments, updateComment } from '$db/queries';
+import { getUsers, updateUser, getArticles, updateArticle, getComments, updateComment, getArticleById } from '$db/queries';
+import { resolve } from 'path';
+import { rm } from 'fs/promises';
+import { existsSync } from 'fs';
+import { env } from '$env/dynamic/private';
 
 const resolveRole = (user?: { role?: string; type?: string }) => user?.role ?? user?.type ?? 'user';
 const getRoleRank = (role?: string | null) => {
@@ -43,9 +47,28 @@ export async function POST({ request, locals }) {
           hidden_reason: null
         });
       } else if (action === 'delete') {
+        // Get article to find author_id before soft deleting
+        const article = await getArticleById(targetId);
+        
         await updateArticle(targetId, {
           deleted_at: new Date()
         });
+
+        // Delete the article's upload directory if it exists
+        if (article && article.authorId) {
+          try {
+            const baseUploadsDir = resolve(env.UPLOAD_DIR || 'uploads');
+            const articleDir = resolve(baseUploadsDir, 'users', article.authorId, 'articles', targetId);
+            
+            if (existsSync(articleDir)) {
+              console.log('[MODERATION DELETE] Deleting article directory:', articleDir);
+              await rm(articleDir, { recursive: true, force: true });
+              console.log('[MODERATION DELETE] Successfully deleted article directory:', articleDir);
+            }
+          } catch (error) {
+            console.error('[MODERATION DELETE] Error deleting article directory:', error);
+          }
+        }
       } else if (action === 'clearReports') {
         // This would need a reports field in articles table
         await updateArticle(targetId, {

@@ -32,17 +32,23 @@
 			throw new Error(getFileSizeError(file, 'file'));
 		}
 
-		// Ensure articleId is available before upload
-		const articleId = await articleEditor.ensureArticleId();
-
 		const fd = new FormData();
 		fd.append('file', file);
 		fd.append('folder', 'files');
 		fd.append('fileType', 'attachment');
 		
-		if (articleId) {
-			fd.append('articleId', articleId);
+		// Get commentId dynamically from editor.storage (for comment uploads)
+		// Otherwise use articleId from articleEditor
+		const currentCommentId = (editor?.storage as any)?.commentId ?? null;
+		if (currentCommentId) {
+			fd.append('commentId', currentCommentId);
 			fd.append('type', 'files');
+		} else {
+			const articleId = await articleEditor.ensureArticleId();
+			if (articleId) {
+				fd.append('articleId', articleId);
+				fd.append('type', 'files');
+			}
 		}
 
 		if (baseUploadsUrl) {

@@ -1,7 +1,6 @@
 <script lang="ts">
 	import MediaPlaceHolder from '../../components/MediaPlaceHolder.svelte';
 	import type { NodeViewProps } from '@tiptap/core';
-	import { getContext } from 'svelte';
 
 	const { editor }: NodeViewProps = $props();
 	import Image from '@lucide/svelte/icons/image';
@@ -12,20 +11,23 @@
 	import { getFileSizeLimit, isFileSizeValid, getFileSizeError } from '../../config/file-limits.js';
 	import { articleEditor } from '$lib/stores/article-editor.svelte.js';
 
-	// Get commentId from context (if in comment editing mode)
-	const getCommentId = getContext<() => string | null>('edraCommentId');
-	const commentId = getCommentId?.() ?? null;
-
 	let fileInput: HTMLInputElement;
 	let dialogOpen = $state(false);
 	let url = $state('');
 	let baseUploadsUrl = $state<string | null>(null);
 
 	function handleClick() {
+		console.log('[ImagePlaceholder] handleClick called, dialog opening');
+		console.log('[ImagePlaceholder] editor:', editor);
+		console.log('[ImagePlaceholder] editor?.storage:', editor?.storage);
 		dialogOpen = true;
 	}
 
 	async function uploadFile(file: File) {
+		console.log('[ImagePlaceholder] uploadFile started');
+		console.log('[ImagePlaceholder] editor exists:', !!editor);
+		console.log('[ImagePlaceholder] editor.storage:', editor?.storage);
+		
 		if (!isFileSizeValid(file, 'image')) {
 			throw new Error(getFileSizeError(file, 'image'));
 		}
@@ -34,13 +36,19 @@
 		fd.append('file', file);
 		fd.append('folder', 'photos');
 		
-		// If commentId exists (in comment editing mode), use it
+		// Get commentId dynamically from editor.storage (for comment uploads)
 		// Otherwise use articleId from articleEditor
-		if (commentId) {
-			fd.append('commentId', commentId);
+		const currentCommentId = (editor?.storage as any)?.commentId ?? null;
+		console.log('[ImagePlaceholder] currentCommentId:', currentCommentId);
+		
+		if (currentCommentId) {
+			fd.append('commentId', currentCommentId);
 			fd.append('type', 'photos');
+			console.log('[ImagePlaceholder] Using commentId for upload:', currentCommentId);
 		} else {
+			console.log('[ImagePlaceholder] No commentId, trying articleEditor');
 			const articleId = await articleEditor.ensureArticleId();
+			console.log('[ImagePlaceholder] articleId:', articleId);
 			if (articleId) {
 				fd.append('articleId', articleId);
 				fd.append('type', 'photos');
@@ -57,8 +65,11 @@
 			fd.append('articleStatus', articleStatus);
 		}
 
+		console.log('[ImagePlaceholder] Sending upload request...');
 		const res = await fetch('/api/upload', { method: 'POST', body: fd });
 		const data = await res.json();
+		console.log('[ImagePlaceholder] Upload response:', res.status, data);
+		
 		if (!res.ok) {
 			throw new Error(data?.error || 'Upload failed');
 		}
@@ -66,8 +77,10 @@
 	}
 
 	function onFileChange(e: Event) {
+		console.log('[ImagePlaceholder] onFileChange called');
 		const input = e.target as HTMLInputElement;
 		const file = input.files?.[0];
+		console.log('[ImagePlaceholder] selected file:', file?.name, file?.size);
 		if (!file) return;
 		(async () => {
 			try {
@@ -77,6 +90,7 @@
 				dialogOpen = false;
 				baseUploadsUrl = urlFromServer;
 			} catch (err) {
+				console.error('[ImagePlaceholder] Upload error:', err);
 				alert(err instanceof Error ? err.message : 'Upload failed');
 			} finally {
 				input.value = '';

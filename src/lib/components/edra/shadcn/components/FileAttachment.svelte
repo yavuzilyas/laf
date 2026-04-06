@@ -1,10 +1,12 @@
 <script lang="ts">
 	import { NodeViewWrapper } from 'svelte-tiptap';
 	import type { NodeViewProps } from '@tiptap/core';
+	import { onDestroy } from 'svelte';
 	import File from '@lucide/svelte/icons/file';
 	import Download from '@lucide/svelte/icons/download';
 	import Button from '$lib/components/ui/button/button.svelte';
 	import Badge from '$lib/components/ui/badge/badge.svelte';
+	import { articleEditor } from '$lib/stores/article-editor.svelte.js';
 
 	const { node }: NodeViewProps = $props();
 
@@ -12,6 +14,23 @@
 	const filename = node.attrs.filename as string;
 	const size = node.attrs.size as string;
 	const type = node.attrs.type as string;
+
+	// Keep the initial URL to identify uploaded files for cleanup
+	const initialUrl: string | undefined = url;
+
+	async function deleteFromServer(fileUrl?: string) {
+		try {
+			if (!fileUrl || typeof fileUrl !== 'string') return;
+			if (!fileUrl.startsWith('/uploads/')) return; // only our uploads
+			await fetch('/api/upload', {
+				method: 'DELETE',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ url: fileUrl })
+			});
+		} catch (e) {
+			// Silently handle errors - don't block editor if delete fails
+		}
+	}
 
 	function downloadFile() {
 		const link = document.createElement('a');
@@ -21,6 +40,15 @@
 		link.click();
 		document.body.removeChild(link);
 	}
+
+	onDestroy(() => {
+		// Delete file from server when node is destroyed (e.g., keyboard deletion)
+		// But only if we're in article editor context AND the article wasn't just published
+		const isArticleEditorContext = !!articleEditor.articleId;
+		if (isArticleEditorContext && !articleEditor.isPublished) {
+			deleteFromServer(initialUrl);
+		}
+	});
 </script>
 
 <NodeViewWrapper as="div" class="file-attachment-wrapper" style="margin: 4px 0;">

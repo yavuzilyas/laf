@@ -102,7 +102,7 @@ import { cn } from "$lib/utils";
     <div class="grid gap-12 items-start">
       
       <!-- Who We Are Column -->
-      <div>
+      <div class="md:max-w-2xl m-auto">
         <h1 class="text-xl  font-bold mb-1 text-primary">{t('whoWeAre')}</h1>
         <p class="text-base text-foreground leading-relaxed">
           {t('whoWeAreDescription')}
@@ -130,7 +130,7 @@ import { cn } from "$lib/utils";
 
 
       <!-- Why Anarcho Capitalism Column -->
-      <div >
+      <div class="md:max-w-2xl m-auto">
         <h1 class="text-xl font-bold mb-1 text-primary">{t('whyAnarchoCapitalism')}</h1>
         <p class="text-base text-foreground leading-relaxed">
           {t('whyAnarchoCapitalismDescription')}
@@ -139,7 +139,7 @@ import { cn } from "$lib/utils";
       </div>
 
       <!-- Our Goal Column -->
-      <div >
+      <div class="md:max-w-2xl m-auto">
         <h1 class="text-xl  font-bold mb-1 text-primary">{t('ourGoal')}</h1>
         <p class="text-base text-foreground leading-relaxed">
           {t('ourGoalDescription')}

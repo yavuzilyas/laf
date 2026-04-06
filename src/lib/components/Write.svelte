@@ -17,6 +17,7 @@ import { onMount, onDestroy } from 'svelte';
   import { Textarea } from '$lib/components/ui/textarea';
   import * as Tabs from '$lib/components/ui/tabs/index.js';
   import * as Dialog from '$lib/components/ui/dialog/index.js';
+  import * as AlertDialog from '$lib/components/ui/alert-dialog/index.js';
   import { Badge } from '$lib/components/ui/badge';
   import { ScrollArea } from '$lib/components/ui/scroll-area';
   import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '$lib/components/ui/card';
@@ -65,6 +66,7 @@ import { onMount, onDestroy } from 'svelte';
   let newTag = $state('');
   let showVersionDialog = $state(false);
   let showCategoryDialog = $state(false);
+  let showDraftAlertDialog = $state(false);
   let selectedCollaborators = $state<Array<{ id: string; username: string; name?: string; surname?: string }>>([]);
   let authorInfo = $state<{ id: string; username: string; name?: string; surname?: string; nickname?: string } | null>(null);
 
@@ -221,9 +223,14 @@ import { onMount, onDestroy } from 'svelte';
   }
 
   async function saveAsDraft() {
+    showDraftAlertDialog = true;
+  }
+
+  async function confirmSaveAsDraft() {
     try {
       const result = await articleEditor.saveAsDraft();
       if (result) {
+        showDraftAlertDialog = false;
         // Redirect to user profile after saving draft
         await goto(l(`/${user?.nickname || user?.username}`));
       }
@@ -232,6 +239,10 @@ import { onMount, onDestroy } from 'svelte';
         showToast(error.message, 'error', 5000);
       });
     }
+  }
+
+  function cancelSaveAsDraft() {
+    showDraftAlertDialog = false;
   }
 
   onMount(async () => {
@@ -284,6 +295,22 @@ import { onMount, onDestroy } from 'svelte';
     }
   });
 </script>
+
+<AlertDialog.Root bind:open={showDraftAlertDialog}>
+  <AlertDialog.Content>
+    <AlertDialog.Header>
+      <AlertDialog.Title>Taslak Kaydediliyor</AlertDialog.Title>
+      <AlertDialog.Description>
+        Taslağınıza yüklenen dosyalar kaldırılacaktır, döndüğünüzde tekrar yüklemelisiniz.
+      </AlertDialog.Description>
+    </AlertDialog.Header>
+    <AlertDialog.Footer>
+      <AlertDialog.Cancel onclick={cancelSaveAsDraft}>İptal</AlertDialog.Cancel>
+      <AlertDialog.Action onclick={confirmSaveAsDraft}>Taslak Olarak Kaydet</AlertDialog.Action>
+    </AlertDialog.Footer>
+  </AlertDialog.Content>
+</AlertDialog.Root>
+
     <Dialog.Root bind:open={showCategoryDialog}>
       <Dialog.Content class="w-full sm:w-1/2 md:w-2/7 ">
         <Dialog.Header>
