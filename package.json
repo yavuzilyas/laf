@@ -9,7 +9,7 @@
 	"scripts": {
 		"dev": "vite dev --logLevel error",
 		"build": "vite build",
-		"start": "node build",
+		"start": "node src/server.js",
 		"preview": "vite preview",
 		"prepare": "svelte-kit sync || echo ''",
 		"check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
