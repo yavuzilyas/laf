@@ -52,12 +52,12 @@
 </script>
 
 <NodeViewWrapper as="div" class="file-attachment-wrapper" style="margin: 4px 0;">
-	<div class="file-attachment flex flex-row gap-2 justify-center p-2 bg-background rounded-md border w-fit" data-url={url} data-filename={filename} data-size={size} data-type={type}>
+	<div class="file-attachment flex flex-row gap-2 justify-center p-2 bg-background rounded-md  border-dashed border w-fit" data-url={url} data-filename={filename} data-size={size} data-type={type}>
 		<div class="flex flex-row gap-1 justify-center items-center">
 		<div class="relative w-8 h-8">
-			<File size={32} class="text-primary absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" />
+			<File strokeWidth={1.25} size={32} class="text-primary absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" />
 						
-				<Badge variant="secondary" class="p-0 bg-transparent text-[8px] drop-shadow  absolute top-2/3 left-1/2 -translate-x-1/2 -translate-y-1/2">.{type}</Badge>
+				<Badge variant="secondary" class="p-0 bg-transparent text-[7px] drop-shadow  absolute top-2/3 left-1/2 -translate-x-1/2 -translate-y-1/2">.{type}</Badge>
 			
 </div>
 			<div class="marquee-container">
