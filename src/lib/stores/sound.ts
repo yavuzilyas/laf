@@ -55,9 +55,6 @@ export const sounds: SoundFiles = {
   },
   refresh:{
     wav: "/sounds/ui_refresh-feed.wav"
-  },
-  loading:{
-    wav: "/sounds/ui_loading.wav"
   }
 };
 
@@ -120,7 +117,20 @@ export function playSound(key: string) {
 }
 
 export async function preloadSounds(sounds: Record<string, string>) {
-  await Promise.all(
-    Object.entries(sounds).map(([key, url]) => loadSound(key, url))
-  );
+  // Split sounds into chunks to avoid blocking the main thread
+  const entries = Object.entries(sounds);
+  const chunkSize = 3; // Load 3 sounds at a time
+
+  for (let i = 0; i < entries.length; i += chunkSize) {
+    const chunk = entries.slice(i, i + chunkSize);
+    // Load chunk immediately but allow other tasks between chunks
+    await Promise.all(
+      chunk.map(([key, url]) => loadSound(key, url))
+    );
+
+    // Yield to main thread between chunks
+    if (i + chunkSize < entries.length) {
+      await new Promise(resolve => setTimeout(resolve, 0));
+    }
+  }
 }

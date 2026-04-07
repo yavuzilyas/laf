@@ -3,8 +3,8 @@
   import DropdownMenuMotion from "$lib/components/DropdownMenuMotion.svelte";
     import { Button } from "$lib/components/ui/button";
   import { showToast, persistToast } from "$lib/hooks/toast";
-import SettingsDialog from "$lib/components/settings-dialog.svelte";
-import NotificationDialog from "$lib/components/NotificationDialog.svelte";
+  import SettingsDialog from "$lib/components/settings-dialog.svelte";
+  import NotificationDialog from "$lib/components/NotificationDialog.svelte";
 import A from "$lib/components/ui/a.svelte";
 import { ScrollProgress } from "$lib/components/magic/scroll-progress";
     import {HandCoins, BadgeInfo, Cog, BellIcon,LogOutIcon, LogInIcon, UserRound, Shield, Link } from "@lucide/svelte";
@@ -159,12 +159,10 @@ import { ScrollProgress } from "$lib/components/magic/scroll-progress";
     unreadTotal = 0;
   }
 
-  let openSettings = $state(false);
-  // Ve fonksiyonu ekleyin:
+    let openSettings = $state(false);
+
   function handleSettingsClick() {
-
     openSettings = true;
-
   }
 
   function scrollToDonations() {

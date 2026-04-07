@@ -22,8 +22,7 @@ const defaultSoundSettings: SoundSettings = {
   errorNot: true,
   swift: true,
   swift2: true,
-  refresh: true,
-  loading: true
+  refresh: true
 };
 
 // Get initial sound settings from localStorage

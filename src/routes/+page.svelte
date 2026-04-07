@@ -18,6 +18,9 @@
 </script>
 
 <svelte:head>
+  <!-- Preload first slider image for LCP -->
+  <link rel="preload" href="/government-is-violence/GovtIsViolence1.jpg" as="image" fetchpriority="high" />
+
   <!-- Primary Meta -->
   <title>{meta.title}</title>
   <meta name="description" content={meta.description} />

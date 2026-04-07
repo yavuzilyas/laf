@@ -13,7 +13,8 @@
 	import { Label } from "$lib/components/ui/label/index.js";
 	import { Switch } from "$lib/components/ui/switch/index.js";
 	import { Input } from "$lib/components/ui/input/index.js";
-	import { Construction, Cog, LogIn, UserCircleIcon, LayoutGridIcon, TrashIcon, BellIcon, LogOutIcon, LogInIcon, Hand, KeyRound, RefreshCw, Eye, EyeOff, Sun, Moon } from "@lucide/svelte";
+	import { Construction, Cog, LogIn, UserCircleIcon, LayoutGridIcon, TrashIcon, 
+	BellIcon, LogOutIcon, LogInIcon, Hand, KeyRound, RefreshCw, Eye, EyeOff, Sun, Moon } from "@lucide/svelte";
 	import * as Tabs from "$lib/components/ui/vertical-tabs/index.js";
 	import Circle from "./Circle.svelte";
 	import MnemonicVerificationPopup from "$lib/components/MnemonicVerificationPopup.svelte";
@@ -191,9 +192,8 @@ import { BarSpinner } from "$lib/components/spell/bar-spinner";
 			errorNot: t('Error'),
 			swift: t('Swift'),
 			swift2: t('Swift2'),
-			refresh: t('Refresh'),
-			loading: t('Loading')
-		};
+			refresh: t('Refresh')
+				};
 		return displayNames[soundKey] || soundKey;
 	}
 

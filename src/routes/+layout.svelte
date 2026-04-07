@@ -17,7 +17,7 @@
   // This ensures translations are ready immediately (no client-side loading flash)
   i18n.initFromSSR(data.locale, data.translations);
 
-  onMount(async () => {
+  onMount(() => {
     // Ses durumunu local storage'dan yükle
     if (browser) {
       const storedSoundState = localStorage.getItem('soundEnabled');
@@ -26,7 +26,20 @@
       }
     }
 
-    await preloadSounds(soundFiles);
+    // Defer sound preloading to reduce main-thread work
+    // Use requestIdleCallback with timeout fallback for browser compatibility
+    const schedulePreload = () => {
+      preloadSounds(soundFiles);
+    };
+
+    if (browser) {
+      if ('requestIdleCallback' in window) {
+        window.requestIdleCallback(schedulePreload, { timeout: 2000 });
+      } else {
+        // Fallback: delay preloading until after initial render
+        setTimeout(schedulePreload, 100);
+      }
+    }
   });
   import Loader from "$lib/components/load.svelte";
   import { page } from '$app/stores';

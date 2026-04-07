@@ -12,6 +12,5 @@ export const soundFiles: Record<string, string> = {
   errorNot: "/sounds/alert_error-01.wav",
   swift: "/sounds/navigationpush.wav",
   swift2: "/sounds/navigationpop.wav",
-  refresh: "/sounds/ui_refresh-feed.wav",
-  loading: "/sounds/ui_loading.wav"
+  refresh: "/sounds/ui_refresh-feed.wav"
 };

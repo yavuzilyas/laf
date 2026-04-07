@@ -1,3 +1,21 @@
-# allow crawling everything by default
+# Allow all search engines to crawl all content
 User-agent: *
-Disallow:
+Allow: /
+
+# Block crawling of specific paths
+Disallow: /api/
+Disallow: /moderation/
+Disallow: /login/
+Disallow: /register/
+Disallow: /forgot/
+Disallow: /help/
+
+# Sitemap location
+Sitemap: https://laf.dev/sitemap.xml
+
+# Crawl-delay for heavy traffic bots
+User-agent: AhrefsBot
+Crawl-delay: 1
+
+User-agent: SemrushBot
+Crawl-delay: 1

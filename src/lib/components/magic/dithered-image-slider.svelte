@@ -20,7 +20,7 @@
 	// Mobil pan
 	let isMobile = $state(false);
 	const MOBILE_INTERVAL = 20000; // 20 saniye
-	const DESKTOP_INTERVAL = 4000; // 6 saniye
+	const DESKTOP_INTERVAL = 4000; // 4 saniye
 	let interval = $derived(isMobile ? MOBILE_INTERVAL : DESKTOP_INTERVAL);
 	let panProgress = $state(0); // 0 (en sol) → 1 (en sağ)
 	let animFrameId: number | null = null;
@@ -39,12 +39,19 @@
 		return shuffled;
 	};
 
-	// Karıştırılmış resimler
-	let shuffledImages = $state<string[]>([]);
+	// LCP Optimization: Start with first image deterministically, shuffle after mount
+	// This allows browser to preload the first image reliably
+	let shuffledImages = $state<string[]>(images);
+	let isMounted = $state(false);
 
-	// images değiştiğinde karıştır
+	// Shuffle after mount to not block LCP
 	$effect(() => {
-		shuffledImages = shuffleArray(images);
+		if (isMounted && images.length > 0) {
+			// Keep first image in place for LCP, shuffle the rest
+			const firstImage = images[0];
+			const restImages = images.slice(1);
+			shuffledImages = [firstImage, ...shuffleArray(restImages)];
+		}
 	});
 
 	const updateTheme = () => {
@@ -55,14 +62,17 @@
 		isMobile = window.innerWidth < 640;
 	};
 
-	/** Tüm resimlerin boyutlarını arka planda önceden yükle */
-	const preloadAspectRatios = () => {
-		for (const src of shuffledImages) {
+	/** Sadece mevcut ve sonraki resimleri önceden yükle */
+	const preloadCriticalImages = () => {
+		// Preload only first 2 images for LCP and immediate next slide
+		const imagesToPreload = shuffledImages.slice(0, 2);
+		for (const src of imagesToPreload) {
 			if (aspectRatios[src]) continue;
 			const img = new Image();
 			img.onload = () => {
 				aspectRatios = { ...aspectRatios, [src]: img.naturalWidth / img.naturalHeight };
 			};
+			img.fetchPriority = src === shuffledImages[0] ? "high" : "low";
 			img.src = src;
 		}
 	};
@@ -88,9 +98,10 @@
 	};
 
 	onMount(() => {
+		isMounted = true;
 		updateTheme();
 		checkMobile();
-		preloadAspectRatios();
+		preloadCriticalImages();
 
 		window.addEventListener("resize", checkMobile);
 
@@ -116,6 +127,7 @@
 		if (intervalId) clearInterval(intervalId);
 		if (animFrameId) cancelAnimationFrame(animFrameId);
 	});
+
 $effect(() => {
 		if (intervalId) clearInterval(intervalId);
 		intervalId = setInterval(nextImage, interval);
