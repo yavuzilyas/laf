@@ -1016,11 +1016,8 @@
       return;
     }
     
-    // City and location are required only for events, not announcements
-    if (eventForm.type === 'event' && (!eventForm.city || !eventForm.location)) {
-      showToast(t('moderation.cityLocationRequired'), 'error');
-      return;
-    }
+    // City and location are optional for all event types
+    // Removed required validation as per user request
 
     try {
       const response = await fetch('/api/events/manage', {
@@ -1345,10 +1342,8 @@
       return;
     }
     
-    if (eventForm.type === 'event' && (!eventForm.city || !eventForm.location)) {
-      showToast(t('moderation.cityLocationRequired'), 'error');
-      return;
-    }
+    // City and location are optional for all event types
+    // Removed required validation as per user request
 
     const executeSave = async () => {
       try {
@@ -2062,7 +2057,7 @@
 
                 <div class="grid grid-cols-2 gap-4">
                   <div class="grid gap-2">
-                    <Label for="event-city">Şehir {eventForm.type === 'event' ? '*' : '(opsiyonel)'}</Label>
+                    <Label for="event-city">Şehir (opsiyonel)</Label>
                     <select id="event-city" bind:value={eventForm.city} class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2">
                       <option value="">Şehir seçin...</option>
                       {#each turkeyCities as city}
@@ -2072,7 +2067,7 @@
                   </div>
 
                   <div class="grid gap-2">
-                    <Label for="event-location">Tam Adres {eventForm.type === 'event' ? '*' : '(opsiyonel)'}</Label>
+                    <Label for="event-location">Tam Adres (opsiyonel)</Label>
                     <Input id="event-location" bind:value={eventForm.location} placeholder={eventForm.type === 'announcement' ? 'Online veya boş' : 'Örn: Kadıköy, ODTÜ Kültür Merkezi'} />
                   </div>
                 </div>

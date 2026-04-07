@@ -83,7 +83,9 @@ export async function POST({ request, locals }) {
   }
 
   const ext = extname(file.name) || '.bin';
-  const fileName = `${Date.now()}-${Math.random().toString(36).slice(2)}${ext}`;
+  const baseName = file.name.slice(0, file.name.length - ext.length);
+  const safeName = slugify(baseName) || 'file';
+  const fileName = `${safeName}${ext}`;
   const safeArticleId = articleIdRaw ? articleIdRaw.replace(/[^a-zA-Z0-9-_]/g, '') : null;
   const safeCommentId = commentIdRaw ? commentIdRaw.replace(/[^a-zA-Z0-9-_]/g, '') : null;
 

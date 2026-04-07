@@ -17,6 +17,50 @@
 	let isLoading = $state(true);
 	let isMobile = $state(false);
 
+	// Helper function to group data by N days
+	function groupDataByDays(data: typeof chartData, daysPerGroup: number): typeof chartData {
+		if (data.length === 0) return data;
+		const sorted = [...data].sort((a, b) => a.date.getTime() - b.date.getTime());
+		const grouped: typeof chartData = [];
+		let currentGroup: typeof chartData = [];
+		let groupStartDate: Date | null = null;
+
+		sorted.forEach((item) => {
+			if (!groupStartDate) {
+				groupStartDate = item.date;
+				currentGroup = [item];
+			} else {
+				const daysDiff = Math.floor((item.date.getTime() - groupStartDate.getTime()) / (24 * 60 * 60 * 1000));
+				if (daysDiff < daysPerGroup) {
+					currentGroup.push(item);
+				} else {
+					// Finalize current group
+					grouped.push({
+						date: groupStartDate,
+						amount: currentGroup.reduce((sum, d) => sum + d.amount, 0),
+						count: currentGroup.reduce((sum, d) => sum + d.count, 0),
+						scaled_count: 0
+					});
+					// Start new group
+					groupStartDate = item.date;
+					currentGroup = [item];
+				}
+			}
+		});
+
+		// Don't forget the last group
+		if (currentGroup.length > 0 && groupStartDate) {
+			grouped.push({
+				date: groupStartDate,
+				amount: currentGroup.reduce((sum, d) => sum + d.amount, 0),
+				count: currentGroup.reduce((sum, d) => sum + d.count, 0),
+				scaled_count: 0
+			});
+		}
+
+		return grouped;
+	}
+
 	// Responsive detection
 	function checkMobile() {
 		isMobile = window.innerWidth < 768;
@@ -112,6 +156,12 @@ const selectedLabel = $derived.by(() => {
 					};
 				});
 				
+				// Group data based on timeRange
+				const daysToGroup = timeRange === "14d" ? 2 : timeRange === "30d" ? 3 : 1;
+				if (daysToGroup > 1) {
+					chartData = groupDataByDays(chartData, daysToGroup);
+				}
+
 				// Scale count lower than the max amount to make it visually pleasing
 				const maxAmount = Math.max(...chartData.map(item => item.amount));
 				const maxCount = Math.max(...chartData.map(item => item.count));
@@ -144,7 +194,7 @@ const chartConfig = $derived({
 } satisfies Chart.ChartConfig);
 </script>
 
-<MagicCard class="@container/card rounded-xl p-3 sm:p-6 min-w-0">
+<MagicCard class="@container/card rounded-lg p-3 sm:p-6 min-w-0">
 	<div>
 <Card.Header>
 	<Card.Title>{t('donations.chart.title')}</Card.Title>
@@ -176,7 +226,7 @@ const chartConfig = $derived({
 					{selectedLabel}
 				</span>
 			</Select.Trigger>
-			<Select.Content class="rounded-xl">
+			<Select.Content class="rounded-lg">
 				<Select.Item value="all" class="rounded-lg">{t('donations.chart.timeRanges.all')}</Select.Item>
 				<Select.Item value="365d" class="rounded-lg">{t('donations.chart.timeRanges.365d')}</Select.Item>
 				<Select.Item value="180d" class="rounded-lg">{t('donations.chart.timeRanges.180d')}</Select.Item>
@@ -203,6 +253,7 @@ const chartConfig = $derived({
 					data={chartData}
 					x="date"
 					xScale={scaleUtc()}
+					padding={{ left: 40, right: 0, top: 10, bottom: 45 }}
 				series={[
 					{
 						key: "amount",
@@ -225,8 +276,8 @@ const chartConfig = $derived({
 						},
 					xAxis: {
 						ticks: isMobile 
-							? (timeRange === "all" ? 5 : timeRange === "14d" ? 3 : timeRange === "30d" ? 4 : timeRange === "90d" ? 3 : timeRange === "180d" ? 3 : timeRange === "365d" ? 4 : 3)
-							: (timeRange === "all" ? 10 : timeRange === "14d" ? 7 : timeRange === "30d" ? 10 : timeRange === "90d" ? 6 : timeRange === "180d" ? 6 : timeRange === "365d" ? 12 : 10),
+							? (timeRange === "all" ? 5 : timeRange === "14d" ? 7 : timeRange === "30d" ? 6 : timeRange === "90d" ? 3 : timeRange === "180d" ? 3 : timeRange === "365d" ? 4 : 3)
+							: (timeRange === "all" ? 10 : timeRange === "14d" ? 7 : timeRange === "30d" ? 6 : timeRange === "90d" ? 6 : timeRange === "180d" ? 6 : timeRange === "365d" ? 12 : 10),
 						format: (v: Date) => {
 							if (groupBy === "year") {
 								return v.getFullYear().toString();
@@ -303,7 +354,7 @@ const chartConfig = $derived({
 								<div class="size-2.5 shrink-0 rounded-[2px]" style="background-color: {item.color || 'var(--primary)'}"></div>
 								<div class="flex flex-1 justify-between gap-4">
 									<span class="text-muted-foreground">{name}</span>
-									<span class="font-mono font-medium">
+									<span class="font-mono font-medium ">
 										{#if name === t('donations.chart.amount')}
 											{Number(item.payload?.amount || 0).toFixed(4)} XMR
 										{:else}

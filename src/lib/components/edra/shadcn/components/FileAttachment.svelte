@@ -55,17 +55,52 @@
 	<div class="file-attachment flex flex-row gap-2 justify-center p-2 bg-background rounded-md border w-fit" data-url={url} data-filename={filename} data-size={size} data-type={type}>
 		<div class="flex flex-row gap-2 justify-center items-center">
 			<File class="text-primary" />
-			<span class="text-secondary-foreground text-xs">{filename.slice(0, 15) + (filename.length > 15 ? '...' : '')}</span>
+			<div class="marquee-container">
+				<div class="marquee-content">
+					<span class="marquee-text">{filename}</span>
+					<span class="marquee-text">{filename}</span>
+				</div>
+			</div>
 			{#if type}
 				<Badge variant="secondary" style="text-transform: uppercase; flex-shrink: 0;">{type}</Badge>
 			{/if}
 			<span class="text-muted-foreground text-xs">{size}</span>
 		</div>
-		<Button 
+		<Button
+		variant="outline"
 			size="icon"
 			onclick={downloadFile}
 		>
-			<Download style="width: 16px; height: 16px;" />
+			<Download />
 		</Button>
 	</div>
 </NodeViewWrapper>
+
+<style>
+	.marquee-container {
+		width: 120px;
+		overflow: hidden;
+		position: relative;
+	}
+
+	.marquee-content {
+		display: inline-flex;
+		animation: marquee 8s linear infinite;
+	}
+
+	.marquee-text {
+		white-space: nowrap;
+		font-size: 0.75rem;
+		color: hsl(var(--secondary-foreground));
+		padding-right: 1rem;
+	}
+
+	@keyframes marquee {
+		0% {
+			transform: translateX(0);
+		}
+		100% {
+			transform: translateX(-50%);
+		}
+	}
+</style>

@@ -27,10 +27,28 @@ export const load: PageServerLoad = async ({ locals }) => {
       ORDER BY date DESC
     `);
 
-    // Add isPast flag and check if user joined
+    // Calculate event status based on date and endDate
     const now = new Date();
     const events = await Promise.all(result.rows.map(async (event) => {
-      const isPast = new Date(event.date) < now;
+      const eventDate = new Date(event.date);
+      const endDate = event.endDate ? new Date(event.endDate) : null;
+      
+      // Determine event status
+      let eventStatus: 'upcoming' | 'ongoing' | 'completed';
+      if (endDate) {
+        if (now < eventDate) {
+          eventStatus = 'upcoming';
+        } else if (now >= eventDate && now <= endDate) {
+          eventStatus = 'ongoing';
+        } else {
+          eventStatus = 'completed';
+        }
+      } else {
+        eventStatus = eventDate < now ? 'completed' : 'upcoming';
+      }
+      
+      // Keep isPast for backward compatibility
+      const isPast = eventStatus === 'completed';
       let hasJoined = false;
       let attendees: any[] = [];
       
@@ -55,6 +73,7 @@ export const load: PageServerLoad = async ({ locals }) => {
       
       return {
         ...event,
+        eventStatus,
         isPast,
         hasJoined,
         attendees

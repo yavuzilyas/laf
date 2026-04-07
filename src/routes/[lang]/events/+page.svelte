@@ -31,6 +31,7 @@
         imageUrl?: string;
         attendeeCount?: number;
         isPast: boolean;
+        eventStatus: 'upcoming' | 'ongoing' | 'completed';
         link?: string;
         hasJoined?: boolean;
         attendees?: Array<{ id: string; name: string; email?: string; avatar_url?: string }>;
@@ -68,8 +69,13 @@
             result = result.filter(e => e.isPast);
         }
 
-        // Sort: Selected city events first, then by date
+        // Sort: Ongoing events first, then by date
         return result.sort((a, b) => {
+            // Priority 1: Ongoing events always first
+            if (a.eventStatus === 'ongoing' && b.eventStatus !== 'ongoing') return -1;
+            if (b.eventStatus === 'ongoing' && a.eventStatus !== 'ongoing') return 1;
+            
+            // Priority 2: Selected city events
             if (selectedCity) {
                 const aIsSelectedCity = a.city === selectedCity || a.city === 'Türkiye';
                 const bIsSelectedCity = b.city === selectedCity || b.city === 'Türkiye';
@@ -78,7 +84,7 @@
                 if (!aIsSelectedCity && bIsSelectedCity) return 1;
             }
             
-            // Same group - sort by date
+            // Priority 3: Sort by date
             // When 'all' is selected, sort from newest to oldest (descending)
             // Otherwise sort from oldest to newest (ascending)
             if (timeFilter === 'all') {
@@ -90,7 +96,7 @@
 
     // City event status for map coloring
     const cityEventStatus = $derived(() => {
-        const status: Record<string, 'future' | 'past' | 'none'> = {};
+        const status: Record<string, 'upcoming' | 'ongoing' | 'past' | 'none'> = {};
         const allCities = ['Adana', 'Adıyaman', 'Afyonkarahisar', 'Ağrı', 'Amasya', 'Ankara', 'Antalya', 'Artvin', 'Aydın', 'Balıkesir', 'Bilecik', 'Bingöl', 'Bitlis', 'Bolu', 'Burdur', 'Bursa', 'Çanakkale', 'Çankırı', 'Çorum', 'Denizli', 'Diyarbakır', 'Edirne', 'Elazığ', 'Erzincan', 'Erzurum', 'Eskişehir', 'Gaziantep', 'Giresun', 'Gümüşhane', 'Hakkari', 'Hatay', 'Isparta', 'Mersin', 'İstanbul', 'İzmir', 'Kars', 'Kastamonu', 'Kayseri', 'Kırklareli', 'Kırşehir', 'Kocaeli', 'Konya', 'Kütahya', 'Malatya', 'Manisa', 'Kahramanmaraş', 'Mardin', 'Muğla', 'Muş', 'Nevşehir', 'Niğde', 'Ordu', 'Rize', 'Sakarya', 'Samsun', 'Siirt', 'Sinop', 'Sivas', 'Tekirdağ', 'Tokat', 'Trabzon', 'Tunceli', 'Şanlıurfa', 'Uşak', 'Van', 'Yozgat', 'Zonguldak', 'Aksaray', 'Bayburt', 'Karaman', 'Kırıkkale', 'Batman', 'Şırnak', 'Bartın', 'Ardahan', 'Iğdır', 'Yalova', 'Karabük', 'Kilis', 'Osmaniye', 'Düzce'];
         
         // Initialize all cities as 'none'
@@ -99,11 +105,14 @@
         // Check each city for events
         events.forEach((event: Event) => {
             if (event.type === 'event' && event.city !== 'Türkiye') {
-                if (!event.isPast) {
-                    // Has future event - highest priority
-                    status[event.city] = 'future';
-                } else if (status[event.city] !== 'future') {
-                    // Has past event only if no future event
+                if (event.eventStatus === 'ongoing') {
+                    // Ongoing event has highest priority
+                    status[event.city] = 'ongoing';
+                } else if (event.eventStatus === 'upcoming' && status[event.city] !== 'ongoing') {
+                    // Upcoming event if no ongoing
+                    status[event.city] = 'upcoming';
+                } else if (event.eventStatus === 'completed' && status[event.city] !== 'ongoing' && status[event.city] !== 'upcoming') {
+                    // Past event only if no ongoing or upcoming
                     status[event.city] = 'past';
                 }
             }
@@ -505,8 +514,10 @@
                                     <Badge variant="default" class="text-[10px] h-4">
                                         {t(`${event.category}`)}
                                     </Badge>
-                                    {#if event.isPast}
+                                    {#if event.eventStatus === 'completed'}
                                         <Badge variant="outline" class="text-[10px] h-4">{t('events.completed')}</Badge>
+                                    {:else if event.eventStatus === 'ongoing'}
+                                        <Badge variant="outline" class="text-[10px] h-4 text-blue-600 border-blue-600">{t('events.ongoing') || 'Devam Ediyor'}</Badge>
                                     {:else}
                                         <Badge variant="outline" class="text-[10px] h-4 text-green-600 border-green-600">{t('events.upcoming')}</Badge>
                                     {/if}
@@ -543,7 +554,7 @@
                                     
                                 </div>
                                 
-                                {#if !event.isPast}
+                                {#if event.eventStatus !== 'completed'}
                                     <div class="mt-2 flex gap-2">
                                         <Button variant="outline" size="xs" class="flex-1 h-7 text-xs" onclick={() => openDialog(event)}>
                                             {t('events.details')}
@@ -623,10 +634,14 @@
                         <Badge variant={selectedEvent?.type === 'announcement' ? 'secondary' : 'default'} class="text-xs">
                             {selectedEvent?.category ? t(`${selectedEvent.category}`) : ''}
                         </Badge>
-                        {#if selectedEvent?.isPast && selectedEvent?.type === 'event'}
-                            <Badge variant="outline" class="text-xs">{t('events.completed')}</Badge>
-                        {:else if selectedEvent?.type === 'event'}
-                            <Badge variant="outline" class="text-xs text-green-600 border-green-600">{t('events.upcoming')}</Badge>
+                        {#if selectedEvent?.type === 'event'}
+                            {#if selectedEvent?.eventStatus === 'completed'}
+                                <Badge variant="outline" class="text-xs">{t('events.completed')}</Badge>
+                            {:else if selectedEvent?.eventStatus === 'ongoing'}
+                                <Badge variant="outline" class="text-xs text-blue-600 border-blue-600">{t('events.ongoing') || 'Devam Ediyor'}</Badge>
+                            {:else}
+                                <Badge variant="outline" class="text-xs text-green-600 border-green-600">{t('events.upcoming')}</Badge>
+                            {/if}
                         {/if}
                     </div>
                 </Dialog.Description>
@@ -652,7 +667,7 @@
                         <span>{t('events.endDate')}: {formatDate(selectedEvent.endDate)}</span>
                     </div>
                 {/if}
-                {#if selectedEvent && !selectedEvent.isPast && selectedEvent.type === 'event'}
+                {#if selectedEvent?.eventStatus !== 'completed' && selectedEvent?.type === 'event'}
                     <div class="flex items-center gap-2">
                         <Clock class="w-4 h-4" />
                         <span>{formatTime(selectedEvent.date)}</span>

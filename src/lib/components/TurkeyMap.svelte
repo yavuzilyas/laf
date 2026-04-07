@@ -18,7 +18,7 @@
 	const dispatch = createEventDispatcher<{ select: { city: string; plate: string } }>();
 
 	interface Props {
-		cityEventStatus?: Record<string, 'future' | 'past' | 'none'>;
+		cityEventStatus?: Record<string, 'upcoming' | 'ongoing' | 'past' | 'none'>;
 		cityUserCounts?: Record<string, number>;
 	}
 
@@ -304,7 +304,7 @@
 				if (normName) acc[normName] = status;
 				return acc;
 			},
-			{} as Record<string, 'future' | 'past' | 'none'>
+			{} as Record<string, 'upcoming' | 'ongoing' | 'past' | 'none'>
 		)
 	);
 
@@ -443,12 +443,15 @@
 		const city = cityByPlate[plate];
 		if (!city) return 'var(--muted-foreground)';
 
-		// Priority 1: Future Event (Requirement: Full Primary)
+		// Priority 1: Ongoing Event (Requirement: Full Primary)
 		const normName = normalizeCityName(city.name);
-		if (normName && normalizedEventStatus[normName] === 'future') return 'var(--primary)'; // Pure Primary for future events
+		if (normName && normalizedEventStatus[normName] === 'ongoing') return 'var(--primary)';
 
-		// Priority 2: Hover
-		if (hoveredCity === city.name) return 'color-mix(in srgb, var(--primary), var(--foreground) 20%)'; // Lighter primary for hover
+		// Priority 2: Upcoming Event (Requirement: Lighter Primary)
+		if (normName && normalizedEventStatus[normName] === 'upcoming') return 'color-mix(in srgb, var(--primary), transparent 30%)';
+
+		// Priority 3: Hover
+		if (hoveredCity === city.name) return 'color-mix(in srgb, var(--primary), var(--foreground) 20%)';
 
 		// Default: Dynamic User Density color (includes selected city - keeps its color)
 		return getCityColor(city.name);

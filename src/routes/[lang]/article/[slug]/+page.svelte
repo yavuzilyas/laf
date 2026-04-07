@@ -1990,13 +1990,6 @@
 		}
 	});
 
-	let mouseX = browser ? useMotionValue(0) : { set: () => {} };
-	let mouseY = browser ? useMotionValue(0) : { set: () => {} };
-	let background =
-		browser && mouseX && mouseY
-			? useMotionTemplate`radial-gradient(200px circle at ${mouseX}px ${mouseY}px, rgba(51, 51, 51, 0.4), transparent 80%)`
-			: '';
-
 	// Share functionality
 	let showShareMenu = $state(false);
 	let shareMenuRef = $state<HTMLDivElement | null>(null);
@@ -2187,20 +2180,8 @@
 <!-- svelte-ignore a11y-no-static-element-interactions -->
 <div
 	role="presentation"
-	onmousemove={(e) => {
-		const { left, top } = e.currentTarget.getBoundingClientRect();
-		mouseX.set(e.clientX - left);
-		mouseY.set(e.clientY - top);
-	}}
 	class="group relative h-fit w-full overflow-hidden rounded-xl bg-card"
 >
-	<Motion style={{ background }} let:motion>
-		<div
-			use:motion
-			class="pointer-events-none absolute -inset-px rounded-xl opacity-0 transition duration-300 group-hover:opacity-75"
-		></div>
-	</Motion>
-
 	<main class="min-h-screen bg-background">
 		{#if !article}
 			<div class="container mx-auto px-4 py-12 text-center">

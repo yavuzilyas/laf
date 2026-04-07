@@ -87,9 +87,9 @@ import { ContactRoundIcon } from 'svelte-animate-icons';
   }
 </script>
 
-<div class="max-w-5xl mx-auto my-4">
-  <div class="rounded-xl border bg-card text-card-foreground shadow-lg overflow-hidden">
-    <MagicCard class="w-full" gradientSize={250} gradientOpacity={0.15}>
+<div class="w-full md:w-xl mx-auto my-4">
+  <div class="rounded-lg bg-card text-card-foreground shadow-lg overflow-hidden">
+    <MagicCard gradientSize={250} gradientOpacity={0.15}>
       <div class="p-6">
         <!-- Form Content -->
         {#if isLoggedIn}
