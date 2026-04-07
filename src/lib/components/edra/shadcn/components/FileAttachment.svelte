@@ -78,7 +78,7 @@
 
 <style>
 	.marquee-container {
-		width: 120px;
+		width: 70px;
 		overflow: hidden;
 		position: relative;
 	}
