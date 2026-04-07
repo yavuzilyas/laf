@@ -92,7 +92,7 @@
 		white-space: nowrap;
 		font-size: 0.75rem;
 		color: hsl(var(--secondary-foreground));
-		padding-right: 1rem;
+		padding-right: 1.5rem;
 	}
 
 	@keyframes marquee {
