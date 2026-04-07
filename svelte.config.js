@@ -6,9 +6,7 @@ const config = {
 	preprocess: vitePreprocess(),
 
 	kit: {
-		adapter: adapter({
-			entryPoint: 'src/server.js'
-		}),
+		adapter: adapter(),
 		csrf: {
 			trustedOrigins: []
 		},

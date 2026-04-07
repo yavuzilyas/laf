@@ -19,9 +19,9 @@ export interface SEOProps {
  * Generate full SEO meta tags for any page
  */
 export function generateSEOMeta(props: SEOProps) {
-	const siteName = 'LAF - Libertarian Anarchist Foundation';
+	const siteName = 'LAF - Liberteryen Anarşist Faaliyet';
 	const siteUrl = 'https://laf.international'; // Production URL
-	const defaultImage = '/og-default.png'; // Fallback OG image
+	const defaultImage = '/lafpp.png'; // Fallback OG image
 
 	const url = props.canonical || (browser ? window.location.href : '');
 	const ogImage = props.image || `${siteUrl}${defaultImage}`;
