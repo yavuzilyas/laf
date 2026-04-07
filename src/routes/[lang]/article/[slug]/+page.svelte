@@ -2248,6 +2248,7 @@
 											/>
 											{t('articles.comments.report')}
 										</DropdownMenu.Item>
+										
 										{#if data.canEdit}
 											<DropdownMenu.Separator />
 											<DropdownMenu.Item onclick={onDeleteArticle}>

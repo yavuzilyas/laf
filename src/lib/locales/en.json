@@ -25,27 +25,70 @@
     "title": "Help - LAF",
     "description": "Help center and frequently asked questions",
     "faqTitle": "Frequently Asked Questions",
-    "contactTitle": "Contact Us",
     "faq": {
-      "createAccount": {
-        "question": "How do I create an account?",
-        "answer": "Click the 'Register' button on the homepage, fill in the required information, and verify your email address."
+      "register": {
+        "question": "I would like to participate in the LAF.",
+        "answer": "Click the 3 lines in the top right; click Login; click the underlined 'Register' link at the bottom of the page; fill in your unchangeable username and password appropriately; fill in optional but helpful information like phone number and city so we can reach you; Click 'I understand' on the warning; scratch the silver rectangle; copy the words that appear to a secure password manager's notes or carefully write them down on paper (you'll need them later); proceed to the next step (if you go back, the words will reset) and enter the words in the correct order; verify; you are now a member."
+      },
+      "login": {
+        "question": "How do I log in to the site?",
+        "answer": "Click the 3 lines in the top right; click Login; fill in the information; click Login; enter your BIP-39 words with spaces between them and without numbers; verify; login successful."
       },
       "forgotPassword": {
-        "question": "I forgot my password, what should I do?",
-        "answer": "Click the 'Forgot Password' link on the login page and enter your BIP-39. and type your new password."
+        "question": "I forgot my password?",
+        "answer": "Click the 3 lines in the top right; click Login; click the yellow 'Forgot your password?' link; enter your username; continue; verify your mnemonic word sequence with spaces and without numbers; enter and confirm your new password; your password has been reset."
       },
-      "editProfile": {
-        "question": "How can I edit my profile?",
-        "answer": "Go to 'Account' from the hamburger menu icon. Here you can update your name, profile picture, and other information."
+      "resetPasswordWhileLoggedIn": {
+        "question": "Reset password while logged in",
+        "answer": "Click the 3 lines in the top right; click Settings; open My Passwords; enter your current password, enter and confirm your new password; change your password."
       },
-      "createContent": {
-        "question": "How can I create content?",
-        "answer": "Click the 'Write' button in the Articles. You can create content using the text editor, add media, and preview before publishing."
+      "lostMnemonic": {
+        "question": "I logged in but lost my BIP-39 words.",
+        "answer": "Click the 3 lines in the top right; click Settings; open My Passwords; click Show BIP-39 Sequence. If it hasn't been cleared from your browser's memory, it will be displayed."
       },
-      "collaborate": {
-        "question": "How can I collaborate with other users?",
-        "answer": "Use the 'Add Colloborator' button on the write page to invite other users."
+      "compromisedMnemonic": {
+        "question": "I saved my BIP-39 words in a risky place.",
+        "answer": "Click the 3 lines in the top right; click Settings; open My Passwords; click Regenerate BIP-39 Sequence; verify your password and BIP-39 words; your new words will be displayed. Save them in a secure place or print them."
+      },
+      "contact": {
+        "question": "How do I reach you through the site?",
+        "answer": "Click the logo to go to the homepage; scroll down to the Contact Us section and fill out the form."
+      },
+      "platformLinks": {
+        "question": "Where are your other platform links?",
+        "answer": "Click the 3 lines in the top right; click Links."
+      },
+      "deleteAccount": {
+        "question": "How do I delete my account?",
+        "answer": "Click the 3 lines in the top right; click Settings; open the settings tab; click Delete My Account; verify your password and BIP39 words; your account is now hidden and banned; it will be completely deleted after 48 hours for security reasons."
+      },
+      "accountBanned": {
+        "question": "It says your account is banned?",
+        "answer": "Your account may have been deleted. If you didn't do it, contact us on Telegram."
+      },
+      "writeArticle": {
+        "question": "How do I write an article?",
+        "answer": "Click the Articles link in the top center; click the Write button; write your article; fill in information like thumbnail, tags, etc. and click the publish button; your article will be published after approval."
+      },
+      "addTranslation": {
+        "question": "How do I add a translation?",
+        "answer": "Open the relevant article; click the three dots; click Translate and add your translation on the opened page and publish; it will be published after approval by the author."
+      },
+      "donate": {
+        "question": "How do I make a donation?",
+        "answer": "Download one of the <a href='https://www.getmonero.org/downloads/' target='_blank' rel='noopener noreferrer'>official Monero wallets</a>; set up your wallet, buy Monero through <a href='https://trocador.app/' target='_blank' rel='noopener noreferrer'>Trocador</a> or other methods; on our site, click the 3 lines in the top right; open the Donations link; copy the wallet address or open it in your wallet with the other button; make sure your wallet has verified all nodes; enter the amount and send; after your transaction is confirmed, copy your transaction TXID; return to the site; click I Donated; fill in the TXID and other sections; send; when approved, it will be published and you'll receive a badge."
+      },
+      "joinEvents": {
+        "question": "How do I join events?",
+        "answer": "Click the Activities link in the top center; find and join the event in the events section on the opened page; if you can't find it, select your city or change the filters."
+      },
+      "findAnarchists": {
+        "question": "How do I find anarchists in my city?",
+        "answer": "Click the Activities link in the top center; select your city; click Show Users in the top right of the map."
+      },
+      "accessDesigns": {
+        "question": "How do I access designs?",
+        "answer": "Click the 3 lines in the top right; click Links; click the Design Files link box on the opened page; you can download all relevant designs from the opened page."
       }
     }
   },
@@ -4731,7 +4774,6 @@
   "hedgehog": "hedgehog",
   "height": "height",
   "helicopter": "helicopter",
-  "help": "help",
   "herb": "herb",
   "hibiscus": "hibiscus",
   "hidden": "hidden",

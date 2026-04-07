@@ -169,13 +169,6 @@
         selectedCity = event.detail.city;
         announcementsPage = 1;
         eventsPage = 1;
-        // Scroll to map section to show both map and events
-        setTimeout(() => {
-            const mapSection = document.getElementById('map-section');
-            if (mapSection) {
-                mapSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
-            }
-        }, 100);
     }
 
     function openDialog(event: Event) {

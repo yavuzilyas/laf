@@ -10,7 +10,8 @@
   import { Input } from '$lib/components/ui/input';
   import { Label } from '$lib/components/ui/label';
   import { Textarea } from '$lib/components/ui/textarea';
-  import { Copy, User, TrendingUp, Users, MessageCircle, Send, CheckCircle, Clock, ExternalLink } from '@lucide/svelte';
+  import * as Accordion from '$lib/components/ui/accordion';
+  import { Copy, User, TrendingUp, Users, MessageCircle, Send, CheckCircle, Clock, ExternalLink, CircleHelp } from '@lucide/svelte';
   import { t } from '$lib/stores/i18n.svelte.js';
   import { getCurrentLocale } from '$lib/stores/i18n.svelte.js';
 
@@ -425,6 +426,23 @@ import { BarSpinner } from "$lib/components/spell/bar-spinner";
       </CardDescription>
     </CardHeader>
     <CardContent class="space-y-4 mt-4">
+      <!-- How to Donate Accordion -->
+      <Accordion.Root type="single" class="w-full">
+        <Accordion.Item value="how-to-donate">
+          <Accordion.Trigger class="text-left hover:no-underline">
+            <span class="flex items-center gap-2 font-medium">
+              <CircleHelp class="w-5 h-5 text-primary" />
+              {t('help.faq.donate.question')}
+            </span>
+          </Accordion.Trigger>
+          <Accordion.Content class="text-muted-foreground">
+            {@html t('help.faq.donate.answer')}
+          </Accordion.Content>
+        </Accordion.Item>
+      </Accordion.Root>
+
+      <Separator />
+
       <div>
         <h3 class="font-semibold mb-2">{t('donations.walletAddress')}</h3>
         <div class="flex flex-col p-2 sm:flex-row items-start sm:items-center gap-3 bg-muted rounded-lg">

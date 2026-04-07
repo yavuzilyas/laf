@@ -209,6 +209,8 @@ import { ScrollProgress } from "$lib/components/magic/scroll-progress";
     { icon: Cog, name: t('Settings'), onClick: handleSettingsClick },
     { icon: BellIcon, name: t('Notifications'), onClick: openNotificationsDialog, badge: unreadTotal },
     ...(isModerator ? [{ icon: Shield, name: t('Moderation'), href: l("/moderation") }] : []),
+        { icon: BadgeInfo, name: t('Help'), href: l("/help") },
+
     { icon: Link, name: t('Links'), href: l("/links") },
     { icon: HandCoins, name: t('Donate'), onClick: () => scrollToDonations() },
     { icon: LogOutIcon, name: t('Logout'), href: l('/logout'), customStyle: "!text-red-500"},
@@ -217,6 +219,10 @@ import { ScrollProgress } from "$lib/components/magic/scroll-progress";
   // Reaktif logged-out items - dil değiştiğinde otomatik güncellenir
   const baseLoggedOut = $derived<MenuItem[]>([
     { icon: LogInIcon, name: t('Login'), href: l("/login") },
+            { icon: BadgeInfo, name: t('Help'), href: l("/help") },
+
+        { icon: Cog, name: t('Settings'), onClick: handleSettingsClick },
+
     { icon: Link, name: t('Links'), href: l("/links") },
     { icon: HandCoins, name: t('Donations'), onClick: () => scrollToDonations() },
   ]);

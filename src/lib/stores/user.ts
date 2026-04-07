@@ -1,7 +1,7 @@
 import { writable, derived } from 'svelte/store';
 import { browser } from '$app/environment';
 
-interface User {
+export interface User {
   id: string;
   email?: string;
   nickname?: string;

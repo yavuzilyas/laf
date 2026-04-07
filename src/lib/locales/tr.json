@@ -37,31 +37,70 @@
     "title": "Yardım - LAF",
     "description": "Yardım merkezi ve sıkça sorulan sorular",
     "faqTitle": "Sıkça Sorulan Sorular",
-    "contactTitle": "Bize Ulaşın",
     "faq": {
-      "createAccount": {
-        "question": "Hesabımı nasıl oluştururum?",
-        "answer": "Ana sayfadaki 'Kayıt Ol' butonuna tıklayın, gerekli bilgileri doldurun ve e-posta adresinizi doğrulayın."
+      "register": {
+        "question": "LAF'a üye olmak istiyorum.",
+        "answer": "Sağ üstteki 3 çizgiye tıklayın; giriş yap'a tıklayın; açılan yerde en aşağıdaki altı çizili kayıt ol linkine tıklayın; değiştirilemeyen kullanıcı adınızı, parolanızı uygun şekilde doldurun; size ulaşabilmemiz ve üyeliğinizi tamamlayabilmemiz için gerekli olan telefon numarası, şehir gibi bilgileri zorunlu olmasa da doldurun; Açılan uyarıya anladım diyin; gümüş dikdörtgen alanı kazıyın; çıkan kelimeleri güvendiğiniz bir şifre yöneticisinin not kısmına kopyalayıp kaydedebilir veya bir kağıda dikkatlice not alabilirsiniz(sonraki aşamalarda lazım olacak); sonraki aşamaya geçin(bu aşamada geri dönerseniz kelimeler sıfırlanır) ve kelimeleri doğru sırayla girin.; doğrulayın; artık üyesiniz."
+      },
+      "login": {
+        "question": "Siteye nasıl giriş yaparım?",
+        "answer": "Sağ üstteki 3 çizgiye tıklayın; giriş yap'a tıklayın; açılan yerdeki bilgileri doldurun; giriş deyin; BIP-39 kelimelerini birer boşluk ile numarasız yazın; doğrulayın; giriş başarılı."
       },
       "forgotPassword": {
-        "question": "Şifremi unuttum, ne yapmalıyım?",
-        "answer": "Giriş sayfasındaki 'Şifremi Unuttum' bağlantısına tıklayın ve e-posta adresinizi girin. Şifre sıfırlama bağlantısı e-posta adresinize gönderilecektir."
+        "question": "Şifremi unuttum?",
+        "answer": "Sağ üstteki 3 çizgiye tıklayın; giriş yap'a tıklayın; açılan yerde sarı yazı ile \"Şifreni mi unuttun?\" linkine tıklayın; kullanıcı adınızı girin; sürdür; mnemonic kelime sıranızı birer boşluk ve numarasız şekilde doğrulayın; yeni şifrenizi girin ve doğrulayın; şifreniz sıfırlandı."
       },
-      "editProfile": {
-        "question": "Profilimi nasıl düzenleyebilirim?",
-        "answer": "Ayarlar menüsünden 'Profil Ayarları' seçeneğine gidin. Burada adınızı, profil fotoğrafınızı ve diğer bilgilerinizi güncelleyebilirsiniz."
+      "resetPasswordWhileLoggedIn": {
+        "question": "Giriş Yapılıyken Şifre sıfırlama",
+        "answer": "Sağ üstteki 3 çizgiye tıklayın; Ayarlar'a tıklayın; Şifrelerim'i açın; var olan şifrenizi girin ve yeni şifrenizi girip doğrulayın; şifrenizi değiştirin."
       },
-      "twoFactor": {
-        "question": "İki faktörlü kimlik doğrulamayı nasıl etkinleştirebilirim?",
-        "answer": "Güvenlik ayarlarından 'İki Faktörlü Kimlik Doğrulama' seçeneğini bulun ve adımları takip edin. Kimlik doğrulama uygulaması ile QR kodu tarayın."
+      "lostMnemonic": {
+        "question": "Giriş yaptım ama BIP-39 kelimelerini kaybettim.",
+        "answer": "Sağ üstteki 3 çizgiye tıklayın; Ayarlar'a tıklayın; Şifrelerim'i açın; BIP-39 sıralamasını Göster'e tıklayın. eğer tarayıcınızdaki bellekten silinmemişse gösterilecektir."
       },
-      "createContent": {
-        "question": "İçerik nasıl oluşturabilirim?",
-        "answer": "Ana menüdeki 'Yaz' butonuna tıklayın. Metin düzenleyiciyi kullanarak içerik oluşturabilir, medya ekleyebilir ve yayınlamadan önce önizleme yapabilirsiniz."
+      "compromisedMnemonic": {
+        "question": "BIP-39 kelimelerimi riskli bir yere kaydettim.",
+        "answer": "Sağ üstteki 3 çizgiye tıklayın; Ayarlar'a tıklayın; Şifrelerim'i açın; BIP-39 Sıralamasını Yeniden Oluştur'a basın; şifrenizi ve BIP-39 kelimelerinizi doğrulayın; yeni kelimeleriniz gösterilecektir. güvenli bir yere kaydedin veya yazdırın."
       },
-      "collaborate": {
-        "question": "Diğer kullanıcılarla nasıl işbirliği yapabilirim?",
-        "answer": "İçerik sayfasında 'Paylaş' butonunu kullanarak diğer kullanıcıları davet edebilirsiniz. Gerçek zamanlı düzenleme ve yorum özelliklerini kullanabilirsiniz."
+      "contact": {
+        "question": "Site üzerinden size nasıl ulaşırım?",
+        "answer": "Logoya tıklayarak ana sayfaya girin; Bize Ulaşın kısmına kadar kaydırın ve formu doldurun."
+      },
+      "platformLinks": {
+        "question": "Diğer platformlarınızın linkleri nerede?",
+        "answer": "Sağ üstteki 3 çizgiye tıklayın; Bağlantılar'a tıklayın."
+      },
+      "deleteAccount": {
+        "question": "Hesabımı nasıl silerim?",
+        "answer": "Sağ üstteki 3 çizgiye tıklayın; Ayarlar'a tıklayın; ayarlar sekmesini açın; Hesabımı Sil'e tıklayın; şifreinizi ve BIP39 kelimelerini doğrulayın; artık hesabınız gizlendi ve banlandı; güvenlik nedeniyle 48 saat sonra tamamen silinecektir."
+      },
+      "accountBanned": {
+        "question": "Hesabınız banlandı yazıyor?",
+        "answer": "Hesabınız silinmiş olabilir, eğer siz yapmadıysanız telegramdan bize ulaşın."
+      },
+      "writeArticle": {
+        "question": "Nasıl makale yazarım?",
+        "answer": "Orta üstteki Makaleler linkine tıklayın; Yaz düğmesine tıklayın; Makalenizi yazın; thumbnail, etiketler gibi bilgileri de doldurun ve yayınla düğmesine tıklayın; makaleniz onaylandıktan sonra yayına alınacaktır."
+      },
+      "addTranslation": {
+        "question": "Nasıl çeviri eklerim?",
+        "answer": "İlgili makaleyi açın; üç noktaya basın; çevire tıklayın ve açılan sayfada çevirinizi ekleyip yayınlayın; yazar tarafından onaylandıktan sonra yayına alınacaktır."
+      },
+      "donate": {
+        "question": "Nasıl bağış yaparım?",
+        "answer": "<a href='https://www.getmonero.org/downloads/' target='_blank' rel='noopener noreferrer'>Resmi Monero cüzdanlarından</a> birini indirin; cüzdanınızı kurun, <a href='https://trocador.app/' target='_blank' rel='noopener noreferrer'>Trocador</a> veya başka yöntemler ile monero satın alın; sitemizde sağ üstteki 3 çizgiye tıklayın; bağışlar linkini açın; çıkan yerde cüzdan adresini kopyalayın veya diğer buton ile cüzdanınızda açın; cüzdanınızın tüm node'u doğruladığından emin olun;tutarı girin ve gönderin; işleminiz onaylandıktan sonra işleminizin TXID'sini kopyalayın; siteye geri dönün; bağış yaptım butonuna basın; TXID ve diğer kısımları doldurun; gönderin; onaylandığında yayına alınacak ve rozet alacaksınız."
+      },
+      "joinEvents": {
+        "question": "Nasıl etkinliklere katılırım?",
+        "answer": "Orta üstteki Faaliyetler linkine tıklayın; açılan sayfada etkinlikler kısmından etkinliği bulup katılın; eğer bulamazsanız şehrinizi seçin veya filtreleri değiştirin."
+      },
+      "findAnarchists": {
+        "question": "Şehrimdeki anarşistleri nasıl bulurum?",
+        "answer": "Orta üstteki Faaliyetler linkine tıklayın; şehrinizi seçin; Haritanın sağ üstündeki Kullanıcıları Göster'e tıklayın."
+      },
+      "accessDesigns": {
+        "question": "Tasarımlara nasıl erişirim?",
+        "answer": "Sağ üstteki 3 çizgiye tıklayın; Bağlantılar'a tıklayın; açılan sayfadaki Tasarım Dosyaları link kutusuna tıklayın; açılan sayfadan ilgili tüm tasarımları indirebilirsiniz."
       }
     }
   },
@@ -4886,7 +4925,6 @@
   "hedgehog": "kirpi",
   "height": "Boy",
   "helicopter": "helikopter",
-  "help": "yardım",
   "herb": "bitki",
   "hibiscus": "japon gülü",
   "hidden": "gizli",

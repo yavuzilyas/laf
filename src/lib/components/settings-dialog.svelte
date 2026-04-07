@@ -35,7 +35,9 @@ import { BarSpinner } from "$lib/components/spell/bar-spinner";
     import { notificationPreferences, toggleNotificationType, toggleGeneralSetting, setAllNotifications, saveNotificationPreferences, loadNotificationPreferences, type NotificationPreferences } from "$lib/stores/notification-preferences";
     import LanguageSelector from "./LanguageSelector.svelte";
 	import * as ToggleGroup from "$lib/components/ui/toggle-group/index.js";
-	import { fontSize, type FontSize } from "$lib/stores/fontSize.js";
+	import { userStore } from "$lib/stores/user.js";
+import type { User } from "$lib/stores/user.js";
+    import { fontSize, type FontSize } from "$lib/stores/fontSize.js";
 
 	// Import default preferences for initialization
 	const defaultPreferences = {
@@ -197,14 +199,32 @@ import { BarSpinner } from "$lib/components/spell/bar-spinner";
 		return displayNames[soundKey] || soundKey;
 	}
 
-	const settingsData = $derived({
-		settings: [
+	// Get current user from store
+	let currentUser = $state<User | null>(null);
+	$effect(() => {
+		currentUser = $userStore.user;
+	});
+
+	// Filtered settings based on authentication
+	const filteredSettings = $derived(() => {
+		const allSettings = [
 			{ name: t('Interface'), value:"interface", icon: PaintbrushIcon },
 			{ name: t('Messages'), value:"messages", icon: MessageCircleIcon },
 			{ name: tJoin(['Language', 'and', 'Region']), value:"language", icon: GlobeIcon },
 			{ name: t('MyPasswords'), value:"passwords", icon: KeyRound },
 			{ name: t('Settings'), value:"settings", icon: SettingsIcon },
-		],
+		];
+		
+		// If user is not logged in, only show interface and language
+		if (!currentUser) {
+			return allSettings.filter(s => s.value === 'interface' || s.value === 'language');
+		}
+		
+		return allSettings;
+	});
+
+	const settingsData = $derived({
+		settings: filteredSettings(),
 	});
 
 	// Password change state
@@ -544,7 +564,7 @@ function handleOpenChange(newOpen: boolean) {
 		class="overflow-hidden p-0 md:max-h-[80vh] md:max-w-[800px] z-50 rounded-lg border"
 		trapFocus={false}
 	>
-		<Tabs.Root value="passwords">
+		<Tabs.Root value="interface">
 			<Sidebar.Provider class="items-start h-[80vh]">
 				<Sidebar.Root class="w-64 border-r">
 					<Sidebar.Content class="overflow-y-auto h-full" data-slot="content">
