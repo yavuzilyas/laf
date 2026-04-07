@@ -53,17 +53,22 @@
 
 <NodeViewWrapper as="div" class="file-attachment-wrapper" style="margin: 4px 0;">
 	<div class="file-attachment flex flex-row gap-2 justify-center p-2 bg-background rounded-md border w-fit" data-url={url} data-filename={filename} data-size={size} data-type={type}>
-		<div class="flex flex-row gap-2 justify-center items-center">
-			<File class="text-primary" />
+		<div class="flex flex-row gap-1 justify-center items-center">
+		<div class="relative w-8 h-8">
+			<File size={32} class="text-primary absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" />
+						
+				<Badge variant="secondary" class="p-0 bg-transparent text-[8px] drop-shadow  absolute top-2/3 left-1/2 -translate-x-1/2 -translate-y-1/2">.{type}</Badge>
+			
+</div>
 			<div class="marquee-container">
+				<span class="marquee-text-placeholder">{filename}</span>
 				<div class="marquee-content">
+					<span class="marquee-text">{filename}</span>
 					<span class="marquee-text">{filename}</span>
 					<span class="marquee-text">{filename}</span>
 				</div>
 			</div>
-			{#if type}
-				<Badge variant="secondary" style="text-transform: uppercase; flex-shrink: 0;">{type}</Badge>
-			{/if}
+
 			<span class="text-muted-foreground text-xs">{size}</span>
 		</div>
 		<Button
@@ -78,13 +83,27 @@
 
 <style>
 	.marquee-container {
-		width: 70px;
-		overflow: hidden;
 		position: relative;
+		width: fit-content;
+		max-width: 133px;
+		overflow: hidden;
+		margin-top: 4px;
+		mask-image: linear-gradient(to right, transparent 0%, black 20%, black 80%, transparent 100%);
+		-webkit-mask-image: linear-gradient(to right, transparent 0%, black 20%, black 80%, transparent 100%);
+	}
+
+	.marquee-text-placeholder {
+		visibility: hidden;
+		white-space: nowrap;
+		font-size: 0.75rem;
+		padding-right: 0.5rem;
 	}
 
 	.marquee-content {
 		display: inline-flex;
+		position: absolute;
+		top: 0;
+		left: 0;
 		animation: marquee 8s linear infinite;
 	}
 
@@ -92,7 +111,7 @@
 		white-space: nowrap;
 		font-size: 0.75rem;
 		color: hsl(var(--secondary-foreground));
-		padding-right: 1.5rem;
+		padding-right: 0.5rem;
 	}
 
 	@keyframes marquee {
@@ -100,7 +119,7 @@
 			transform: translateX(0);
 		}
 		100% {
-			transform: translateX(-50%);
+			transform: translateX(-66.666%);
 		}
 	}
 </style>
