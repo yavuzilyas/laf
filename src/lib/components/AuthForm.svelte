@@ -1159,6 +1159,8 @@ async function validateEmail(value: string) {
                         <ul class="list-disc list-inside text-sm text-secondary-foreground/80">
             <li>{t('auth.register.mnemonicInfo1')}</li>
             <li>{t('auth.register.mnemonicInfo2')}</li>
+                        <li>{t('auth.register.mnemonicInfo3')}</li>
+
           </ul>
           </div>
 </Motion>
