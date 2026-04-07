@@ -4,7 +4,7 @@
   import Navbar from '$lib/Navbar.svelte';
   import Footer from '$lib/Footer.svelte';
   import * as AlertDialog from '$lib/components/ui/alert-dialog/index.js';
-  import { Globe, Link2, Plus, Trash2, Pencil, X, Check, ExternalLink, Calendar, Bell, Users, ChevronLeft, ChevronRight } from '@lucide/svelte';
+  import { Globe, Link2, Plus, Trash2, Pencil, X, Check, ExternalLink, Calendar, Bell, Users, ChevronLeft, ChevronRight, GripVertical } from '@lucide/svelte';
   import { turkeyCities } from '$lib/data/turkey-cities';
   import * as Tabs from '$lib/components/ui/tabs/index.js';
   import { t } from '$lib/stores/i18n.svelte.js';
@@ -540,7 +540,7 @@
     description: '',
     type: 'social',
     platform: '',
-    display_order: 0,
+    display_order: 1,
     is_active: true,
     icon: null as File | null
   });
@@ -568,13 +568,25 @@
       };
     } else {
       editingLink = null;
+      // Calculate the first available display_order
+      // Find gaps in the sequence or use next number
+      const existingOrders = links.map(l => l.display_order).filter(n => n > 0).sort((a, b) => a - b);
+      let suggestedOrder = 1;
+      for (const order of existingOrders) {
+        if (order === suggestedOrder) {
+          suggestedOrder++;
+        } else if (order > suggestedOrder) {
+          // Found a gap
+          break;
+        }
+      }
       linkForm = {
         title: '',
         url: '',
         description: '',
         type: 'social',
         platform: '',
-        display_order: 0,
+        display_order: suggestedOrder,
         is_active: true,
         icon: null
       };
@@ -591,7 +603,7 @@
       description: '',
       type: 'social',
       platform: '',
-      display_order: 0,
+      display_order: 1,
       is_active: true,
       icon: null
     };
@@ -603,10 +615,19 @@
       return;
     }
 
+    // Auto-set display_order to 1 if 0 or not set
+    if (!linkForm.display_order || linkForm.display_order === 0) {
+      linkForm.display_order = 1;
+    }
+
     try {
       const formData = new FormData();
       if (editingLink) {
         formData.append('id', editingLink.id);
+        // Send previous icon URL for deletion
+        if (editingLink.icon_url) {
+          formData.append('previousIconUrl', editingLink.icon_url);
+        }
       }
       formData.append('title', linkForm.title);
       formData.append('url', linkForm.url);
@@ -664,6 +685,90 @@
     if (input.files && input.files[0]) {
       linkForm.icon = input.files[0];
     }
+  }
+
+  // Drag and drop state for links
+  let draggedLinkId = $state<string | null>(null);
+  let dragOverLinkId = $state<string | null>(null);
+
+  function handleLinkDragStart(e: DragEvent, linkId: string) {
+    draggedLinkId = linkId;
+    e.dataTransfer?.setData('text/plain', linkId);
+    e.dataTransfer!.effectAllowed = 'move';
+  }
+
+  function handleLinkDragOver(e: DragEvent, linkId: string) {
+    e.preventDefault();
+    if (linkId !== draggedLinkId) {
+      dragOverLinkId = linkId;
+    }
+  }
+
+  function handleLinkDragLeave(e: DragEvent) {
+    e.preventDefault();
+    dragOverLinkId = null;
+  }
+
+  async function handleLinkDrop(e: DragEvent, targetLinkId: string) {
+    e.preventDefault();
+    dragOverLinkId = null;
+    
+    if (!draggedLinkId || draggedLinkId === targetLinkId) {
+      draggedLinkId = null;
+      return;
+    }
+
+    // Reorder links
+    const draggedIndex = links.findIndex(l => l.id === draggedLinkId);
+    const targetIndex = links.findIndex(l => l.id === targetLinkId);
+    
+    if (draggedIndex === -1 || targetIndex === -1) {
+      draggedLinkId = null;
+      return;
+    }
+
+    // Create new array with reordered items
+    const newLinks = [...links];
+    const [draggedItem] = newLinks.splice(draggedIndex, 1);
+    newLinks.splice(targetIndex, 0, draggedItem);
+    
+    // Update display_order for all links
+    const updatedLinks = newLinks.map((link, index) => ({
+      ...link,
+      display_order: index + 1
+    }));
+    
+    // Optimistically update UI
+    links = updatedLinks;
+    
+    // Save to backend
+    try {
+      const response = await fetch('/api/links/reorder', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          orders: updatedLinks.map(l => ({ id: l.id, display_order: l.display_order }))
+        })
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to save order');
+      }
+      
+      showToast('Link sıralaması güncellendi', 'success');
+    } catch (error) {
+      showToast('Sıralama kaydedilemedi', 'error');
+      // Revert by refreshing
+      await refreshModerationData();
+    }
+    
+    draggedLinkId = null;
+  }
+
+  function handleLinkDragEnd(e: DragEvent) {
+    e.preventDefault();
+    draggedLinkId = null;
+    dragOverLinkId = null;
   }
 
   // Event management functions
@@ -1256,7 +1361,20 @@
                   // If display_order is the same, use id as tiebreaker for stable sort
                   return orderDiff !== 0 ? orderDiff : a.id.localeCompare(b.id);
                 }) as link (link.id)}
-                  <div class="flex flex-col sm:flex-row items-start sm:items-center gap-4 p-4 border rounded-lg bg-card hover:shadow-sm transition-shadow">
+                  <div
+                    class="flex flex-col sm:flex-row items-start sm:items-center gap-4 p-4 border rounded-lg bg-card hover:shadow-sm transition-shadow cursor-move {draggedLinkId === link.id ? 'opacity-50' : ''} {dragOverLinkId === link.id ? 'border-primary ring-1 ring-primary' : ''}"
+                    draggable="true"
+                    ondragstart={(e) => handleLinkDragStart(e, link.id)}
+                    ondragover={(e) => handleLinkDragOver(e, link.id)}
+                    ondragleave={handleLinkDragLeave}
+                    ondrop={(e) => handleLinkDrop(e, link.id)}
+                    ondragend={handleLinkDragEnd}
+                  >
+                    <!-- Drag Handle -->
+                    <div class="flex-shrink-0 text-muted-foreground hover:text-foreground cursor-grab active:cursor-grabbing" title="Sürükle-bırak için tut">
+                      <GripVertical class="w-5 h-5" />
+                    </div>
+
                     <!-- Icon -->
                     <div class="flex-shrink-0">
                       {#if link.icon_url}

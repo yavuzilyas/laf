@@ -1,11 +1,27 @@
 import { json } from '@sveltejs/kit';
 import { getLinks, createLink, updateLink, deleteLink } from '$db/queries-links';
-import { writeFile, mkdir } from 'fs/promises';
+import { writeFile, mkdir, rm } from 'fs/promises';
 import { extname, resolve } from 'path';
 import { env } from '$env/dynamic/private';
 import type { RequestHandler } from './$types';
 
 const UPLOAD_BASE_DIR = env.UPLOAD_DIR || 'static/uploads';
+
+// Helper function to delete old icon file
+async function deleteOldIcon(iconUrl: string | null | undefined) {
+  if (!iconUrl) return;
+  try {
+    const normalizedUrl = iconUrl.startsWith('/') ? iconUrl : `/${iconUrl}`;
+    const fsPath = resolve(UPLOAD_BASE_DIR, normalizedUrl.replace(/^\//, '').replace(/^uploads\//, ''));
+    // Security check: ensure path is within upload directory
+    if (fsPath.startsWith(resolve(UPLOAD_BASE_DIR))) {
+      await rm(fsPath, { force: true });
+      console.log('[LINKS] Deleted old icon:', fsPath);
+    }
+  } catch (error) {
+    console.error('[LINKS] Error deleting old icon:', error);
+  }
+}
 
 // GET /api/links/manage - List all links (admin/moderator only)
 export const GET: RequestHandler = async ({ locals, url }) => {
@@ -130,6 +146,11 @@ export const PUT: RequestHandler = async ({ request, locals }) => {
             return json({ error: 'Link ID is required' }, { status: 400 });
         }
         
+        // Get existing link to check for old icon
+        const existingLinks = await getLinks();
+        const existingLink = existingLinks.find(l => l.id === id);
+        const previousIconUrl = formData.get('previousIconUrl') as string | null;
+
         const updateData: any = {};
         
         if (formData.has('title')) updateData.title = formData.get('title') as string;
@@ -171,6 +192,12 @@ export const PUT: RequestHandler = async ({ request, locals }) => {
             await writeFile(filePath, Buffer.from(arrayBuffer));
             
             updateData.icon_url = `/uploads/links/${fileName}`;
+            
+            // Delete old icon after successful upload
+            const oldIconToDelete = previousIconUrl || existingLink?.icon_url;
+            if (oldIconToDelete) {
+                await deleteOldIcon(oldIconToDelete);
+            }
         }
 
         const link = await updateLink(id, updateData, user.id);
@@ -203,9 +230,18 @@ export const DELETE: RequestHandler = async ({ request, locals }) => {
             return json({ error: 'Link ID is required' }, { status: 400 });
         }
 
+        // Get existing link to delete icon
+        const existingLinks = await getLinks();
+        const existingLink = existingLinks.find(l => l.id === id);
+
         const success = await deleteLink(id);
         if (!success) {
             return json({ error: 'Link not found' }, { status: 404 });
+        }
+        
+        // Delete icon file if exists
+        if (existingLink?.icon_url) {
+            await deleteOldIcon(existingLink.icon_url);
         }
         
         return json({ success: true });
