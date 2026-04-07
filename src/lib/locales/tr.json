@@ -241,6 +241,7 @@
   "ConfirmPassword": "Şifreyi Onayla",
   "ResetPassword": "Şifreyi Sıfırla",
   "ForgotPassword": "Şifreni mi unuttun?",
+  "WhatShouldIDo": "Ne yapmalıyım?",
   "SigningIn": "Giriş yapılıyor...",
   "NoAccount": "Hesabın yok mu?",
   "HaveAccount": "Hesabın var mı?",
@@ -260,7 +261,9 @@
     },
     "login": {
       "subtitle": "Kullanıcı adın/e-postan ile şifrenle giriş yap",
-      "mnemonicAnswer": "BIP-39 Doğrulaması"
+      "mnemonicAnswer": "BIP-39 Doğrulaması",
+      "mnemonicExample": "Örnek: abandon ability able about above absent absorb abstract absurd abuse access accuse",
+      "mnemonicInstruction": "12 kelimenizi aralarında 1'er boşluk olacak şekilde ve numaralandırmadan yazın."
 
     },
     "register": {
@@ -271,6 +274,12 @@
       "mnemonicInfo": "Bitcoin Improvement Proposal 39 standardına göre 2048 kelimelik bir listeden seçilerek hatırlanabilir bir dizi oluşturulur. Kelimelerin sırası size özel bir sırdır. Güvenle saklayın; kaybolursa geri getirilemez.",
       "mnemonicInfo1": "Bu dizi, hesabınızı kurtarmak veya bilgilerinizi değiştirmek için gereklidir.",
       "mnemonicInfo2": "Hesabınızın güvenliği için tekrar gösterilmeyecektir.",
+      "mnemonicInfo3": "Tekrar giriş yaptıktan sonra tarayıcınıza veri olarak kaydedilecek, ayarlardan görebileceksiniz.",
+      "mnemonicWarningTitle": "Önemli Uyarı",
+      "mnemonicWarning1": "Mnemonic kelimelerinizi dikkatlice kaydedin!",
+      "mnemonicWarning2": "Bir sonraki aşamada bu kelimelerin doğru sırasını girmeniz istenecektir.",
+      "mnemonicWarning3": "Bu kelimeler hesabınıza erişim için gereklidir ve kaybolursa geri alınamaz.",
+      "understood": "Anladım",
       "mnemonicError": "Hatalı BIP-39 sıralaması.",
       "verifyOrderTitle": "Kelime sırasını doğrula",
       "verifyOrderSubtitle": "Doğru sırayı doğrulamak için aşağıdaki kelimelere sırayla tıklayın.",

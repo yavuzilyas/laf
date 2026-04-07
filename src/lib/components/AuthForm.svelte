@@ -2,6 +2,9 @@
   import { browser } from '$app/environment';
   import { Label } from "$lib/components/ui/label";
   import { Input } from "$lib/components/ui/input";
+  import * as Accordion from "$lib/components/ui/accordion/index.js";
+  import * as AlertDialog from "$lib/components/ui/alert-dialog/index.js";
+
   import { Button } from "$lib/components/ui/button";
   import { cn, type WithElementRef } from "$lib/utils";
   import type { HTMLFormAttributes } from "svelte/elements";
@@ -62,6 +65,7 @@ import { BarSpinner } from "$lib/components/spell/bar-spinner";
   let phoneNumber = $state("");
   let location = $state("");
   let mnemonic: string[] = $state([]);
+  let showMnemonicAlert = $state(false);
 
 
 import * as bip39 from '@scure/bip39';
@@ -335,6 +339,8 @@ const fadeScaleVariants = {
       shuffled = shuffle(mnemonic);
       selection = [];
       step = 2;
+            showMnemonicAlert = true;
+
     } catch (error) {
       showToast("BIP-39 silsilesi oluşturulamadı", "error");
     }
@@ -778,6 +784,17 @@ async function validateEmail(value: string) {
               bind:value={mnemonicPhrase} 
               disabled={loading} 
             />
+            <Accordion.Root type="single" class="w-full">
+  <Accordion.Item value="item-1">
+    <Accordion.Trigger><p class="text-xs font-semibold text-foreground">{t('WhatShouldIDo') || 'Ne yapmalıyım?'}</p></Accordion.Trigger>
+    <Accordion.Content >
+
+                <p class="text-xs text-left text-muted-foreground">{t('auth.login.mnemonicInstruction')}</p>
+              <p class="text-xs text-left text-muted-foreground">{t('auth.login.mnemonicExample')}</p>
+    </Accordion.Content>
+  </Accordion.Item>
+  </Accordion.Root>
+
                     {#if remainingAttempts < 3}
 
             <p class="text-xs text-red-500 error-message">
@@ -1051,6 +1068,34 @@ async function validateEmail(value: string) {
         </div>
       </Motion>
     {/if}
+
+    <!-- Mnemonic Warning Alert Dialog -->
+    <AlertDialog.Root bind:open={showMnemonicAlert}>
+      <AlertDialog.Content>
+        <AlertDialog.Header>
+          <AlertDialog.Title class="text-amber-600 flex items-center gap-2 mb-2">
+            <ShieldAlert class="w-6 h-6" />
+            {t('auth.register.mnemonicWarningTitle') || 'Önemli Uyarı'}
+          </AlertDialog.Title>
+          <AlertDialog.Description class="flex flex-col gap-1 text-sm text-left text-foreground space-y-2">
+            <p class="font-sm">
+              {t('auth.register.mnemonicWarning1') || 'Mnemonic kelimelerinizi iyi kaydedin!'}
+            </p>
+            <p class="text-sm">
+              {t('auth.register.mnemonicWarning2') || 'Bir sonraki aşamada bu kelimelerin doğru sırasını girmeniz istenecektir.'}
+            </p>
+            <p class="text-sm">
+              {t('auth.register.mnemonicWarning3') || 'Bu kelimeler hesabınıza erişim için gereklidir ve kaybolursa geri alınamaz.'}
+            </p>
+          </AlertDialog.Description>
+        </AlertDialog.Header>
+        <AlertDialog.Footer>
+          <AlertDialog.Action onclick={() => { showMnemonicAlert = false; }}>
+            {t('auth.register.understood') || 'Anladım'}
+          </AlertDialog.Action>
+        </AlertDialog.Footer>
+      </AlertDialog.Content>
+    </AlertDialog.Root>
 
     <!-- Register Step 2: Show Mnemonic -->
     {#if step === 2}

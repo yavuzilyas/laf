@@ -27,7 +27,7 @@
   
     function drawGradient() {
       if (!canvas) return;
-      ctx = canvas.getContext("2d");
+      ctx = canvas.getContext("2d", { willReadFrequently: true });
       if (!ctx) return;
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       const gradient = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
@@ -59,7 +59,7 @@
       if (container) ro.observe(container);
 
       if (canvas) {
-        ctx = canvas.getContext("2d");
+        ctx = canvas.getContext("2d", { willReadFrequently: true });
         if (ctx) {
           ctx.fillStyle = "#ccc";
           ctx.fillRect(0, 0, canvas.width, canvas.height);

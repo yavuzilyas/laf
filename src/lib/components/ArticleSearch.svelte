@@ -140,23 +140,39 @@
         if (data?.articles?.length) {
           articleSuggestions = data.articles
             .map(article => {
-              // Get the best available title and slug from translations or fallback
-              const lang = article.language || currentLanguage;
-              const translation = article.translations?.[lang] || {};
+              const translations = article.translations || {};
+              const availableLanguages = Object.keys(translations);
               
-              // Try translation first, then fallback to main article fields
-              let title = translation.title || article.title;
-              let slug = translation.slug || article.slug;
+              // Önce mevcut locale'deki çeviriyi dene
+              let selectedLang = availableLanguages.find(lang => lang === currentLanguage);
+              
+              // Yoksa article.language veya defaultLanguage dene
+              if (!selectedLang && article.language) {
+                selectedLang = availableLanguages.find(lang => lang === article.language);
+              }
+              
+              // Hala yoksa ilk mevcut çeviriyi kullan
+              if (!selectedLang) {
+                selectedLang = availableLanguages[0];
+              }
+              
+              // Seçilen dildeki çeviriyi al
+              const translation = selectedLang ? translations[selectedLang] : {};
+              
+              // Try selected language translation first, then fallback to main article fields
+              let title = translation?.title || article.title;
+              let slug = translation?.slug || article.slug;
+              let excerpt = translation?.excerpt || article.excerpt;
               
               // Handle fallback values more gracefully
               if (!title || title === 'No Title') {
                 // Try other languages if current language has no title
-                const availableLanguages = Object.keys(article.translations || {});
                 for (const langCode of availableLanguages) {
-                  const langTranslation = article.translations[langCode];
+                  const langTranslation = translations[langCode];
                   if (langTranslation?.title && langTranslation.title !== 'No Title') {
                     title = langTranslation.title;
                     slug = langTranslation.slug || slug;
+                    excerpt = langTranslation.excerpt || excerpt;
                     break;
                   }
                 }
@@ -180,7 +196,7 @@
                 id: article.id || article._id?.toString(),
                 title,
                 slug,
-                excerpt: translation.excerpt || article.excerpt || '',
+                excerpt: excerpt || '',
                 author: {
                   name: article.author?.name || article.author_name || article.author_nickname,
                   avatar: article.author?.avatar || article.author_avatar
