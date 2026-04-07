@@ -195,7 +195,7 @@ import { BarSpinner } from "$lib/components/spell/bar-spinner";
           {/if}</div>
         {:else if loading}
           <div class="z-60 flex justify-center ">
-                    <BarSpinner class="text-primary" />
+                    <BarSpinner class="text-secondary" />
 
           </div>
         {/if}
@@ -206,7 +206,7 @@ import { BarSpinner } from "$lib/components/spell/bar-spinner";
           disabled={loading || !password.trim()}
         >
           {#if loading}
-            <BarSpinner class="text-primary" />
+            <BarSpinner class="text-secondary" />
               {t('Verifying')}
               
             {:else}

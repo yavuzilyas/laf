@@ -248,8 +248,8 @@
         >
           {#if loading}
             <span class="z-60 inline-flex items-center gap-2">
-              <span class="z-60 h-3 w-3 animate-spin rounded-full border-2 border-current border-r-transparent"></span>
-              {t('report.submitting')}...
+                                      <BarSpinner class="text-secondary" size={16} />
+
             </span>
           {:else}
             <Flag class="h-4 w-4 mr-2" />

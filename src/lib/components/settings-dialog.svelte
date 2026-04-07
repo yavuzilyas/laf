@@ -679,7 +679,7 @@ function handleOpenChange(newOpen: boolean) {
 										size="sm"
 									>
 										{#if isChangingPassword}
-											<BarSpinner class="text-primary" size={16} />
+											<BarSpinner class="text-secondary" size={16} />
 											{t('Changing')}...
 										{:else}
 											<KeyRound class="w-4 h-4"/>
@@ -703,10 +703,10 @@ function handleOpenChange(newOpen: boolean) {
                       size="sm"
                     >
                       {#if isRegeneratingMnemonic}
-                        <BarSpinner class="text-primary" size={16} />
+                        <BarSpinner class="text-secondary" size={16} />
                         {t('Regenerating')}...
                       {:else}
-                        <RefreshCw class="w-4 h-4 mr-2" />
+                        <BarSpinner class="text-secondary" size={16} />
                         {t('RegenerateMnemonic')}
                       {/if}
                     </Button>
@@ -762,7 +762,7 @@ function handleOpenChange(newOpen: boolean) {
                   >
                     {#if isDeletingAccount}
                       <span class="inline-flex items-center gap-2">
-                        <BarSpinner class="text-primary" />
+                        <BarSpinner class="text-secondary" size={16} />
                         {t('Deleting')}...
                       </span>
                     {:else}

@@ -1,11 +1,22 @@
 import type { PageServerLoad } from './$types';
-import { redirect } from '@sveltejs/kit';
+import { getPopularArticles } from '$db/queries';
 
-export const load: PageServerLoad = async ({ locals, url }) => {
-    // Redirect to locale-prefixed URL
+export const load: PageServerLoad = async ({ locals }) => {
+    // Use default locale without redirect - serves content directly at root
     const locale = locals.locale || 'tr';
-    const path = url.pathname === '/' ? '' : url.pathname;
-    const search = url.search;
     
-    throw redirect(302, `/${locale}${path}${search}`);
+    try {
+        const popularArticles = await getPopularArticles(3);
+        
+        return {
+            popularArticles,
+            lang: locale
+        };
+    } catch (error) {
+        console.error('Error loading popular articles:', error);
+        return {
+            popularArticles: [],
+            lang: locale
+        };
+    }
 };

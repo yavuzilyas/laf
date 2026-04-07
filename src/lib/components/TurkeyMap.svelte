@@ -12,6 +12,8 @@
 	import * as Dialog from '$lib/components/ui/dialog/index.js';
 	import { Users, Loader2, UserPlus, UserMinus } from '@lucide/svelte';
 	import { page } from '$app/stores';
+	import { BarSpinner } from "$lib/components/spell/bar-spinner";
+
 
 	const dispatch = createEventDispatcher<{ select: { city: string; plate: string } }>();
 
@@ -431,7 +433,7 @@
 		if (count > 10) return 'color-mix(in srgb, var(--primary), transparent 70%)';
 		if (count > 0) return 'color-mix(in srgb, var(--primary), transparent 85%)';
 
-		return 'var(--muted)'; // Base color for 0 users - theme aware
+		return 'var(--map)'; // Base color for 0 users - theme aware
 	}
 
 	// Get fill color for path based on selection, hover, events and user counts
@@ -1587,7 +1589,7 @@
 			<ScrollArea class="max-h-[60vh]">
 				{#if loadingUsers}
 					<div class="flex items-center justify-center p-8">
-						<Loader2 class="h-8 w-8 animate-spin text-primary" />
+						<BarSpinner class="text-primary"/>
 					</div>
 				{:else if usersInCity.length > 0}
 					<ul class="space-y-3">
