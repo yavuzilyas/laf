@@ -691,7 +691,8 @@
     "internationalRelations": "International Relations",
     "sociology": "Sociology",
     "history": "History",
-    "law": "Law"
+    "law": "Law",
+    "design": "Design"
   },
   "common": {
     "view": "View",
@@ -1305,6 +1306,7 @@
     "announcement": "Announcement",
     "technical": "Technical",
     "call": "Call",
+    "postering": "Postering",
     "addAttendee": "Add Attendee (Search User)",
     "currentAttendees": "Current Attendees",
     "attendeeCount": "Attendee Count",

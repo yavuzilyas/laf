@@ -911,7 +911,7 @@
   });
 
   const eventCategoryOptions = [
-    t('moderation.seminar'), t('moderation.conference'), t('moderation.action'), t('moderation.social'), t('moderation.academic'), t('moderation.camp'), t('moderation.announcement'), t('moderation.technical'), t('moderation.call'), t('moderation.other')
+    t('moderation.seminar'), t('moderation.conference'), t('moderation.action'), t('moderation.social'), t('moderation.academic'), t('moderation.camp'), t('moderation.announcement'), t('moderation.technical'), t('moderation.call'), t('moderation.other'), t('moderation.postering')
   ];
 
   // Event pagination
