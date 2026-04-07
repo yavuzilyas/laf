@@ -7,53 +7,10 @@ export default defineConfig({
 	logLevel: 'error',
 	build: {
 		rollupOptions: {
-			maxParallelFileOps: 2,
-			output: {
-				manualChunks: (id) => {
-					// Vendor UI libraries
-					if (id.includes('bits-ui') || id.includes('vaul-svelte') || 
-					    id.includes('embla-carousel-svelte') || id.includes('formsnap') ||
-					    id.includes('mode-watcher')) {
-						return 'vendor-ui';
-					}
-					// Animation libraries
-					if (id.includes('motion-sv') || id.includes('svelte-motion') || 
-					    id.includes('svelte-animate-icons')) {
-						return 'vendor-motion';
-					}
-					// Icon libraries
-					if (id.includes('@lucide/svelte') || id.includes('@tabler/icons-svelte')) {
-						return 'vendor-icons';
-					}
-					// Editor libraries - only loaded on write pages
-					if (id.includes('@tiptap') || id.includes('svelte-tiptap') || 
-					    id.includes('lowlight') || id.includes('katex') ||
-					    id.includes('highlight.js')) {
-						return 'editor';
-					}
-					// Chart libraries
-					if (id.includes('layerchart') || id.includes('d3-')) {
-						return 'charts';
-					}
-					// Heavy 3D animation - only when needed
-					if (id.includes('@threlte') || id.includes('three')) {
-						return 'animation-heavy';
-					}
-					// Large vendor libs
-					if (id.includes('lodash') || id.includes('date-fns') || 
-					    id.includes('zod')) {
-						return 'vendor-large';
-					}
-				},
-				// Ensure small chunks are merged to avoid too many requests
-				experimentalMinChunkSize: 20000,
-			},
+			maxParallelFileOps: 2
 		},
 		sourcemap: false,
-		minify: 'esbuild',
-		// Reduce chunk size limits to encourage splitting
-		chunkSizeWarningLimit: 500,
-		cssMinify: true,
+		minify: 'esbuild'
 	},
 	server: {
 		host: '0.0.0.0',
