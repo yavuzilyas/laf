@@ -49,7 +49,7 @@ export const DONATION_BADGE_RULES: DonationBadgeRule[] = [
 ];
 
 export const BADGE_ICONS = {
-  pioneer: '/badge-pp/bastiat-badge-pp.png',
-  rebel: '/badge-pp/mises-badge-pp.png',
-  sponsor: '/badge-pp/murray-badge-pp.png'
+  pioneer: '/badge-pp/bastiat-badge-pp.jpeg',
+  rebel: '/badge-pp/mises-badge-pp.jpeg',
+  sponsor: '/badge-pp/murray-badge-pp.jpeg'
 } as const;
