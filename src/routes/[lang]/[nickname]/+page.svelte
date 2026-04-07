@@ -242,7 +242,7 @@
         }
 
         if (!file.type.startsWith('image/')) {
-            alert(t('profile.avatarTypeError'));
+            showToast(t('profile.avatarTypeError') || 'Sadece görsel dosyaları yükleyebilirsiniz', 'error');
             input.value = "";
             return;
         }
@@ -279,10 +279,9 @@
 
             profileUser = { ...profileUser, avatar_url: newAvatarUrl };
         } catch (error) {
-            
             profileFormData.avatar = previous;
             profileUser = { ...profileUser, avatar_url: previous };
-            alert(t('profile.avatarUploadError'));
+            showToast(t('profile.avatarUploadError') || 'Avatar yüklenirken bir hata oluştu', 'error');
         } finally {
             avatarUploading = false;
             input.value = "";
@@ -313,9 +312,9 @@
 
             profileUser = { ...profileUser, avatar_url: '' };
         } catch (error) {
-            
             profileFormData.avatar = previous;
             profileUser = { ...profileUser, avatar_url: previous };
+            showToast(t('profile.avatarRemoveError') || 'Avatar kaldırılırken bir hata oluştu', 'error');
         }
     };
 
@@ -441,7 +440,7 @@
         }
 
         if (!file.type.startsWith('image/')) {
-            alert(t('profile.bannerTypeError') ?? 'Sadece görsel yükleyebilirsiniz.');
+            showToast(t('profile.bannerTypeError') || 'Sadece görsel dosyaları yükleyebilirsiniz', 'error');
             input.value = "";
             return;
         }
@@ -477,10 +476,9 @@
 
             profileUser = { ...profileUser, preferences: { ...profileUser.preferences, bannerImage: newBannerUrl } };
         } catch (error) {
-            
             profileFormData.bannerImage = previousBanner;
             profileUser = { ...profileUser, preferences: { ...profileUser.preferences, bannerImage: previousBanner } };
-            alert(t('profile.bannerUploadError') ?? 'Banner yüklenirken bir sorun oluştu.');
+            showToast(t('profile.bannerUploadError') || 'Banner yüklenirken bir hata oluştu', 'error');
         } finally {
             bannerUploading = false;
             input.value = "";
@@ -511,9 +509,9 @@
 
             profileUser = { ...profileUser, preferences: { ...profileUser.preferences, bannerImage: '' } };
         } catch (error) {
-            
             profileFormData.bannerImage = previous;
             profileUser = { ...profileUser, preferences: { ...profileUser.preferences, bannerImage: previous } };
+            showToast(t('profile.bannerRemoveError') || 'Banner kaldırılırken bir hata oluştu', 'error');
         }
     };
 

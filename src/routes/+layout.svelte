@@ -30,6 +30,26 @@
   });
   import Loader from "$lib/components/load.svelte";
   import { page } from '$app/stores';
+
+  // Global QR Entry Tracking - works on all pages
+  $effect(() => {
+    if (browser && typeof window !== 'undefined') {
+      // Check if URL contains #q hash
+      if (window.location.hash === '#q') {
+        // Get the full URL (without the hash)
+        const sourceUrl = window.location.href.replace(/#q$/, '');
+        
+        // Record QR entry
+        fetch('/api/qr-entry', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ sourceUrl })
+        }).catch(() => {
+          // Silently fail - don't disrupt user experience
+        });
+      }
+    }
+  });
 </script>
 <Loader />
 <svelte:head>

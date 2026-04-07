@@ -2146,6 +2146,112 @@ export const getPopularArticles = async (limit: number = 3, excludeId?: string) 
     return articlesWithCollaborators;
 };
 
+// ==================== QR ENTRY QUERIES ====================
+
+export interface QrEntryData {
+    username?: string | null;
+    sourceUrl: string;
+    userAgent?: string | null;
+}
+
+export const recordQrEntry = async (data: QrEntryData) => {
+    const sql = `
+        INSERT INTO qr_entries (username, source_url, entry_time, user_agent)
+        VALUES ($1, $2, NOW(), $3)
+        RETURNING *
+    `;
+    const result = await query(sql, [
+        data.username || null,
+        data.sourceUrl,
+        data.userAgent || null
+    ]);
+    return result.rows[0];
+};
+
+export const getQrEntries = async (filters: {
+    username?: string;
+    sourceUrl?: string;
+    fromDate?: Date;
+    toDate?: Date;
+    limit?: number;
+    offset?: number;
+} = {}) => {
+    let sql = `SELECT * FROM qr_entries WHERE 1=1`;
+    const params: any[] = [];
+    let paramIndex = 1;
+    
+    if (filters.username) {
+        sql += ` AND username = $${paramIndex}`;
+        params.push(filters.username);
+        paramIndex++;
+    }
+    
+    if (filters.sourceUrl) {
+        sql += ` AND source_url = $${paramIndex}`;
+        params.push(filters.sourceUrl);
+        paramIndex++;
+    }
+    
+    if (filters.fromDate) {
+        sql += ` AND entry_time >= $${paramIndex}`;
+        params.push(filters.fromDate);
+        paramIndex++;
+    }
+    
+    if (filters.toDate) {
+        sql += ` AND entry_time <= $${paramIndex}`;
+        params.push(filters.toDate);
+        paramIndex++;
+    }
+    
+    sql += ` ORDER BY entry_time DESC`;
+    
+    if (filters.limit) {
+        sql += ` LIMIT $${paramIndex}`;
+        params.push(filters.limit);
+        paramIndex++;
+        
+        if (filters.offset) {
+            sql += ` OFFSET $${paramIndex}`;
+            params.push(filters.offset);
+        }
+    }
+    
+    const result = await query(sql, params);
+    return result.rows;
+};
+
+export const getQrEntryStats = async (fromDate?: Date, toDate?: Date) => {
+    let sql = `
+        SELECT 
+            COUNT(*) as total_entries,
+            COUNT(DISTINCT username) as unique_users,
+            COUNT(DISTINCT source_url) as unique_urls
+        FROM qr_entries
+        WHERE 1=1
+    `;
+    const params: any[] = [];
+    let paramIndex = 1;
+    
+    if (fromDate) {
+        sql += ` AND entry_time >= $${paramIndex}`;
+        params.push(fromDate);
+        paramIndex++;
+    }
+    
+    if (toDate) {
+        sql += ` AND entry_time <= $${paramIndex}`;
+        params.push(toDate);
+    }
+    
+    const result = await query(sql, params);
+    return {
+        totalEntries: parseInt(result.rows[0]?.total_entries || '0'),
+        uniqueUsers: parseInt(result.rows[0]?.unique_users || '0'),
+        uniqueUrls: parseInt(result.rows[0]?.unique_urls || '0')
+    };
+};
+
 // Get similar articles based on category and tags
 export const getSimilarArticles = async (articleId: string, category: string, tags: string[], limit: number = 3) => {
     let sql = `

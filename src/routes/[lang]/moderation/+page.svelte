@@ -30,10 +30,124 @@
   let links = $state(data.links ?? []);
   let events = $state(data.events ?? []);
 
+  // QR Entries state
+  let qrEntries = $state<any[]>([]);
+  let qrLoading = $state(false);
+  let qrStats = $state({ totalEntries: 0, uniqueUsers: 0, uniqueUrls: 0 });
+  let qrCurrentPage = $state(1);
+  const QR_PER_PAGE = 20;
+  let qrTotalPages = $derived(Math.ceil(qrStats.totalEntries / QR_PER_PAGE));
+  
+  // QR Grouped by URL
+  let qrGroupedByUrl = $derived(() => {
+    const grouped = new Map<string, { url: string; users: string[]; lastEntry: string; count: number }>();
+    
+    qrEntries.forEach(entry => {
+      const url = entry.source_url;
+      if (!grouped.has(url)) {
+        grouped.set(url, {
+          url,
+          users: [],
+          lastEntry: entry.entry_time,
+          count: 0
+        });
+      }
+      const group = grouped.get(url)!;
+      if (entry.username && !group.users.includes(entry.username)) {
+        group.users.push(entry.username);
+      }
+      group.count++;
+      if (new Date(entry.entry_time) > new Date(group.lastEntry)) {
+        group.lastEntry = entry.entry_time;
+      }
+    });
+    
+    return Array.from(grouped.values()).sort((a, b) => new Date(b.lastEntry).getTime() - new Date(a.lastEntry).getTime());
+  });
+  
+  // QR Users Dialog
+  let showQrUsersDialog = $state(false);
+  let selectedQrUrl = $state<string>('');
+  let selectedQrUsers = $state<string[]>([]);
+
   $effect(() => {
     tableData = data.tableData ?? [];
     links = data.links ?? [];
     events = data.events ?? [];
+  });
+
+  // Fetch QR entries
+  async function fetchQrEntries(page = 1) {
+    if (!currentUser?.role || !['admin', 'moderator'].includes(currentUser.role)) return;
+    
+    qrLoading = true;
+    try {
+      const response = await fetch(`/api/qr-entry?limit=${QR_PER_PAGE}&offset=${(page - 1) * QR_PER_PAGE}`);
+      if (response.ok) {
+        const result = await response.json();
+        if (result.success) {
+          qrEntries = result.entries || [];
+          qrStats = result.stats || { totalEntries: 0, uniqueUsers: 0, uniqueUrls: 0 };
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching QR entries:', error);
+    } finally {
+      qrLoading = false;
+    }
+  }
+
+  function goToQrPage(page: number) {
+    if (page >= 1 && page <= qrTotalPages) {
+      qrCurrentPage = page;
+      fetchQrEntries(page);
+    }
+  }
+
+  function getQrPageNumbers(): (number | string)[] {
+    const pages: (number | string)[] = [];
+    const total = qrTotalPages;
+    const current = qrCurrentPage;
+    
+    if (total <= 7) {
+      for (let i = 1; i <= total; i++) pages.push(i);
+    } else {
+      if (current <= 4) {
+        for (let i = 1; i <= 5; i++) pages.push(i);
+        pages.push('...');
+        pages.push(total);
+      } else if (current >= total - 3) {
+        pages.push(1);
+        pages.push('...');
+        for (let i = total - 4; i <= total; i++) pages.push(i);
+      } else {
+        pages.push(1);
+        pages.push('...');
+        for (let i = current - 1; i <= current + 1; i++) pages.push(i);
+        pages.push('...');
+        pages.push(total);
+      }
+    }
+    return pages;
+  }
+
+  function formatDateTime(dateStr: string | null) {
+    if (!dateStr) return '-';
+    const date = new Date(dateStr);
+    return date.toLocaleString('tr-TR', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  }
+
+  // Load QR entries on mount for admin/moderator
+  $effect(() => {
+    if (currentUser?.role && ['admin', 'moderator'].includes(currentUser.role)) {
+      fetchQrEntries(1);
+    }
   });
 
   let currentUser = data.currentUser;
@@ -1451,7 +1565,7 @@
             {:else}
               <div class="grid gap-4">
                 {#each paginatedEvents as event (event.id)}
-                  <div class="flex flex-col sm:flex-row items-start sm:items-center gap-4 p-4 border rounded-lg bg-card hover:shadow-sm transition-shadow max-w-[90vw]">
+                  <div class="flex flex-col sm:flex-row items-start sm:items-center gap-4 p-4 border rounded-lg bg-card hover:shadow-sm transition-shadow max-w-[90vw] sm:max-w-[80vw]">
                     <!-- Icon/Type -->
                     <div class="flex-shrink-0">
                       <div class="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center">
@@ -1551,6 +1665,176 @@
               {/if}
             {/if}
           </div>
+
+          <!-- QR Entries Management Section -->
+          {#if currentUser?.role === 'admin' || currentUser?.role === 'moderator'}
+          <div class="mt-12 space-y-6">
+            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-t pt-8">
+              <div class="flex items-center gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-primary" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7v-2a2 2 0 0 1 2 -2h14a2 2 0 0 1 2 2v2"/><path d="M3 17v2a2 2 0 0 0 2 2h14a2 2 0 0 0 2 -2v-2"/><path d="M7 7h10v10h-10z"/></svg>
+                <h2 class="text-lg font-semibold">QR Giriş Takibi</h2>
+              </div>
+              <div class="flex items-center gap-4 text-sm text-muted-foreground">
+                <span>Toplam: <strong class="text-foreground">{qrStats.totalEntries}</strong></span>
+                <span>Benzersiz Kullanıcı: <strong class="text-foreground">{qrStats.uniqueUsers}</strong></span>
+                <span>Benzersiz URL: <strong class="text-foreground">{qrStats.uniqueUrls}</strong></span>
+              </div>
+            </div>
+
+            <!-- QR Entries Table - Grouped by URL -->
+            {#if qrLoading}
+              <div class="flex items-center justify-center py-12">
+                <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                <span class="ml-3 text-muted-foreground">Yükleniyor...</span>
+              </div>
+            {:else if qrGroupedByUrl().length === 0}
+              <div class="text-center py-12 border rounded-lg bg-muted/50">
+                <svg xmlns="http://www.w3.org/2000/svg" class="w-12 h-12 text-muted-foreground mx-auto mb-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7v-2a2 2 0 0 1 2 -2h14a2 2 0 0 1 2 2v2"/><path d="M3 17v2a2 2 0 0 0 2 2h14a2 2 0 0 0 2 -2v-2"/><path d="M7 7h10v10h-10z"/></svg>
+                <p class="text-muted-foreground">Henüz QR girişi kaydedilmemiş</p>
+              </div>
+            {:else}
+              <div class="border rounded-lg overflow-hidden">
+                <table class="w-full text-sm">
+                  <thead class="bg-muted/50">
+                    <tr>
+                      <th class="px-4 py-3 text-left font-medium text-muted-foreground">Kaynak URL</th>
+                      <th class="px-4 py-3 text-left font-medium text-muted-foreground">Kullanıcılar</th>
+                      <th class="px-4 py-3 text-left font-medium text-muted-foreground">Son Giriş</th>
+                      <th class="px-4 py-3 text-left font-medium text-muted-foreground">Toplam</th>
+                    </tr>
+                  </thead>
+                  <tbody class="divide-y">
+                    {#each qrGroupedByUrl() as group (group.url)}
+                      <tr class="hover:bg-muted/30 transition-colors">
+                        <td class="px-4 py-3">
+                          <a href={group.url} target="_blank" rel="noopener noreferrer" class="text-primary hover:underline truncate max-w-xs block" title={group.url}>
+                            {group.url.length > 50 ? group.url.substring(0, 50) + '...' : group.url}
+                          </a>
+                        </td>
+                        <td class="px-4 py-3">
+                          <div class="flex flex-wrap items-center gap-2">
+                            {#if group.users.length === 0}
+                              <span class="text-muted-foreground italic">Anonim</span>
+                            {:else}
+                              {#each group.users.slice(0, 3) as user}
+                                <span class="inline-flex items-center px-2 py-1 rounded-full text-xs bg-secondary">
+                                  @{user}
+                                </span>
+                              {/each}
+                              {#if group.users.length > 3}
+                                <Button 
+                                  variant="ghost" 
+                                  size="sm" 
+                                  class="text-xs h-6 px-2"
+                                  onclick={() => {
+                                    selectedQrUrl = group.url;
+                                    selectedQrUsers = group.users;
+                                    showQrUsersDialog = true;
+                                  }}
+                                >
+                                  +{group.users.length - 3} more
+                                </Button>
+                              {/if}
+                            {/if}
+                          </div>
+                        </td>
+                        <td class="px-4 py-3 text-muted-foreground">
+                          {formatDateTime(group.lastEntry)}
+                        </td>
+                        <td class="px-4 py-3">
+                          <Badge variant="secondary">{group.count}</Badge>
+                        </td>
+                      </tr>
+                    {/each}
+                  </tbody>
+                </table>
+              </div>
+              
+              <!-- QR Pagination -->
+              {#if qrTotalPages > 1}
+                <div class="flex items-center justify-center gap-2 mt-6">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onclick={() => goToQrPage(qrCurrentPage - 1)}
+                    disabled={qrCurrentPage === 1}
+                  >
+                    <ChevronLeft class="w-4 h-4" />
+                  </Button>
+                  
+                  <div class="flex items-center gap-1">
+                    {#each getQrPageNumbers() as page}
+                      {#if page === '...'}
+                        <span class="px-2 text-muted-foreground">...</span>
+                      {:else}
+                        <Button
+                          variant={qrCurrentPage === page ? 'default' : 'outline'}
+                          size="sm"
+                          onclick={() => goToQrPage(page as number)}
+                          class="min-w-[2.5rem]"
+                        >
+                          {page}
+                        </Button>
+                      {/if}
+                    {/each}
+                  </div>
+                  
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onclick={() => goToQrPage(qrCurrentPage + 1)}
+                    disabled={qrCurrentPage === qrTotalPages}
+                  >
+                    <ChevronRight class="w-4 h-4" />
+                  </Button>
+                </div>
+                
+                <p class="text-center text-sm text-muted-foreground">
+                  Sayfa {qrCurrentPage} / {qrTotalPages} (Toplam {qrStats.totalEntries} kayıt)
+                </p>
+              {/if}
+            {/if}
+          </div>
+          {/if}
+
+        <!-- QR Users Dialog -->
+        {#if showQrUsersDialog}
+          <!-- svelte-ignore a11y_click_events_have_key_events -->
+          <!-- svelte-ignore a11y_no_static_element_interactions -->
+          <div class="fixed inset-0 z-50 bg-background/80 backdrop-blur-sm" role="presentation" onclick={() => showQrUsersDialog = false}>
+            <!-- svelte-ignore a11y_click_events_have_key_events -->
+            <!-- svelte-ignore a11y_no_static_element_interactions -->
+            <div class="fixed left-[50%] top-[50%] z-50 grid w-full max-w-lg translate-x-[-50%] translate-y-[-50%] gap-4 border bg-background p-6 shadow-lg duration-200 sm:rounded-lg max-h-[80vh]" role="dialog" aria-modal="true" tabindex="-1" onclick={(e) => e.stopPropagation()}>
+              <div class="flex flex-col space-y-1.5 text-center sm:text-left">
+                <h2 class="text-lg font-semibold leading-none tracking-tight">
+                  Kullanıcılar - QR Giriş
+                </h2>
+                <p class="text-sm text-muted-foreground truncate" title={selectedQrUrl}>
+                  {selectedQrUrl.length > 60 ? selectedQrUrl.substring(0, 60) + '...' : selectedQrUrl}
+                </p>
+              </div>
+
+              <div class="grid gap-2 py-4 max-h-[50vh] overflow-y-auto">
+                {#if selectedQrUsers.length === 0}
+                  <p class="text-muted-foreground text-center py-4">Anonim girişler</p>
+                {:else}
+                  {#each selectedQrUsers as user}
+                    <div class="flex items-center gap-2 p-2 border rounded-lg">
+                      <div class="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
+                        <span class="text-sm font-medium">{user.charAt(0).toUpperCase()}</span>
+                      </div>
+                      <span class="font-medium">@{user}</span>
+                    </div>
+                  {/each}
+                {/if}
+              </div>
+
+              <div class="flex flex-col-reverse sm:flex-row sm:justify-end sm:space-x-2">
+                <Button variant="outline" onclick={() => showQrUsersDialog = false}>Kapat</Button>
+              </div>
+            </div>
+          </div>
+        {/if}
 
 				<AlertDialog.Root bind:open={showDeleteDialog} onOpenChange={handleDeleteDialogOpenChange}>
 					<AlertDialog.Content class="w-[calc(100%-2rem)] sm:w-full max-w-md mx-auto">
