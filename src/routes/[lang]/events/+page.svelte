@@ -79,6 +79,11 @@
             }
             
             // Same group - sort by date
+            // When 'all' is selected, sort from newest to oldest (descending)
+            // Otherwise sort from oldest to newest (ascending)
+            if (timeFilter === 'all') {
+                return new Date(b.date).getTime() - new Date(a.date).getTime();
+            }
             return new Date(a.date).getTime() - new Date(b.date).getTime();
         });
     });

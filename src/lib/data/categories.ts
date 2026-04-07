@@ -28,5 +28,9 @@ export const categoryTree: CategoryNode[] = [
   {
     id: 'law',
     translationKey: 'law'
+  },
+  {
+    id: 'design',
+    translationKey: 'design'
   }
 ];

@@ -47,7 +47,7 @@
 
 {#if showLoader}
   <div
-    class="fixed p-10 inset-0 z-500 w-18 h-18 flex flex-col items-center mx-auto mt-10 border justify-center rounded-xl bg-background/33 backdrop-filter backdrop-blur-sm"
+    class="fixed p-10 inset-0 z-50 w-18 h-18 flex flex-col items-center mx-auto mt-10 border justify-center rounded-xl bg-background/33 backdrop-filter backdrop-blur-sm pointer-events-none"
     out:fade={{ duration: 175 }}
   >
     <!-- 1️⃣ Logo + çark (opacity ile gizleniyor) -->

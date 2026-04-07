@@ -1693,7 +1693,7 @@
                 <p class="text-muted-foreground">Henüz QR girişi kaydedilmemiş</p>
               </div>
             {:else}
-              <div class="border rounded-lg overflow-hidden">
+              <div class="border rounded-lg overflow-hidden overflow-x-auto max-w-[96vw] ">
                 <table class="w-full text-sm">
                   <thead class="bg-muted/50">
                     <tr>
