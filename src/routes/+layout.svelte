@@ -6,6 +6,7 @@
   import { onMount } from 'svelte';
   import { i18n } from '$lib/stores/i18n.svelte.js';
   import { ModeWatcher } from "mode-watcher";
+  import SEO from '$lib/components/SEO.svelte';
   // Props declaration import'lardan sonra gelir
   let { children, data } = $props();
   import { preloadSounds } from "$lib/stores/sound";
@@ -65,6 +66,7 @@
   });
 </script>
 <Loader />
+<SEO />
 <svelte:head>
   <link rel="icon" href={favicon} />
 </svelte:head>

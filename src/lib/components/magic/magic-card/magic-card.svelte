@@ -82,6 +82,12 @@
 			document.removeEventListener("visibilitychange", handleVisibility);
 		};
 	});
+
+	// Track mount state for client-only motion rendering
+	let mounted = $state(false);
+	$effect(() => {
+		mounted = true;
+	});
 </script>
 
 <div
@@ -91,7 +97,7 @@
 	onpointerenter={$theme === 'dark' ? reset : undefined}
 	role="region"
 >
-	{#if $theme === 'dark'}
+	{#if $theme === 'dark' && mounted}
 		<motion.div
 			class="bg-border pointer-events-none absolute inset-0 rounded-[inherit] duration-300 group-hover:opacity-100"
 			style={{ background: borderGradient }}

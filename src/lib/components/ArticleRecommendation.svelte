@@ -3,11 +3,11 @@
   import { Badge } from "$lib/components/ui/badge";
   import { Calendar, Clock, User, Sparkles, Eye, MessageCircle, ThumbsUp, ThumbsDown } from "@lucide/svelte";
   import { t, getCurrentLocale } from '$lib/stores/i18n.svelte';
+  import { goto } from '$app/navigation';
 
   // Locale-aware URL helper
   const currentLocale = $derived(getCurrentLocale() || 'tr');
   const l = (path: string) => `/${currentLocale}${path}`;
-  import A from "$lib/components/ui/a.svelte";
   import MagicCard from '$lib/components/magic/magic-card/magic-card.svelte';
   import * as Tooltip from "$lib/components/ui/tooltip";
 
@@ -279,7 +279,13 @@
                   <div class="flex items-center gap-1">
                     <div class="flex -space-x-2">
                       {#each article.collaborators.slice(0, 2) as collaborator}
-                        <A href={l(`/${getCollaboratorIdentifier(collaborator)}`)} class="hover:opacity-80 transition-opacity">
+                        <span
+                          onclick={(e) => { e.preventDefault(); e.stopPropagation(); goto(l(`/${getCollaboratorIdentifier(collaborator)}`)); }}
+                          class="cursor-pointer hover:opacity-80 transition-opacity"
+                          role="link"
+                          tabindex="0"
+                          onkeydown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); goto(l(`/${getCollaboratorIdentifier(collaborator)}`)); }}}
+                        >
                           {#if collaborator.avatar}
                             <img 
                               src={collaborator.avatar} 
@@ -295,7 +301,7 @@
                               <User class="h-3 w-3" />
                             </div>
                           {/if}
-                        </A>
+                        </span>
                       {/each}
                       {#if article.collaborators.length > 2}
                         <div class="flex h-6 w-6 items-center justify-center rounded-full bg-muted border-2 border-background text-xs font-medium">

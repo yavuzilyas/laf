@@ -8,7 +8,6 @@ Disallow: /moderation/
 Disallow: /login/
 Disallow: /register/
 Disallow: /forgot/
-Disallow: /help/
 
 # Sitemap location
 Sitemap: https://laf.dev/sitemap.xml
