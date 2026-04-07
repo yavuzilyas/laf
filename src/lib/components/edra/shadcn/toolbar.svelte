@@ -1,4 +1,5 @@
 <script lang="ts">
+	import type { Editor } from '@tiptap/core';
 	import { cn } from '$lib/utils.js';
 	import commands from '../commands/toolbar-commands.js';
 	import type { EdraToolbarProps } from '../types.js';
@@ -9,6 +10,7 @@
 	import SearchAndReplace from './components/toolbar/SearchAndReplace.svelte';
 	import ToolBarIcon from './components/ToolBarIcon.svelte';
 	import LinkDialog from './components/toolbar/LinkDialog.svelte';
+	import ScrollToLineDialog from './components/toolbar/ScrollToLineDialog.svelte';
 
 	interface Props {
 		editor: Editor | null;
@@ -46,6 +48,8 @@
 				{/each}
 			{/if}
 		{/each}
+				<ScrollToLineDialog editor={editor} />
+
 		<FontSize {editor} />
 		<QuickColors {editor} />
 		<SearchAndReplace {editor} />

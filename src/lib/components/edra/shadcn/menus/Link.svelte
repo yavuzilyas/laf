@@ -62,8 +62,7 @@
 		<Button 
 			variant="link" 
 			href={link} 
-			class="max-w-80 p-1" 
-			target="_blank"
+			class="max-w-80 p-1"
 			on:click={(e) => {
 				e.stopPropagation();
 				e.preventDefault();

@@ -59,6 +59,12 @@ import { onMount, onDestroy } from 'svelte';
   const rt = () => t;
 
   let editors = $state<Record<string, any>>({});
+  // Track current line number for each editor
+  let currentLineNumbers = $state<Record<string, number>>({});
+  // Track hover line number for each editor
+  let hoverLineNumbers = $state<Record<string, number | null>>({});
+  // Track if mouse is over editor
+  let isHoveringEditor = $state<Record<string, boolean>>({});
   // Cache last known editor content per language to prevent effect loops
   let lastContentByLang = $state<Record<string, string>>({});
   let hydratedContentByLang = $state<Record<string, string>>({});
@@ -88,9 +94,48 @@ import { onMount, onDestroy } from 'svelte';
     hydratedEditorByLang[language] = editors[language];
   }
 
+  function getCurrentLineNumber(editor: any): number {
+    if (!editor) return 1;
+    const { state } = editor;
+    const { selection } = state;
+    const pos = selection.from;
+    let line = 1;
+    state.doc.descendants((node: any, posInDoc: number) => {
+      if (posInDoc >= pos) return false;
+      if (node.isBlock) line++;
+      return true;
+    });
+    return line;
+  }
+
+  function getLineNumberFromMouse(editor: any, clientY: number): number {
+    if (!editor) return 1;
+    
+    const editorElement = editor.view?.dom;
+    if (!editorElement) return 1;
+    
+    const rect = editorElement.getBoundingClientRect();
+    if (clientY < rect.top || clientY > rect.bottom) return 1;
+    
+    // Get all block elements in the editor
+    const blocks = editorElement.querySelectorAll('p, h1, h2, h3, h4, h5, h6, li, blockquote, pre');
+    
+    for (let i = 0; i < blocks.length; i++) {
+      const blockRect = blocks[i].getBoundingClientRect();
+      if (clientY >= blockRect.top && clientY <= blockRect.bottom) {
+        return i + 1;
+      }
+    }
+    
+    // If below all blocks, return last line
+    return blocks.length || 1;
+  }
+
   function onEditorUpdate(language: string) {
     return () => {
       if (editors[language]) {
+        // Update current line number
+        currentLineNumbers[language] = getCurrentLineNumber(editors[language]);
         const content = editors[language].getJSON();
         // Avoid writing identical content back to the store (prevents update-depth loops)
         try {
@@ -787,12 +832,24 @@ import { onMount, onDestroy } from 'svelte';
                       />
                     {/if}
                             {#if browser}
+                        <div
+                          class="relative"
+                          role="presentation"
+                          onmouseenter={() => { isHoveringEditor[lang] = true; }}
+                          onmouseleave={() => { isHoveringEditor[lang] = false; hoverLineNumbers[lang] = null; }}
+                          onmousemove={(e) => {
+                            if (editors[lang] && isHoveringEditor[lang]) {
+                              hoverLineNumbers[lang] = getLineNumberFromMouse(editors[lang], e.clientY);
+                            }
+                          }}
+                        >
                         <EdraEditor
                           bind:editor={editors[lang]}
                           content={translation.content}
 class="h-120 max-h-screen overflow-y-scroll pr-2 pl-6 py-4"                          editable={!isTranslator || !isDefaultLanguage}
                           onUpdate={onEditorUpdate(lang)}
                         />
+                        </div>
                       {:else}
                         <div class="p-8 text-center text-muted-foreground">
                           {rt()('article.loading')}...
@@ -801,6 +858,14 @@ class="h-120 max-h-screen overflow-y-scroll pr-2 pl-6 py-4"                     
                       {#if browser}
                         <EdraDragHandleExtended editor={editors[lang]} />
                       {/if}
+                      <!-- Line Counter -->
+                      <div class="flex justify-end items-center gap-2 px-3 py-1.5 bg-muted/30 border-t border-dashed text-xs text-muted-foreground">
+                        {#if isHoveringEditor[lang] && hoverLineNumbers[lang] !== null}
+                          <span class="text-primary font-medium">Satır: {hoverLineNumbers[lang]} (üzerinde)</span>
+                        {:else}
+                          <span>Satır: {currentLineNumbers[lang] || 1}</span>
+                        {/if}
+                      </div>
                   </div>
                 </Tabs.Content>
               {:else}

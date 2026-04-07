@@ -52,7 +52,7 @@
 </script>
 
 <NodeViewWrapper as="div" class="file-attachment-wrapper" style="margin: 4px 0;">
-	<div class="file-attachment flex flex-row gap-2 justify-center p-2 bg-background rounded-md  border-dashed border w-fit" data-url={url} data-filename={filename} data-size={size} data-type={type}>
+	<div class="file-attachment flex flex-row gap-2 justify-center p-2 bg-background rounded-md  border-dashed border-2 w-fit" data-url={url} data-filename={filename} data-size={size} data-type={type}>
 		<div class="flex flex-row gap-1 justify-center items-center">
 		<div class="relative w-8 h-8">
 			<File strokeWidth={1.25} size={32} class="text-primary absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" />
@@ -87,7 +87,7 @@
 		width: fit-content;
 		max-width: 133px;
 		overflow: hidden;
-		margin-top: 4px;
+		margin-top: 7px;
 		mask-image: linear-gradient(to right, transparent 0%, black 20%, black 80%, transparent 100%);
 		-webkit-mask-image: linear-gradient(to right, transparent 0%, black 20%, black 80%, transparent 100%);
 	}
@@ -104,7 +104,7 @@
 		position: absolute;
 		top: 0;
 		left: 0;
-		animation: marquee 8s linear infinite;
+		animation: marquee 15s linear infinite;
 	}
 
 	.marquee-text {

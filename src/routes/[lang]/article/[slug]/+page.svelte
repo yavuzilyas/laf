@@ -551,6 +551,10 @@
 		loadFollowStatus(profileUserId);
 		loadBlockStatus(profileUserId);
 
+		// Handle scroll-to-line links
+		handleScrollToLine();
+		window.addEventListener('hashchange', handleScrollToLine);
+
 		return afterNavigate(({ to }) => {
 			const newSlug = to?.params?.slug;
 			if (newSlug && newSlug !== previousSlug) {
@@ -559,6 +563,40 @@
 			}
 		});
 	});
+
+	// Handle scroll to specific line in article content
+	function handleScrollToLine() {
+		if (!browser) return;
+		
+		const hash = window.location.hash;
+		if (!hash.startsWith('#line-')) return;
+		
+		const lineNum = parseInt(hash.replace('#line-', ''), 10);
+		if (isNaN(lineNum) || lineNum < 1) return;
+		
+		// Find the editor content container
+		const editorContainer = document.querySelector('.ProseMirror');
+		if (!editorContainer) return;
+		
+		// Get all block-level elements (paragraphs, headings, etc.)
+		const blocks = editorContainer.querySelectorAll('p, h1, h2, h3, h4, h5, h6, li, blockquote, pre');
+		
+		if (lineNum <= blocks.length) {
+			const targetBlock = blocks[lineNum - 1];
+			if (targetBlock) {
+				targetBlock.scrollIntoView({ behavior: 'smooth', block: 'center' });
+				// Highlight the line temporarily
+				targetBlock.classList.add('bg-primary/10', 'transition-colors', 'duration-1000');
+				setTimeout(() => {
+					targetBlock.classList.remove('bg-primary/10', 'transition-colors', 'duration-1000');
+					// Remove hash from URL after scroll and highlight complete
+					if (window.location.hash.startsWith('#line-')) {
+						history.replaceState(null, '', window.location.pathname + window.location.search);
+					}
+				}, 2000);
+			}
+		}
+	}
 
 	let viewerBlocksProfile = $state(data.viewerBlocksProfile ?? false);
 
