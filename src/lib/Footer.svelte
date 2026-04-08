@@ -22,6 +22,6 @@
         </div>
   </div>
 </footer>
-<footer class="sm:hidden w-full bg-muted/44 p-6 pb-16">
-            <p class="sm:hidden text-center font-semibold text-sm sm:text-sm text-hard-primary">{t('FooterQuote-1')}<br>{t('FooterQuote-2')}</p>
+<footer class="sm:hidden w-full  px-6 py-[43vh]">
+            <h1 class="sm:hidden text-center font-semibold sm:text-sm text-primary ">{t('FooterQuote-1')} {t('FooterQuote-2')}</h1>
 </footer>

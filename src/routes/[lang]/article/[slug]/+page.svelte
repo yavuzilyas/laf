@@ -551,10 +551,6 @@
 		loadFollowStatus(profileUserId);
 		loadBlockStatus(profileUserId);
 
-		// Handle scroll-to-line links
-		handleScrollToLine();
-		window.addEventListener('hashchange', handleScrollToLine);
-
 		return afterNavigate(({ to }) => {
 			const newSlug = to?.params?.slug;
 			if (newSlug && newSlug !== previousSlug) {
@@ -563,40 +559,6 @@
 			}
 		});
 	});
-
-	// Handle scroll to specific line in article content
-	function handleScrollToLine() {
-		if (!browser) return;
-		
-		const hash = window.location.hash;
-		if (!hash.startsWith('#line-')) return;
-		
-		const lineNum = parseInt(hash.replace('#line-', ''), 10);
-		if (isNaN(lineNum) || lineNum < 1) return;
-		
-		// Find the editor content container
-		const editorContainer = document.querySelector('.ProseMirror');
-		if (!editorContainer) return;
-		
-		// Get all block-level elements (paragraphs, headings, etc.)
-		const blocks = editorContainer.querySelectorAll('p, h1, h2, h3, h4, h5, h6, li, blockquote, pre');
-		
-		if (lineNum <= blocks.length) {
-			const targetBlock = blocks[lineNum - 1];
-			if (targetBlock) {
-				targetBlock.scrollIntoView({ behavior: 'smooth', block: 'center' });
-				// Highlight the line temporarily
-				targetBlock.classList.add('bg-primary/10', 'transition-colors', 'duration-1000');
-				setTimeout(() => {
-					targetBlock.classList.remove('bg-primary/10', 'transition-colors', 'duration-1000');
-					// Remove hash from URL after scroll and highlight complete
-					if (window.location.hash.startsWith('#line-')) {
-						history.replaceState(null, '', window.location.pathname + window.location.search);
-					}
-				}, 2000);
-			}
-		}
-	}
 
 	let viewerBlocksProfile = $state(data.viewerBlocksProfile ?? false);
 
@@ -1176,9 +1138,6 @@
 	let replyEditor = $state<Editor | null>(null);
 	let userReactions = $state<Record<string, 'like' | 'dislike' | null>>({});
 
-	// Generate a pending comment ID for file uploads before submission
-	let pendingCommentId = $state<string>(crypto.randomUUID());
-
 	let replyEditors = $state<Record<string, Editor | null>>({});
 	let replyContents = $state<Record<string, any>>({});
 
@@ -1512,45 +1471,7 @@
 	function isCommentEmpty(content: any): boolean {
 		if (!content) return true;
 		if (typeof content === 'string') return content.trim() === '';
-		
-		// Check if content has media attachments
-		const hasMedia = checkContentForMedia(content);
-		if (hasMedia) return false; // Not empty if it has media
-		
 		return extractPlainText(content) === '';
-	}
-
-	function checkContentForMedia(content: any): boolean {
-		if (!content || typeof content !== 'object') return false;
-		
-		const mediaTypes = ['image', 'video', 'audio', 'file', 'fileAttachment', 'iframe', 'image-extended', 'video-extended', 'audio-extended'];
-		
-		function traverse(node: any): boolean {
-			if (!node || typeof node !== 'object') return false;
-			
-			// Check if this node is a media type
-			if (node.type && mediaTypes.includes(node.type)) {
-				return true;
-			}
-			
-			// Check attrs for media indicators
-			if (node.attrs) {
-				if (node.attrs.src || node.attrs.url || node.attrs.fileUrl || node.attrs.filename) {
-					return true;
-				}
-			}
-			
-			// Recursively check content
-			if (node.content && Array.isArray(node.content)) {
-				for (const child of node.content) {
-					if (traverse(child)) return true;
-				}
-			}
-			
-			return false;
-		}
-		
-		return traverse(content);
 	}
 
 	function onCommentEditorUpdate() {
@@ -1655,8 +1576,7 @@
 				headers: { 'Content-Type': 'application/json' },
 				body: JSON.stringify({
 					content: newComment,
-					timestamp: now,
-					clientCommentId: pendingCommentId // Send the pre-generated comment ID
+					timestamp: now
 				})
 			});
 
@@ -1667,8 +1587,6 @@
 				await loadComments();
 				newComment = emptyDoc;
 				if (commentEditor) commentEditor.commands.setContent('');
-				// Generate a new pending comment ID for next uploads
-				pendingCommentId = crypto.randomUUID();
 				lastCommentTime = now;
 				commentCooldown = 60000; // 1 minute cooldown
 			} else if (res.status === 429) {
@@ -2784,6 +2702,7 @@
 							{#if commentEditor}
 								<EdraToolBar
 									editor={commentEditor}
+									disableFileUploads={true}
 									class="bg-background/44 backdrop-blur-sm border-b rounded-md rounded-b-none flex w-full items-center overflow-x-scroll sm:overflow-x-auto  z-1 self-start"
 								/>
 							{/if}
@@ -2793,11 +2712,12 @@
 								class="min-h-[140px]"
 								onUpdate={onCommentEditorUpdate}
 								placeholder={t('articles.comments.writeComment')}
-								commentId={pendingCommentId}
+								commentId={null}
+								disableFileUploads={true}
 							/>
 						</div>
 						<div class="flex justify-end mt-2">
-							<Button onclick={postComment}>
+							<Button onclick={postComment} disabled={isCommentEmpty(newComment) || postingComment}>
 								{#if postingComment}
 									<BarSpinner class="text-primary" size={28} />
 									{t('articles.comments.sending')}

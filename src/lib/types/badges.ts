@@ -29,7 +29,7 @@ export const DONATION_BADGE_RULES: DonationBadgeRule[] = [
     maxAmount: 0.999999,
     name: 'Bastiat',
     description: '',
-    icon: '/badge-pp/bastiat-badge-pp.png'
+    icon: '/badge-pp/bastiat-badge-pp.jpeg'
   },
   {
     type: 'rebel',
@@ -37,14 +37,14 @@ export const DONATION_BADGE_RULES: DonationBadgeRule[] = [
     maxAmount: 9.999999,
     name: 'Ludwig',
     description: '',
-    icon: '/badge-pp/mises-badge-pp.png'
+    icon: '/badge-pp/mises-badge-pp.jpeg'
   },
   {
     type: 'sponsor',
     minAmount: 10,
     name: 'Murray',
     description: '',
-    icon: '/badge-pp/murray-badge-pp.png'
+    icon: '/badge-pp/murray-badge-pp.jpeg'
   }
 ];
 
