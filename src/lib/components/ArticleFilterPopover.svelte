@@ -97,13 +97,13 @@
 <Popover bind:open>
   <PopoverTrigger
     class={cn(
-      "relative h-9 w-9 p-0 inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-xs font-bold outline-none transition-all hover:scale-101 active:scale-97 focus-visible:ring-[3px] disabled:pointer-events-none disabled:opacity-50 border shadow-xs hover:bg-accent hover:text-accent-foreground",
+      "relative p-2 inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-xs font-bold outline-none transition-all hover:scale-101 active:scale-97 focus-visible:ring-[3px] disabled:pointer-events-none disabled:opacity-50 border shadow-xs hover:bg-accent hover:text-accent-foreground",
       hasActiveFilters && "border-primary text-primary",
       className
     )}
     {...restProps}
   >
-    <Filter class="h-4 w-4" />
+    <Filter size={16}/>
     {#if getActiveFilterCount > 0}
       <span class="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground">
         {getActiveFilterCount}
@@ -111,7 +111,7 @@
     {/if}
   </PopoverTrigger>
   
-  <PopoverContent class="w-80 p-0" align="start">
+  <PopoverContent class="w-75 p-0" align="start">
     <ScrollArea class="h-96 p-4">
       <div class="space-y-4">
       <!-- Header -->
@@ -123,7 +123,7 @@
         {#if hasActiveFilters}
           <Button
             variant="ghost"
-            size="sm"
+            size="xs"
             onclick={clearAllFilters}
             class="h-6 px-2 text-xs"
           >
@@ -152,7 +152,7 @@
       <!-- Category Filter -->
       <div class="space-y-2 overflow-hidden">
         <div class="flex items-center gap-2 text-xs font-medium">
-          <BookOpen class="h-4 w-4" />
+          <BookOpen class="h-3 w-3" />
           {t('articles.filters.category')}
         </div>
 

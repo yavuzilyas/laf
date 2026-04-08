@@ -430,7 +430,7 @@
                     </Button>
                 </div>
             </div>
-                <div class="flex flex-col sm:flex-row items-center gap-3">
+                <div class="flex flex-row items-start justify-center  gap-1">
 
                     <ArticleSearch
                         value={searchQuery}
@@ -441,14 +441,12 @@
                         class="w-full "
                     />
        
-                    <div class="flex items-center gap-1 rounded-lg border p-1">
                         <ArticleFilterPopover
                             options={filterOptions}
                             activeFilters={activeFilters}
                             onFiltersChange={handleFiltersChange}
                             enableFollowingFilter={!!currentUser}
                         />
-                    </div>
                 </div>
             </div>
 

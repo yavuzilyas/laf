@@ -18,7 +18,8 @@ class ArticleEditorStore {
     authorId: '',
     version: 1,
     defaultLanguage: undefined,
-    thumbnail: ''
+    thumbnail: '',
+    publishedAt: new Date()
   });
 
   private _activeLanguage = $state(getCurrentLocale());
@@ -88,6 +89,7 @@ class ArticleEditorStore {
       version: 1,
       defaultLanguage: currentLocale,
       thumbnail: '',
+      publishedAt: new Date(),
       translations: {} as Record<string, ArticleTranslation>,
       ...initialData
     };
@@ -451,7 +453,7 @@ class ArticleEditorStore {
         body: JSON.stringify({
           ...this._articleData,
           status: 'published',
-          publishedAt: new Date(),
+          publishedAt: this._articleData.publishedAt || new Date(),
           website: honeypotValue, // Honeypot field for spam protection
           isTranslator: this._isTranslator // Pass translator mode to API
         })

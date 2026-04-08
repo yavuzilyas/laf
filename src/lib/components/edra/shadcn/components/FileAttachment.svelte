@@ -18,6 +18,27 @@
 	// Keep the initial URL to identify uploaded files for cleanup
 	const initialUrl: string | undefined = url;
 
+	// Rate limiting for download button
+	let isDownloading = $state(false);
+	const DOWNLOAD_COOLDOWN_MS = 30000; // 3 seconds cooldown
+
+	function downloadFile() {
+		if (isDownloading) return;
+
+		isDownloading = true;
+		const link = document.createElement('a');
+		link.href = url;
+		link.download = filename;
+		document.body.appendChild(link);
+		link.click();
+		document.body.removeChild(link);
+
+		// Re-enable button after cooldown
+		setTimeout(() => {
+			isDownloading = false;
+		}, DOWNLOAD_COOLDOWN_MS);
+	}
+
 	async function deleteFromServer(fileUrl?: string) {
 		try {
 			if (!fileUrl || typeof fileUrl !== 'string') return;
@@ -30,15 +51,6 @@
 		} catch (e) {
 			// Silently handle errors - don't block editor if delete fails
 		}
-	}
-
-	function downloadFile() {
-		const link = document.createElement('a');
-		link.href = url;
-		link.download = filename;
-		document.body.appendChild(link);
-		link.click();
-		document.body.removeChild(link);
 	}
 
 	onDestroy(() => {
@@ -72,9 +84,10 @@
 			<span class="text-muted-foreground text-xs">{size}</span>
 		</div>
 		<Button
-		variant="outline"
+			variant="outline"
 			size="icon"
 			onclick={downloadFile}
+			disabled={isDownloading}
 		>
 			<Download />
 		</Button>

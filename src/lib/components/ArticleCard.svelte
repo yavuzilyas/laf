@@ -462,7 +462,7 @@
     className
   )} {...restProps}>
     {#if article.coverImage}
-      <div class="relative p-3 sm:p-4 pb-0 overflow-hidden">
+      <div class="relative p-3 pb-0 sm:p-4 sm:pb-0 overflow-hidden">
         <Lens>
         <A href={translatedContent.slug ? `/article/${translatedContent.slug}` : undefined}>
           <img 
@@ -476,9 +476,9 @@
       </div>
     {/if}
     
-    <div class="p-3 sm:p-4 space-y-3">
+    <div class="p-3 sm:p-4 space-y-2">
       <div class="flex items-center gap-2 sm:gap-4 text-xs sm:text-xs text-muted-foreground">
-        <ScrollArea orientation="horizontal" class="pb-2 max-w-1/2">
+        <ScrollArea orientation="horizontal" class="max-w-1/2">
           <div class="flex flex-row gap-1">
                               {#if article.status === 'pending'}
             <Badge variant="outline">{t('articles.status.pending')}</Badge>
@@ -507,12 +507,12 @@
       
       <div>
         <div class="flex flex-wrap items-center gap-2">
-          <h2 class="text-xs sm:text-base font-bold leading-tight tracking-tight group-hover:text-primary transition-colors">
+          <h2 class="text-sm sm:text-base font-bold leading-tight tracking-tight group-hover:text-primary transition-colors">
             <A href={translatedContent.slug ? l(`/article/${translatedContent.slug}`) : undefined}>{translatedContent.title}</A>
           </h2>
 
         </div>
-        <p class="mt-2 text-xs sm:text-xs text-muted-foreground">
+        <p class="mt-2 text-sm  text-muted-foreground">
           {truncateText(translatedContent.excerpt, 150)}
         </p>
       </div>

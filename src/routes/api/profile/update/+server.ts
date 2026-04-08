@@ -2,10 +2,10 @@ import type { RequestHandler } from "@sveltejs/kit";
 import { getUsers, updateUser } from "$db/queries";
 import { error, json } from "@sveltejs/kit";
 
-// Simple rate limiting: max 5 profile updates per 5 minutes per user
+// Simple rate limiting: max 15 profile updates per 5 minutes per user
 const updateAttempts = new Map<string, number[]>();
 const RATE_LIMIT_WINDOW_MS = 5 * 60 * 1000; // 5 minutes
-const RATE_LIMIT_MAX_ATTEMPTS = 5;
+const RATE_LIMIT_MAX_ATTEMPTS = 15;
 
 function isRateLimited(userId: string): boolean {
   const now = Date.now();

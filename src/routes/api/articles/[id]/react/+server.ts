@@ -1,7 +1,24 @@
 // src/routes/api/articles/[id]/react/+server.ts
 import { json } from '@sveltejs/kit';
-import { getArticles, toggleArticleReaction, getArticleReactionCounts } from '$db/queries';
+import { getArticles, toggleArticleReaction, getArticleReactionCounts, getArticleReaction } from '$db/queries';
 import { notifyArticleLike } from '$lib/server/notifications-pg';
+
+export async function GET({ params, locals }: any) {
+  const user = (locals as any)?.user;
+  if (!user) return json({ reaction: null }, { status: 200 });
+
+  const articleId = params.id;
+  if (!articleId) {
+    return json({ error: 'Article ID is required' }, { status: 400 });
+  }
+
+  try {
+    const reaction = await getArticleReaction(user.id, articleId);
+    return json({ reaction });
+  } catch (error) {
+    return json({ error: 'Internal server error' }, { status: 500 });
+  }
+}
 
 export async function POST({ params, request, locals }: any) {
   const user = (locals as any)?.user;

@@ -273,6 +273,10 @@
 	let donationsGlobalFilter = $state<string>("");
 	let donationsStatusFilter = $state<"pending" | "approved" | "rejected">("pending");
 
+	// Donation message dialog state
+	let showDonationMessageDialog = $state(false);
+	let donationMessageDialogContent = $state<string>('');
+
 	// Contact Messages reply dialog state
 	let showContactReplyDialog = $state(false);
 	let pendingReplyMessage = $state<ContactMessageRow | null>(null);
@@ -287,6 +291,11 @@
 	let contactMessagesColumnVisibility = $state<VisibilityState>({});
 	let contactMessagesGlobalFilter = $state<string>("");
 	let contactMessagesStatusFilter = $state<"all" | "pending" | "read" | "responded" | "archived">("all");
+
+	// Contact message content dialog state
+	let showContactMessageDialog = $state(false);
+	let contactMessageDialogContent = $state<string>('');
+	let contactMessageDialogSender = $state<string>('');
 
 	// Comments state
 	let comments = $state<CommentRow[]>([]);
@@ -962,7 +971,8 @@
 			cell: ({ row }) => {
 				const message = row.original?.message;
 				if (!message) return '-';
-				return message.length > 50 ? message.substring(0, 50) + '...' : message;
+				const sender = row.original?.name || row.original?.user_nickname || row.original?.user_username || 'Unknown';
+				return renderSnippet(ContactMessageCell, { message, sender });
 			},
 		},
 		{
@@ -1191,6 +1201,17 @@
 		commentContentDialogContent = content;
 		commentContentDialogAuthor = author;
 		showCommentContentDialog = true;
+	}
+
+	function openDonationMessageDialog(message: string) {
+		donationMessageDialogContent = message;
+		showDonationMessageDialog = true;
+	}
+
+	function openContactMessageDialog(message: string, sender: string) {
+		contactMessageDialogContent = message;
+		contactMessageDialogSender = sender;
+		showContactMessageDialog = true;
 	}
 
 	async function updateSingleReportStatus(reportId: string, status: "reviewing" | "resolved" | "rejected") {
@@ -1531,12 +1552,16 @@
 			enableHiding: false,
 		},
 		{
-			accessorKey: "nickname", 
+			accessorKey: "nickname",
 			header: t('nickname'),
 			cell: ({ row }) => {
 				if (!row.original) return "-";
 				const user = row.original;
-				return user.nickname || user.email?.split('@')[0] || t('unknown');
+				const nickname = user.nickname || user.email?.split('@')[0] || t('unknown');
+				if (user.nickname) {
+					return renderSnippet(NicknameLinkCell, { nickname: user.nickname });
+				}
+				return nickname;
 			},
 		},
 		{
@@ -3763,6 +3788,38 @@
 	</AlertDialog.Content>
 </AlertDialog.Root>
 
+<AlertDialog.Root bind:open={showDonationMessageDialog}>
+	<AlertDialog.Content class="w-[calc(100%-2rem)] max-w-2xl">
+		<AlertDialog.Header>
+			<AlertDialog.Title>{t('message') ?? 'Mesaj'}</AlertDialog.Title>
+		</AlertDialog.Header>
+		<div class="space-y-2 py-2 max-h-[60vh] overflow-auto">
+			<div class="rounded-md border p-4 whitespace-pre-wrap break-words">
+				{donationMessageDialogContent}
+			</div>
+		</div>
+		<AlertDialog.Footer class="flex flex-col gap-2 sm:flex-row sm:justify-end">
+			<AlertDialog.Cancel class="w-full sm:w-auto">{t('common.close') ?? 'Kapat'}</AlertDialog.Cancel>
+		</AlertDialog.Footer>
+	</AlertDialog.Content>
+</AlertDialog.Root>
+
+<AlertDialog.Root bind:open={showContactMessageDialog}>
+	<AlertDialog.Content class="w-[calc(100%-2rem)] max-w-2xl">
+		<AlertDialog.Header>
+			<AlertDialog.Title>{t('message') ?? 'Mesaj'}{#if contactMessageDialogSender} - {contactMessageDialogSender}{/if}</AlertDialog.Title>
+		</AlertDialog.Header>
+		<div class="space-y-2 py-2 max-h-[60vh] overflow-auto">
+			<div class="rounded-md border p-4 whitespace-pre-wrap break-words">
+				{contactMessageDialogContent}
+			</div>
+		</div>
+		<AlertDialog.Footer class="flex flex-col gap-2 sm:flex-row sm:justify-end">
+			<AlertDialog.Cancel class="w-full sm:w-auto">{t('common.close') ?? 'Kapat'}</AlertDialog.Cancel>
+		</AlertDialog.Footer>
+	</AlertDialog.Content>
+</AlertDialog.Root>
+
 {#snippet ReportTargetLink({ href, label }: { href: string; label: string })}
 	<a href={href} class="underline underline-offset-2 hover:opacity-80" rel="noreferrer">
 		{label}
@@ -3771,12 +3828,10 @@
 
 {#snippet ReportReasonCell({ label, reasons }: { label: string; reasons: string[] })}
 	<div class="flex items-center gap-2">
-		<span class="truncate">{label}</span>
-		{#if reasons.length > 1 || label.length > 80}
-			<Button size="sm" variant="ghost" onclick={() => openReportReasonsDialog(reasons)}>
-				{t('readMore') ?? 'Devamını oku'}
-			</Button>
-		{/if}
+		<span class="truncate max-w-[150px]">{label}</span>
+		<Button size="sm" variant="ghost" onclick={() => openReportReasonsDialog(reasons)}>
+			{t('readMore') ?? 'Devamını oku'}
+		</Button>
 	</div>
 {/snippet}
 
@@ -4342,6 +4397,15 @@
 	</DropdownMenu.Root>
 {/snippet}
 
+{#snippet ContactMessageCell({ message, sender }: { message: string; sender: string })}
+	<div class="flex items-center gap-2">
+		<span class="truncate max-w-[150px]">{message.substring(0, 50)}{message.length > 50 ? '...' : ''}</span>
+		<Button size="sm" variant="ghost" onclick={() => openContactMessageDialog(message, sender)}>
+			{t('readMore') ?? 'Devamını oku'}
+		</Button>
+	</div>
+{/snippet}
+
 {#snippet DonationDraggableRow({ row, index }: { row: Row<any>; index: number })}
 	{@const { ref, isDragging, handleRef } = useSortable({
 		id: row.original?.id ?? row.id ?? crypto.randomUUID(),
@@ -4385,7 +4449,12 @@
 
 {#snippet DonationMessageCell({ message }: { message: string })}
 	{#if message}
-		<span class="text-sm text-muted-foreground truncate block max-w-[200px]" title={message}>{message}</span>
+		<div class="flex items-center gap-2">
+			<span class="text-sm text-muted-foreground truncate block max-w-[200px]" title={message}>{message}</span>
+			<Button size="sm" variant="ghost" onclick={() => openDonationMessageDialog(message)}>
+				{t('readMore') ?? 'Devamını oku'}
+			</Button>
+		</div>
 	{:else}
 		<span class="text-muted-foreground">—</span>
 	{/if}
@@ -4400,6 +4469,12 @@
 {#snippet PhoneLinkCell({ phone }: { phone: string })}
 	<a href="tel:{phone}" class="text-primary hover:underline truncate block max-w-[150px]" title={phone}>
 		{phone}
+	</a>
+{/snippet}
+
+{#snippet NicknameLinkCell({ nickname }: { nickname: string })}
+	<a href={l(`/${nickname}`)} class="text-primary hover:underline truncate block max-w-[200px]" title={nickname}>
+		{nickname}
 	</a>
 {/snippet}
 

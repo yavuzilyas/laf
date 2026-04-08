@@ -408,7 +408,7 @@ import { onMount, onDestroy } from 'svelte';
 
       <div class="grid grid-re grid-cols-1 {isTranslator ? '' : 'lg:grid-cols-9'} gap-4">
         {#if !isTranslator}
-        <div class="lg:col-span-2 space-y-4 md:sticky md:top-12 md:self-start md:max-h-[calc(100vh-8rem] overflow-x-hidden">
+        <div class="lg:col-span-2 space-y-4 md:sticky md:top-12 md:self-start md:max-h-[calc(100vh-8rem] overflow-x-auto">
           <Card>
             <CardHeader>
               <CardTitle class="flex items-center gap-2">
@@ -520,6 +520,23 @@ import { onMount, onDestroy } from 'svelte';
                 <Badge variant={articleData.status === 'published' ? 'default' : 'secondary'}>
                   {articleData.status === 'published' ? rt()('article.published') : rt()('article.draft')}
                 </Badge>
+              </div>
+
+              <!-- Publication Date -->
+              <div>
+                <Label class="text-sm font-medium" for="publishedAt">{rt()('article.publishedAt') || 'Yayın Tarihi'}</Label>
+                <Input
+                  id="publishedAt"
+                  type="datetime-local"
+                  value={articleData.publishedAt ? new Date(articleData.publishedAt).toISOString().slice(0, 16) : new Date().toISOString().slice(0, 16)}
+                  onchange={(e) => {
+                    const value = (e.target as HTMLInputElement).value;
+                    if (value) {
+                      articleEditor.updateMetadata('publishedAt', new Date(value));
+                    }
+                  }}
+                  class="mt-1 text-xs"
+                />
               </div>
 
               <!-- Available Languages -->

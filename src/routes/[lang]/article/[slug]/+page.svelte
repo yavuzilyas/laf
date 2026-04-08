@@ -1121,10 +1121,26 @@
 
 	$effect(() => {
 		if (typeof window !== 'undefined' && data.article?._id) {
-			const savedReaction = localStorage.getItem(`article_reaction_${data.article._id}`);
-			if (savedReaction && ['like', 'dislike'].includes(savedReaction)) {
-				reaction = savedReaction as 'like' | 'dislike';
-			}
+			// First try to get reaction from server (source of truth)
+			fetch(`/api/articles/${data.article._id}/react`)
+				.then(res => res.json())
+				.then(json => {
+					if (json.reaction && ['like', 'dislike'].includes(json.reaction)) {
+						reaction = json.reaction;
+						// Sync localStorage with server state
+						localStorage.setItem(`article_reaction_${data.article._id}`, json.reaction);
+					} else {
+						reaction = null;
+						localStorage.removeItem(`article_reaction_${data.article._id}`);
+					}
+				})
+				.catch(() => {
+					// Fallback to localStorage if server request fails
+					const savedReaction = localStorage.getItem(`article_reaction_${data.article._id}`);
+					if (savedReaction && ['like', 'dislike'].includes(savedReaction)) {
+						reaction = savedReaction as 'like' | 'dislike';
+					}
+				});
 		}
 	});
 
@@ -2176,7 +2192,7 @@
 					<div class="mb-3 flex flex-col gap-3">
 						<div class="flex flex-col gap-3">
 							<div class="flex items-start justify-between gap-2">
-								<h1 class="text-base sm:text-lg md:text-xl font-bold leading-tight">
+								<h1 class="text-base sm:text-lg font-bold leading-tight">
 									{article.title}
 								</h1>
 								<DropdownMenu.Root>
@@ -2307,7 +2323,7 @@
 					{/if}
 
 					{#if article.excerpt}
-						<p class="text-sm sm:text-base text-secondary-foreground mb-3">
+						<p class="text-base text-secondary-foreground mb-3">
 							{article.excerpt}
 						</p>
 					{/if}
