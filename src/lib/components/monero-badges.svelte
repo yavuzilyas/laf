@@ -40,7 +40,7 @@ import { BarSpinner } from "$lib/components/spell/bar-spinner";
     {
       id: 'pioneer',
       name: t('donations.badges.bastiat.name'),
-      icon: '/badge-pp/bastiat-badge-pp.png',
+      icon: '/badge-pp/bastiat-badge-pp.jpeg',
       description: t('donations.badges.bastiat.description'),
       requirement: t('donations.badges.bastiat.requirement'),
       color: 'bg-yellow-500/20 text-yellow-700 dark:text-yellow-300 border-yellow-500/50'
@@ -48,7 +48,7 @@ import { BarSpinner } from "$lib/components/spell/bar-spinner";
     {
       id: 'rebel',
       name: t('donations.badges.ludwig.name'),
-      icon: '/badge-pp/mises-badge-pp.png',
+      icon: '/badge-pp/mises-badge-pp.jpeg',
       description: t('donations.badges.ludwig.description'),
       requirement: t('donations.badges.ludwig.requirement'),
       color: 'bg-blue-500/20 text-blue-700 dark:text-blue-300 border-blue-500/50'
@@ -56,7 +56,7 @@ import { BarSpinner } from "$lib/components/spell/bar-spinner";
     {
       id: 'sponsor',
       name: t('donations.badges.murray.name'),
-      icon: '/badge-pp/murray-badge-pp.png',
+      icon: '/badge-pp/murray-badge-pp.jpeg',
       description: t('donations.badges.murray.description'),
       requirement: t('donations.badges.murray.requirement'),
       color: 'bg-purple-500/20 text-purple-700 dark:text-purple-300 border-purple-500/50'
