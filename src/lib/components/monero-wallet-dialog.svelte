@@ -4,6 +4,7 @@
   import { Copy, ExternalLink, Smartphone, Monitor, Wallet } from '@lucide/svelte';
   import { showToast } from '$lib/hooks/toast';
   import { createEventDispatcher } from 'svelte';
+  import { t } from '$lib/stores/i18n.svelte.js';
 
   let { open = false, walletAddress = '' } = $props();
 
@@ -20,85 +21,78 @@
   // Popular Monero wallets with their deep links
   const desktopWallets = [
     {
-      name: 'Feather Wallet',
+      key: 'feather',
       icon: 'wallet',
       deepLink: `monero:${walletAddress}`,
-      url: 'https://featherwallet.org/',
-      description: 'Hafif ve kullanıcı dostu masaüstü cüzdan'
+      url: 'https://featherwallet.org/'
     },
     {
-      name: 'Monero GUI Wallet',
+      key: 'moneroGui',
       icon: 'wallet',
       deepLink: `monero:${walletAddress}`,
-      url: 'https://www.getmonero.org/downloads/',
-      description: 'Resmi Monero masaüstü cüzdanı'
+      url: 'https://www.getmonero.org/downloads/'
     },
     {
-      name: 'Cake Wallet',
+      key: 'cake',
       icon: 'wallet',
       deepLink: `monero:${walletAddress}`,
-      url: 'https://cakewallet.com/',
-      description: 'Popüler ve güvenli cüzdan'
+      url: 'https://cakewallet.com/'
     },
     {
-      name: 'Exodus',
+      key: 'exodus',
       icon: 'wallet',
       deepLink: `monero:${walletAddress}`,
-      url: 'https://www.exodus.com/',
-      description: 'Çoklu kripto para cüzdanı'
+      url: 'https://www.exodus.com/'
     }
   ];
 
   const mobileWallets = [
     {
-      name: 'Cake Wallet',
+      key: 'cake',
       icon: 'wallet',
       deepLink: `monero:${walletAddress}`,
-      url: 'https://cakewallet.com/',
-      description: 'En popüler mobil Monero cüzdanı'
+      url: 'https://cakewallet.com/'
     },
     {
-      name: 'Monerujo',
+      key: 'monerujo',
       icon: 'wallet',
       deepLink: `monero:${walletAddress}`,
-      url: 'https://www.monerujo.io/',
-      description: 'Android için güvenli cüzdan'
+      url: 'https://www.monerujo.io/'
     },
     {
-      name: 'Edge Wallet',
+      key: 'edge',
       icon: 'wallet',
       deepLink: `monero:${walletAddress}`,
-      url: 'https://edge.app/',
-      description: 'Çoklu varlık mobil cüzdan'
+      url: 'https://edge.app/'
     },
     {
-      name: 'Guarda Wallet',
+      key: 'guarda',
       icon: 'wallet',
       deepLink: `monero:${walletAddress}`,
-      url: 'https://guarda.co/',
-      description: 'Kullanıcı dostu mobil cüzdan'
+      url: 'https://guarda.co/'
     }
   ];
 
-  function openWalletDeepLink(deepLink: string, walletName: string) {
+  function openWalletDeepLink(deepLink: string, walletKey: string) {
+    const walletName = t(`donations.walletDialog.wallets.${walletKey}.name`);
     try {
       // Try to open wallet app
       window.location.href = deepLink;
       
       // Fallback: show toast and copy address
       setTimeout(() => {
-        showToast(`${walletName} açılmadıysa, adresi kopyalayıp manuel olarak yapabilirsiniz`, 'info');
+        showToast(t('donations.walletDialog.walletNotOpened').replace('{walletName}', walletName), 'info');
         copyToClipboard(walletAddress);
       }, 1500);
     } catch (error) {
-      showToast('Cüzdan açılırken hata oluştu', 'error');
+      showToast(t('donations.walletDialog.walletError'), 'error');
     }
   }
 
   function copyToClipboard(text: string) {
     if (navigator.clipboard && window.isSecureContext) {
       navigator.clipboard.writeText(text).then(() => {
-        showToast('Cüzdan adresi kopyalandı!', 'success');
+        showToast(t('donations.walletDialog.copySuccess'), 'success');
       }).catch(() => {
         fallbackCopyToClipboard(text);
       });
@@ -119,9 +113,9 @@
     
     try {
       document.execCommand('copy');
-      showToast('Cüzdan adresi kopyalandı!', 'success');
+      showToast(t('donations.walletDialog.copySuccess'), 'success');
     } catch (err) {
-      showToast('Kopyalama başarısız oldu', 'error');
+      showToast(t('donations.walletDialog.copyError'), 'error');
     }
     
     document.body.removeChild(textArea);
@@ -152,19 +146,19 @@
 
 <Dialog.Root bind:open onOpenChange={handleOpenChange}>
   <Dialog.Content class="sm:!max-w-1/2 max-w-[95vw] w-full max-h-[90vh] overflow-y-auto p-3 sm:p-4">
-    <Dialog.Header class="pb-3">
+    <Dialog.Header >
       <Dialog.Title class="flex items-center gap-2 text-lg">
         {#if isMobile}
           <Smartphone class="w-4 h-4" />
         {:else}
           <Monitor class="w-4 h-4" />
         {/if}
-        Monero Cüzdanı Seç
+        {t('donations.walletDialog.title')}
       </Dialog.Title>
       <Dialog.Description class="text-sm">
         {isMobile 
-          ? 'Mobil cüzdan seçin' 
-          : 'Masaüstü cüzdan seçin'}
+          ? t('donations.walletDialog.mobileDescription') 
+          : t('donations.walletDialog.desktopDescription')}
       </Dialog.Description>
     </Dialog.Header>
 
@@ -172,7 +166,7 @@
       <!-- Wallet Address Display -->
       <div class="p-3 bg-muted rounded-lg">
         <div class="flex items-center justify-between mb-2">
-          <span class="text-xs font-medium">Cüzdan Adresi:</span>
+          <span class="text-xs font-medium">{t('donations.walletDialog.walletAddress')}:</span>
           <Button 
             variant="outline" 
             size="sm"
@@ -180,7 +174,7 @@
             class="h-7 px-2 text-xs"
           >
             <Copy class="w-3 h-3 mr-1" />
-            Kopyala
+            {t('donations.walletDialog.copy')}
           </Button>
         </div>
         <code class="text-xs break-all font-mono">{walletAddress}</code>
@@ -188,45 +182,41 @@
 
       <!-- Compact Wallet Grid -->
       <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
-        {#each isMobile ? mobileWallets : desktopWallets as wallet (wallet.name)}
-          <div class="border rounded-lg p-2.5 sm:p-2 hover:bg-muted/50 transition-colors">
-            <div class="flex items-center gap-2 mb-2.5 sm:mb-2">
+        {#each isMobile ? mobileWallets : desktopWallets as wallet (wallet.key)}
+          <div class="border flex flex-row rounded-lg gap-2 p-2.5 sm:p-2 hover:bg-muted/50 transition-colors">
               <Wallet class="w-5 h-5 text-primary flex-shrink-0" />
               <div class="min-w-0 flex-1">
-                <h3 class="font-medium text-sm sm:text-xs truncate">{wallet.name}</h3>
-                <p class="text-xs sm:text-[10px] text-muted-foreground truncate">{wallet.description}</p>
+                <h3 class="font-medium text-sm sm:text-xs truncate">{t(`donations.walletDialog.wallets.${wallet.key}.name`)}</h3>
+                <p class="text-xs sm:text-[10px] text-muted-foreground truncate">{t(`donations.walletDialog.wallets.${wallet.key}.description`)}</p>
               </div>
-            </div>
             
-            <div class="flex gap-1">
               <Button 
                 variant="default"
                 size="sm"
-                onclick={() => openWalletDeepLink(wallet.deepLink, wallet.name)}
-                class="flex-1 h-8 text-xs"
+                onclick={() => openWalletDeepLink(wallet.deepLink, wallet.key)}
+                class=" h-8 text-xs"
               >
-                Aç
+                {t('donations.walletDialog.open')}
               </Button>
               
               <Button 
-                variant="ghost" 
-                size="sm"
+                variant="outline" 
+                size="icon"
                 onclick={() => openWebsite(wallet.url)}
                 class="h-8 w-8 p-0"
-                title="Web sitesi"
+                title={t('donations.walletDialog.website')}
               >
                 <ExternalLink class="w-3 h-3" />
               </Button>
-            </div>
           </div>
         {/each}
       </div>
 
       <!-- Compact Help Text -->
       <div class="bg-blue-50 dark:bg-blue-950/20 p-3 rounded-lg">
-        <h4 class="font-semibold text-xs mb-1">Cüzdanınız yüklü değil mi?</h4>
+        <h4 class="font-semibold text-xs mb-1">{t('donations.walletDialog.noWallet')}</h4>
         <p class="text-xs text-muted-foreground">
-          Web sitesi butonundan indirebilirsiniz. "Aç" butonu ile otomatik ödeme ekranına ulaşabilirsiniz.
+          {t('donations.walletDialog.helpText')}
         </p>
       </div>
     </div>

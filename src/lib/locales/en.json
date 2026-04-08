@@ -162,7 +162,51 @@
     "copyError": "Copy failed",
     "openInWallet": "Open in Wallet",
     "selectWallet": "Select Monero Wallet",
-    "closeForm": "Close Form",
+    "walletDialog": {
+      "title": "Select Monero Wallet",
+      "mobileDescription": "Select mobile wallet",
+      "desktopDescription": "Select desktop wallet",
+      "walletAddress": "Wallet Address",
+      "copy": "Copy",
+      "open": "Open",
+      "website": "Website",
+      "noWallet": "Don't have a wallet installed?",
+      "helpText": "You can download from the website button. Reach the automatic payment screen with the \"Open\" button.",
+      "walletNotOpened": "If {walletName} didn't open, you can copy the address and do it manually",
+      "copySuccess": "Wallet address copied!",
+      "copyError": "Copy failed",
+      "walletError": "Error opening wallet",
+      "wallets": {
+        "feather": {
+          "name": "Feather Wallet",
+          "description": "Lightweight and user-friendly desktop wallet"
+        },
+        "moneroGui": {
+          "name": "Monero GUI Wallet",
+          "description": "Official Monero desktop wallet"
+        },
+        "cake": {
+          "name": "Cake Wallet",
+          "description": "Popular and secure wallet"
+        },
+        "exodus": {
+          "name": "Exodus",
+          "description": "Multi-cryptocurrency wallet"
+        },
+        "monerujo": {
+          "name": "Monerujo",
+          "description": "Secure wallet for Android"
+        },
+        "edge": {
+          "name": "Edge Wallet",
+          "description": "Multi-asset mobile wallet"
+        },
+        "guarda": {
+          "name": "Guarda Wallet",
+          "description": "User-friendly mobile wallet"
+        }
+      }
+    },
     "iDonated": "I Donated",
     "enterDonationInfo": "Enter Donation Information",
     "amount": "Donation Amount (XMR)",

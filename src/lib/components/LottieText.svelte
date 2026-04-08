@@ -43,4 +43,4 @@
 
 </script>
 
-<div bind:this={textContainer} class="w-34 h-full"></div>
+<div bind:this={textContainer} class="w-40 sm:w-34 h-full"></div>

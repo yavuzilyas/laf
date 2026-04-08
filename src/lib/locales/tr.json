@@ -179,6 +179,51 @@
     "copyError": "Kopyalama başarısız oldu",
     "openInWallet": "Cüzdanda aç",
     "selectWallet": "Monero Cüzdanını Seç",
+    "walletDialog": {
+      "title": "Monero Cüzdanı Seç",
+      "mobileDescription": "Mobil cüzdan seçin",
+      "desktopDescription": "Masaüstü cüzdan seçin",
+      "walletAddress": "Cüzdan Adresi",
+      "copy": "Kopyala",
+      "open": "Aç",
+      "website": "Web sitesi",
+      "noWallet": "Cüzdanınız yüklü değil mi?",
+      "helpText": "Web sitesi butonundan indirebilirsiniz. \"Aç\" butonu ile otomatik ödeme ekranına ulaşabilirsiniz.",
+      "walletNotOpened": "{walletName} açılmadıysa, adresi kopyalayıp manuel olarak yapabilirsiniz",
+      "copySuccess": "Cüzdan adresi kopyalandı!",
+      "copyError": "Kopyalama başarısız oldu",
+      "walletError": "Cüzdan açılırken hata oluştu",
+      "wallets": {
+        "feather": {
+          "name": "Feather Wallet",
+          "description": "Hafif ve kullanıcı dostu masaüstü cüzdan"
+        },
+        "moneroGui": {
+          "name": "Monero GUI Wallet",
+          "description": "Resmi Monero masaüstü cüzdanı"
+        },
+        "cake": {
+          "name": "Cake Wallet",
+          "description": "Popüler ve güvenli cüzdan"
+        },
+        "exodus": {
+          "name": "Exodus",
+          "description": "Çoklu kripto para cüzdanı"
+        },
+        "monerujo": {
+          "name": "Monerujo",
+          "description": "Android için güvenli cüzdan"
+        },
+        "edge": {
+          "name": "Edge Wallet",
+          "description": "Çoklu varlık mobil cüzdan"
+        },
+        "guarda": {
+          "name": "Guarda Wallet",
+          "description": "Kullanıcı dostu mobil cüzdan"
+        }
+      }
+    },
     "closeForm": "Formu Kapat",
     "iDonated": "Bağış Yaptım",
     "enterDonationInfo": "Bağış Bilgilerini Girin",

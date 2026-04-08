@@ -1471,7 +1471,7 @@
                   return orderDiff !== 0 ? orderDiff : a.id.localeCompare(b.id);
                 }) as link (link.id)}
                   <div
-                    class="flex flex-col sm:flex-row items-start sm:items-center gap-4 p-4 border rounded-lg bg-card hover:shadow-sm transition-shadow cursor-move {draggedLinkId === link.id ? 'opacity-50' : ''} {dragOverLinkId === link.id ? 'border-primary ring-1 ring-primary' : ''}"
+                    class="flex flex-col sm:flex-row items-start sm:items-center gap-4 p-4 border rounded-lg bg-card hover:shadow-sm transition-shadow cursor-move max-w-[90vw] sm:max-w-[80vw]{draggedLinkId === link.id ? 'opacity-50' : ''} {dragOverLinkId === link.id ? 'border-primary ring-1 ring-primary' : ''}"
                     draggable="true"
                     ondragstart={(e) => handleLinkDragStart(e, link.id)}
                     ondragover={(e) => handleLinkDragOver(e, link.id)}
