@@ -420,12 +420,12 @@ class ArticleEditorStore {
       throw new Error('Content is required');
     }
 
-    // Translation size validation: each translation must be within +/-15% of original content size
+    // Translation size validation: each translation must be within +/-25% of original content size
     const originalContent = this._articleData.translations[defaultLang]?.content;
     if (originalContent) {
       const originalSize = new Blob([JSON.stringify(originalContent)]).size;
-      const minSize = Math.floor(originalSize * 0.80); // -15%
-      const maxSize = Math.ceil(originalSize * 1.20); // +15%
+      const minSize = Math.floor(originalSize * 0.75); // -25%
+      const maxSize = Math.ceil(originalSize * 1.25); // +25%
       
       for (const [lang, translation] of Object.entries(this._articleData.translations)) {
         if (lang === defaultLang) continue; // Skip default language
@@ -433,10 +433,10 @@ class ArticleEditorStore {
         
         const translationSize = new Blob([JSON.stringify(translation.content)]).size;
         if (translationSize < minSize) {
-          throw new Error(`${lang.toUpperCase()} translation is too small (${translationSize} bytes vs ${originalSize} bytes original). Must be within -15%/+15% (${minSize}-${maxSize} bytes)`);
+          throw new Error(`${lang.toUpperCase()} translation is too small (${translationSize} bytes vs ${originalSize} bytes original). Must be within -25%/+25% (${minSize}-${maxSize} bytes)`);
         }
         if (translationSize > maxSize) {
-          throw new Error(`${lang.toUpperCase()} translation is too large (${translationSize} bytes vs ${originalSize} bytes original). Must be within -15%/+15% (${minSize}-${maxSize} bytes)`);
+          throw new Error(`${lang.toUpperCase()} translation is too large (${translationSize} bytes vs ${originalSize} bytes original). Must be within -25%/+25% (${minSize}-${maxSize} bytes)`);
         }
       }
     }
