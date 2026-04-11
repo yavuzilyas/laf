@@ -23,7 +23,7 @@ VOLUME ["/app/uploads"]
 RUN mkdir -p /app/uploads
 
 # Build (cache temizleyerek)
-RUN pnpm build --force
+RUN pnpm build 
 
 EXPOSE 3000
 VOLUME ["/app/uploads"]
