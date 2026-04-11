@@ -63,11 +63,24 @@
     }
   });
   
+  // Propagate changes when any filter is updated via binding
+  // Reference specific properties to enable deep reactivity tracking
+  $effect(() => {
+    const filterState = {
+      topic: filters.topic,
+      sortBy: filters.sortBy,
+      customDateRange: filters.customDateRange,
+      status: filters.status,
+      nickname: filters.nickname,
+      onlyFollowing: filters.onlyFollowing
+    };
+    onFiltersChange?.(filterState);
+  });
+  
   let open = $state(false);
 
   const clearAllFilters = () => {
     filters = { ...defaultFilters };
-    onFiltersChange?.(filters);
   };
 
   const hasActiveFilters = $derived(
@@ -93,46 +106,11 @@
   // Handle filter changes
   const handleTopicChange = (value: string) => {
     filters = { ...filters, topic: value };
-    // Delay to ensure parent component's hydration is complete
-    setTimeout(() => {
-      onFiltersChange?.(filters);
-    }, 10);
   };
 
   const handleStatusChange = (value: string) => {
     filters = { ...filters, status: value };
-    // Delay to ensure parent component's hydration is complete
-    setTimeout(() => {
-      onFiltersChange?.(filters);
-    }, 10);
   };
-
-  // Watch for date range changes from DateRangePicker
-  // Only trigger onFiltersChange after component is mounted (not during initialization)
-  let hasMounted = $state(false);
-  let lastDateRangeStart = $state(filters.customDateRange?.start);
-  let lastDateRangeEnd = $state(filters.customDateRange?.end);
-  
-  $effect(() => {
-    // Mark as mounted after first render
-    hasMounted = true;
-  });
-  
-  $effect(() => {
-    const currentStart = filters.customDateRange?.start;
-    const currentEnd = filters.customDateRange?.end;
-    // Only call onFiltersChange if:
-    // 1. Component has mounted
-    // 2. Date range actually changed (check start and end separately)
-    if (hasMounted && (currentStart !== lastDateRangeStart || currentEnd !== lastDateRangeEnd)) {
-      lastDateRangeStart = currentStart;
-      lastDateRangeEnd = currentEnd;
-      // Delay to ensure parent component's hydration is complete before calling onFiltersChange
-      setTimeout(() => {
-        onFiltersChange?.(filters);
-      }, 10);
-    }
-  });
 </script>
 
 <Popover bind:open>
@@ -221,6 +199,12 @@
             type="text"
             placeholder={t('qa.filters.nicknamePlaceholder') || 'Kullanıcı adı ara...'}
             bind:value={filters.nickname}
+            onkeydown={(e) => {
+              if (e.key === 'Enter') {
+                e.preventDefault();
+                open = false;
+              }
+            }}
             class="w-full px-3 py-2 text-sm border rounded-md focus:outline-none focus:ring-2 focus:ring-primary/20"
           />
         </div>
@@ -274,6 +258,9 @@
             <Switch
               aria-label={t('qa.filters.following') || 'Takip ettiklerim'}
               bind:checked={filters.onlyFollowing}
+              onCheckedChange={(checked) => {
+                filters.onlyFollowing = checked;
+              }}
             />
           </div>
         {/if}

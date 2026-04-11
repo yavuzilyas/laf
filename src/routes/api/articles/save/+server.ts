@@ -289,21 +289,21 @@ async function cleanupUnusedMedia(existing: any, updated: any, articleId: string
                 new Date(article.created_at) >= oneHourAgo
             );
 
-            if (publishedLastHour.length >= 4) {
-                return json({ 
-                    error: 'Saatlik makale yayınlama limitinize ulaştınız. Saatte en fazla 4 makale yayınlayabilirsiniz.' 
+            if (publishedLastHour.length >= 10) {
+                return json({
+                    error: 'Saatlik makale yayınlama limitinize ulaştınız. Saatte en fazla 10 makale yayınlayabilirsiniz.'
                 }, { status: 403 });
             }
 
-            // Check draft limit for non-privileged users (hourly: max 4 drafts per hour)
+            // Check draft limit for non-privileged users (hourly: max 10 drafts per hour)
             // Only check for NEW drafts (not when editing existing draft/article)
             if (!data.id && !data._id) {
                 const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
                 const draftCount = await countDraftsByUser(user.id, oneHourAgo);
-                
-                if (draftCount >= 4) {
-                    return json({ 
-                        error: 'Saatlik taslak oluşturma limitinize ulaştınız. Saatte en fazla 4 taslak oluşturabilirsiniz.' 
+
+                if (draftCount >= 10) {
+                    return json({
+                        error: 'Saatlik taslak oluşturma limitinize ulaştınız. Saatte en fazla 10 taslak oluşturabilirsiniz.'
                     }, { status: 403 });
                 }
             }
@@ -444,11 +444,11 @@ async function cleanupUnusedMedia(existing: any, updated: any, articleId: string
                     }, { status: 403 });
                 }
                 
-                const limitCheck = await checkDailyTranslationLimit(user.id, 4);
+                const limitCheck = await checkDailyTranslationLimit(user.id, 10);
                 if (!limitCheck.canTranslate) {
-                    return json({ 
-                        error: 'Saatlik çeviri limitine ulaştınız. Saatte en fazla 4 çeviri yapabilirsiniz.',
-                        hourlyLimit: 4,
+                    return json({
+                        error: 'Saatlik çeviri limitine ulaştınız. Saatte en fazla 10 çeviri yapabilirsiniz.',
+                        hourlyLimit: 10,
                         currentCount: limitCheck.currentCount
                     }, { status: 429 });
                 }

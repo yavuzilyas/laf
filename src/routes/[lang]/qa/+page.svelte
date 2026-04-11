@@ -208,7 +208,7 @@
     let sortBy = $state('newest'); // newest, popular, unanswered
     
     // Date range filter
-    let dateRangeFilter = $state<any>(null);
+    let dateRangeFilter = $state<any>(undefined);
     
     // Status filter (for moderators)
     let statusFilter = $state('');
@@ -233,7 +233,7 @@
         searchQuery = '';
         selectedTopicFilter = '';
         sortBy = 'newest';
-        dateRangeFilter = null;
+        dateRangeFilter = undefined;
         statusFilter = '';
         nicknameFilter = '';
         onlyFollowingFilter = false;
@@ -268,7 +268,7 @@
         // Apply date range filter
         // If only start date selected, treat it as a single day (00:00 to 23:59)
         // If both selected, treat as range
-        if (dateRangeFilter && (dateRangeFilter.start || dateRangeFilter.end)) {
+        if (dateRangeFilter && dateRangeFilter !== undefined && (dateRangeFilter.start || dateRangeFilter.end)) {
             let startDate: Date | null = null;
             let endDate: Date | null = null;
             
@@ -1104,15 +1104,13 @@
                         onlyFollowing: onlyFollowingFilter
                     }}
                     onFiltersChange={(filters) => {
-                        if (filters.topic !== undefined) selectedTopicFilter = filters.topic || '';
-                        if (filters.sortBy !== undefined) {
-                            sortBy = filters.sortBy || 'newest';
-                            handleTabClick(sortBy);
-                        }
-                        if (filters.customDateRange !== undefined) dateRangeFilter = filters.customDateRange;
-                        if (filters.status !== undefined) statusFilter = filters.status || '';
-                        if (filters.nickname !== undefined) nicknameFilter = filters.nickname || '';
-                        if (filters.onlyFollowing !== undefined) onlyFollowingFilter = filters.onlyFollowing || false;
+                        selectedTopicFilter = filters.topic || '';
+                        sortBy = filters.sortBy || 'newest';
+                        handleTabClick(sortBy);
+                        dateRangeFilter = filters.customDateRange;
+                        statusFilter = filters.status || '';
+                        nicknameFilter = filters.nickname || '';
+                        onlyFollowingFilter = filters.onlyFollowing || false;
                         pagination.page = 1;
                         applyFiltersAndSearch();
                     }}
