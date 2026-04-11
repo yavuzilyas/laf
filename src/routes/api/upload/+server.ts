@@ -27,10 +27,6 @@ function isRateLimited(userId: string): boolean {
   return false;
 }
 
-export const config = {
-  bodySizeLimit: 12 * 1024 * 1024 // 12MB
-};
-
 export async function POST({ request, locals }) {
   const UPLOAD_BASE_DIR = env.UPLOAD_DIR || '/app/uploads';
   console.log('[UPLOAD] UPLOAD_DIR from env:', env.UPLOAD_DIR);

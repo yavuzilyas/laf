@@ -7,7 +7,8 @@ const config = {
 
 	kit: {
 		adapter: adapter({
-			entryPoint: 'src/server.js'
+			entryPoint: 'src/server.js',
+			bodySizeLimit: 5 * 1024 * 1024 // 4MB
 		}),
 		csrf: {
 			trustedOrigins: []

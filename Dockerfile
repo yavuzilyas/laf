@@ -16,13 +16,14 @@ RUN npx svelte-kit sync
 # Environment ve memory optimizasyonları
 ENV NODE_OPTIONS="--max-old-space-size=3500"
 ENV ESBUILD_WORKER_THREADS=1
+ENV NGINX_CLIENT_MAX_BODY_SIZE=4m
 ENV UPLOAD_DIR=/app/uploads
 VOLUME ["/app/uploads"]
 # Uploads klasörü oluştur (volume için)
 RUN mkdir -p /app/uploads
 
-# Build
-RUN pnpm build
+# Build (cache temizleyerek)
+RUN pnpm build --force
 
 EXPOSE 3000
 VOLUME ["/app/uploads"]
