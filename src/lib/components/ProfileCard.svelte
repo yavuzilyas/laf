@@ -448,7 +448,7 @@
 </script>
 
 <Card class="overflow-hidden pt-0 h-full transition-all duration-500 ease-in-out {isEditing ? 'min-h-[1050px] sm:min-h-[760px]' : 'min-h-[350px]'} flex flex-col">
-  <div class="relative w-full pt-0 transition-all duration-500 ease-in-out {isEditing ? 'min-h-[150px] sm:min-h-[225px]' : 'min-h-[185px] sm:min-h-[300px]'}">
+  <div class="relative w-full pt-0 transition-all duration-500 ease-in-out {isEditing ? 'min-h-[166px] sm:min-h-[265px]' : 'min-h-[200px] sm:min-h-[333px]'}">
     {#if profileData?.bannerImage}
       <img
         src={profileData.bannerImage}
