@@ -508,7 +508,7 @@
       <div>
         <div class="flex flex-wrap items-center gap-2">
           <h2 class="text-sm sm:text-base font-bold leading-tight tracking-tight group-hover:text-primary transition-colors">
-            <A class="uppercase" href={translatedContent.slug ? l(`/article/${translatedContent.slug}`) : undefined}>{translatedContent.title}</A>
+            <A  href={translatedContent.slug ? l(`/article/${translatedContent.slug}`) : undefined}>{translatedContent.title}</A>
           </h2>
 
         </div>

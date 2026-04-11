@@ -28,7 +28,7 @@ function isRateLimited(userId: string): boolean {
 }
 
 export const config = {
-  bodySizeLimit: 4 * 1024 * 1024 // 4MB
+  bodySizeLimit: 12 * 1024 * 1024 // 12MB
 };
 
 export async function POST({ request, locals }) {

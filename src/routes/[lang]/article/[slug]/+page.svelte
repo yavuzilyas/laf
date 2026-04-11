@@ -2201,6 +2201,29 @@
 	{/if}
 </svelte:head>
 
+<style>
+	/* Re-enable browser scrollbars on article page */
+	:global(::-webkit-scrollbar) {
+		display: block;
+		width: 8px;
+		height: 8px;
+	}
+	:global(::-webkit-scrollbar-track) {
+		background: transparent;
+	}
+	:global(::-webkit-scrollbar-thumb) {
+		background: hsl(var(--border));
+		border-radius: 4px;
+	}
+	:global(::-webkit-scrollbar-thumb:hover) {
+		background: hsl(var(--muted-foreground));
+	}
+	:global(html) {
+		scrollbar-width: thin;
+		scrollbar-color: hsl(var(--border)) transparent;
+	}
+</style>
+
 <Navbar />
 <!-- svelte-ignore a11y-no-static-element-interactions -->
 <div
