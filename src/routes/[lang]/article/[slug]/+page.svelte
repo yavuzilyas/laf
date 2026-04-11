@@ -2069,7 +2069,7 @@
 					: article.author?.nickname || 'LAF';
 
 			return {
-				title: `${article.title} | ${siteName}`,
+				title: article.title,
 				description:
 					article.excerpt ||
 					(typeof article.content === 'string' ? article.content.substring(0, 160) : '') ||

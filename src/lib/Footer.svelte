@@ -7,7 +7,7 @@
 </script>
 <footer class="relative border-t sm:hidden w-full px-6 pt-6">
   <!-- Bottom gradient fade for mobile footer -->
-            <h1 class="sm:hidden text-center font-semibold sm:text-sm text-primary ">{t('FooterQuote-1')} {t('FooterQuote-2')}</h1>
+            <h2 class="sm:hidden text-center font-semibold sm:text-sm text-primary ">{t('FooterQuote-1')} {t('FooterQuote-2')}</h2>
 </footer>
 <footer class="relative w-full text-secondary-foreground border-none sm:border-solid sm:border-t-1 sm:px-6">
   <!-- Bottom gradient fade -->

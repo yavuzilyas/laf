@@ -98,14 +98,17 @@ import { cn } from "$lib/utils";
     <!-- Hero Section --><div class="w-full absolute top-0 h-40 bg-gradient-to-b from-primary/25 to-background py-12 -z-1"></div>
 
   <img class="h-16 w-auto mb-5 text-primary" src="{logo}" alt="LAF" />
-<h1 class="text-center text-3xl font-bold mb-24">{t('lafFull')}</h1>
+<h1 class="text-center text-3xl font-bold mb-12">{t('lafFull')}</h1>
+<p class="text-center text-lg text-muted-foreground max-w-2xl mx-auto mb-12">
+  {t('MainPageDescription')}
+</p>
   <div class="max-w-7xl mx-auto">
     <!-- Three Column Layout -->
     <div class="grid gap-12 items-start">
       
       <!-- Who We Are Column -->
       <div class="md:max-w-2xl m-auto">
-        <h1 class="text-xl  font-bold mb-1 text-primary">{t('whoWeAre')}</h1>
+        <h2 class="text-xl font-bold mb-1 text-primary">{t('whoWeAre')}</h2>
         <p class="text-base text-foreground leading-relaxed">
           {t('whoWeAreDescription')}
           
@@ -133,7 +136,7 @@ import { cn } from "$lib/utils";
 
       <!-- Why Anarcho Capitalism Column -->
       <div class="md:max-w-2xl m-auto">
-        <h1 class="text-xl font-bold mb-1 text-primary">{t('whyAnarchoCapitalism')}</h1>
+        <h2 class="text-xl font-bold mb-1 text-primary">{t('whyAnarchoCapitalism')}</h2>
         <p class="text-base text-foreground leading-relaxed">
           {t('whyAnarchoCapitalismDescription')}
         </p>
@@ -142,7 +145,7 @@ import { cn } from "$lib/utils";
 
       <!-- Our Goal Column -->
       <div class="md:max-w-2xl m-auto">
-        <h1 class="text-xl  font-bold mb-1 text-primary">{t('ourGoal')}</h1>
+        <h2 class="text-xl font-bold mb-1 text-primary">{t('ourGoal')}</h2>
         <p class="text-base text-foreground leading-relaxed">
           {t('ourGoalDescription')}
         </p>

@@ -401,10 +401,10 @@ import { BarSpinner } from "$lib/components/spell/bar-spinner";
       {/if}
   <!-- Header Section -->
   <div class="text-center">
-    <h1 class="text-4xl font-bold mb-4 flex items-center justify-center text-left gap-3">
+    <h2 class="text-4xl font-bold mb-4 flex items-center justify-center text-left gap-3">
       <HandCoinsIcon triggers={{ hover: false }} duration={2500} animationState="loading" size={48} class="text-primary" />
       {t('donations.title')}
-    </h1>
+    </h2>
     <p class="text-sm  mx-auto text-left">
       {t('donations.description')}
     </p>

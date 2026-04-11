@@ -26,9 +26,13 @@ export function generateSEOMeta(props: SEOProps) {
 	const url = props.canonical || (browser ? window.location.href : '');
 	const ogImage = props.image || `${siteUrl}${defaultImage}`;
 
+	// If title already includes site name, don't add it again
+	const hasSiteName = props.title.toLowerCase().includes('laf');
+	const finalTitle = hasSiteName ? props.title : `${props.title} | ${siteName}`;
+
 	return {
 		// Basic Meta
-		title: `${props.title} | ${siteName}`,
+		title: finalTitle,
 		description: props.description,
 		canonical: url,
 
