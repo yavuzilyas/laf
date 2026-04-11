@@ -92,7 +92,7 @@ const sanitizeRelationEntries = <T extends Record<string, any>>(
   }));
 };
 
-export const load: PageServerLoad = async ({ params, locals }) => {
+export const load: PageServerLoad = async ({ params, locals, cookies }) => {
   const { slug } = params;
   const viewer = (locals as any)?.user ?? null;
 
@@ -172,8 +172,21 @@ export const load: PageServerLoad = async ({ params, locals }) => {
     throw error(403, 'Blocked user content');
   }
 
-  // Increment views
-  await incrementArticleViews(article.id);
+  // Increment views only if user hasn't viewed this article recently (track via cookie)
+  const viewedArticlesKey = 'viewed_articles';
+  const viewedArticles = cookies.get(viewedArticlesKey);
+  const viewedSet = new Set(viewedArticles ? JSON.parse(viewedArticles) : []);
+  
+  if (!viewedSet.has(article.id)) {
+    await incrementArticleViews(article.id);
+    viewedSet.add(article.id);
+    cookies.set(viewedArticlesKey, JSON.stringify([...viewedSet]), {
+      path: '/',
+      maxAge: 60 * 10, // 10 minutes
+      httpOnly: true,
+      sameSite: 'strict'
+    });
+  }
 
   // Filter translations based on user role (admin/moderator/author see all, public sees only approved)
   const filteredTranslations = await filterTranslationsByRole(article, viewer);
