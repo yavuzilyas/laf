@@ -214,15 +214,13 @@
     let statusFilter = $state('');
     
     // Filtered questions (client-side filtering)
-    let filteredQuestions = $state([...questions]);
+    let filteredQuestions = $state<any[]>([]);
     
-    // Active filters for display
-    const hasActiveFilters = $derived(
-        searchQuery || 
-        selectedTopicFilter || 
-        (dateRangeFilter && (dateRangeFilter.start || dateRangeFilter.end)) ||
-        statusFilter
-    );
+    // Initialize filtered questions when questions prop changes
+    $effect(() => {
+        filteredQuestions = [...questions];
+        applyFiltersAndSearch();
+    });
     
     // Clear all filters
     function clearAllFilters() {
@@ -327,10 +325,6 @@
     let currentQuestionImages = $state<string[]>([]);
     let currentImageIndex = $state(0);
 
-    // Unified questions list - server provides all questions for moderators
-    const allQuestions = $derived(() => {
-        return questions;
-    });
 
     async function loadModeratorQuestions() {
         if (!isModerator) return;
@@ -1128,7 +1122,7 @@
                 </Card>
             {:else}
                 <div>
-                    {#each filteredQuestions as question (question.id)}
+                    {#each filteredQuestions.slice((pagination.page - 1) * pagination.limit, pagination.page * pagination.limit) as question (question.id)}
                         {@const userReaction = getUserReaction(question.id)}
                         <Card class="rounded-none overflow-hidden p-0 bg-background border-none">
                             <div class="flex">

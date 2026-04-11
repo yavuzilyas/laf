@@ -387,7 +387,7 @@
                  <h1 class="text-xl font-bold tracking-tight md:text-4xl">
                     {t('events.title')}
                 </h1>
-                    <p class="text-sm  text-muted-foreground max-w-2xl">
+                    <p class="text-sm  text-muted-foreground ">
                     {t('events.description')}
                 </p>
             </div>

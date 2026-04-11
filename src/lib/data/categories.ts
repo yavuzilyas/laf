@@ -10,6 +10,10 @@ export const categoryTree: CategoryNode[] = [
     translationKey: 'economics'
   },
   {
+    id: 'philosophy',
+    translationKey: 'philosophy'
+  },
+  {
     id: 'politics',
     translationKey: 'politics'
   },

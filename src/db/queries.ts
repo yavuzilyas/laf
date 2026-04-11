@@ -405,9 +405,13 @@ export const getArticles = async (filters: any = {}) => {
         sql += ' WHERE ' + conditions.join(' AND ');
     }
     
-    // Sorting - prioritize admin and moderator articles
+    // Sorting - prioritize admin and moderator articles, but design category always at bottom
     if (filters.sort_by === 'published_at') {
         sql += ` ORDER BY 
+            CASE 
+                WHEN a.category = 'design' THEN 2
+                ELSE 1
+            END,
             CASE 
                 WHEN u.role = 'admin' THEN 1
                 WHEN u.role = 'moderator' THEN 2
@@ -415,15 +419,27 @@ export const getArticles = async (filters: any = {}) => {
             END,
             a.published_at DESC`;
     } else if (filters.sort_by === 'views') {
+        // Hybrid sorting: same month = by likes/views, different months = by date
         sql += ` ORDER BY 
+            CASE 
+                WHEN a.category = 'design' THEN 2
+                ELSE 1
+            END,
+            DATE_TRUNC('month', a.published_at) DESC,
             CASE 
                 WHEN u.role = 'admin' THEN 1
                 WHEN u.role = 'moderator' THEN 2
                 ELSE 3
             END,
-            a.views DESC`;
+            a.likes_count DESC,
+            a.views DESC,
+            a.published_at DESC`;
     } else {
         sql += ` ORDER BY 
+            CASE 
+                WHEN a.category = 'design' THEN 2
+                ELSE 1
+            END,
             CASE 
                 WHEN u.role = 'admin' THEN 1
                 WHEN u.role = 'moderator' THEN 2
