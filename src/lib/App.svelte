@@ -65,7 +65,22 @@ import { cn } from "$lib/utils";
 
   const sliderImages = Object.keys(import.meta.glob('/static/government-is-violence/*.{jpg,jpeg,png,webp,avif}')).map(path => path.replace(/^\/static/, ''));
 
+  // WebGL desteğini kontrol et
+  let webglSupported = $state(false);
+
+  const checkWebGLSupport = () => {
+    if (!browser) return false;
+    try {
+      const canvas = document.createElement('canvas');
+      const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
+      return !!gl;
+    } catch (e) {
+      return false;
+    }
+  };
+
   onMount(() => {
+    webglSupported = checkWebGLSupport();
     if (browser) {
       // Check if there's a hash in the URL and scroll to it
       const hash = window.location.hash;
@@ -84,15 +99,18 @@ import { cn } from "$lib/utils";
 
 <Navbar />
 <main class="w-full h-full flex flex-col overflow-x-hidden">
+
+  {#if webglSupported}
   <div class="h-[95vh] sm:h-[99vh] w-full mt-7.5 sm:mt-5 flex flex-col items-center justify-center antialiased bg-grid-white/[0.02] relative overflow-hidden"
 >
-      <DitheredImageSlider  images={sliderImages} />    
+      <DitheredImageSlider  images={sliderImages} />
 
-      <MorphingText class="absolute sm:top-1/2 top-2/5 left-1/2 transform -translate-x-1/2 -translate-y-1/2" texts={[t('firstPart'), t('secondPart')]} />    
-    
-  
+      <MorphingText class="absolute sm:top-1/2 top-2/5 left-1/2 transform -translate-x-1/2 -translate-y-1/2" texts={[t('firstPart'), t('secondPart')]} />
+
+
 
 </div>
+  {/if}
 
 <section class="w-full py-16 px-4 sm:px-6 lg:px-8 flex flex-col items-center justify-center relative">
     <!-- Hero Section --><div class="w-full absolute top-0 h-40 bg-gradient-to-b from-primary/25 to-background py-12 -z-1"></div>
