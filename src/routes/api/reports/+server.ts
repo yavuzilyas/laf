@@ -9,12 +9,13 @@ import {
   incrementReportCount,
   getUsers,
   getArticles,
-  getComments
+  getComments,
+  getQuestion
 } from '$db/queries';
 import { notifyNewReport } from '$lib/server/notifications-pg';
 
 interface ReportData {
-  type: 'profile' | 'article' | 'comment' | 'error';
+  type: 'profile' | 'article' | 'comment' | 'error' | 'qa';
   targetId: string;
   reason: string;
   details?: string;
@@ -34,7 +35,7 @@ export const POST: RequestHandler = async ({ request, locals }) => {
     }
 
     // Validate report type
-    if (!['profile', 'article', 'comment', 'error'].includes(type)) {
+    if (!['profile', 'article', 'comment', 'error', 'qa'].includes(type)) {
       return json({ error: 'Geçersiz rapor türü' }, { status: 400 });
     }
 
@@ -149,6 +150,18 @@ export const POST: RequestHandler = async ({ request, locals }) => {
             articleId: commentDoc.article_id
           };
           commentId = targetId;
+        }
+        break;
+
+      case 'qa':
+        const questionDoc = await getQuestion(targetId);
+        targetExists = !!questionDoc;
+        if (questionDoc) {
+          targetData = {
+            title: questionDoc.title || 'Untitled Question',
+            authorId: questionDoc.author_id,
+            slug: questionDoc.slug
+          };
         }
         break;
     }

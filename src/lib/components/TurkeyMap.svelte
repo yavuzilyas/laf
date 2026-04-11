@@ -1592,7 +1592,7 @@
 			<ScrollArea class="max-h-[60vh]">
 				{#if loadingUsers}
 					<div class="flex items-center justify-center p-8">
-						<BarSpinner class="text-primary"/>
+          <BarSpinner size={28} class="text-primary" />
 					</div>
 				{:else if usersInCity.length > 0}
 					<ul class="space-y-3">

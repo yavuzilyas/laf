@@ -573,14 +573,14 @@
 		if (!deadline) return t('toBeDeleted');
 		const diffMs = deadline - Date.now();
 		if (diffMs <= 0) {
-			return t('deletionImminent');
+			return t('dataTable.deletionImminent');
 		}
 		const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
 		if (diffHours >= 1) {
-			return t('deletionHours', { count: diffHours });
+			return t('dataTable.deletionHours', { count: diffHours });
 		}
 		const diffMinutes = Math.max(1, Math.floor(diffMs / (1000 * 60)));
-		return t('deletionMinutes', { count: diffMinutes });
+		return t('dataTable.deletionMinutes', { count: diffMinutes });
 	};
 	const formatDateTime = (value?: string | null) => {
 		if (!value) return t('unknown');

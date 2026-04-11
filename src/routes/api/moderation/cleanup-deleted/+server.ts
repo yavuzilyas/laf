@@ -110,12 +110,13 @@ export async function POST({ request, locals }) {
         // Articles will be handled separately (soft delete or reassignment)
         await query('DELETE FROM comments WHERE author_id = $1', [user.id]);
         await query('DELETE FROM likes WHERE user_id = $1', [user.id]);
-        await query('DELETE FROM notifications WHERE user_id = $1 OR sender_id = $1', [user.id]);
+        await query('DELETE FROM notifications WHERE user_id = $1', [user.id]);
         await query('DELETE FROM drafts WHERE author_id = $1', [user.id]);
         await query('DELETE FROM event_attendees WHERE user_id = $1', [user.id]);
         await query('DELETE FROM donations WHERE user_id = $1', [user.id]);
         await query('DELETE FROM follows WHERE follower_id = $1 OR following_id = $1', [user.id]);
-        await query('DELETE FROM reports WHERE reporter_id = $1 OR reported_user_id = $1', [user.id]);
+        await query('DELETE FROM reports WHERE reporter_id = $1 OR profile_id = $1', [user.id]);
+        await query('DELETE FROM versions WHERE created_by = $1', [user.id]);
 
         // Finally delete the user
         const deleteResult = await query('DELETE FROM users WHERE id = $1', [user.id]);

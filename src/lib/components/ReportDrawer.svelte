@@ -4,11 +4,12 @@
   import { Input } from "$lib/components/ui/input";
   import { Textarea } from "$lib/components/ui/textarea";
   import { Flag } from "@lucide/svelte";
+  import { BarSpinner } from "$lib/components/spell/bar-spinner";
   import { showToast } from "$lib/hooks/toast";
   import { t } from '$lib/stores/i18n.svelte.js';
   import * as Drawer from "$lib/components/ui/drawer/index.js";
   
-  type ReportType = 'profile' | 'article' | 'comment' | 'error';
+  type ReportType = 'profile' | 'article' | 'comment' | 'error' | 'qa';
 
   let {
     open = $bindable(false),
@@ -160,6 +161,7 @@
       case 'profile': return t('report.titles.reportProfile');
       case 'article': return t('report.titles.reportArticle');
       case 'comment': return t('report.titles.reportComment');
+      case 'qa': return t('report.titles.reportQA') || 'Soru Bildir';
       case 'error': return t('report.titles.reportError') || 'Hata Bildir';
       default: return t('report.titles.report');
     }
@@ -170,6 +172,7 @@
       case 'profile': return t('report.descriptions.reportProfile');
       case 'article': return t('report.descriptions.reportArticle');
       case 'comment': return t('report.descriptions.reportComment');
+      case 'qa': return t('report.descriptions.reportQA') || 'Bu soru veya cevabı bildirin.';
       case 'error': return t('report.descriptions.reportError') || 'Site üzerinde karşılaştığınız teknik sorunları veya hataları bildirin.';
       default: return t('report.descriptions.report');
     }

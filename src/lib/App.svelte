@@ -206,7 +206,7 @@ import { cn } from "$lib/utils";
   <div class="text-center mb-10">
               <ContactRoundIcon triggers={{ hover: false }} duration={2500} animationState="loading" size={48} class="text-primary" />
 
-    <h1 class="text-3xl font-bold mb-4 text-foreground">{t('contactForm.title')}</h1>
+    <h2 class="text-3xl font-bold mb-4 text-foreground">{t('contactForm.title')}</h2>
     <p class="text-lg text-muted-foreground max-w-2xl mx-auto">
       {t('contactForm.subtitle')}
     </p>

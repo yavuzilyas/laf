@@ -1,0 +1,235 @@
+import { json } from '@sveltejs/kit';
+import { query } from '$db/pg';
+import type { RequestEvent } from './$types';
+
+// POST - Answer a question (any logged-in user)
+export async function POST({ request, locals }: RequestEvent) {
+    try {
+        const user = (locals as any)?.user;
+        
+        // Check if user is logged in
+        if (!user) {
+            return json({ error: 'Cevap vermek için giriş yapmalısınız' }, { status: 401 });
+        }
+
+        const data = await request.json();
+        const { questionId, content, contentHtml, attachments, publishImmediately = true } = data;
+
+        // Process attachments - append to contentHtml as <img> tags
+        let finalContentHtml = contentHtml || '';
+        if (attachments && Array.isArray(attachments) && attachments.length > 0) {
+            const attachmentHtml = attachments
+                .filter((url: string) => url && url.startsWith('data:image/'))
+                .map((url: string) => `<br><img src="${url}" style="max-width:100%;height:auto;" /><br>`)
+                .join('');
+            finalContentHtml += attachmentHtml;
+        }
+
+        // Validation
+        if (!questionId) {
+            return json({ error: 'Soru ID gerekli' }, { status: 400 });
+        }
+
+        if (!content || !contentHtml) {
+            return json({ error: 'Cevap içeriği gerekli' }, { status: 400 });
+        }
+
+        // Check if question exists and is pending/answered
+        const checkQuery = `
+            SELECT id, status FROM questions WHERE id = $1
+        `;
+        const checkResult = await query(checkQuery, [questionId]);
+
+        if (checkResult.rows.length === 0) {
+            return json({ error: 'Soru bulunamadı' }, { status: 404 });
+        }
+
+        const question = checkResult.rows[0];
+        if (question.status === 'rejected') {
+            return json({ error: 'Reddedilmiş sorulara cevap verilemez' }, { status: 400 });
+        }
+
+        if (question.status === 'published' && question.answer_id) {
+            return json({ error: 'Bu soru zaten cevaplanmış ve yayınlanmış' }, { status: 400 });
+        }
+
+        // Create answer
+        const insertAnswerQuery = `
+            INSERT INTO answers (question_id, content, content_html, author_id)
+            VALUES ($1, $2, $3, $4)
+            RETURNING id, content, content_html, created_at
+        `;
+
+        const answerResult = await query(insertAnswerQuery, [
+            questionId,
+            JSON.stringify(content),
+            finalContentHtml,
+            user.id
+        ]);
+
+        const answer = answerResult.rows[0];
+
+        // Update question status
+        const newStatus = publishImmediately ? 'published' : 'answered';
+        const updateQuery = `
+            UPDATE questions 
+            SET 
+                status = $1,
+                answer_id = $2,
+                answered_by = $3,
+                answered_at = NOW(),
+                published_at = CASE WHEN $4 = true THEN NOW() ELSE published_at END,
+                moderated_by = $5,
+                moderated_at = NOW()
+            WHERE id = $6
+            RETURNING id, title, status, published_at
+        `;
+
+        const updateResult = await query(updateQuery, [
+            newStatus,
+            answer.id,
+            user.id,
+            publishImmediately,
+            user.id,
+            questionId
+        ]);
+
+        const updatedQuestion = updateResult.rows[0];
+
+        return json({
+            success: true,
+            answer: {
+                id: answer.id,
+                content: answer.content,
+                contentHtml: answer.content_html,
+                createdAt: answer.created_at
+            },
+            question: {
+                id: updatedQuestion.id,
+                title: updatedQuestion.title,
+                status: updatedQuestion.status,
+                publishedAt: updatedQuestion.published_at
+            },
+            message: publishImmediately 
+                ? 'Cevap yayınlandı' 
+                : 'Cevap kaydedildi, yayınlamak için soruyu onaylayın'
+        });
+
+    } catch (error) {
+        console.error('Error answering question:', error);
+        return json({ error: 'Cevap gönderilirken bir hata oluştu' }, { status: 500 });
+    }
+}
+
+// PUT - Update an answer (moderators only)
+export async function PUT({ request, locals }: RequestEvent) {
+    try {
+        const user = (locals as any)?.user;
+        
+        if (!user || (user.role !== 'moderator' && user.role !== 'admin')) {
+            return json({ error: 'Yetkisiz erişim' }, { status: 403 });
+        }
+
+        const data = await request.json();
+        const { answerId, content, contentHtml } = data;
+
+        if (!answerId) {
+            return json({ error: 'Cevap ID gerekli' }, { status: 400 });
+        }
+
+        if (!content || !contentHtml) {
+            return json({ error: 'Cevap içeriği gerekli' }, { status: 400 });
+        }
+
+        // Update answer
+        const updateQuery = `
+            UPDATE answers 
+            SET content = $1, content_html = $2, updated_at = NOW()
+            WHERE id = $3
+            RETURNING id, content, content_html, updated_at
+        `;
+
+        const result = await query(updateQuery, [
+            JSON.stringify(content),
+            contentHtml,
+            answerId
+        ]);
+
+        if (result.rows.length === 0) {
+            return json({ error: 'Cevap bulunamadı' }, { status: 404 });
+        }
+
+        const answer = result.rows[0];
+
+        return json({
+            success: true,
+            answer: {
+                id: answer.id,
+                content: answer.content,
+                contentHtml: answer.content_html,
+                updatedAt: answer.updated_at
+            },
+            message: 'Cevap güncellendi'
+        });
+
+    } catch (error) {
+        console.error('Error updating answer:', error);
+        return json({ error: 'Cevap güncellenirken bir hata oluştu' }, { status: 500 });
+    }
+}
+
+// DELETE - Delete an answer (moderators only)
+export async function DELETE({ request, locals }: RequestEvent) {
+    try {
+        const user = (locals as any)?.user;
+
+        if (!user || (user.role !== 'moderator' && user.role !== 'admin')) {
+            return json({ error: 'Yetkisiz erişim' }, { status: 403 });
+        }
+
+        const { searchParams } = new URL(request.url);
+        const answerId = searchParams.get('answerId');
+
+        if (!answerId) {
+            return json({ error: 'Cevap ID gerekli' }, { status: 400 });
+        }
+
+        // Get answer info before deleting
+        const getAnswerQuery = `
+            SELECT a.id, a.question_id, q.accepted_answer_id
+            FROM answers a
+            JOIN questions q ON q.id = a.question_id
+            WHERE a.id = $1
+        `;
+        const answerResult = await query(getAnswerQuery, [answerId]);
+
+        if (answerResult.rows.length === 0) {
+            return json({ error: 'Cevap bulunamadı' }, { status: 404 });
+        }
+
+        const answer = answerResult.rows[0];
+
+        // Delete answer
+        const deleteQuery = `DELETE FROM answers WHERE id = $1`;
+        await query(deleteQuery, [answerId]);
+
+        // If this was the accepted answer, clear it
+        if (answer.accepted_answer_id === answerId) {
+            const updateQuestionQuery = `
+                UPDATE questions
+                SET accepted_answer_id = NULL
+                WHERE id = $1
+            `;
+            await query(updateQuestionQuery, [answer.question_id]);
+        }
+
+        return json({
+            success: true,
+            message: 'Cevap silindi'
+        });
+
+    } catch (error) {
+        console.error('Error deleting answer:', error);
+        return json({ error: 'Cevap silinirken bir hata oluştu' }, { status: 500 });
+    }
+}

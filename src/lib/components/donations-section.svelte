@@ -273,7 +273,7 @@ import { BarSpinner } from "$lib/components/spell/bar-spinner";
 
       {#if isLoading}
         <div class="flex items-center justify-center h-48">
-          <BarSpinner class="text-primary" size={32} />
+          <BarSpinner class="text-primary" size={28} />
         </div>
       {:else if donations.length === 0}
         <div class="flex items-center justify-center h-48 text-muted-foreground">
@@ -618,7 +618,7 @@ import { BarSpinner } from "$lib/components/spell/bar-spinner";
     <CardContent>
       {#if isLoading}
         <div class="flex items-center justify-center h-32">
-          <BarSpinner class="text-primary" />
+          <BarSpinner size={28} class="text-primary" />
         </div>
       {:else if topDonors.length === 0}
         <div class="flex items-center justify-center h-32 text-muted-foreground">

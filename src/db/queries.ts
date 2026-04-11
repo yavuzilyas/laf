@@ -281,6 +281,7 @@ export const getArticles = async (filters: any = {}) => {
                u.name as author_full_name,
                u.surname as author_surname,
                u.nickname as author_nickname,
+               u.role as author_role,
                COALESCE(a.collaborators, '{}') as collaborator_ids
         FROM articles a
         JOIN users u ON a.author_id = u.id
@@ -404,13 +405,31 @@ export const getArticles = async (filters: any = {}) => {
         sql += ' WHERE ' + conditions.join(' AND ');
     }
     
-    // Sorting
+    // Sorting - prioritize admin and moderator articles
     if (filters.sort_by === 'published_at') {
-        sql += ' ORDER BY a.published_at DESC';
+        sql += ` ORDER BY 
+            CASE 
+                WHEN u.role = 'admin' THEN 1
+                WHEN u.role = 'moderator' THEN 2
+                ELSE 3
+            END,
+            a.published_at DESC`;
     } else if (filters.sort_by === 'views') {
-        sql += ' ORDER BY a.views DESC';
+        sql += ` ORDER BY 
+            CASE 
+                WHEN u.role = 'admin' THEN 1
+                WHEN u.role = 'moderator' THEN 2
+                ELSE 3
+            END,
+            a.views DESC`;
     } else {
-        sql += ' ORDER BY a.created_at DESC';
+        sql += ` ORDER BY 
+            CASE 
+                WHEN u.role = 'admin' THEN 1
+                WHEN u.role = 'moderator' THEN 2
+                ELSE 3
+            END,
+            a.created_at DESC`;
     }
     
     if (filters.limit) {
@@ -442,7 +461,8 @@ export const getArticles = async (filters: any = {}) => {
         pendingReview: row.pending_review,
         author_name: row.author_name,
         author_avatar: row.author_avatar,
-        author_nickname: row.author_nickname
+        author_nickname: row.author_nickname,
+        author_role: row.author_role
     }));
 };
 
@@ -1508,6 +1528,9 @@ export const incrementReportCount = async (type: string, targetId: string) => {
         case 'comment':
             sql = 'UPDATE comments SET report_count = COALESCE(report_count, 0) + 1 WHERE id = $1';
             break;
+        case 'qa':
+            sql = 'UPDATE questions SET report_count = COALESCE(report_count, 0) + 1 WHERE id = $1';
+            break;
     }
     if (sql) {
         await query(sql, [targetId]);
@@ -2327,4 +2350,29 @@ export const getSimilarArticles = async (articleId: string, category: string, ta
     );
     
     return articlesWithCollaborators;
+};
+
+// Get a single question by ID (for QA reports)
+export const getQuestion = async (id: string) => {
+    const result = await query(`
+        SELECT 
+            q.id,
+            q.title,
+            q.slug,
+            q.content,
+            q.content_html,
+            q.author_id,
+            q.author_name,
+            q.status,
+            q.created_at,
+            q.updated_at,
+            t.id as topic_id,
+            t.name as topic_name,
+            t.slug as topic_slug
+        FROM questions q
+        LEFT JOIN topics t ON q.topic_id = t.id
+        WHERE q.id = $1
+    `, [id]);
+    
+    return result.rows[0] || null;
 };

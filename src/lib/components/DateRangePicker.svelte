@@ -52,13 +52,26 @@
    {/if}
   </Popover.Trigger>
   <Popover.Content class="w-auto p-0" align="start">
-   <RangeCalendar
-    bind:value
-    onStartValueChange={(v) => {
-     startValue = v;
-    }}
-    numberOfMonths={2}
-   />
+   {#if value !== null && value !== undefined}
+    <RangeCalendar
+     bind:value
+     onStartValueChange={(v) => {
+      startValue = v;
+     }}
+     numberOfMonths={2}
+    />
+   {:else}
+    <RangeCalendar
+     value={undefined}
+     onValueChange={(v) => {
+      value = v;
+     }}
+     onStartValueChange={(v) => {
+      startValue = v;
+     }}
+     numberOfMonths={2}
+    />
+   {/if}
   </Popover.Content>
  </Popover.Root>
 </div>

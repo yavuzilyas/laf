@@ -24,7 +24,7 @@
         const siteUrl = 'https://laf.international';
         const url = typeof window !== 'undefined' ? window.location.href : `${siteUrl}/articles`;
 
-        const title = 'Makaleler | LAF - Liberteryen Anarşist Faaliyet';
+        const title = 'Makaleler | LAF ';
         const description = 'Liberter anarşizm, özgürlük ve bireysel haklar üzerine makalelerimizi keşfedin. Felsefe, iktisat, devlet teorisi, doğal hukuk ve daha fazlası.';
 
         return {
@@ -412,7 +412,7 @@
 
 <Navbar />
 <main class="flex flex-col min-h-screen">
-<div class="w-full absolute top-0 h-40 bg-gradient-to-b from-primary/25 to-background py-12 -z-5"></div>
+    <!-- Hero Section --><div class="w-full absolute top-7.5 sm:top-5 h-40 bg-gradient-to-b from-primary/25 to-background py-12 -z-5"></div>
 
     <!-- Main Content -->
     <section class="container max-w-7xl mx-auto space-y-4 px-3 sm:px-6 py-10">

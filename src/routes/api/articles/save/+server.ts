@@ -666,8 +666,11 @@ async function cleanupUnusedMedia(existing: any, updated: any, articleId: string
               }
             }
 
-            // Send notifications to moderators if this is a new article needing review
-            if (!existingId && (data.status === 'pending' || data.status === 'published')) {
+            // Send notifications to moderators if this is a new article needing review OR
+            // if an existing article is being updated to pending status
+            const wasPendingStatusChange = existingId && (data.status === 'pending') && existingArticle?.status !== 'pending';
+            const isNewArticleForReview = !existingId && (data.status === 'pending' || data.status === 'published');
+            if (isNewArticleForReview || wasPendingStatusChange) {
               const authorData = await getUsers({ id: user.id });
               const author = authorData[0];
               
@@ -685,7 +688,7 @@ async function cleanupUnusedMedia(existing: any, updated: any, articleId: string
                     excludeUserIds: collaborators // Don't send moderator notifications to collaborators
                   });
                 } catch (notificationError) {
-                  // Don't fail the request if notification fails
+                  console.error('[NOTIFICATION] Failed to notify moderators about pending article:', notificationError);
                 }
               }
             }

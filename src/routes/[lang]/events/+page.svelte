@@ -374,7 +374,7 @@
 <Navbar />
 
 <main class="flex flex-col min-h-screen pb-12">
-    <!-- Hero Section --><div class="w-full absolute top-0 h-40 bg-gradient-to-b from-primary/25 to-background py-12 -z-5"></div>
+    <!-- Hero Section --><div class="w-full absolute top-7.5 sm:top-5 h-40 bg-gradient-to-b from-primary/25 to-background py-12 -z-5"></div>
 
     <section class="py-12">
         <div class="container max-w-7xl mx-auto px-4 sm:px-6">
@@ -383,10 +383,11 @@
                     <Megaphone size={36} class="text-primary" />
                     <Calendar size={36} class="text-primary" />
                 </div>
-                <h1 class="text-3xl md:text-4xl font-bold text-foreground">
+
+                 <h1 class="text-xl font-bold tracking-tight md:text-4xl">
                     {t('events.title')}
                 </h1>
-                <p class="text-muted-foreground max-w-2xl mx-auto">
+                    <p class="text-sm  text-muted-foreground max-w-2xl">
                     {t('events.description')}
                 </p>
             </div>
