@@ -455,7 +455,6 @@
         alt={t('profile.bannerAlt') ?? 'Profile banner'}
         class="absolute inset-0 h-full w-full object-cover"
       />
-      <div class="absolute inset-0 bg-gradient-to-b from-background/10  to-background"></div>
     {:else}
       <div
         class="absolute inset-0 bg-primary"

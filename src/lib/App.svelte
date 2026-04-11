@@ -123,9 +123,7 @@ import { cn } from "$lib/utils";
 
   <img class="h-16 w-auto mb-5 text-primary" src="{logo}" alt="LAF" />
 <h1 class="text-center text-3xl font-bold mb-12">{t('lafFull')}</h1>
-<p class="text-center text-lg text-muted-foreground max-w-2xl mx-auto mb-12">
-  {t('MainPageDescription')}
-</p>
+
   <div class="max-w-7xl mx-auto">
     <!-- Three Column Layout -->
     <div class="grid gap-12 items-start">
@@ -157,18 +155,19 @@ import { cn } from "$lib/utils";
     {/if}
       </div>
 
+      <img class="mt-6 w-1/2 h-auto mx-auto" src="AnarchoCapitalism_Waving_Flag_Icon.svg" alt="An Austrian School crest" />
 
       <!-- Why Anarcho Capitalism Column -->
-      <div class="md:max-w-2xl m-auto">
+      <div class="md:max-w-2xl m-auto mb-6">
         <h2 class="text-xl font-bold mb-1 text-primary">{t('whyAnarchoCapitalism')}</h2>
         <p class="text-base text-foreground leading-relaxed">
           {t('whyAnarchoCapitalismDescription')}
         </p>
 
       </div>
-
+      <img class="w-1/2 h-auto mx-auto" src="An_Austrian_School_crest_-_Grey.png" alt="An Austrian School crest" />
       <!-- Our Goal Column -->
-      <div class="md:max-w-2xl m-auto">
+      <div class="md:max-w-2xl m-auto mb-6">
         <h2 class="text-xl font-bold mb-1 text-primary">{t('ourGoal')}</h2>
         <p class="text-base text-foreground leading-relaxed">
           {t('ourGoalDescription')}
