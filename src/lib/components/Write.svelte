@@ -155,6 +155,7 @@ import { onMount, onDestroy } from 'svelte';
   // Category dialog temp selection (moved out of onEditorUpdate to avoid recreating state per update)
   let tempCategory = $state('');
   let tempSubcategory = $state('');
+  let publishedAtInput = $state('');
 
   function openCategoryDialog() {
     tempCategory = articleData.category || '';
@@ -293,12 +294,21 @@ import { onMount, onDestroy } from 'svelte';
   onMount(async () => {
     resetEditorCaches();
     articleEditor.initialize();
-    
+
     // Set translator mode based on prop
     articleEditor.setTranslatorMode(isTranslator);
 
     if (mode === 'edit' && article) {
       articleEditor.hydrate(article);
+      // Initialize publishedAt input value
+      const pubDate = article.publishedAt ? new Date(article.publishedAt) : new Date();
+      publishedAtInput = pubDate.toISOString().slice(0, 16);
+    } else {
+      // For new articles, initialize with current date
+      publishedAtInput = new Date().toISOString().slice(0, 16);
+    }
+
+    if (mode === 'edit' && article) {
       // Initialize selected collaborators from article data
       if (article.collaborators && article.collaborators.length > 0) {
         // Fetch collaborator user details
@@ -528,10 +538,11 @@ import { onMount, onDestroy } from 'svelte';
                 <Input
                   id="publishedAt"
                   type="datetime-local"
-                  value={articleData.publishedAt ? new Date(articleData.publishedAt).toISOString().slice(0, 16) : new Date().toISOString().slice(0, 16)}
+                  bind:value={publishedAtInput}
                   onchange={(e) => {
                     const value = (e.target as HTMLInputElement).value;
                     if (value) {
+                      publishedAtInput = value;
                       articleEditor.updateMetadata('publishedAt', new Date(value));
                     }
                   }}
