@@ -3,11 +3,17 @@
   import { Input } from "$lib/components/ui/input";
   import { Button } from "$lib/components/ui/button";
   import { showToast } from "$lib/hooks/toast";
-  import { t } from '$lib/stores/i18n.svelte.js';
+  import { t, getCurrentLocale } from '$lib/stores/i18n.svelte.js';
   import { Motion } from "svelte-motion";
 import { User, KeyRound, Eye, EyeOff, ArrowLeft, Lock } from "@lucide/svelte";
   import { BarSpinner } from "$lib/components/spell/bar-spinner";
   import logo from "$lib/assets/laf1.svg";
+
+  const siteUrl = 'https://laf.international';
+  const currentLocale = getCurrentLocale() || 'tr';
+  const seoTitle = $derived(`${t('seo.forgot.title')} | LAF`);
+  const seoDescription = $derived(t('seo.forgot.description') || 'LAF hesap şifrenizi sıfırlayın.');
+  const canonicalUrl = $derived(typeof window !== 'undefined' ? window.location.href : `${siteUrl}/${currentLocale}/forgot`);
 
   // Steps: 1 = enter identifier, 2 = verify mnemonic, 3 = enter new password
   let step = $state<1 | 2 | 3>(1);
@@ -54,6 +60,8 @@ import { User, KeyRound, Eye, EyeOff, ArrowLeft, Lock } from "@lucide/svelte";
     return { score, msg: msgs[score] };
   }
 
+  // Locale-aware URL helper
+  const l = (path: string) => `/${currentLocale}${path}`;
   function meetsPasswordPolicy(pw: string): boolean {
     return pw.length >= 8 && /[a-z]/.test(pw) && /[A-Z]/.test(pw) && /[0-9]/.test(pw);
   }
@@ -169,7 +177,7 @@ import { User, KeyRound, Eye, EyeOff, ArrowLeft, Lock } from "@lucide/svelte";
         showToast(data.message || 'Şifre başarıyla değiştirildi', 'success');
         // Redirect to login page after a short delay
         setTimeout(() => {
-          window.location.href = '/login';
+          window.location.href = l('/login');
         }, 1500);
       } else {
         showToast(data.error || 'Şifre değiştirilemedi', 'error');
@@ -203,13 +211,31 @@ import { User, KeyRound, Eye, EyeOff, ArrowLeft, Lock } from "@lucide/svelte";
 </script>
 
 <svelte:head>
-  <title>{t('ForgotPassword') || 'Şifremi Unuttum'} - LAF</title>
+  <title>{seoTitle}</title>
+  <meta name="description" content={seoDescription} />
+  <meta name="keywords" content={t('seo.forgot.keywords') || 'şifre sıfırlama, hesap kurtarma'} />
+  <meta name="robots" content="noindex, nofollow" />
+  <link rel="canonical" href={canonicalUrl} />
+
+  <!-- Open Graph -->
+  <meta property="og:title" content={seoTitle} />
+  <meta property="og:description" content={seoDescription} />
+  <meta property="og:type" content="website" />
+  <meta property="og:url" content={canonicalUrl} />
+  <meta property="og:site_name" content={t('seo.siteName') || 'LAF'} />
+  <meta property="og:image" content={`${siteUrl}/lafpp.png`} />
+
+  <!-- Twitter Cards -->
+  <meta name="twitter:card" content="summary" />
+  <meta name="twitter:site" content="@lafoundation" />
+  <meta name="twitter:title" content={seoTitle} />
+  <meta name="twitter:description" content={seoDescription} />
 </svelte:head>
 
 <div class="text-xs grid min-h-svh">
   <div class="flex flex-col gap-4 p-6 md:p-10">
     <div class="flex text-secondary-foreground justify-center gap-2 md:justify-start">
-      <a href="/" class="flex text-base items-center gap-2 font-bold">
+      <a href={l('/')} class="flex text-base items-center gap-2 font-bold">
         <div class="bg-secondary text-primary-foreground flex p-1 items-center justify-center rounded-md">
           <img src={logo} alt="LAF" class="h-11 w-11" />
         </div>
@@ -234,7 +260,7 @@ import { User, KeyRound, Eye, EyeOff, ArrowLeft, Lock } from "@lucide/svelte";
                   <Input
                     id="identifier"
                     type="text"
-                    placeholder="kullanici-adi"
+                    placeholder={t('auth.login.nicknamePlaceholder')}
                     required
                     bind:value={identifier}
                     disabled={loading}
@@ -255,12 +281,10 @@ import { User, KeyRound, Eye, EyeOff, ArrowLeft, Lock } from "@lucide/svelte";
                   {/if}
                 </Button>
 
-                <div class="text-center text-xs mt-2">
-                  <a href="/login" class="text-primary underline underline-offset-4 inline-flex items-center gap-1">
+                  <a href={l('/login')} class="text-primary underline underline-offset-4 inline-flex items-center gap-1">
                     <ArrowLeft class="w-3 h-3" />
                     {t('BackToLogin') || 'Girişe Dön'}
                   </a>
-                </div>
               </form>
             </div>
           </Motion>

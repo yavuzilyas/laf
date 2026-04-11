@@ -132,21 +132,11 @@
     }
   
     async function startAnimation() {
-      // Önce 0.5 saniyede 1.5 boyutuna büyüsün
       await controls.start({
         scale: 1.12,
         transition: { duration: 0.66 }
       });
       
-      // Sonra 1.4-1.45 arasında sonsuz döngüde titresin
-      await controls.start({
-        scale: [1.12, 1.10, 1.12],
-        transition: {
-          duration: 6,
-          repeat: Infinity,
-          ease: "easeInOut"
-        }
-      });
     }
   
     function checkCompletion() {

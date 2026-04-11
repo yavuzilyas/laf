@@ -36,6 +36,14 @@
 	margin-top: 0;
 }
 
+/* Responsive Images */
+.tiptap img,
+.edra-editor img {
+	max-width: 100%;
+	height: auto;
+	display: block;
+}
+
 /* For Placeholder */
 .tiptap .is-empty::before {
 	pointer-events: none;

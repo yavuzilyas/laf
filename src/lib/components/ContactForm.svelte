@@ -153,7 +153,7 @@ import { ContactRoundIcon } from 'svelte-animate-icons';
             <!-- Submit Button -->
             <Button
               type="submit"
-              class="w-full"
+              size="xs"
               disabled={isSubmitting || !contactName.trim() || !contactSubject || !contactMessage.trim()}
             >
               {#if isSubmitting}
@@ -175,7 +175,7 @@ import { ContactRoundIcon } from 'svelte-animate-icons';
             </div>
             <h3 class="text-lg font-semibold mb-2">{t('contactForm.loginRequired')}</h3>
             <p class="text-muted-foreground mb-6">{t('contactForm.loginPrompt')}</p>
-            <Button href={l('/login')} class="w-full sm:w-auto">
+            <Button href={l('/login')} size="xs">
               <LogIn class="w-4 h-4 mr-2" />
               {t('Login')}
             </Button>

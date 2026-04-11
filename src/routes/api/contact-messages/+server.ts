@@ -55,7 +55,7 @@ export const GET: RequestHandler = async ({ url, locals }) => {
 };
 
 // POST /api/contact-messages - Create new contact message (authenticated users)
-export const POST: RequestHandler = async ({ request, locals, getClientAddress }) => {
+export const POST: RequestHandler = async ({ request, locals }) => {
     const user = (locals as any)?.user;
 
     // Check authentication
@@ -102,8 +102,6 @@ export const POST: RequestHandler = async ({ request, locals, getClientAddress }
             name: name.trim(),
             subject,
             message: message.trim(),
-            ipAddress: getClientAddress(),
-            userAgent: request.headers.get('user-agent') || undefined,
             honeypot
         });
 

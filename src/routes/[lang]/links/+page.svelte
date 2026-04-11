@@ -1,12 +1,18 @@
 <script lang="ts">
   import Navbar from '$lib/Navbar.svelte';
   import Footer from '$lib/Footer.svelte';
-  import { t } from '$lib/stores/i18n.svelte.js';
+  import { t, getCurrentLocale } from '$lib/stores/i18n.svelte.js';
   import { Globe, Heart, Mail, ExternalLink, MessageCircle } from '@lucide/svelte';
 import { ExternalLinkIcon, LinkIcon } from 'svelte-animate-icons';
   let { data } = $props();
   let links = $derived(data.links || []);
   let groupedLinks = $derived(data.groupedLinks || {});
+
+  const siteUrl = 'https://laf.international';
+  const currentLocale = getCurrentLocale() || 'tr';
+  const seoTitle = $derived(`${t('seo.links.title')} | LAF`);
+  const seoDescription = $derived(t('seo.links.description') || 'LAF sosyal medya hesapları ve iletişim bağlantıları.');
+  const canonicalUrl = $derived(typeof window !== 'undefined' ? window.location.href : `${siteUrl}/${currentLocale}/links`);
 
   const typeLabels: Record<string, string> = {
     social: 'Sosyal Medya',
@@ -43,8 +49,26 @@ import { ExternalLinkIcon, LinkIcon } from 'svelte-animate-icons';
 </script>
 
 <svelte:head>
-  <title>Linkler - LAF</title>
-  <meta name="description" content="LAF sosyal medya ve iletişim linkleri" />
+  <title>{seoTitle}</title>
+  <meta name="description" content={seoDescription} />
+  <meta name="keywords" content={t('seo.links.keywords') || 'sosyal medya, telegram, discord, iletişim'} />
+  <link rel="canonical" href={canonicalUrl} />
+
+  <!-- Open Graph -->
+  <meta property="og:title" content={seoTitle} />
+  <meta property="og:description" content={seoDescription} />
+  <meta property="og:type" content="website" />
+  <meta property="og:url" content={canonicalUrl} />
+  <meta property="og:site_name" content={t('seo.siteName') || 'LAF'} />
+  <meta property="og:image" content={`${siteUrl}/og-links.png`} />
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="630" />
+
+  <!-- Twitter Cards -->
+  <meta name="twitter:card" content="summary" />
+  <meta name="twitter:site" content="@lafoundation" />
+  <meta name="twitter:title" content={seoTitle} />
+  <meta name="twitter:description" content={seoDescription} />
 </svelte:head>
 
 <Navbar />

@@ -412,6 +412,8 @@
 
 <Navbar />
 <main class="flex flex-col min-h-screen">
+<div class="w-full absolute top-0 h-40 bg-gradient-to-b from-primary/25 to-background py-12 -z-5"></div>
+
     <!-- Main Content -->
     <section class="container max-w-7xl mx-auto space-y-4 px-3 sm:px-6 py-10">
         <div class="space-y-8 flex flex-col items-center">

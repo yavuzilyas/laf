@@ -61,6 +61,9 @@
         }).catch(() => {
           // Silently fail - don't disrupt user experience
         });
+        
+        // Clear #q from URL after recording
+        history.replaceState(null, '', window.location.pathname + window.location.search);
       }
     }
   });

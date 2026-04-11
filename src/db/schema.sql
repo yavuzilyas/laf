@@ -439,10 +439,6 @@ CREATE TABLE IF NOT EXISTS contact_messages (
     subject VARCHAR(50) NOT NULL CHECK (subject IN ('general', 'feedback', 'collaboration', 'report', 'other')),
     message TEXT NOT NULL,
     
-    -- Technical metadata
-    ip_address INET,
-    user_agent TEXT,
-    
     -- Status for moderation workflow
     status VARCHAR(50) DEFAULT 'pending' CHECK (status IN ('pending', 'read', 'responded', 'archived')),
     

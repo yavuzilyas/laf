@@ -37,7 +37,7 @@ function checkRateLimit(userId: string): { allowed: boolean; remaining: number }
   return { allowed: true, remaining: MAX_REQUESTS_PER_HOUR - userLimit.count };
 }
 
-export const POST: RequestHandler = async ({ request, locals, getClientAddress }) => {
+export const POST: RequestHandler = async ({ request, locals }) => {
   const user = (locals as any)?.user;
 
   // Check authentication
@@ -92,8 +92,6 @@ export const POST: RequestHandler = async ({ request, locals, getClientAddress }
       name: name.trim(),
       subject,
       message: message.trim(),
-      ipAddress: getClientAddress(),
-      userAgent: request.headers.get('user-agent') || undefined,
       honeypot
     });
 

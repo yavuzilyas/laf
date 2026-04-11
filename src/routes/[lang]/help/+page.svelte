@@ -4,7 +4,14 @@
 	import * as Card from '$lib/components/ui/card';
 	import * as Accordion from '$lib/components/ui/accordion';
 	import { CircleHelp } from '@lucide/svelte';
-	import { t } from '$lib/stores/i18n.svelte.js';
+	import { t, getCurrentLocale } from '$lib/stores/i18n.svelte.js';
+
+  // SEO
+  const siteUrl = 'https://laf.international';
+  const currentLocale = getCurrentLocale() || 'tr';
+  const seoTitle = $derived(`${t('seo.help.title')} | LAF`);
+  const seoDescription = $derived(t('seo.help.description') || t('help.description'));
+  const canonicalUrl = $derived(typeof window !== 'undefined' ? window.location.href : `${siteUrl}/${currentLocale}/help`);
 
 	const faqItems = $derived([
 		{
@@ -75,8 +82,41 @@
 </script>
 
 <svelte:head>
-	<title>{t('help.title')}</title>
-	<meta name="description" content={t('help.description')} />
+	<title>{seoTitle}</title>
+	<meta name="description" content={seoDescription} />
+	<meta name="keywords" content={t('seo.help.keywords') || 'yardım, sıkça sorulan sorular, nasıl kullanılır, rehber'} />
+	<link rel="canonical" href={canonicalUrl} />
+
+	<!-- Open Graph -->
+	<meta property="og:title" content={seoTitle} />
+	<meta property="og:description" content={seoDescription} />
+	<meta property="og:type" content="website" />
+	<meta property="og:url" content={canonicalUrl} />
+	<meta property="og:site_name" content={t('seo.siteName') || 'LAF'} />
+	<meta property="og:image" content={`${siteUrl}/og-help.png`} />
+
+	<!-- Twitter Cards -->
+	<meta name="twitter:card" content="summary" />
+	<meta name="twitter:site" content="@lafoundation" />
+	<meta name="twitter:title" content={seoTitle} />
+	<meta name="twitter:description" content={seoDescription} />
+
+	<!-- Structured Data for FAQ -->
+	{@html `<script type="application/ld+json">${JSON.stringify({
+		'@context': 'https://schema.org',
+		'@type': 'FAQPage',
+		name: seoTitle,
+		description: seoDescription,
+		url: canonicalUrl,
+		mainEntity: faqItems.map(item => ({
+			'@type': 'Question',
+			name: item.question,
+			acceptedAnswer: {
+				'@type': 'Answer',
+				text: item.answer.replace(/<[^>]*>/g, ' ')
+			}
+		}))
+	})}</script>`}
 </svelte:head>
 
 <Navbar />

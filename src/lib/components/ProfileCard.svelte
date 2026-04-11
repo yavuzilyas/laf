@@ -329,7 +329,7 @@
     location: profileData?.location || "",
     website: profileData?.website || profileData?.preferences?.website || "",
     interests: profileData?.interests || profileData?.preferences?.interests || [],
-    bannerColor: profileData?.bannerColor || profileData?.preferences?.bannerColor || "#0f172a",
+    bannerColor: profileData?.bannerColor || profileData?.preferences?.bannerColor || "",
     bannerImage: profileData?.bannerImage || profileData?.preferences?.bannerImage || "",
     avatar: profileData?.avatar || "",
     phoneNumber: profileData?.phoneNumber || profileUser?.phone_number || "",
@@ -342,6 +342,19 @@
   let emailError = $state("");
   let emailValid = $state(true);
 
+  // Phone validation state
+  let phoneError = $state("");
+  let phoneValid = $state(true);
+
+  function validatePhone(value: string): string {
+    const v = (value || "").trim();
+    if (!v) return ""; // optional
+    const normalized = v.replace(/\s/g, '');
+    const re = /^\+[1-9]\d{0,3}\d{10}$/;
+    if (!re.test(normalized)) return t("auth.errors.phoneFormat") || "Geçerli telefon: +ülke kodu ve 10 rakam";
+    return "";
+  }
+
   // Watch for profileData changes to keep formData in sync
   $effect(() => {
     if (!isEditing) {
@@ -352,7 +365,7 @@
         location: profileData?.location || "",
         website: profileData?.website || profileData?.preferences?.website || "",
         interests: profileData?.interests || profileData?.preferences?.interests || [],
-        bannerColor: profileData?.bannerColor || profileData?.preferences?.bannerColor || "#0f172a",
+        bannerColor: profileData?.bannerColor || profileData?.preferences?.bannerColor || "",
         bannerImage: profileData?.bannerImage || profileData?.preferences?.bannerImage || "",
         avatar: profileData?.avatar || "",
         phoneNumber: profileData?.phoneNumber || profileUser?.phone_number || "",
@@ -374,7 +387,7 @@
         location: profileData?.location || "",
         website: profileData?.website || profileData?.preferences?.website || "",
         interests: profileData?.interests || profileData?.preferences?.interests || [],
-        bannerColor: profileData?.bannerColor || profileData?.preferences?.bannerColor || "#0f172a",
+        bannerColor: profileData?.bannerColor || profileData?.preferences?.bannerColor || "",
         bannerImage: profileData?.bannerImage || profileData?.preferences?.bannerImage || "",
         avatar: profileData?.avatar || "",
         phoneNumber: profileData?.phoneNumber || profileUser?.phone_number || "",
@@ -470,7 +483,7 @@
           type="color"
           class="hidden"
           id="banner-color-input"
-          value={formData.bannerColor || '#0f172a'}
+          value={formData.bannerColor || ''}
           oninput={(event) => handleColorInput((event.target as HTMLInputElement).value)}
         />
         <Popover.Root>
@@ -485,13 +498,13 @@
               <input
                 type="color"
                 class="h-10 w-16 cursor-pointer rounded border"
-                value={formData.bannerColor || '#0f172a'}
+                value={formData.bannerColor || ''}
                 oninput={(event) => handleColorInput((event.target as HTMLInputElement).value)}
               />
               <Input
-                value={formData.bannerColor || '#0f172a'}
+                value={formData.bannerColor || ''}
                 onchange={(event) => handleColorInput((event.target as HTMLInputElement).value)}
-                placeholder="#0f172a"
+                placeholder=""
                 class="w-24"
               />
             </div>
@@ -617,7 +630,32 @@
             <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
               <div>
                 <Label class="mb-2" for="phone">{t('profile.phone') || t('Phone')}</Label>
-                <Input id="phone" bind:value={formData.phoneNumber} type="tel" placeholder={t('PhonePlaceholder') || '+90 555 123 4567'} class="transition-all duration-300 ease-in-out" />
+                <Input 
+                  id="phone" 
+                  bind:value={formData.phoneNumber} 
+                  type="tel" 
+                  placeholder={t('PhonePlaceholder') || '+90 555 123 4567'} 
+                  class="transition-all duration-300 ease-in-out {phoneError ? 'border-red-500 focus:border-red-500' : ''}" 
+                  oninput={(e) => {
+                    const value = e.currentTarget.value;
+                    if (!value) {
+                      phoneError = "";
+                      phoneValid = true;
+                    } else {
+                      const error = validatePhone(value);
+                      if (error) {
+                        phoneError = error;
+                        phoneValid = false;
+                      } else {
+                        phoneError = "";
+                        phoneValid = true;
+                      }
+                    }
+                  }}
+                />
+                {#if phoneError}
+                  <p class="text-xs text-red-500 mt-1">{phoneError}</p>
+                {/if}
               </div>
               <div class="flex items-end">
                 <label class="flex flex-row justify-center items-center gap-2 cursor-pointer">
@@ -699,15 +737,6 @@
               </div>
             </div> -->
 
-            <Button onclick={() => onSaveProfile(formData)} disabled={isSaving} size="xs" class="w-full" >
-              {#if isSaving}
-                <Save class=" h-4 w-4 animate-spin" />
-                {t('Saving')}
-              {:else}
-                <Save class=" h-4 w-4" />
-                {t('Save')}
-              {/if}
-            </Button>
           </div>
         {:else}
           <div class="space-y-2 sm:space-y-3 opacity-0 animate-fadeIn flex-1 flex flex-col">
@@ -824,23 +853,7 @@
           {#if isOwnProfile}
 
  
-                       {#if isEditing}
-
-            <Button size="xs" variant="outline" onclick={onTriggerAvatarFile}>
-              {#if avatarUploading}
-                <BarSpinner class="text-primary" size={16} />
-                {t('profile.avatarUploading')}
-              {:else}
-                <Camera class="h-4 w-4" />
-                {t('profile.changeAvatar')}
-              {/if}
-            </Button>
-            {#if profileData?.avatar}
-              <Button size="xs" variant="destructive" onclick={onAvatarRemove}>
-                <Trash2 class="h-4 w-4" />
-                {t('profile.removeAvatar')}
-              </Button>
-            {/if}              {/if}
+                  
 
                        <Button
               size="xs"
@@ -855,6 +868,32 @@
                 {t('profile.edit')}
               {/if}
             </Button>
+                            {#if isEditing}
+
+            {#if profileData?.avatar}
+              <Button size="xs" variant="destructive" onclick={onAvatarRemove}>
+                <Trash2 class="h-4 w-4" />
+                {t('profile.removeAvatar')}
+              </Button>
+            {/if}   
+            <Button size="xs" variant="outline" onclick={onTriggerAvatarFile}>
+              {#if avatarUploading}
+                <BarSpinner class="text-primary" size={16} />
+                {t('profile.avatarUploading')}
+              {:else}
+                <Camera class="h-4 w-4" />
+                {t('profile.changeAvatar')}
+              {/if}
+            </Button>
+                        <Button onclick={() => onSaveProfile(formData)} disabled={isSaving || !phoneValid || !emailValid} size="xs" >
+              {#if isSaving}
+                <Save class=" h-4 w-4 animate-spin" />
+                {t('Saving')}
+              {:else}
+                <Save class=" h-4 w-4" />
+                {t('Save')}
+              {/if}
+            </Button>{/if}
           {:else}
             <div class="flex gap-2 items-center">
               {#if isFollowing}

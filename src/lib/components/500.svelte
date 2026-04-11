@@ -2,7 +2,7 @@
     import { Button } from "$lib/components/ui/button";
     import { t } from '$lib/stores/i18n.svelte.js';
     import { 
-        Home,
+        House,
         RefreshCw
     } from "@lucide/svelte";
     import * as Empty from "$lib/components/ui/empty/index.js";
@@ -32,7 +32,7 @@
   </Empty.Header>
   <Empty.Content>
     <div class="flex gap-2">
-      <Button size="sm" href="/"><Home/> {t('Homepage')}</Button>
+      <Button size="sm" href="/"><House/> {t('Homepage')}</Button>
       <Button size="sm" variant="outline" onclick="window.history.back()"><RefreshCw/> {t('Try Again')}</Button>
     </div>
     <p class="text-xs text-muted-foreground">{t('aProblem')} <Button size="xs" variant="link" onclick={openReportDrawer}>{t('reportToHelpUs')}</Button></p>

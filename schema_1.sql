@@ -569,7 +569,6 @@ CREATE TABLE public.contact_messages (
     name character varying(100) NOT NULL,
     subject character varying(50) NOT NULL,
     message text NOT NULL,
-    ip_address inet,
     user_agent text,
     status character varying(50) DEFAULT 'pending'::character varying,
     reviewed_by uuid,

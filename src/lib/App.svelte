@@ -83,8 +83,8 @@ import { cn } from "$lib/utils";
 </script>
 
 <Navbar />
-<main class="w-full h-full flex flex-col gap-12 overflow-x-hidden">
-  <div class="h-[95vh] sm:h-[99vh] w-full mt-7.5 sm:mt-5 mb-12 flex flex-col items-center justify-center antialiased bg-grid-white/[0.02] relative overflow-hidden"
+<main class="w-full h-full flex flex-col overflow-x-hidden">
+  <div class="h-[95vh] sm:h-[99vh] w-full mt-7.5 sm:mt-5 flex flex-col items-center justify-center antialiased bg-grid-white/[0.02] relative overflow-hidden"
 >
       <DitheredImageSlider  images={sliderImages} />    
 
@@ -94,8 +94,10 @@ import { cn } from "$lib/utils";
 
 </div>
 
-<section class="w-full py-12 px-4 sm:px-6 lg:px-8 bg-background flex flex-col items-center justify-center relative">
-<img class="h-16 w-auto mb-5 text-primary" src="{logo}" alt="LAF" />
+<section class="w-full py-16 px-4 sm:px-6 lg:px-8 flex flex-col items-center justify-center relative">
+    <!-- Hero Section --><div class="w-full absolute top-0 h-40 bg-gradient-to-b from-primary/25 to-background py-12 -z-1"></div>
+
+  <img class="h-16 w-auto mb-5 text-primary" src="{logo}" alt="LAF" />
 <h1 class="text-center text-3xl font-bold mb-24">{t('lafFull')}</h1>
   <div class="max-w-7xl mx-auto">
     <!-- Three Column Layout -->
@@ -118,7 +120,7 @@ import { cn } from "$lib/utils";
         </svg>
         {t('donations.joinDiscord')}
       </Button> -->
-      <Button variant="outline" size="sm" class="gap-2" href="https://t.me/lafturkiye" target="_blank" rel="noopener noreferrer">
+      <Button variant="outline" size="xs" class="gap-2" href="https://t.me/lafturkiye" target="_blank" rel="noopener noreferrer">
         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
           <path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z"/>
         </svg>
@@ -160,10 +162,10 @@ import { cn } from "$lib/utils";
       <h2 class="text-3xl sm:text-4xl font-bold mb-4 text-foreground">
         {t('cta.weNeedYou')}
       </h2>
-      <p class="text-lg text-muted-foreground mb-8 max-w-2xl mx-auto">
+      <p class="text-lg text-muted-foreground mb-2 max-w-2xl mx-auto">
         {t('cta.joinUs')}
       </p>
-      <Button class="cursor-none" href={l("/register")} >
+      <Button size="xs" class="cursor-none" href={l("/register")} >
         {t('cta.registerNow')}
       </Button>
     </div>

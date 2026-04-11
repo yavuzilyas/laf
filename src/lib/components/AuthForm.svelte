@@ -78,6 +78,7 @@ import logo from '$lib/assets/hatlaf.png';
   // Validation state
   let nicknameError = $state("");
   let emailError = $state("");
+  let phoneError = $state("");
   let isValidating = $state(false);
   let nicknameTimeout: ReturnType<typeof setTimeout>;
   let emailTimeout: ReturnType<typeof setTimeout>;
@@ -134,6 +135,18 @@ import logo from '$lib/assets/hatlaf.png';
     if (!v) return ""; // optional
     const re = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
     if (!re.test(v)) return t("auth.errors.emailFormat") || "Geçerli e-posta girin";
+    return "";
+  }
+
+  function validatePhoneClient(value: string): string {
+    const v = (value || "").trim();
+    if (!v) return ""; // optional
+    // Pattern: + followed by 1-4 digits country code, then exactly 10 digits
+    // Remove all spaces for validation
+    const normalized = v.replace(/\s/g, '');
+    // +, country code (1-4 digits), 10 digits total
+    const re = /^\+[1-9]\d{0,3}\d{10}$/;
+    if (!re.test(normalized)) return t("auth.errors.phoneFormat") || "Geçerli telefon: +ülke kodu ve 10 rakam";
     return "";
   }
 
@@ -320,6 +333,7 @@ const fadeScaleVariants = {
     // Client validations
     nicknameError = validateNicknameClient(nickname);
     emailError = validateEmailClient(email);
+    phoneError = validatePhoneClient(phoneNumber);
     nameError = validateNameClient(name);
     surnameError = validateNameClient(surname);
     if (!meetsPasswordPolicy(regPassword)) {
@@ -328,7 +342,7 @@ const fadeScaleVariants = {
       return;
     }
 
-    if (nicknameError || emailError || nameError || surnameError) {
+    if (nicknameError || emailError || phoneError || nameError || surnameError) {
       showToast("Lütfen hataları düzeltin", "error");
       return;
     }
@@ -1013,7 +1027,12 @@ async function validateEmail(value: string) {
               placeholder={t('PhonePlaceholder') || '+90 555 123 4567'} 
               bind:value={phoneNumber} 
               disabled={loading}
+              oninput={(e) => { const v = (e.target as HTMLInputElement)?.value || ''; phoneNumber = v; phoneError = validatePhoneClient(v); }}
+              class="transition-colors duration-300 {phoneError ? "border-red-500" : "border-normal"}"
             />
+            {#if phoneError}
+              <p class="text-xs text-red-500 error-message">{phoneError}</p>
+            {/if}
       </div>
       <div class="grid gap-2">
             <Label>{t('Location')}</Label>

@@ -201,6 +201,14 @@
     });
     let loadingArticles = $state(false);
     let hasMore = $state(false);
+    
+    // Pagination state
+    let currentPage = $state(1);
+    const itemsPerPage = 12;
+    
+    const handlePageChange = (page: number) => {
+        currentPage = page;
+    };
 
     // Profile editing state (only for own profile)
     let isEditing = $state(false);
@@ -806,11 +814,13 @@
 
     const handleSearch = (query: string) => {
         searchQuery = query;
+        currentPage = 1;
         applyFiltersAndSearch();
     };
 
     const handleFiltersChange = (filters: any) => {
         activeFilters = filters;
+        currentPage = 1;
         applyFiltersAndSearch();
     };
 
@@ -950,7 +960,7 @@
                 </CardDescription>
             </CardHeader>
             <CardContent class="space-y-6">
-                <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-start">
+                <div class="flex flex-row gap-3 sm:items-center sm:justify-start">
                     <ArticleSearch
                         value={searchQuery}
                         suggestions={[]}
@@ -959,6 +969,7 @@
                         onSearch={handleSearch}
                         onClear={() => {
                             searchQuery = '';
+                            currentPage = 1;
                             applyFiltersAndSearch();
                         }}
                         class="w-full sm:max-w-xl"
@@ -980,6 +991,10 @@
                     variant={layoutMode === 'list' ? 'compact' : 'default'}
                     showLoadMore={false}
                     hasMore={hasMore}
+                    usePagination={true}
+                    {itemsPerPage}
+                    bind:currentPage={currentPage}
+                    onPageChange={handlePageChange}
                 />
             </CardContent>
         </Card>

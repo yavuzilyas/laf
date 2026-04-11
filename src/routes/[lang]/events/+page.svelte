@@ -51,6 +51,14 @@
     // Use server data
     const events = $derived(data?.events ?? []);
 
+    // SEO Meta
+    const siteUrl = 'https://laf.international';
+    const seoTitle = $derived(`${t('events.title')} | LAF`);
+    const seoDescription = $derived(t('events.description'));
+    const seoKeywords = $derived(t('seo.events.keywords') || 'etkinlik, seminer, duyuru, anarşist etkinlikler, liberteryen buluşma');
+    const canonicalUrl = $derived(typeof window !== 'undefined' ? window.location.href : `${siteUrl}/${currentLocale}/events`);
+    const ogImage = `${siteUrl}/og-events.png`;
+
     // Derived values
     const filteredEvents = $derived(() => {
         let result = [...events];
@@ -313,15 +321,62 @@
 </script>
 
 <svelte:head>
-    <title>{t('events.title')} | LAF</title>
-    <meta name="description" content={t('events.description')} />
+    <title>{seoTitle}</title>
+    <meta name="description" content={seoDescription} />
+    <meta name="keywords" content={seoKeywords} />
+    <link rel="canonical" href={canonicalUrl} />
+
+    <!-- Open Graph / Facebook -->
+    <meta property="og:title" content={seoTitle} />
+    <meta property="og:description" content={seoDescription} />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content={canonicalUrl} />
+    <meta property="og:site_name" content={t('seo.siteName') || 'LAF'} />
+    <meta property="og:image" content={ogImage} />
+    <meta property="og:image:alt" content={t('events.title')} />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:locale" content={currentLocale === 'tr' ? 'tr_TR' : 'en_US'} />
+
+    <!-- Twitter Cards -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:site" content="@lafoundation" />
+    <meta name="twitter:title" content={seoTitle} />
+    <meta name="twitter:description" content={seoDescription} />
+    <meta name="twitter:image" content={ogImage} />
+
+    <!-- Structured Data -->
+    {@html `<script type="application/ld+json">${JSON.stringify({
+        '@context': 'https://schema.org',
+        '@type': 'CollectionPage',
+        name: seoTitle,
+        description: seoDescription,
+        url: canonicalUrl,
+        isPartOf: {
+            '@type': 'WebSite',
+            name: t('seo.siteName') || 'LAF',
+            url: siteUrl
+        },
+        about: {
+            '@type': 'Thing',
+            name: 'Liberteryen Anarşist Faaliyetler'
+        },
+        breadcrumb: {
+            '@type': 'BreadcrumbList',
+            itemListElement: [
+                { '@type': 'ListItem', position: 1, name: 'Ana Sayfa', item: siteUrl },
+                { '@type': 'ListItem', position: 2, name: t('events.title'), item: canonicalUrl }
+            ]
+        }
+    })}</script>`}
 </svelte:head>
 
 <Navbar />
 
 <main class="flex flex-col min-h-screen pb-12">
-    <!-- Hero Section -->
-    <section class="bg-gradient-to-b from-primary/5 to-background py-12">
+    <!-- Hero Section --><div class="w-full absolute top-0 h-40 bg-gradient-to-b from-primary/25 to-background py-12 -z-5"></div>
+
+    <section class="py-12">
         <div class="container max-w-7xl mx-auto px-4 sm:px-6">
             <div class="text-center space-y-4">
                 <div class="flex justify-center gap-3 mb-4">

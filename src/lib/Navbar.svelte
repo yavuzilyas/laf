@@ -31,6 +31,7 @@ import { ScrollProgress } from "$lib/components/magic/scroll-progress";
   
   type MenuItem = {
     icon?: any;
+    iconSvg?: string;
     name?: string;
     href?: string;
     custom?: boolean;
@@ -49,6 +50,7 @@ import { ScrollProgress } from "$lib/components/magic/scroll-progress";
   let menu = $derived([
     { isconstruction: "false", name: t('Articles'), href: l("/articles") },
     { isconstruction: "false", name: t('Events'), href: l("/events") },
+    { isconstruction: "false", name: t('QA'), href: l("/qa") },
     // { isconstruction: "true", name: t('Bicorpus'), href: "bicorpus" },
     // { isconstruction: "true", name: t('Tacicat'), href: "tacicat" },
   ]);
@@ -284,12 +286,17 @@ import { ScrollProgress } from "$lib/components/magic/scroll-progress";
             <Tooltip.Provider>
   <Tooltip.Root>
     <Tooltip.Trigger>
-<A href={item.href} class="group text-shadow-xs text-shadow-background/44 flex items-center font-bold cursor-pointer">
-  {item.name} 
+<A href={item.href} data-sveltekit-preload-data="hover" class="group text-shadow-xs text-shadow-background/44 flex items-center gap-1.5 font-bold cursor-pointer">
+  {#if item.icon}
+    <svelte:component this={item.icon} size={14} strokeWidth={2.25} />
+  {:else if item.iconSvg}
+    <span class="w-auto h-3.5 sm:h-4 flex items-center justify-center [&>svg]:w-full [&>svg]:h-full">{@html item.iconSvg}</span>
+  {/if}
+  {item.name}
 </A>
 </Tooltip.Trigger>
     <Tooltip.Content>
-      <p>{#if currentLocale === 'tr'}<span class="font-bold text-secondary-foreground">{dativeSuffix(item.name)}</span> {t('goto')}{:else}{t('goto')} <span class="font-bold text-secondary-foreground">{item.name}</span>{/if}</p> 
+      <p>{#if currentLocale === 'tr'}<span class="font-bold text-secondary-foreground">{dativeSuffix(typeof item.name === 'string' ? item.name : String(item.name ?? ''))}</span> {t('goto')}{:else}{t('goto')} <span class="font-bold text-secondary-foreground">{item.name}</span>{/if}</p>
 <!-- son harfine göre ek alır -->
     </Tooltip.Content>
   </Tooltip.Root>

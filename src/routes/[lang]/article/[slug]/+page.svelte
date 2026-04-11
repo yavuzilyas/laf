@@ -11,7 +11,7 @@
 	// Locale-aware URL helper
 	const l = (path: string) => `/${currentLocale}${path}`;
 	import { onMount } from 'svelte';
-	import { afterNavigate, goto } from '$app/navigation';
+	import { afterNavigate, goto, replaceState } from '$app/navigation';
 	import { EdraEditor, EdraToolBar } from '$lib/components/edra/shadcn/index.js';
 	import type { Editor } from '@tiptap/core';
 	import ProfileCard from '$lib/components/ProfileCard.svelte';
@@ -551,13 +551,66 @@
 		loadFollowStatus(profileUserId);
 		loadBlockStatus(profileUserId);
 
-		return afterNavigate(({ to }) => {
+		// Handle scroll-to-line hash links (e.g., #line-40)
+		const handleHashScroll = (retryCount = 0) => {
+			const hash = window.location.hash;
+			if (hash && hash.startsWith('#line-')) {
+				const lineNum = parseInt(hash.replace('#line-', ''), 10);
+				if (!isNaN(lineNum) && lineNum > 0) {
+					// Find the content element - try multiple selectors for robustness
+					const contentEl = document.querySelector('.prose') || 
+					                 document.querySelector('[class*="ProseMirror"]') ||
+					                 document.querySelector('.article-content');
+					if (contentEl) {
+						// Get all block-level elements (paragraphs, headings, etc.)
+						const blocks = contentEl.querySelectorAll('p, h1, h2, h3, h4, h5, h6, li, blockquote, pre, div[class*="ProseMirror"] > *');
+						if (blocks.length >= lineNum) {
+							const targetBlock = blocks[lineNum - 1] as HTMLElement;
+							if (targetBlock) {
+								targetBlock.scrollIntoView({ behavior: 'smooth', block: 'center' });
+								// Add temporary highlight
+								targetBlock.classList.add('bg-yellow-100', 'dark:bg-yellow-900/30', 'transition-colors', 'duration-1000');
+								setTimeout(() => {
+									targetBlock.classList.remove('bg-yellow-100', 'dark:bg-yellow-900/30', 'transition-colors', 'duration-1000');
+								}, 2000);
+							}
+							// Clear hash from URL using SvelteKit's replaceState
+							const url = new URL(window.location.href);
+							url.hash = '';
+							replaceState(url, {});
+						} else if (retryCount < 5) {
+							// Content not ready yet, retry with increasing delay
+							setTimeout(() => handleHashScroll(retryCount + 1), 100 * (retryCount + 1));
+						}
+					} else if (retryCount < 5) {
+						// Content element not ready yet, retry with increasing delay
+						setTimeout(() => handleHashScroll(retryCount + 1), 100 * (retryCount + 1));
+					}
+				}
+			}
+		};
+
+		// Handle initial hash on page load with delay to ensure content is rendered
+		setTimeout(() => handleHashScroll(0), 300);
+
+		// Listen for hash changes (click on scroll-to-line links)
+		const hashChangeHandler = () => handleHashScroll();
+		window.addEventListener('hashchange', hashChangeHandler);
+
+		afterNavigate(({ to }) => {
 			const newSlug = to?.params?.slug;
 			if (newSlug && newSlug !== previousSlug) {
 				previousSlug = newSlug;
 				window.location.href = to.url.href;
+			} else {
+				// Handle hash scroll for same-page navigation with retry
+				setTimeout(() => handleHashScroll(0), 200);
 			}
 		});
+
+		return () => {
+			window.removeEventListener('hashchange', hashChangeHandler);
+		};
 	});
 
 	let viewerBlocksProfile = $state(data.viewerBlocksProfile ?? false);
@@ -2733,7 +2786,7 @@
 							/>
 						</div>
 						<div class="flex justify-end mt-2">
-							<Button onclick={postComment} disabled={isCommentEmpty(newComment) || postingComment}>
+							<Button size="xs" onclick={postComment} disabled={isCommentEmpty(newComment) || postingComment}>
 								{#if postingComment}
 									<BarSpinner class="text-primary" size={28} />
 									{t('articles.comments.sending')}
@@ -2847,7 +2900,7 @@
 															commentId={editingCommentId}
 														/>
 														<div class="flex justify-end gap-2 mt-2">
-															<Button variant="ghost" size="sm" onclick={cancelEditComment}>
+															<Button variant="ghost" size="xs" onclick={cancelEditComment}>
 																{t('articles.comments.cancel')}
 															</Button>
 															<Button
@@ -2931,7 +2984,7 @@
 												</Button>
 												<DropdownMenu.Root>
 													<DropdownMenu.Trigger asChild>
-														<Button variant="ghost" size="sm" class="h-8 w-8 p-0">
+														<Button variant="ghost" size="xs" class="h-8 w-8 p-0">
 															<Ellipsis class="w-4 h-4" />
 														</Button>
 													</DropdownMenu.Trigger>
@@ -3232,7 +3285,7 @@
 																	</Button>
 																	<DropdownMenu.Root>
 																		<DropdownMenu.Trigger asChild>
-																			<Button variant="ghost" size="sm" class="h-7 w-7 p-0">
+																			<Button variant="ghost" size="xs" class="h-7 w-7 p-0">
 																				<Ellipsis class="w-3 h-3" />
 																			</Button>
 																		</DropdownMenu.Trigger>
@@ -3339,7 +3392,7 @@
 																	<div class="border-l mt-1 mb-2">
 																		<Button
 																			variant="ghost"
-																			size="sm"
+																			size="xs"
 																			class="text-xs text-muted-foreground hover:text-foreground"
 																			onclick={() =>
 																				openNestedDialog(reply, replyLevel, comment.id)}
@@ -3512,7 +3565,7 @@
 					</Button>
 					<DropdownMenu.Root>
 						<DropdownMenu.Trigger asChild>
-							<Button variant="ghost" size="sm" class="h-6 w-6 p-0">
+							<Button variant="ghost" size="xs" class="h-6 w-6 p-0">
 								<Ellipsis class="w-3 h-3" />
 							</Button>
 						</DropdownMenu.Trigger>
@@ -3628,7 +3681,7 @@
 						<div class="mt-1 mb-2 border-l">
 							<Button
 								variant="ghost"
-								size="sm"
+								size="xs"
 								class="text-xs text-muted-foreground hover:text-foreground"
 								onclick={() => openNestedDialog(reply, replyLevel, reply.id)}
 							>
@@ -3709,7 +3762,7 @@
 		<Dialog.Header>
 			<Dialog.Title class="flex items-center gap-2">
 				{#if dialogHistory.length > 0}
-					<Button variant="ghost" size="sm" class="h-8 w-8 p-0 mr-1" onclick={goBackInDialog}>
+					<Button variant="ghost" size="xs" class="h-8 w-8 p-0 mr-1" onclick={goBackInDialog}>
 						<ArrowLeft class="w-4 h-4" />
 					</Button>
 				{/if}
@@ -3826,7 +3879,7 @@
 											</div>
 										{/key}
 										<div class="flex justify-end gap-2 mt-2">
-											<Button variant="ghost" size="sm" onclick={cancelEditComment}>
+											<Button variant="ghost" size="xs" onclick={cancelEditComment}>
 												{t('Cancel')}
 											</Button>
 											<Button
@@ -3908,7 +3961,7 @@
 								</Button>
 								<DropdownMenu.Root>
 									<DropdownMenu.Trigger asChild>
-										<Button variant="ghost" size="sm" class="h-7 w-7 p-0">
+										<Button variant="ghost" size="xs" class="h-7 w-7 p-0">
 											<Ellipsis class="w-3 h-3" />
 										</Button>
 									</DropdownMenu.Trigger>
@@ -4113,11 +4166,11 @@
 								</div>
 							{/key}
 							<div class="flex justify-end gap-2 mt-2">
-								<Button variant="ghost" size="sm" class="text-xs" onclick={cancelEditComment}>
+								<Button variant="ghost" size="xs" class="text-xs" onclick={cancelEditComment}>
 									{t('Cancel')}
 								</Button>
 								<Button
-									size="sm"
+									size="xs"
 									class="text-xs"
 									onclick={saveEditedComment}
 									disabled={isCommentEmpty(editingContent)}
@@ -4188,7 +4241,7 @@
 					</Button>
 					<DropdownMenu.Root>
 						<DropdownMenu.Trigger asChild>
-							<Button variant="ghost" size="sm" class="h-6 w-6 p-0">
+							<Button variant="ghost" size="xs" class="h-6 w-6 p-0">
 								<Ellipsis class="w-3 h-3" />
 							</Button>
 						</DropdownMenu.Trigger>
@@ -4259,7 +4312,7 @@
 						<div class="mt-2">
 							<Button
 								variant="ghost"
-								size="sm"
+								size="xs"
 								class="text-xs text-muted-foreground hover:text-foreground"
 								onclick={() => openNestedDialog(reply, replyLevel + 1, reply.id)}
 							>

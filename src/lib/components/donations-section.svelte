@@ -5,7 +5,6 @@
   import { Button } from '$lib/components/ui/button';
   import { Badge } from '$lib/components/ui/badge';
   import BadgeList from '$lib/components/BadgeList.svelte';
-  import { Separator } from '$lib/components/ui/separator';
   import { ScrollArea } from '$lib/components/ui/scroll-area';
   import { Input } from '$lib/components/ui/input';
   import { Label } from '$lib/components/ui/label';
@@ -441,7 +440,6 @@ import { BarSpinner } from "$lib/components/spell/bar-spinner";
         </Accordion.Item>
       </Accordion.Root>
 
-      <Separator />
 
       <div>
         <h3 class="font-semibold mb-2">{t('donations.walletAddress')}</h3>
@@ -470,11 +468,10 @@ import { BarSpinner } from "$lib/components/spell/bar-spinner";
         </div>
       </div>
       
-      <Separator />
       
       <!-- Toggle Form Button -->
       <Button 
-        class="w-full" 
+        size="xs" 
         variant={showForm ? "secondary" : "default"}
         onclick={() => showForm = !showForm}
       >
@@ -549,7 +546,7 @@ import { BarSpinner } from "$lib/components/spell/bar-spinner";
           </div>
           
           <Button 
-            class="w-full" 
+            size="xs" 
             onclick={submitDonation}
             disabled={isSubmitting}
           >
@@ -563,9 +560,7 @@ import { BarSpinner } from "$lib/components/spell/bar-spinner";
           </Button>
         </div>
       {/if}
-      
-      <Separator />
-      
+            
       <div>
         <h3 class="font-semibold mb-2">{t('donations.donationInfo')}</h3>
         <ul class="space-y-2 text-sm text-muted-foreground">

@@ -135,7 +135,7 @@ export const load: PageServerLoad = async ({ params, locals }: any) => {
 		followedAt: user.followed_at
 	}));
 
-	const isFollowingMe = viewerObjectId ? await isFollowing(viewerObjectId, profileUser.id) : false;
+	const isFollowingMe = viewerObjectId ? await isFollowing(profileUser.id, viewerObjectId) : false;
 
 	const profileAvatar = profileUser.avatar_url || '';
 
@@ -167,10 +167,10 @@ export const load: PageServerLoad = async ({ params, locals }: any) => {
 		collaboratedFilters.is_hidden = false;
 	}
 
-	// Get both authored and collaborated articles
+	// Get both authored and collaborated articles (all articles, no limit)
 	const [authoredArticles, collaboratedArticles] = await Promise.all([
-		getArticles({ ...authoredFilters, limit: 10 }),
-		getArticles({ ...collaboratedFilters, limit: 10 })
+		getArticles(authoredFilters),
+		getArticles(collaboratedFilters)
 	]);
 
 	// Combine and deduplicate articles
@@ -274,7 +274,7 @@ export const load: PageServerLoad = async ({ params, locals }: any) => {
 			views: article.views || stats.views || 0,
 			likes: article.likes_count || stats.likes || 0,
 			comments: article.comments_count || stats.comments || 0,
-			thumbnail: article.thumbnail || stats.thumbnail || '',
+			coverImage: article.thumbnail || article.cover_image || stats.thumbnail || '',
 			title: title,
 			excerpt: excerpt,
 			slug: primaryTranslation.slug || article.id,

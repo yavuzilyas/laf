@@ -3,7 +3,7 @@
     import { t } from '$lib/stores/i18n.svelte.js';
     import { 
         House,
-        Search
+        RefreshCw
     } from "@lucide/svelte";
     import * as Empty from "$lib/components/ui/empty/index.js";
     import { FileQuestionMarkIcon } from 'svelte-animate-icons';
@@ -32,7 +32,7 @@
   <Empty.Content>
     <div class="flex gap-2">
       <Button size="sm" href="/"><House/> {t('Homepage')}</Button>
-      <Button size="sm" variant="outline" onclick="window.history.back()"><Search/> {t('Go Back')}</Button>
+      <Button size="sm" variant="outline" onclick="window.history.back()"><RefreshCw/> {t('Go Back')}</Button>
     </div>
     <p class="text-xs text-muted-foreground">{t('aProblem')} <Button size="xs" variant="link" onclick={openReportDrawer}>{t('reportToHelpUs')}</Button></p>
     {#if browser}

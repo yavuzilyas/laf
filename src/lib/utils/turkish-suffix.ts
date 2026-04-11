@@ -15,6 +15,7 @@ interface SuffixOptions {
  * Türkçe ünlü uyumuna göre son ünlüyü bulur
  */
 function getLastVowel(word: string): string {
+  if (typeof word !== 'string' || !word) return 'e';
   const lower = word.toLocaleLowerCase('tr-TR');
   for (let i = lower.length - 1; i >= 0; i--) {
     if (VOWELS.includes(lower[i])) {
@@ -28,6 +29,7 @@ function getLastVowel(word: string): string {
  * Ünsüz yumuşaması kontrolü
  */
 function needsConsonantSoftening(word: string): boolean {
+  if (typeof word !== 'string' || !word) return false;
   const lower = word.toLocaleLowerCase('tr-TR');
   const lastChar = lower.charAt(lower.length - 1);
   return ['p', 't', 'k', 'ç'].includes(lastChar);
@@ -37,6 +39,7 @@ function needsConsonantSoftening(word: string): boolean {
  * Yönelme hali (dative case) -e/-a
  */
 export function dativeSuffix(word: string, opts?: SuffixOptions): string {
+  if (typeof word !== 'string') return String(word ?? '');
   if (!word) return word;
 
   const { apostrophe = false, properNoun = false } = opts || {};
@@ -60,6 +63,7 @@ export function dativeSuffix(word: string, opts?: SuffixOptions): string {
  * Bulunma hali (locative case) -de/-da/-te/-ta
  */
 export function locativeSuffix(word: string, opts?: SuffixOptions): string {
+  if (typeof word !== 'string') return String(word ?? '');
   if (!word) return word;
 
   const { apostrophe = false, properNoun = false } = opts || {};
@@ -82,6 +86,7 @@ export function locativeSuffix(word: string, opts?: SuffixOptions): string {
  * Çıkma hali (ablative case) -den/-dan/-ten/-tan
  */
 export function ablativeSuffix(word: string, opts?: SuffixOptions): string {
+  if (typeof word !== 'string') return String(word ?? '');
   if (!word) return word;
 
   const { apostrophe = false, properNoun = false } = opts || {};
@@ -104,6 +109,7 @@ export function ablativeSuffix(word: string, opts?: SuffixOptions): string {
  * Belirtme hali (accusative case) -i/-ı/-u/-ü/-yi/-yı/-yu/-yü
  */
 export function accusativeSuffix(word: string, opts?: SuffixOptions): string {
+  if (typeof word !== 'string') return String(word ?? '');
   if (!word) return word;
 
   const { apostrophe = false, properNoun = false } = opts || {};
@@ -132,6 +138,7 @@ export function accusativeSuffix(word: string, opts?: SuffixOptions): string {
  * İyelik eki (possessive) -in/-ın/-un/-ün
  */
 export function possessiveSuffix(word: string, opts?: SuffixOptions): string {
+  if (typeof word !== 'string') return String(word ?? '');
   if (!word) return word;
 
   const { apostrophe = false, properNoun = false } = opts || {};
@@ -160,6 +167,7 @@ export function possessiveSuffix(word: string, opts?: SuffixOptions): string {
  * Çoğul eki (plural) -ler/-lar
  */
 export function pluralSuffix(word: string, opts?: SuffixOptions): string {
+  if (typeof word !== 'string') return String(word ?? '');
   if (!word) return word;
 
   const { apostrophe = false, properNoun = false } = opts || {};
@@ -177,6 +185,7 @@ export function pluralSuffix(word: string, opts?: SuffixOptions): string {
  * Araç hali (instrumental case) -le/-la/-yle/-yla
  */
 export function instrumentalSuffix(word: string, opts?: SuffixOptions): string {
+  if (typeof word !== 'string') return String(word ?? '');
   if (!word) return word;
 
   const { apostrophe = false, properNoun = false } = opts || {};

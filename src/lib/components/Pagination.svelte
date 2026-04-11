@@ -63,7 +63,6 @@
   function handlePageChange(page: number) {
     if (page >= 1 && page <= totalPages && page !== currentPage) {
       onPageChange(page);
-      window.scrollTo({ top: 0, behavior: 'smooth' });
     }
   }
 </script>

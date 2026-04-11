@@ -103,7 +103,7 @@
 					slashcommand(SlashCommandList)
 				],
 				{
-					onUpdate,
+					...(onUpdate && { onUpdate }),
 					editable,
 					autofocus,
 					editorProps: {

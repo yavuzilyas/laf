@@ -1887,8 +1887,6 @@ export const getContactMessages = async (filters: ContactMessageFilters = {}) =>
             cm.name,
             cm.subject,
             cm.message,
-            cm.ip_address,
-            cm.user_agent,
             cm.status,
             cm.reviewed_by,
             cm.reviewed_at,
@@ -1952,14 +1950,12 @@ export const createContactMessage = async (data: {
     name: string;
     subject: string;
     message: string;
-    ipAddress?: string;
-    userAgent?: string;
     honeypot?: string;
 }) => {
     const sql = `
         INSERT INTO contact_messages (
-            user_id, name, subject, message, ip_address, user_agent, honeypot_filled
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7)
+            user_id, name, subject, message, honeypot_filled
+        ) VALUES ($1, $2, $3, $4, $5)
         RETURNING *
     `;
     const result = await query(sql, [
@@ -1967,8 +1963,6 @@ export const createContactMessage = async (data: {
         data.name,
         data.subject,
         data.message,
-        data.ipAddress || null,
-        data.userAgent || null,
         !!data.honeypot && data.honeypot.trim() !== ''
     ]);
     return result.rows[0];

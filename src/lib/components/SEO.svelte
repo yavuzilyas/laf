@@ -24,7 +24,7 @@
     jsonLd
   }: Props = $props();
   
-  const baseUrl = 'https://laf.dev';
+  const baseUrl = 'https://laf.international';
   const currentPath = $derived(page.url.pathname);
   const canonicalUrl = $derived(canonical || `${baseUrl}${currentPath}`);
   const locale = $derived(i18n.currentLocale || 'tr');
@@ -38,7 +38,7 @@
     url: baseUrl,
     logo: `${baseUrl}/logo.png`,
     sameAs: [
-      'https://t.me/lafoundation',
+      'https://t.me/lafturkiye',
     ],
     description: 'Libertarian anarchist activism and intellectual knowledge sharing platform'
   };

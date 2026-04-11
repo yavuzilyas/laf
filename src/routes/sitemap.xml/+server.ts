@@ -2,7 +2,7 @@ import type { RequestHandler } from './$types';
 import { getArticles, getUsers } from '$db/queries';
 
 export const GET: RequestHandler = async ({ url }) => {
-  const baseUrl = 'https://laf.dev';
+  const baseUrl = 'https://laf.international';
   const languages = ['en', 'tr'];
   
   // Get dynamic content

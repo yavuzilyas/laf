@@ -79,7 +79,7 @@
 	};
 </script>
 
-<div class="drag-handle">
+<div class="drag-handle" style="transform: translateX(-100%);">
 	<Button variant="ghost" class="!size-6 rounded-sm p-0" onclick={() => (open = true)}>
 		<GripVertical />
 	</Button>

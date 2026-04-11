@@ -5,6 +5,87 @@
     "search_placeholder": "Search language...",
     "not_found": "Language not found"
   },
+    "QA":"Q&A",
+  "seo": {
+    "siteName": "LAF - Libertarian Anarchist Foundation",
+    "siteDescription": "Anarchist, libertarian activism and intellectual knowledge sharing platform. Articles and analysis on freedom, individual rights, and anarcho-capitalism.",
+    "defaultImage": "/lafpp.png",
+    "home": {
+      "title": "Libertarian Anarchist Foundation",
+      "description": "Anarchist, libertarian activism and intellectual knowledge sharing platform. Articles and analysis on freedom, individual rights, and anarcho-capitalism."
+    },
+    "articles": {
+      "title": "Articles",
+      "description": "Discover our articles on libertarian anarchism, freedom, and individual rights. Philosophy, economics, state theory, natural law, and more."
+    },
+    "article": {
+      "title": "Article",
+      "description": "Read articles published on the LAF platform.",
+      "keywords": "article, anarchism, libertarian, freedom"
+    },
+    "profile": {
+      "title": "Profile",
+      "description": "LAF user profile and articles."
+    },
+    "events": {
+      "title": "Announcements & Events",
+      "description": "LAF events, seminars, and announcements. Select cities from the Turkey map to view upcoming and past events.",
+      "keywords": "events, seminars, announcements, anarchist events, libertarian meetup"
+    },
+    "help": {
+      "title": "Help Center",
+      "description": "Frequently asked questions and help documentation for using the LAF platform.",
+      "keywords": "help, FAQ, how to use, guide"
+    },
+    "login": {
+      "title": "Login",
+      "description": "Log in to your LAF account. Join our libertarian anarchist community defending individual rights.",
+      "keywords": "login, sign in, account access",
+      "noindex": true
+    },
+    "register": {
+      "title": "Register",
+      "description": "Join LAF and become part of our libertarian anarchist community. Take your place on our independent platform defending individual freedoms.",
+      "keywords": "register, sign up, create account",
+      "noindex": true
+    },
+    "forgot": {
+      "title": "Forgot Password",
+      "description": "Reset your LAF account password. Securely reset your password with your mnemonic words.",
+      "keywords": "password reset, account recovery",
+      "noindex": true
+    },
+    "links": {
+      "title": "Links",
+      "description": "LAF social media accounts and contact links. Follow us on Telegram, Discord, and other platforms.",
+      "keywords": "social media, telegram, discord, contact"
+    },
+    "write": {
+      "title": "Write Article",
+      "description": "Write and publish articles on the LAF platform. Share your thoughts on freedom, anarchism, and libertarianism.",
+      "keywords": "write article, create content, blog",
+      "noindex": true
+    },
+    "qa": {
+      "title": "Q&A",
+      "description": "Ask questions about anarchism, libertarianism, and freedom on the LAF Q&A platform. Get answers from our moderators.",
+      "keywords": "questions answers, anarchism questions, libertarianism, freedom"
+    },
+    "moderation": {
+      "title": "Moderation Panel",
+      "description": "LAF platform moderation management panel.",
+      "keywords": "moderation, content management, admin",
+      "noindex": true
+    },
+    "404": {
+      "title": "Page Not Found",
+      "description": "The page you are looking for could not be found. Return to the LAF homepage to explore our articles."
+    },
+    "500": {
+      "title": "Server Error",
+      "description": "A technical error occurred. Please try again later."
+    }
+  },
   "GoToHomePage": "Go to home page.",
   "footer-text-animation": "$lib/assets/text-lottie-en.json",
   "lafFull": "Libertarian Anarchist Foundation",
@@ -126,6 +207,7 @@
   "FooterQuote-2": "Moderation in pursuit of justice is no virtue.",
   "Donations": "Donations",
   "donations": {
+    "closeForm":"Close Form",
     "chart": {
       "title": "Donation Chart",
       "description": "Donation statistics",
@@ -369,6 +451,8 @@
       "register": "Register"
     },
     "login": {
+            "nicknamePlaceholder":"username",
+
       "subtitle": "Sign in with your username or email and password.",
       "mnemonicAnswer": "Mnemonic Word",
       "mnemonicExample": "Example: abandon ability able about above absent absorb abstract absurd abuse access accuse",
@@ -416,6 +500,7 @@
       "nameTooShort": "At least 2 characters.",
       "nameFormat": "Only letters, spaces and hyphens are allowed.",
       "emailFormat": "Enter a valid email.",
+      "phoneFormat": "Valid phone: +country code and 10 digits (e.g., +90 555 123 4567)",
       "copyFailed": "Copy failed!"
     },
     "success": {
