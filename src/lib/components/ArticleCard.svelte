@@ -464,7 +464,7 @@
     {#if article.coverImage}
       <div class="relative p-3 pb-0 sm:p-4 sm:pb-0 overflow-hidden">
         <Lens>
-        <A href={translatedContent.slug ? `/article/${translatedContent.slug}` : undefined}>
+        <A href={translatedContent.slug ? l(`/article/${translatedContent.slug}`) : undefined}>
           <img 
             src={article.coverImage} 
             alt={translatedContent.title}
