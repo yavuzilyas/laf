@@ -819,6 +819,7 @@
     "Theme": "Theme"
   },
   "article": {
+    "publishedAt": "Published At",
     "newArticle": "New Article",
     "autosaving": "Autosaving...",
     "unsavedChanges": "Unsaved changes",

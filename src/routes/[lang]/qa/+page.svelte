@@ -213,6 +213,12 @@
     // Status filter (for moderators)
     let statusFilter = $state('');
     
+    // Nickname filter (for question author)
+    let nicknameFilter = $state('');
+    
+    // Following filter (show only followed users' questions)
+    let onlyFollowingFilter = $state(false);
+    
     // Filtered questions (client-side filtering)
     let filteredQuestions = $state<any[]>([]);
     
@@ -229,6 +235,8 @@
         sortBy = 'newest';
         dateRangeFilter = null;
         statusFilter = '';
+        nicknameFilter = '';
+        onlyFollowingFilter = false;
         pagination.page = 1;
         applyFiltersAndSearch();
     }
@@ -258,15 +266,50 @@
         }
         
         // Apply date range filter
+        // If only start date selected, treat it as a single day (00:00 to 23:59)
+        // If both selected, treat as range
         if (dateRangeFilter && (dateRangeFilter.start || dateRangeFilter.end)) {
-            const startDate = dateRangeFilter.start ? new Date(dateRangeFilter.start) : null;
-            const endDate = dateRangeFilter.end ? new Date(dateRangeFilter.end) : null;
+            let startDate: Date | null = null;
+            let endDate: Date | null = null;
+            
+            if (dateRangeFilter.start) {
+                startDate = new Date(dateRangeFilter.start);
+                startDate.setHours(0, 0, 0, 0);
+            }
+            
+            if (dateRangeFilter.end) {
+                endDate = new Date(dateRangeFilter.end);
+                endDate.setHours(23, 59, 59, 999);
+            } else if (dateRangeFilter.start && !dateRangeFilter.end) {
+                // Single date selected - treat as full day
+                endDate = new Date(dateRangeFilter.start);
+                endDate.setHours(23, 59, 59, 999);
+            }
             
             result = result.filter(q => {
                 const qDate = new Date(q.createdAt);
                 if (startDate && qDate < startDate) return false;
                 if (endDate && qDate > endDate) return false;
                 return true;
+            });
+        }
+        
+        // Apply nickname filter
+        if (nicknameFilter && nicknameFilter.trim()) {
+            const query = nicknameFilter.toLowerCase().trim();
+            result = result.filter(q => {
+                const authorMatch = (q.author?.nickname || '').toLowerCase().includes(query);
+                const authorNameMatch = (q.author?.name || '').toLowerCase().includes(query);
+                return authorMatch || authorNameMatch;
+            });
+        }
+        
+        // Apply following filter
+        if (onlyFollowingFilter && user) {
+            result = result.filter(q => {
+                // Check if user follows the question author
+                const authorId = q.author?.id || q.authorId;
+                return userFollows[authorId] === true;
             });
         }
         
@@ -295,7 +338,7 @@
     
     // Reactive filter - auto apply when filters change
     $effect(() => {
-        if (searchQuery !== undefined || selectedTopicFilter !== undefined || sortBy !== undefined || dateRangeFilter !== undefined || statusFilter !== undefined) {
+        if (searchQuery !== undefined || selectedTopicFilter !== undefined || sortBy !== undefined || dateRangeFilter !== undefined || statusFilter !== undefined || nicknameFilter !== undefined || onlyFollowingFilter !== undefined) {
             applyFiltersAndSearch();
         }
     });
@@ -1056,7 +1099,9 @@
                         topic: selectedTopicFilter,
                         sortBy: sortBy,
                         customDateRange: dateRangeFilter,
-                        status: statusFilter
+                        status: statusFilter,
+                        nickname: nicknameFilter,
+                        onlyFollowing: onlyFollowingFilter
                     }}
                     onFiltersChange={(filters) => {
                         if (filters.topic !== undefined) selectedTopicFilter = filters.topic || '';
@@ -1066,10 +1111,13 @@
                         }
                         if (filters.customDateRange !== undefined) dateRangeFilter = filters.customDateRange;
                         if (filters.status !== undefined) statusFilter = filters.status || '';
+                        if (filters.nickname !== undefined) nicknameFilter = filters.nickname || '';
+                        if (filters.onlyFollowing !== undefined) onlyFollowingFilter = filters.onlyFollowing || false;
                         pagination.page = 1;
                         applyFiltersAndSearch();
                     }}
                     enableStatusFilter={isModerator}
+                    enableFollowingFilter={!!user}
                 />
             </div>
 

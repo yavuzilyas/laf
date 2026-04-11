@@ -66,10 +66,10 @@ import { cn } from "$lib/utils";
   const sliderImages = Object.keys(import.meta.glob('/static/government-is-violence/*.{jpg,jpeg,png,webp,avif}')).map(path => path.replace(/^\/static/, ''));
 
   // WebGL desteğini kontrol et
-  let webglSupported = $state(false);
+  let webglSupported = $state(false); // Başta hiç yükleme, kontrol sonrası varsa göster
 
-  const checkWebGLSupport = () => {
-    if (!browser) return false;
+  const checkWebGLSupport = (): boolean => {
+    if (!browser) return false; // SSR'da yükleme
     try {
       const canvas = document.createElement('canvas');
       const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
@@ -79,8 +79,14 @@ import { cn } from "$lib/utils";
     }
   };
 
+  // WebGL kontrolünü effect ile yap
+  $effect(() => {
+    if (browser) {
+      webglSupported = checkWebGLSupport();
+    }
+  });
+
   onMount(() => {
-    webglSupported = checkWebGLSupport();
     if (browser) {
       // Check if there's a hash in the URL and scroll to it
       const hash = window.location.hash;

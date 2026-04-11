@@ -7,7 +7,7 @@
   import { Switch } from "$lib/components/ui/switch/index.js";
   import DateRangePicker from "$lib/components/DateRangePicker.svelte";
   import { t } from '$lib/stores/i18n.svelte';
-  import { Filter, Calendar, HelpCircle, TrendingUp, SlidersHorizontal, CheckCircle, Clock, XCircle } from "@lucide/svelte";
+  import { Filter, Calendar, HelpCircle, SlidersHorizontal, CheckCircle, Clock, XCircle, Users } from "@lucide/svelte";
   import * as Select from "$lib/components/ui/select";
 
   interface FilterOptions {
@@ -21,6 +21,8 @@
     sortBy?: string;
     customDateRange?: any;
     status?: string;
+    nickname?: string;
+    onlyFollowing?: boolean;
   }
 
   let {
@@ -28,6 +30,7 @@
     activeFilters = {},
     onFiltersChange,
     enableStatusFilter = false,
+    enableFollowingFilter = false,
     class: className,
     ...restProps
   }: {
@@ -35,6 +38,7 @@
     activeFilters?: ActiveFilters;
     onFiltersChange?: (filters: ActiveFilters) => void;
     enableStatusFilter?: boolean;
+    enableFollowingFilter?: boolean;
     class?: string;
   } = $props();
 
@@ -42,7 +46,9 @@
     topic: "",
     sortBy: "newest",
     customDateRange: undefined,
-    status: ""
+    status: "",
+    nickname: "",
+    onlyFollowing: false
   };
 
   let filters = $state<ActiveFilters>({
@@ -68,7 +74,9 @@
     filters.topic || 
     filters.sortBy !== 'newest' ||
     (filters.customDateRange && (filters.customDateRange.start || filters.customDateRange.end)) ||
-    filters.status
+    filters.status ||
+    filters.nickname ||
+    filters.onlyFollowing
   );
 
   const getActiveFilterCount = $derived(() => {
@@ -77,20 +85,14 @@
     if (filters.sortBy && filters.sortBy !== 'newest') count++;
     if (filters.customDateRange && (filters.customDateRange.start || filters.customDateRange.end)) count++;
     if (filters.status) count++;
+    if (filters.nickname) count++;
+    if (filters.onlyFollowing) count++;
     return count;
   });
 
   // Handle filter changes
   const handleTopicChange = (value: string) => {
     filters = { ...filters, topic: value };
-    // Delay to ensure parent component's hydration is complete
-    setTimeout(() => {
-      onFiltersChange?.(filters);
-    }, 10);
-  };
-
-  const handleSortChange = (value: string) => {
-    filters = { ...filters, sortBy: value };
     // Delay to ensure parent component's hydration is complete
     setTimeout(() => {
       onFiltersChange?.(filters);
@@ -209,30 +211,18 @@
 
         <Separator />
 
-        <!-- Sort Order -->
+        <!-- Nickname Filter -->
         <div class="space-y-2">
           <label class="text-xs font-medium flex items-center gap-2">
-            <TrendingUp class="h-3 w-3" />
-            {t('qa.filters.sort') || 'Sıralama'}
+            <Users class="h-3 w-3" />
+            {t('qa.filters.nickname') || 'Soran Kullanıcı Adı'}
           </label>
-          <Select.Root type="single" value={filters.sortBy} onValueChange={handleSortChange}>
-            <Select.Trigger class="w-full text-xs">
-              {#if filters.sortBy === 'newest'}
-                {t('qa.sort.newest') || 'En Yeni'}
-              {:else if filters.sortBy === 'popular'}
-                {t('qa.sort.popular') || 'Popüler'}
-              {:else if filters.sortBy === 'unanswered'}
-                {t('qa.sort.unanswered') || 'Cevapsız'}
-              {:else}
-                {t('qa.sort.newest') || 'En Yeni'}
-              {/if}
-            </Select.Trigger>
-            <Select.Content>
-              <Select.Item value="newest">{t('qa.sort.newest') || 'En Yeni'}</Select.Item>
-              <Select.Item value="popular">{t('qa.sort.popular') || 'Popüler'}</Select.Item>
-              <Select.Item value="unanswered">{t('qa.sort.unanswered') || 'Cevapsız'}</Select.Item>
-            </Select.Content>
-          </Select.Root>
+          <input
+            type="text"
+            placeholder={t('qa.filters.nicknamePlaceholder') || 'Kullanıcı adı ara...'}
+            bind:value={filters.nickname}
+            class="w-full px-3 py-2 text-sm border rounded-md focus:outline-none focus:ring-2 focus:ring-primary/20"
+          />
         </div>
 
         <!-- Status Filter (Moderators only) -->
@@ -265,6 +255,26 @@
                 <Select.Item value="rejected">{t('qa.status.rejected') || 'Reddedildi'}</Select.Item>
               </Select.Content>
             </Select.Root>
+          </div>
+        {/if}
+
+        <!-- Following Filter -->
+        {#if enableFollowingFilter}
+          <Separator />
+          <div class="flex items-center justify-between rounded-md border px-3 py-2">
+            <div class="flex flex-col text-xs font-medium">
+              <span class="flex items-center gap-1">
+                <Users class="h-3.5 w-3.5" />
+                {t('qa.filters.following') || 'Takip ettiklerim'}
+              </span>
+              <span class="text-[11px] text-muted-foreground">
+                {t('qa.filters.followingHint') || 'Sadece takip ettiğin kullanıcıların sorularını göster'}
+              </span>
+            </div>
+            <Switch
+              aria-label={t('qa.filters.following') || 'Takip ettiklerim'}
+              bind:checked={filters.onlyFollowing}
+            />
           </div>
         {/if}
       </div>

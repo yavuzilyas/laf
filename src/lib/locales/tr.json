@@ -685,6 +685,7 @@
     }
   },
   "article": {
+    "publishedAt": "Yayın tarihi",
     "newArticle": "Yeni Makale",
     "autosaving": "Otomatik kaydediliyor...",
     "unsavedChanges": "Kaydedilmemiş değişiklikler var.",
