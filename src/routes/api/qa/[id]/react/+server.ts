@@ -1,150 +1,127 @@
-import { json, error as svelteError } from '@sveltejs/kit';
+import { json } from '@sveltejs/kit';
 import { query } from '$db/pg';
-import type { RequestHandler } from './$types';
+import type { RequestEvent } from './$types';
 
-export const POST: RequestHandler = async ({ params, request, locals }) => {
-    const { id } = params;
-    const user = (locals as any).user;
-
-    if (!user) {
-        throw svelteError(401, 'Unauthorized');
-    }
-
+// POST - React to a question (like/dislike)
+export async function POST({ params, request, locals }: RequestEvent) {
     try {
-        const { reaction } = await request.json();
+        const user = (locals as any)?.user;
+        
+        if (!user) {
+            return json({ error: 'Giriş yapmanız gerekli' }, { status: 401 });
+        }
 
-        // Validate reaction
-        if (reaction !== null && reaction !== 'like' && reaction !== 'dislike') {
-            throw svelteError(400, 'Invalid reaction');
+        const questionId = params.id;
+        const data = await request.json();
+        const { reaction } = data; // 'like', 'dislike', or null
+
+        if (!questionId) {
+            return json({ error: 'Soru ID gerekli' }, { status: 400 });
         }
 
         // Check if question exists
-        const questionCheck = await query(
-            'SELECT id FROM questions WHERE id = $1',
-            [id]
-        );
+        const checkQuestionQuery = `SELECT id FROM questions WHERE id = $1`;
+        const questionResult = await query(checkQuestionQuery, [questionId]);
 
-        if (questionCheck.rows.length === 0) {
-            throw svelteError(404, 'Question not found');
+        if (questionResult.rows.length === 0) {
+            return json({ error: 'Soru bulunamadı' }, { status: 404 });
         }
 
-        // Get current reaction if any
-        const currentReactionResult = await query(
-            'SELECT reaction_type FROM question_reactions WHERE question_id = $1 AND user_id = $2',
-            [id, user.id]
-        );
+        // Check if user already has a reaction
+        const checkReactionQuery = `
+            SELECT id, reaction_type FROM question_reactions 
+            WHERE question_id = $1 AND user_id = $2
+        `;
+        const existingReaction = await query(checkReactionQuery, [questionId, user.id]);
 
-        const currentReaction = currentReactionResult.rows[0]?.reaction_type || null;
-
-        // Update counts in a transaction
-        if (currentReaction === reaction) {
-            // Same reaction clicked - remove it
-            if (reaction !== null) {
-                await query(
-                    'DELETE FROM question_reactions WHERE question_id = $1 AND user_id = $2',
-                    [id, user.id]
-                );
-
-                // Decrement counter
-                if (reaction === 'like') {
-                    await query(
-                        'UPDATE questions SET like_count = GREATEST(0, like_count - 1) WHERE id = $1',
-                        [id]
-                    );
-                } else {
-                    await query(
-                        'UPDATE questions SET dislike_count = GREATEST(0, dislike_count - 1) WHERE id = $1',
-                        [id]
-                    );
-                }
+        if (reaction === null) {
+            // Remove reaction if exists
+            if (existingReaction.rows.length > 0) {
+                await query(`DELETE FROM question_reactions WHERE id = $1`, [existingReaction.rows[0].id]);
             }
+        } else if (existingReaction.rows.length > 0) {
+            // Update existing reaction
+            await query(
+                `UPDATE question_reactions SET reaction_type = $1 WHERE id = $2`,
+                [reaction, existingReaction.rows[0].id]
+            );
         } else {
-            // Different reaction or new reaction
-            if (currentReaction !== null) {
-                // Remove old reaction
-                await query(
-                    'DELETE FROM question_reactions WHERE question_id = $1 AND user_id = $2',
-                    [id, user.id]
-                );
-
-                // Decrement old counter
-                if (currentReaction === 'like') {
-                    await query(
-                        'UPDATE questions SET like_count = GREATEST(0, like_count - 1) WHERE id = $1',
-                        [id]
-                    );
-                } else {
-                    await query(
-                        'UPDATE questions SET dislike_count = GREATEST(0, dislike_count - 1) WHERE id = $1',
-                        [id]
-                    );
-                }
-            }
-
-            // Add new reaction if not null
-            if (reaction !== null) {
-                await query(
-                    'INSERT INTO question_reactions (question_id, user_id, reaction_type) VALUES ($1, $2, $3)',
-                    [id, user.id, reaction]
-                );
-
-                // Increment new counter
-                if (reaction === 'like') {
-                    await query(
-                        'UPDATE questions SET like_count = like_count + 1 WHERE id = $1',
-                        [id]
-                    );
-                } else {
-                    await query(
-                        'UPDATE questions SET dislike_count = dislike_count + 1 WHERE id = $1',
-                        [id]
-                    );
-                }
-            }
+            // Insert new reaction
+            await query(
+                `INSERT INTO question_reactions (question_id, user_id, reaction_type) VALUES ($1, $2, $3)`,
+                [questionId, user.id, reaction]
+            );
         }
 
-        // Get updated stats
-        const statsResult = await query(
-            'SELECT like_count, dislike_count FROM questions WHERE id = $1',
-            [id]
-        );
-
-        const stats = statsResult.rows[0];
+        // Get updated counts
+        const countsQuery = `
+            SELECT 
+                COUNT(CASE WHEN reaction_type = 'like' THEN 1 END) as likes,
+                COUNT(CASE WHEN reaction_type = 'dislike' THEN 1 END) as dislikes
+            FROM question_reactions 
+            WHERE question_id = $1
+        `;
+        const countsResult = await query(countsQuery, [questionId]);
 
         return json({
+            success: true,
             reaction,
             stats: {
-                likes: stats.like_count,
-                dislikes: stats.dislike_count
+                likes: parseInt(countsResult.rows[0].likes),
+                dislikes: parseInt(countsResult.rows[0].dislikes)
             }
         });
-    } catch (err: any) {
-        console.error('Error handling reaction:', err);
-        if (err.status) throw err;
-        throw svelteError(500, 'Failed to process reaction');
+
+    } catch (error) {
+        console.error('Error reacting to question:', error);
+        return json({ error: 'İşlem sırasında bir hata oluştu' }, { status: 500 });
     }
-};
+}
 
-// Get user's current reaction
-export const GET: RequestHandler = async ({ params, locals }) => {
-    const { id } = params;
-    const user = (locals as any).user;
-
-    if (!user) {
-        return json({ reaction: null });
-    }
-
+// GET - Get reaction stats for a question
+export async function GET({ params, locals }: RequestEvent) {
     try {
-        const result = await query(
-            'SELECT reaction_type FROM question_reactions WHERE question_id = $1 AND user_id = $2',
-            [id, user.id]
-        );
+        const user = (locals as any)?.user;
+        const questionId = params.id;
+
+        if (!questionId) {
+            return json({ error: 'Soru ID gerekli' }, { status: 400 });
+        }
+
+        // Get counts
+        const countsQuery = `
+            SELECT 
+                COUNT(CASE WHEN reaction_type = 'like' THEN 1 END) as likes,
+                COUNT(CASE WHEN reaction_type = 'dislike' THEN 1 END) as dislikes
+            FROM question_reactions 
+            WHERE question_id = $1
+        `;
+        const countsResult = await query(countsQuery, [questionId]);
+
+        // Get user's reaction if logged in
+        let userReaction = null;
+        if (user) {
+            const userReactionQuery = `
+                SELECT reaction_type FROM question_reactions 
+                WHERE question_id = $1 AND user_id = $2
+            `;
+            const userReactionResult = await query(userReactionQuery, [questionId, user.id]);
+            if (userReactionResult.rows.length > 0) {
+                userReaction = userReactionResult.rows[0].reaction_type;
+            }
+        }
 
         return json({
-            reaction: result.rows[0]?.reaction_type || null
+            success: true,
+            stats: {
+                likes: parseInt(countsResult.rows[0].likes),
+                dislikes: parseInt(countsResult.rows[0].dislikes)
+            },
+            reaction: userReaction
         });
-    } catch (err) {
-        console.error('Error fetching reaction:', err);
-        return json({ reaction: null });
+
+    } catch (error) {
+        console.error('Error getting question reactions:', error);
+        return json({ error: 'Veri alınırken bir hata oluştu' }, { status: 500 });
     }
-};
+}

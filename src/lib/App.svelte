@@ -155,17 +155,17 @@ import { cn } from "$lib/utils";
     {/if}
       </div>
 
-      <img class="mt-6 w-1/2 h-auto mx-auto" src="AnarchoCapitalism_Waving_Flag_Icon.svg" alt="An Austrian School crest" />
+      <img class="w-full md:w-1/2 h-auto mx-auto" src="AnarchoCapitalism_Waving_Flag_Icon.svg" alt="An Austrian School crest" />
 
       <!-- Why Anarcho Capitalism Column -->
-      <div class="md:max-w-2xl m-auto mb-6">
+      <div class="md:max-w-2xl m-auto">
         <h2 class="text-xl font-bold mb-1 text-primary">{t('whyAnarchoCapitalism')}</h2>
         <p class="text-base text-foreground leading-relaxed">
           {t('whyAnarchoCapitalismDescription')}
         </p>
 
       </div>
-      <img class="w-1/2 h-auto mx-auto" src="An_Austrian_School_crest_-_Grey.png" alt="An Austrian School crest" />
+      <img class="w-full md:w-1/2 h-auto mx-auto" src="An_Austrian_School_crest_-_Grey.png" alt="An Austrian School crest" />
       <!-- Our Goal Column -->
       <div class="md:max-w-2xl m-auto mb-6">
         <h2 class="text-xl font-bold mb-1 text-primary">{t('ourGoal')}</h2>

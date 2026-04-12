@@ -136,6 +136,7 @@ export const load: PageServerLoad = async ({ params, locals }: any) => {
 	}));
 
 	const isFollowingMe = viewerObjectId ? await isFollowing(profileUser.id, viewerObjectId) : false;
+	const isFollowingUser = viewerObjectId ? await isFollowing(viewerObjectId, profileUser.id) : false;
 
 	const profileAvatar = profileUser.avatar_url || '';
 
@@ -337,6 +338,7 @@ export const load: PageServerLoad = async ({ params, locals }: any) => {
 		isOwnProfile,
 		currentUser: locals.user,
 		isFollowingMe,
+		isFollowingUser,
 		followersList,
 		followingList,
 		viewerBlocksProfile,

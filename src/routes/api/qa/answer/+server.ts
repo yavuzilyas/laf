@@ -36,7 +36,7 @@ export async function POST({ request, locals }: RequestEvent) {
 
         // Check if question exists and is pending/answered
         const checkQuery = `
-            SELECT id, status FROM questions WHERE id = $1
+            SELECT id, status, answer_id FROM questions WHERE id = $1
         `;
         const checkResult = await query(checkQuery, [questionId]);
 
@@ -121,13 +121,13 @@ export async function POST({ request, locals }: RequestEvent) {
     }
 }
 
-// PUT - Update an answer (moderators only)
+// PUT - Update an answer (owner or moderators)
 export async function PUT({ request, locals }: RequestEvent) {
     try {
         const user = (locals as any)?.user;
         
-        if (!user || (user.role !== 'moderator' && user.role !== 'admin')) {
-            return json({ error: 'Yetkisiz erişim' }, { status: 403 });
+        if (!user) {
+            return json({ error: 'Giriş yapmalısınız' }, { status: 401 });
         }
 
         const data = await request.json();
@@ -139,6 +139,28 @@ export async function PUT({ request, locals }: RequestEvent) {
 
         if (!content || !contentHtml) {
             return json({ error: 'Cevap içeriği gerekli' }, { status: 400 });
+        }
+
+        // Check if answer exists and get author info (fallback to question.answered_by if author_id is null)
+        const checkQuery = `
+            SELECT a.id, COALESCE(a.author_id, q.answered_by) as author_id 
+            FROM answers a
+            JOIN questions q ON q.answer_id = a.id
+            WHERE a.id = $1
+        `;
+        const checkResult = await query(checkQuery, [answerId]);
+
+        if (checkResult.rows.length === 0) {
+            return json({ error: 'Cevap bulunamadı' }, { status: 404 });
+        }
+
+        const answer = checkResult.rows[0];
+        
+        // Only owner or moderator/admin can edit
+        if (String(answer.author_id) !== String(user.id) && 
+            user.role !== 'moderator' && 
+            user.role !== 'admin') {
+            return json({ error: 'Bu cevabı düzenleme yetkiniz yok' }, { status: 403 });
         }
 
         // Update answer
@@ -155,19 +177,15 @@ export async function PUT({ request, locals }: RequestEvent) {
             answerId
         ]);
 
-        if (result.rows.length === 0) {
-            return json({ error: 'Cevap bulunamadı' }, { status: 404 });
-        }
-
-        const answer = result.rows[0];
+        const updatedAnswer = result.rows[0];
 
         return json({
             success: true,
             answer: {
-                id: answer.id,
-                content: answer.content,
-                contentHtml: answer.content_html,
-                updatedAt: answer.updated_at
+                id: updatedAnswer.id,
+                content: updatedAnswer.content,
+                contentHtml: updatedAnswer.content_html,
+                updatedAt: updatedAnswer.updated_at
             },
             message: 'Cevap güncellendi'
         });
@@ -178,13 +196,13 @@ export async function PUT({ request, locals }: RequestEvent) {
     }
 }
 
-// DELETE - Delete an answer (moderators only)
+// DELETE - Delete an answer (owner or moderators)
 export async function DELETE({ request, locals }: RequestEvent) {
     try {
         const user = (locals as any)?.user;
 
-        if (!user || (user.role !== 'moderator' && user.role !== 'admin')) {
-            return json({ error: 'Yetkisiz erişim' }, { status: 403 });
+        if (!user) {
+            return json({ error: 'Giriş yapmalısınız' }, { status: 401 });
         }
 
         const { searchParams } = new URL(request.url);
@@ -194,9 +212,9 @@ export async function DELETE({ request, locals }: RequestEvent) {
             return json({ error: 'Cevap ID gerekli' }, { status: 400 });
         }
 
-        // Get answer info before deleting
+        // Get answer info before deleting (with author fallback)
         const getAnswerQuery = `
-            SELECT a.id, a.question_id, q.accepted_answer_id
+            SELECT a.id, a.question_id, q.accepted_answer_id, COALESCE(a.author_id, q.answered_by) as author_id
             FROM answers a
             JOIN questions q ON q.id = a.question_id
             WHERE a.id = $1
@@ -208,6 +226,13 @@ export async function DELETE({ request, locals }: RequestEvent) {
         }
 
         const answer = answerResult.rows[0];
+
+        // Only owner or moderator/admin can delete
+        if (String(answer.author_id) !== String(user.id) && 
+            user.role !== 'moderator' && 
+            user.role !== 'admin') {
+            return json({ error: 'Bu cevabı silme yetkiniz yok' }, { status: 403 });
+        }
 
         // Delete answer
         const deleteQuery = `DELETE FROM answers WHERE id = $1`;

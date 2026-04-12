@@ -60,6 +60,7 @@
     itemsPerPage = 12,
     currentPage = $bindable(1),
     onPageChange,
+    maxColumns = 3,
     class: className,
     ...restProps
   }: {
@@ -74,6 +75,7 @@
     itemsPerPage?: number;
     currentPage?: number;
     onPageChange?: (page: number) => void;
+    maxColumns?: 2 | 3;
     class?: string;
   } = $props();
 
@@ -101,7 +103,7 @@
     <!-- Loading Skeletons -->
     <div class={cn(
       layout === "grid" 
-        ? "grid gap-6 sm:grid-cols-2 lg:grid-cols-3" 
+        ? `grid gap-6 grid-cols-1 md:grid-cols-2 ${maxColumns === 2 ? 'lg:grid-cols-2' : 'lg:grid-cols-3'}` 
         : "space-y-4"
     )}>
       {#each Array(6) as _}
@@ -131,8 +133,8 @@
     {#if layout === "grid"}
       <div class={cn(
         "grid gap-3 sm:gap-6",
-        variant === "featured" ? "lg:grid-cols-2" : "sm:grid-cols-2 lg:grid-cols-3",
-        variant === "compact" && "sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3"
+        variant === "featured" ? "md:grid-cols-2 lg:grid-cols-2" : (maxColumns === 2 ? "grid-cols-1 md:grid-cols-2 lg:grid-cols-2" : "grid-cols-1 md:grid-cols-2 lg:grid-cols-3"),
+        variant === "compact" ? (maxColumns === 2 ? "grid-cols-1 md:grid-cols-2 lg:grid-cols-2" : "grid-cols-1 md:grid-cols-2 lg:grid-cols-3") : ""
       )}>
         {#each paginatedArticles as article (article.id)}
           <ArticleCard {article} {variant} />
@@ -146,7 +148,7 @@
       </div>
     {:else if layout === "masonry"}
       <!-- Masonry Layout - CSS Grid based -->
-      <div class="columns-1 gap-6 sm:columns-2 lg:columns-3">
+      <div class={`columns-1 gap-6 md:columns-2 ${maxColumns === 2 ? 'lg:columns-2' : 'lg:columns-3'}`}>
         {#each paginatedArticles as article (article.id)}
           <div class="mb-6 break-inside-avoid">
             <ArticleCard {article} variant="minimal" />

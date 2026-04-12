@@ -6,6 +6,7 @@
     import ArticleSearch from "$lib/components/ArticleSearch.svelte";
     import { Button } from "$lib/components/ui/button";
     import { t, getCurrentLocale } from '$lib/stores/i18n.svelte';
+    import { getPageSEO, generateSEOMeta, generateBreadcrumbs } from '$lib/utils/seo';
 
     // Locale-aware URL helper
     const currentLocale = $derived(getCurrentLocale() || 'tr');
@@ -18,72 +19,22 @@
 
     let { data } = $props();
 
-    // SEO Meta computation
-    const seoMeta = $derived((() => {
-        const siteName = 'LAF - Libertarian Anarchist Foundation';
-        const siteUrl = 'https://laf.international';
-        const url = typeof window !== 'undefined' ? window.location.href : `${siteUrl}/articles`;
+    // SEO Meta computation using centralized utility
+    const seoConfig = getPageSEO('articles');
+    const siteUrl = 'https://laf.international';
+    const currentUrl = $derived(typeof window !== 'undefined' ? window.location.href : `${siteUrl}/${currentLocale}/articles`);
 
-        const title = 'Makaleler | LAF ';
-        const description = 'Liberter anarşizm, özgürlük ve bireysel haklar üzerine makalelerimizi keşfedin. Felsefe, iktisat, devlet teorisi, doğal hukuk ve daha fazlası.';
+    const seoMeta = $derived(generateSEOMeta({
+        title: seoConfig?.title || 'Makaleler',
+        description: seoConfig?.description || 'Liberter anarşizm makaleleri',
+        canonical: currentUrl,
+        type: 'website'
+    }));
 
-        return {
-            title,
-            description,
-            canonical: url,
-            og: {
-                title,
-                description,
-                type: 'website',
-                url,
-                site_name: siteName,
-                image: `${siteUrl}/og-articles.png`,
-                image_alt: 'LAF Articles'
-            },
-            twitter: {
-                card: 'summary_large_image',
-                site: '@lafoundation',
-                title,
-                description,
-                image: `${siteUrl}/og-articles.png`,
-                image_alt: 'LAF Articles'
-            },
-            structuredData: {
-                '@context': 'https://schema.org',
-                '@type': 'CollectionPage',
-                name: title,
-                description,
-                url,
-                isPartOf: {
-                    '@type': 'WebSite',
-                    name: siteName,
-                    url: siteUrl
-                },
-                about: {
-                    '@type': 'Thing',
-                    name: 'Liberteryen Anarşizm'
-                }
-            },
-            breadcrumbs: {
-                '@context': 'https://schema.org',
-                '@type': 'BreadcrumbList',
-                itemListElement: [
-                    {
-                        '@type': 'ListItem',
-                        position: 1,
-                        name: 'Ana Sayfa',
-                        item: siteUrl
-                    },
-                    {
-                        '@type': 'ListItem',
-                        position: 2,
-                        name: 'Makaleler',
-                        item: url
-                    }
-                ]
-            }
-        };
-    })());
+    const breadcrumbs = $derived(generateBreadcrumbs([
+        { name: 'Ana Sayfa', url: siteUrl },
+        { name: 'Makaleler', url: currentUrl }
+    ]));
 
     const serverArticles = data?.articles ?? [];
     const categories = data?.categories ?? [];
@@ -407,7 +358,10 @@
 
     <!-- Structured Data -->
     {@html `<script type="application/ld+json">${JSON.stringify(seoMeta.structuredData)}</script>`}
-    {@html `<script type="application/ld+json">${JSON.stringify(seoMeta.breadcrumbs)}</script>`}
+    {@html `<script type="application/ld+json">${JSON.stringify(breadcrumbs)}</script>`}
+
+    <!-- RSS Feed -->
+    <link rel="alternate" type="application/rss+xml" title="RSS Feed - Makaleler" href={`/rss/articles.xml?lang=${currentLocale}`} />
 </svelte:head>
 
 <Navbar />

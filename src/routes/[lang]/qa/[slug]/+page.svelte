@@ -540,8 +540,8 @@
             </AlertDialog.Content>
         </AlertDialog.Root>
 
-        <!-- Answer Dialog (Moderator) -->
-        {#if isModerator}
+        <!-- Answer Dialog (Logged-in Users) -->
+        {#if user}
             <Dialog.Root open={showAnswerDialog} onOpenChange={(open) => {
                 showAnswerDialog = open;
                 if (!open) {

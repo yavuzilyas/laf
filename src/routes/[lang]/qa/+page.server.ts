@@ -83,13 +83,15 @@ export const load: PageServerLoad = async ({ locals, url }) => {
                 a.content_html as answer_content_html,
                 a.created_at as answer_created_at,
                 a.vote_score as answer_vote_score,
+                COALESCE(a.author_id, q.answered_by) as answer_author_id,
                 au.username as answer_author_username,
-                au.nickname as answer_author_nickname
+                au.nickname as answer_author_nickname,
+                au.avatar_url as answer_author_avatar
             FROM questions q
             LEFT JOIN question_topics t ON q.topic_id = t.id
             LEFT JOIN users u ON q.author_id = u.id
             LEFT JOIN answers a ON q.answer_id = a.id
-            LEFT JOIN users au ON a.author_id = au.id
+            LEFT JOIN users au ON au.id = COALESCE(a.author_id, q.answered_by)
             ${statusFilter}
         `;
 
@@ -143,8 +145,10 @@ export const load: PageServerLoad = async ({ locals, url }) => {
                 createdAt: row.answer_created_at,
                 voteScore: row.answer_vote_score || 0,
                 author: {
+                    id: row.answer_author_id,
                     username: row.answer_author_username,
-                    nickname: row.answer_author_nickname
+                    nickname: row.answer_author_nickname,
+                    avatar: row.answer_author_avatar
                 }
             } : null
         }));

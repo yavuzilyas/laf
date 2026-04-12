@@ -56,25 +56,9 @@
     ...activeFilters
   });
   
-  // Ensure customDateRange is never null (only undefined or valid object)
-  $effect(() => {
-    if (filters.customDateRange === null) {
-      filters.customDateRange = undefined;
-    }
-  });
-  
   // Propagate changes when any filter is updated via binding
-  // Reference specific properties to enable deep reactivity tracking
   $effect(() => {
-    const filterState = {
-      topic: filters.topic,
-      sortBy: filters.sortBy,
-      customDateRange: filters.customDateRange,
-      status: filters.status,
-      nickname: filters.nickname,
-      onlyFollowing: filters.onlyFollowing
-    };
-    onFiltersChange?.(filterState);
+    onFiltersChange?.(filters);
   });
   
   let open = $state(false);
@@ -193,18 +177,12 @@
         <div class="space-y-2">
           <label class="text-xs font-medium flex items-center gap-2">
             <Users class="h-3 w-3" />
-            {t('qa.filters.nickname') || 'Soran Kullanıcı Adı'}
+            {t('qa.filters.nickname') ?? 'Soran Kullanıcı Adı'}
           </label>
           <input
             type="text"
-            placeholder={t('qa.filters.nicknamePlaceholder') || 'Kullanıcı adı ara...'}
+            placeholder={t('qa.filters.nicknamePlaceholder') ?? 'Kullanıcı adı ara...'}
             bind:value={filters.nickname}
-            onkeydown={(e) => {
-              if (e.key === 'Enter') {
-                e.preventDefault();
-                open = false;
-              }
-            }}
             class="w-full px-3 py-2 text-sm border rounded-md focus:outline-none focus:ring-2 focus:ring-primary/20"
           />
         </div>
@@ -249,18 +227,15 @@
             <div class="flex flex-col text-xs font-medium">
               <span class="flex items-center gap-1">
                 <Users class="h-3.5 w-3.5" />
-                {t('qa.filters.following') || 'Takip ettiklerim'}
+                {t('qa.filters.following') ?? 'Takip ettiklerim'}
               </span>
               <span class="text-[11px] text-muted-foreground">
-                {t('qa.filters.followingHint') || 'Sadece takip ettiğin kullanıcıların sorularını göster'}
+                {t('qa.filters.followingHint') ?? 'Sadece takip ettiğin kullanıcıların sorularını göster'}
               </span>
             </div>
             <Switch
-              aria-label={t('qa.filters.following') || 'Takip ettiklerim'}
+              aria-label={t('qa.filters.following') ?? 'Takip ettiklerim'}
               bind:checked={filters.onlyFollowing}
-              onCheckedChange={(checked) => {
-                filters.onlyFollowing = checked;
-              }}
             />
           </div>
         {/if}

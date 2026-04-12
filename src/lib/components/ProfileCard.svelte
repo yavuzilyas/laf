@@ -399,10 +399,9 @@
       // Reset showEditForm when entering edit mode
       showEditForm = false;
       
-      // Wait for card expansion animation to complete (500ms)
-      const timer = setTimeout(() => {
+      
         showEditForm = true;
-      }, 500);
+      
       
       return () => clearTimeout(timer);
     } else {
@@ -448,16 +447,16 @@
 </script>
 
 <Card class="overflow-hidden pt-0 h-full transition-all duration-500 ease-in-out {isEditing ? 'min-h-[1050px] sm:min-h-[760px]' : 'min-h-[350px]'} flex flex-col">
-  <div class="relative w-full pt-0 transition-all duration-500 ease-in-out {isEditing ? 'min-h-[166px] sm:min-h-[265px]' : 'min-h-[200px] sm:min-h-[333px]'}">
+  <div class="relative w-full pt-0 transition-all duration-500 ease-in-out">
     {#if profileData?.bannerImage}
       <img
         src={profileData.bannerImage}
         alt={t('profile.bannerAlt') ?? 'Profile banner'}
-        class="absolute inset-0 h-full w-full object-cover"
+        class="w-full h-auto object-contain"
       />
     {:else}
       <div
-        class="absolute inset-0 bg-primary"
+        class="w-full h-[200px] sm:h-[333px] bg-primary"
         style={profileData?.bannerColor ? `background: ${profileData.bannerColor}` : ''}
       ></div>
     {/if}

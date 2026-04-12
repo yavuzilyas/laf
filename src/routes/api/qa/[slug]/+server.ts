@@ -155,7 +155,7 @@ export async function GET({ params, locals }: RequestEvent) {
 }
 
 // POST - Track question view
-export async function POST({ params, locals }: RequestEvent) {
+export async function POST({ params, locals, cookies }: RequestEvent) {
     try {
         const { slug } = params;
         const user = (locals as any)?.user;
@@ -172,21 +172,38 @@ export async function POST({ params, locals }: RequestEvent) {
 
         const questionId = questionResult.rows[0].id;
 
-        // Increment view count
-        await query(
-            'UPDATE questions SET view_count = COALESCE(view_count, 0) + 1 WHERE id = $1',
-            [questionId]
-        );
+        // Increment views only if user hasn't viewed this question recently (track via cookie)
+        const viewedQuestionsKey = 'viewed_questions';
+        const viewedQuestions = cookies.get(viewedQuestionsKey);
+        const viewedSet = new Set(viewedQuestions ? JSON.parse(viewedQuestions) : []);
+
+        let newViewCount: number;
+
+        if (!viewedSet.has(questionId)) {
+            // Increment view count
+            await query(
+                'UPDATE questions SET view_count = COALESCE(view_count, 0) + 1 WHERE id = $1',
+                [questionId]
+            );
+            viewedSet.add(questionId);
+            cookies.set(viewedQuestionsKey, JSON.stringify([...viewedSet]), {
+                path: '/',
+                maxAge: 60 * 10, // 10 minutes
+                httpOnly: true,
+                sameSite: 'strict'
+            });
+        }
 
         // Get updated view count
         const result = await query(
             'SELECT view_count FROM questions WHERE id = $1',
             [questionId]
         );
+        newViewCount = result.rows[0].view_count;
 
         return json({
             success: true,
-            viewCount: result.rows[0].view_count
+            viewCount: newViewCount
         });
 
     } catch (error) {

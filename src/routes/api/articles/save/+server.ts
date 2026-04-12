@@ -85,10 +85,6 @@ function detectArticleSpam(article: any): { isSpam: boolean; reasons: string[] }
       reasons.push('Title too long');
     }
     
-    // Only enforce content length for substantial articles (not drafts with just images)
-    if (contentText.length > 10000) {
-      reasons.push('Content too long');
-    }
     
     // Check for excessive repetition (only for longer content)
     const words = contentText.split(/\s+/).filter(w => w.length > 0);
