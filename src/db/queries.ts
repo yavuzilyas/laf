@@ -1356,7 +1356,10 @@ export const getFollowingList = async (userId: string, currentUserId?: string) =
         SELECT 
             u.id, u.username, u.name, u.surname, u.avatar_url, u.bio,
             f.created_at as followed_at,
-            true as is_following,
+            CASE WHEN $2::uuid IS NOT NULL AND EXISTS (
+                SELECT 1 FROM follows f2 
+                WHERE f2.follower_id = $2::uuid AND f2.following_id = u.id
+            ) THEN true ELSE false END as is_following,
             CASE WHEN $2::uuid IS NOT NULL AND EXISTS (
                 SELECT 1 FROM user_blocks ub 
                 WHERE ub.user_id = $2::uuid AND ub.blocked_user_id = u.id
