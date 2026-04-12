@@ -228,6 +228,15 @@
     // Initialize filtered questions when questions prop changes
     $effect(() => {
         filteredQuestions = [...questions];
+        // Initialize question like/dislike counts from server data
+        const initialLikes: Record<string, number> = {};
+        const initialDislikes: Record<string, number> = {};
+        for (const q of questions) {
+            initialLikes[q.id] = q.likeCount || 0;
+            initialDislikes[q.id] = q.dislikeCount || 0;
+        }
+        questionLikesCount = initialLikes;
+        questionDislikesCount = initialDislikes;
         applyFiltersAndSearch();
     });
     
@@ -359,6 +368,8 @@
 
     // User reactions cache (like/dislike)
     let userReactions = $state<Record<string, 'like' | 'dislike' | null>>({});
+    let questionLikesCount = $state<Record<string, number>>({});
+    let questionDislikesCount = $state<Record<string, number>>({});
     let userFollows = $state<Record<string, boolean>>({});
     
     // User following cache (which users the current user follows)
@@ -861,6 +872,8 @@
             // Load reactions for all visible questions (remove duplicates)
             const seen = new Set<string>();
             const reactions: Record<string, 'like' | 'dislike' | null> = {};
+            const likes: Record<string, number> = {};
+            const dislikes: Record<string, number> = {};
             for (const question of allVisible) {
                 if (seen.has(question.id)) continue;
                 seen.add(question.id);
@@ -869,9 +882,15 @@
                 if (response.ok) {
                     const result = await response.json();
                     reactions[question.id] = result.reaction;
+                    if (result.stats) {
+                        likes[question.id] = result.stats.likes;
+                        dislikes[question.id] = result.stats.dislikes;
+                    }
                 }
             }
             userReactions = reactions;
+            questionLikesCount = likes;
+            questionDislikesCount = dislikes;
         } catch (error) {
             console.error('Error loading reactions:', error);
         }
@@ -914,7 +933,7 @@
         }
     }
 
-    // Like/Dislike handler
+    // Like/Dislike handler - works like toggleAnswerReaction
     async function toggleReaction(questionId: string, type: 'like' | 'dislike') {
         if (!user) {
             showToast(t('LoginRequiredForReactions') || 'Beğenmek için giriş yapmalısınız', 'error');
@@ -924,27 +943,27 @@
         const currentReaction = userReactions[questionId] || null;
         const newReaction = currentReaction === type ? null : type;
 
-        // Optimistic update - Svelte 5 requires new object for reactivity
-        userReactions = { ...userReactions, [questionId]: newReaction };
+        // Optimistic update - Svelte 5 requires new objects for reactivity
+        const newUserReactions = { ...userReactions, [questionId]: newReaction };
 
-        // Update local like/dislike counts - calculate properly to avoid race conditions
-        const question = questions.find(q => q.id === questionId);
-        if (question) {
-            let newLikeCount = question.likeCount || 0;
-            let newDislikeCount = question.dislikeCount || 0;
+        // Calculate new counts properly to avoid race conditions
+        let newLikeCount = questionLikesCount[questionId] ?? questions.find(q => q.id === questionId)?.likeCount ?? 0;
+        let newDislikeCount = questionDislikesCount[questionId] ?? questions.find(q => q.id === questionId)?.dislikeCount ?? 0;
 
-            // First remove current reaction from counts
-            if (currentReaction === 'like') newLikeCount--;
-            if (currentReaction === 'dislike') newDislikeCount--;
+        // First remove current reaction from counts
+        if (currentReaction === 'like') newLikeCount--;
+        if (currentReaction === 'dislike') newDislikeCount--;
 
-            // Then add new reaction to counts
-            if (newReaction === 'like') newLikeCount++;
-            if (newReaction === 'dislike') newDislikeCount++;
+        // Then add new reaction to counts
+        if (newReaction === 'like') newLikeCount++;
+        if (newReaction === 'dislike') newDislikeCount++;
 
-            question.likeCount = newLikeCount;
-            question.dislikeCount = newDislikeCount;
-            questions = [...questions];
-        }
+        const newQuestionLikes = { ...questionLikesCount, [questionId]: newLikeCount };
+        const newQuestionDislikes = { ...questionDislikesCount, [questionId]: newDislikeCount };
+
+        userReactions = newUserReactions;
+        questionLikesCount = newQuestionLikes;
+        questionDislikesCount = newQuestionDislikes;
 
         try {
             const response = await fetch(`/api/qa/${questionId}/react`, {
@@ -954,49 +973,44 @@
             });
 
             if (response.ok) {
-                // Use actual stats from API
                 const result = await response.json();
-                if (result.stats && question) {
-                    question.likeCount = result.stats.likes;
-                    question.dislikeCount = result.stats.dislikes;
-                    questions = [...questions];
+                // Update with actual stats from server
+                if (result.stats) {
+                    questionLikesCount[questionId] = result.stats.likes;
+                    questionDislikesCount[questionId] = result.stats.dislikes;
+                    questionLikesCount = { ...questionLikesCount };
+                    questionDislikesCount = { ...questionDislikesCount };
                 }
             } else {
                 // Revert on error
-                userReactions = { ...userReactions, [questionId]: currentReaction };
-                if (question) {
-                    // Revert: remove new reaction, add back current reaction
-                    let revertedLikeCount = question.likeCount || 0;
-                    let revertedDislikeCount = question.dislikeCount || 0;
-
-                    if (newReaction === 'like') revertedLikeCount--;
-                    if (newReaction === 'dislike') revertedDislikeCount--;
-                    if (currentReaction === 'like') revertedLikeCount++;
-                    if (currentReaction === 'dislike') revertedDislikeCount++;
-
-                    question.likeCount = revertedLikeCount;
-                    question.dislikeCount = revertedDislikeCount;
-                    questions = [...questions];
-                }
-                showToast(t('qa.reactionError') || 'İşlem başarısız', 'error');
-            }
-        } catch (error) {
-            // Revert on error
-            userReactions = { ...userReactions, [questionId]: currentReaction };
-            if (question) {
-                // Revert: remove new reaction, add back current reaction
-                let revertedLikeCount = question.likeCount || 0;
-                let revertedDislikeCount = question.dislikeCount || 0;
+                // Calculate reverted counts properly
+                let revertedLikeCount = questionLikesCount[questionId] ?? 0;
+                let revertedDislikeCount = questionDislikesCount[questionId] ?? 0;
 
                 if (newReaction === 'like') revertedLikeCount--;
                 if (newReaction === 'dislike') revertedDislikeCount--;
                 if (currentReaction === 'like') revertedLikeCount++;
                 if (currentReaction === 'dislike') revertedDislikeCount++;
 
-                question.likeCount = revertedLikeCount;
-                question.dislikeCount = revertedDislikeCount;
-                questions = [...questions];
+                userReactions = { ...userReactions, [questionId]: currentReaction };
+                questionLikesCount = { ...questionLikesCount, [questionId]: revertedLikeCount };
+                questionDislikesCount = { ...questionDislikesCount, [questionId]: revertedDislikeCount };
+                showToast(t('qa.reactionError') || 'İşlem başarısız', 'error');
             }
+        } catch (error) {
+            // Revert on error
+            // Calculate reverted counts properly
+            let revertedLikeCount = questionLikesCount[questionId] ?? 0;
+            let revertedDislikeCount = questionDislikesCount[questionId] ?? 0;
+
+            if (newReaction === 'like') revertedLikeCount--;
+            if (newReaction === 'dislike') revertedDislikeCount--;
+            if (currentReaction === 'like') revertedLikeCount++;
+            if (currentReaction === 'dislike') revertedDislikeCount++;
+
+            userReactions = { ...userReactions, [questionId]: currentReaction };
+            questionLikesCount = { ...questionLikesCount, [questionId]: revertedLikeCount };
+            questionDislikesCount = { ...questionDislikesCount, [questionId]: revertedDislikeCount };
             showToast(t('qa.reactionError') || 'İşlem sırasında hata oluştu', 'error');
         }
     }
@@ -1389,10 +1403,7 @@
                                     <Button
                                         variant={userReaction === 'like' ? 'default' : 'ghost'}
                                         size="icon"
-                                        class={cn(
-                                            'h-8 w-8',
-                                            userReaction === 'like' && 'bg-primary text-primary-foreground'
-                                        )}
+                                        class="h-8 w-8 {userReaction === 'like' ? 'text-black dark:text-white' : ''}"
                                         onclick={() => toggleReaction(question.id, 'like')}
                                     >
                                         <ThumbsUp
@@ -1403,17 +1414,13 @@
                                             )}
                                         />
                                     </Button>
-                                    <span class="font-semibold text-sm">{formatNumber(question.likeCount || 0)}</span>
+                                    <span class="font-semibold text-sm">{formatNumber(questionLikesCount[question.id] ?? question.likeCount ?? 0)}</span>
 
                                     <!-- Dislike Button -->
                                     <Button
                                         variant={userReaction === 'dislike' ? 'default' : 'ghost'}
                                         size="icon"
-                                        class={cn(
-                                            'h-8 w-8 transition-all duration-200',
-                                            userReaction === 'dislike' &&
-                                                'bg-red-500/20 text-red-700 dark:bg-red-500/30 dark:text-red-300'
-                                        )}
+                                        class="h-8 w-8 {userReaction === 'dislike' ? 'text-destructive' : ''}"
                                         onclick={() => toggleReaction(question.id, 'dislike')}
                                     >
                                         <ThumbsDown
@@ -1424,7 +1431,7 @@
                                             )}
                                         />
                                     </Button>
-                                    <span class="font-semibold text-sm">{formatNumber(question.dislikeCount || 0)}</span>
+                                    <span class="font-semibold text-sm">{formatNumber(questionDislikesCount[question.id] ?? question.dislikeCount ?? 0)}</span>
 
                                     <!-- Unified Actions Menu -->
                                     <DropdownMenu.Root>
