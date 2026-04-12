@@ -228,15 +228,32 @@
     // Initialize filtered questions when questions prop changes
     $effect(() => {
         filteredQuestions = [...questions];
-        // Initialize question like/dislike counts from server data
-        const initialLikes: Record<string, number> = {};
-        const initialDislikes: Record<string, number> = {};
+        // Initialize question like/dislike counts from server data (only for new questions)
+        // Use untrack to avoid circular dependency
+        const currentLikes = untrack(() => questionLikesCount);
+        const currentDislikes = untrack(() => questionDislikesCount);
+        const currentInitializedIds = untrack(() => initializedQuestionIds);
+
+        const newLikes: Record<string, number> = { ...currentLikes };
+        const newDislikes: Record<string, number> = { ...currentDislikes };
+        const newInitializedIds = new Set(currentInitializedIds);
+        let hasChanges = false;
+
         for (const q of questions) {
-            initialLikes[q.id] = q.likeCount || 0;
-            initialDislikes[q.id] = q.dislikeCount || 0;
+            // Only set initial count if this question hasn't been initialized
+            if (!newInitializedIds.has(q.id)) {
+                newInitializedIds.add(q.id);
+                newLikes[q.id] = q.likeCount || 0;
+                newDislikes[q.id] = q.dislikeCount || 0;
+                hasChanges = true;
+            }
         }
-        questionLikesCount = initialLikes;
-        questionDislikesCount = initialDislikes;
+
+        if (hasChanges) {
+            initializedQuestionIds = newInitializedIds;
+            questionLikesCount = newLikes;
+            questionDislikesCount = newDislikes;
+        }
         applyFiltersAndSearch();
     });
     

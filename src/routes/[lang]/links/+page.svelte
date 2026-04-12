@@ -3,7 +3,7 @@
   import Footer from '$lib/Footer.svelte';
   import { t, getCurrentLocale } from '$lib/stores/i18n.svelte.js';
   import { Globe, Heart, Mail, ExternalLink, MessageCircle } from '@lucide/svelte';
-import { ExternalLinkIcon, LinkIcon } from 'svelte-animate-icons';
+import { LinkIcon } from 'svelte-animate-icons';
   let { data } = $props();
   let links = $derived(data.links || []);
   let groupedLinks = $derived(data.groupedLinks || {});
@@ -74,7 +74,7 @@ import { ExternalLinkIcon, LinkIcon } from 'svelte-animate-icons';
 <Navbar />
 
 <div class="min-h-screen bg-background">
-  <div class="container mx-auto px-4 py-12 max-w-4xl">
+  <div class="container mx-auto px-4 py-12 max-w-2xl">
     <!-- Header -->
     <div class="text-center mb-8">
                         <LinkIcon triggers={{ hover: false }} duration={2000} animationState="loading" size={48} class="text-primary" />
@@ -132,9 +132,7 @@ import { ExternalLinkIcon, LinkIcon } from 'svelte-animate-icons';
                 {/if}
               </div>
 
-              <!-- Arrow -->
-              <ExternalLinkIcon triggers={{ hover: false }} animationState="loading" duration={1400} loop={true}  class="text-muted-foreground group-hover:text-primary transition-colors flex-shrink-0" />
-            </a>
+                          </a>
           {/each}
         </div>
       </div>
