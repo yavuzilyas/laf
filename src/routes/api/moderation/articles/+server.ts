@@ -42,9 +42,44 @@ export async function GET({ locals, url }) {
 			)
 		);
 
+		// Get unique hidden_by IDs for reviewer info (support both snake_case and camelCase)
+		const hiddenByIds = Array.from(
+			new Set(
+				articles
+					.map((article: any) => article.hidden_by || article.hiddenBy)
+					.filter((id: any): id is string => Boolean(id))
+			)
+		);
+
+		// Also get reviewer IDs from pending_review (for approve/reject actions)
+		const pendingReviewIds = Array.from(
+			new Set(
+				articles
+					.map((article: any) => article.pending_review?.reviewerId || article.pendingReview?.reviewerId)
+					.filter((id: any): id is string => Boolean(id))
+			)
+		);
+
+		// Get moderator IDs from metadata.moderationAction (for unhide actions)
+		const moderationActionIds = Array.from(
+			new Set(
+				articles
+					.map((article: any) => article.metadata?.moderationAction?.moderatorId)
+					.filter((id: any): id is string => Boolean(id))
+			)
+		);
+
+		// Combine all reviewer IDs
+		const allReviewerIds = [...new Set([...hiddenByIds, ...pendingReviewIds, ...moderationActionIds])];
+
 		const authorsMap = new Map<
 			string,
-			{ fullName: string | null; nickname: string | null; role: string | null }
+			{ fullName: string | null; username: string | null; nickname: string | null; role: string | null }
+		>();
+
+		const reviewersMap = new Map<
+			string,
+			{ id: string; username: string | null; nickname: string | null; name: string | null; surname: string | null; role: string | null }
 		>();
 
 		if (authorIds.length > 0) {
@@ -63,9 +98,48 @@ export async function GET({ locals, url }) {
 			}
 		}
 
+		// Fetch reviewer info for hidden articles and pending reviews
+		if (allReviewerIds.length > 0) {
+			for (const reviewerId of allReviewerIds) {
+				const reviewerData = await getUsers({ id: reviewerId });
+				const reviewer = reviewerData[0];
+				if (reviewer) {
+					reviewersMap.set(reviewer.id, {
+						id: reviewer.id,
+						username: reviewer.username || null,
+						nickname: reviewer.nickname || null,
+						name: reviewer.name || null,
+						surname: reviewer.surname || null,
+						role: reviewer.role || null
+					});
+				}
+			}
+		}
+
 		const formattedArticles = articles.map((article: any) => {
 			const localeText = ensureLocaleText(article);
 			const authorId = article.author_id?.toString() ?? '';
+			// Support both snake_case and camelCase property names
+			const hiddenById = (article.hidden_by || article.hiddenBy)?.toString() ?? '';
+			const pendingReviewerId = (article.pending_review?.reviewerId || article.pendingReview?.reviewerId)?.toString() ?? '';
+			// Check for unhide action in metadata
+			const moderationAction = article.metadata?.moderationAction;
+			const isUnhidden = moderationAction?.action === 'unhidden';
+			const unhideModeratorId = isUnhidden ? moderationAction?.moderatorId?.toString() : '';
+			
+			// Determine reviewer ID: prioritize hidden_by, then unhide moderator, then pending_review
+			let reviewerId = hiddenById || pendingReviewerId;
+			let actionType = hiddenById ? 'İşlem yapan' : (pendingReviewerId ? 'İnceleyen' : null);
+			let reviewDate = article.hidden_at || article.hiddenAt || article.pending_review?.reviewedAt || article.pendingReview?.reviewedAt || null;
+			
+			// If article is not hidden and was unhidden, show unhide moderator
+			if (!hiddenById && isUnhidden && unhideModeratorId) {
+				reviewerId = unhideModeratorId;
+				actionType = 'Görünür yapan';
+				reviewDate = moderationAction?.timestamp || null;
+			}
+			
+			const reviewer = reviewerId ? reviewersMap.get(reviewerId) : null;
 			return {
 				id: article.id,
 				title: localeText?.title ?? 'Başlıksız',
@@ -82,8 +156,18 @@ export async function GET({ locals, url }) {
 				language: article.default_language ?? (localeText?.language ?? null),
 				createdAt: article.created_at ?? null,
 				updatedAt: article.updated_at ?? null,
-				hidden: !!article.is_hidden,
-				deletedAt: article.deleted_at ?? null
+				hidden: !!(article.is_hidden || article.isHidden),
+				deletedAt: article.deleted_at ?? null,
+				reviewedBy: reviewer ? {
+					id: reviewer.id,
+					username: reviewer.username,
+					nickname: reviewer.nickname,
+					name: reviewer.name,
+					surname: reviewer.surname,
+					role: reviewer.role
+				} : null,
+				reviewedAt: reviewDate,
+				lastActionType: actionType
 			};
 		});
 

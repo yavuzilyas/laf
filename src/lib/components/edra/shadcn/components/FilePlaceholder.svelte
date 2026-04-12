@@ -10,6 +10,7 @@
     import { t } from '$lib/stores/i18n.svelte';
 	import { getFileSizeLimit, isFileSizeValid, getFileSizeError } from '../../config/file-limits.js';
 	import { articleEditor } from '$lib/stores/article-editor.svelte.js';
+	import { showToast } from '$lib/hooks/toast.js';
 
 	let fileInput: HTMLInputElement;
 	let dialogOpen = $state(false);
@@ -28,8 +29,14 @@
 	}
 
 	async function uploadFile(file: File) {
-		if (!isFileSizeValid(file, 'file')) {
-			throw new Error(getFileSizeError(file, 'file'));
+		// Check file size with special 12MB limit for PDF/EPUB files
+		const ext = file.name.split('.').pop()?.toLowerCase() || '';
+		const isLargeAttachment = ext === 'pdf' || ext === 'epub';
+		const maxSize = isLargeAttachment ? 12 * 1024 * 1024 : getFileSizeLimit('file');
+
+		if (file.size > maxSize) {
+			const limitMB = isLargeAttachment ? 12 : Math.round(getFileSizeLimit('file') / (1024 * 1024));
+			throw new Error(`File too large. Max ${limitMB}MB`);
 		}
 
 		const fd = new FormData();
@@ -91,7 +98,7 @@
 				dialogOpen = false;
 				baseUploadsUrl = result.url;
 			} catch (err) {
-				alert(err instanceof Error ? err.message : 'Upload failed');
+				showToast(err instanceof Error ? err.message : 'Upload failed', 'error');
 			} finally {
 				input.value = '';
 			}

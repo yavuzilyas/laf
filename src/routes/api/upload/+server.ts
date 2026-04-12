@@ -68,21 +68,24 @@ export async function POST({ request, locals }) {
     }
   }
   
-  // In environments where File.size is available, enforce 4MB here as well
-  const maxBytes = 4 * 1024 * 1024; // 4MB
+  // Determine file size limit based on file type
+  const ext = (extname(file.name) || '.bin').toLowerCase();
+  const isLargeAttachment = fileType === 'attachment' && (ext === '.pdf' || ext === '.epub');
+  const maxBytes = isLargeAttachment ? 12 * 1024 * 1024 : 4 * 1024 * 1024; // 12MB for PDF/EPUB, 4MB for others
+  const maxSizeMB = isLargeAttachment ? 12 : 4;
+
   const declaredSize = (file as any)?.size as number | undefined;
   if (typeof declaredSize === 'number' && declaredSize > maxBytes) {
-    return json({ error: 'File too large. Max 4MB' }, { status: 400 });
+    return json({ error: `File too large. Max ${maxSizeMB}MB` }, { status: 400 });
   }
 
   const arrayBuffer = await file.arrayBuffer();
   const buffer = Buffer.from(arrayBuffer);
 
   if (buffer.byteLength > maxBytes) {
-    return json({ error: 'File too large. Max 4MB' }, { status: 400 });
+    return json({ error: `File too large. Max ${maxSizeMB}MB` }, { status: 400 });
   }
 
-  const ext = extname(file.name) || '.bin';
   const baseName = file.name.slice(0, file.name.length - ext.length);
   const safeName = slugify(baseName) || 'file';
   const fileName = `${safeName}${ext}`;

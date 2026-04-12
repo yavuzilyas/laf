@@ -1,5 +1,6 @@
 import { browser } from '$app/environment';
 import { getCurrentLocale } from '$lib/stores/i18n.svelte.js';
+import { slugify } from '$lib/utils/slugify.js';
 import type {
 	ArticleData,
 	ArticleTranslation,
@@ -117,12 +118,15 @@ class ArticleEditorStore {
     const translations: Record<string, ArticleTranslation> = {};
     for (const lang of languages) {
       const source = merged.translations[lang] ?? {};
+      const title = source?.title ?? '';
+      // Regenerate slug from title if title exists
+      const slug = title && title.trim() ? slugify(title) : (source?.slug ?? '');
       translations[lang] = {
-        title: source?.title ?? '',
+        title,
         excerpt: source?.excerpt ?? '',
         content: source?.content ?? null,
         language: source?.language || lang,
-        slug: source?.slug ?? ''
+        slug
       };
     }
 
@@ -206,6 +210,12 @@ class ArticleEditorStore {
     }
 
     this._articleData.translations[language][field] = value;
+
+    // Regenerate slug when title is updated
+    if (field === 'title' && value && value.trim()) {
+      this._articleData.translations[language].slug = slugify(value);
+    }
+
     this.markAsChanged();
   }
 
@@ -285,6 +295,14 @@ class ArticleEditorStore {
       if (response.ok) {
         const data = await response.json();
         if (data) {
+          // Regenerate slugs from titles when loading draft
+          if (data.translations) {
+            for (const [lang, translation] of Object.entries<any>(data.translations)) {
+              if (translation?.title && translation.title.trim()) {
+                translation.slug = slugify(translation.title);
+              }
+            }
+          }
           this._articleData = { ...data };
           this._availableLanguages = Object.keys(data.translations);
         }

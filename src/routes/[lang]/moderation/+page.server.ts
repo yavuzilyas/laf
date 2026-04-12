@@ -63,6 +63,7 @@ export const load: PageServerLoad = async ({ locals }) => {
     target: `${user.report_count || 0}`,
     limit: formatDate(user.created_at),
     reviewer: user.moderation_action?.action ?? '—',
+    updatedAt: user.updated_at ? new Date(user.updated_at).toISOString() : null,
     deletionTimestamp:
       user.status === 'silinecek' && user.moderation_action?.timestamp
         ? new Date(user.moderation_action.timestamp).toISOString()
@@ -72,7 +73,8 @@ export const load: PageServerLoad = async ({ locals }) => {
     nickname: user.username || null,
     email: user.email || null,
     phone_number: user.phone_number || null,
-    location: user.location || null
+    location: user.location || null,
+    moderation_action: user.moderation_action || null
   }));
 
   return {

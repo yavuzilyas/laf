@@ -23,14 +23,49 @@ export const GET: RequestHandler = async ({ url, locals }) => {
         const total = await getDonationsTotal({ from_date, to_date });
         const count = await getDonationsCount({ status, from_date, to_date });
         const topDonors = await getTopDonors(10);
-        
-        // Combine donation with user info from getDonations
-        const donationsWithUsers = await Promise.all(donations.map(async donation => {
-            let badges = [];
-            if (donation.user_id) {
-                badges = await getUserBadges(donation.user_id);
+
+        // Get unique reviewed_by IDs for reviewer info
+        const reviewedByIds = Array.from(
+            new Set(
+                donations
+                    .map((d: any) => d.reviewed_by)
+                    .filter((id: any): id is string => Boolean(id))
+            )
+        );
+
+        // Fetch reviewers info
+        const reviewersMap = new Map<
+            string,
+            { id: string; username: string | null; nickname: string | null; name: string | null; surname: string | null; role: string | null }
+        >();
+
+        if (reviewedByIds.length > 0) {
+            for (const reviewerId of reviewedByIds) {
+                const reviewerData = await getUsers({ id: reviewerId });
+                const reviewer = reviewerData[0];
+                if (reviewer) {
+                    reviewersMap.set(reviewer.id, {
+                        id: reviewer.id,
+                        username: reviewer.username || null,
+                        nickname: reviewer.nickname || null,
+                        name: reviewer.name || null,
+                        surname: reviewer.surname || null,
+                        role: reviewer.role || null
+                    });
+                }
             }
-            
+        }
+
+        // Combine donation with user info from getDonations
+        const donationsWithUsers = await Promise.all(donations.map(async (donation: any) => {
+            const badges: any[] = [];
+            if (donation.user_id) {
+                const userBadges = await getUserBadges(donation.user_id);
+                badges.push(...userBadges);
+            }
+
+            const reviewer = donation.reviewed_by ? reviewersMap.get(donation.reviewed_by) : null;
+
             return {
                 id: donation.id,
                 amount: donation.amount,
@@ -46,6 +81,16 @@ export const GET: RequestHandler = async ({ url, locals }) => {
                 donor_name: donation.donor_name,
                 donor_surname: donation.donor_surname,
                 donor_avatar: donation.donor_avatar,
+                updatedAt: donation.updated_at ?? null,
+                reviewedBy: reviewer ? {
+                    id: reviewer.id,
+                    username: reviewer.username,
+                    nickname: reviewer.nickname,
+                    name: reviewer.name,
+                    surname: reviewer.surname,
+                    role: reviewer.role
+                } : null,
+                reviewedAt: donation.reviewed_at ?? null,
                 badges
             };
         }));

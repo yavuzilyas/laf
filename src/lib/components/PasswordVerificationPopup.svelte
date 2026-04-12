@@ -172,11 +172,13 @@ import { BarSpinner } from "$lib/components/spell/bar-spinner";
   {#if !loading}
           <div class="z-60 space-y-2">
 
-            <form on:submit|preventDefault={verifyPassword}>
+            <form on:submit|preventDefault={verifyPassword} autocomplete="on">
               <Input
                 id="password-answer"
+                name="password"
                 type="password"
                 placeholder={t('EnterPassword')}
+                autocomplete="current-password"
                 bind:value={password}
                 bind:this={passwordInput}
                 disabled={loading}

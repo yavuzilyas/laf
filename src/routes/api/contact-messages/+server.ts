@@ -7,7 +7,8 @@ import {
     updateContactMessageStatus,
     respondToContactMessage,
     deleteContactMessage,
-    getContactMessageById
+    getContactMessageById,
+    getUsers
 } from '$db/queries';
 
 // GET /api/contact-messages - Fetch contact messages (moderators/admins only)
@@ -39,8 +40,76 @@ export const GET: RequestHandler = async ({ url, locals }) => {
             getContactMessagesCount(filters)
         ]);
 
+        // Get unique reviewer and responder IDs
+        const reviewerIds = Array.from(
+            new Set(
+                messages
+                    .map((m: any) => m.reviewed_by)
+                    .filter((id: any): id is string => Boolean(id))
+            )
+        );
+
+        const responderIds = Array.from(
+            new Set(
+                messages
+                    .map((m: any) => m.responded_by)
+                    .filter((id: any): id is string => Boolean(id))
+            )
+        );
+
+        // Fetch reviewer and responder info
+        const usersMap = new Map<
+            string,
+            { id: string; username: string | null; nickname: string | null; name: string | null; surname: string | null; role: string | null }
+        >();
+
+        const allUserIds = [...new Set([...reviewerIds, ...responderIds])];
+        if (allUserIds.length > 0) {
+            for (const userId of allUserIds) {
+                const userData = await getUsers({ id: userId });
+                const userInfo = userData[0];
+                if (userInfo) {
+                    usersMap.set(userInfo.id, {
+                        id: userInfo.id,
+                        username: userInfo.username || null,
+                        nickname: userInfo.nickname || null,
+                        name: userInfo.name || null,
+                        surname: userInfo.surname || null,
+                        role: userInfo.role || null
+                    });
+                }
+            }
+        }
+
+        // Transform messages with reviewedBy and respondedBy objects
+        const formattedMessages = messages.map((message: any) => {
+            const reviewer = message.reviewed_by ? usersMap.get(message.reviewed_by) : null;
+            const responder = message.responded_by ? usersMap.get(message.responded_by) : null;
+
+            return {
+                ...message,
+                updatedAt: message.updated_at ?? null,
+                reviewedBy: reviewer ? {
+                    id: reviewer.id,
+                    username: reviewer.username,
+                    nickname: reviewer.nickname,
+                    name: reviewer.name,
+                    surname: reviewer.surname,
+                    role: reviewer.role
+                } : null,
+                respondedBy: responder ? {
+                    id: responder.id,
+                    username: responder.username,
+                    nickname: responder.nickname,
+                    name: responder.name,
+                    surname: responder.surname,
+                    role: responder.role
+                } : null
+            };
+        });
+
         return json({
-            messages,
+            messages: formattedMessages,
             pagination: {
                 page,
                 limit,

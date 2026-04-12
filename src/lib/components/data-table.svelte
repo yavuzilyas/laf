@@ -27,6 +27,7 @@
 	import { Badge } from "$lib/components/ui/badge/index.js";
 	import { Input } from "$lib/components/ui/input/index.js";
 	import * as AlertDialog from "$lib/components/ui/alert-dialog/index.js";
+	import * as Tooltip from "$lib/components/ui/tooltip/index.js";
 	import { Textarea } from "$lib/components/ui/textarea/index.js";
 	import {
 		FlexRender,
@@ -106,6 +107,8 @@
 		hidden: boolean;
 		deletedAt: string | null;
 		pendingStatus?: string | null;
+		reviewedBy?: { id: string; username: string | null; nickname: string | null; name: string | null; surname: string | null; role: string | null } | null;
+		reviewedAt?: string | null;
 	};
 
 	type ArticleRow = {
@@ -123,6 +126,8 @@
 		updatedAt: string | null;
 		hidden: boolean;
 		deletedAt: string | null;
+		reviewedBy?: { id: string; username: string | null; nickname: string | null; name: string | null; surname: string | null; role: string | null } | null;
+		reviewedAt?: string | null;
 	};
 
 	type CommentRow = {
@@ -141,6 +146,8 @@
 		deletedAt: string | null;
 		createdAt: string | null;
 		updatedAt: string | null;
+		reviewedBy?: { id: string; username: string | null; nickname: string | null; name: string | null; surname: string | null; role: string | null } | null;
+		reviewedAt?: string | null;
 	};
 
 	type ReportRow = {
@@ -186,16 +193,15 @@
 		status: "pending" | "read" | "responded" | "archived";
 		reviewed_by?: string | null;
 		reviewed_at?: string | null;
-		reviewer_username?: string;
-		reviewer_nickname?: string;
+		reviewedBy?: { id: string; username: string | null; nickname: string | null; name: string | null; surname: string | null; role: string | null } | null;
 		response?: string;
 		responded_by?: string | null;
 		responded_at?: string | null;
-		responder_username?: string;
-		responder_nickname?: string;
+		respondedBy?: { id: string; username: string | null; nickname: string | null; name: string | null; surname: string | null; role: string | null } | null;
 		honeypot_filled: boolean;
 		created_at: string;
 		updated_at: string;
+		updatedAt?: string | null;
 	};
 
 	let {
@@ -704,7 +710,15 @@
 			header: t('status'),
 			cell: ({ row }) => {
 				const status = row.original?.status;
-				return renderSnippet(UniversalStatusBadge, { status, type: "report" });
+				const reviewedBy = row.original?.reviewedBy;
+				const lastActionBy = reviewedBy ? (reviewedBy.nickname || reviewedBy.username || reviewedBy.name || reviewedBy.id) : null;
+				return renderSnippet(UniversalStatusBadge, {
+					status,
+					type: "report",
+					lastActionBy,
+					lastActionAt: row.original?.reviewedAt,
+					lastActionType: 'İnceleyen'
+				});
 			}
 		},
 		{
@@ -842,7 +856,13 @@
 			header: "Durum",
 			cell: ({ row }) => {
 				const status = row.original?.status;
-				return renderSnippet(UniversalStatusBadge, { status, type: "donation" });
+				const lastActionAt = row.original?.updatedAt ?? row.original?.donation_date;
+				return renderSnippet(UniversalStatusBadge, {
+					status,
+					type: "donation",
+					lastActionAt,
+					lastActionType: 'Son güncelleme'
+				});
 			},
 		},
 		{
@@ -985,7 +1005,28 @@
 			header: "Durum",
 			cell: ({ row }) => {
 				const status = row.original?.status;
-				return renderSnippet(UniversalStatusBadge, { status, type: "contact" });
+				const statusLower = status?.toLowerCase();
+				// For responded status, show responder info; for read/archived status, show reviewer info
+				const respondedBy = row.original?.respondedBy;
+				const reviewedBy = row.original?.reviewedBy;
+				const lastActionBy = statusLower === 'responded'
+					? (respondedBy?.nickname || respondedBy?.username || respondedBy?.name)
+					: statusLower === 'read' || statusLower === 'archived'
+						? (reviewedBy?.nickname || reviewedBy?.username || reviewedBy?.name)
+						: null;
+				const lastActionAt = statusLower === 'responded'
+					? row.original?.responded_at
+					: statusLower === 'read' || statusLower === 'archived'
+						? row.original?.reviewed_at
+						: row.original?.updated_at;
+				const lastActionType = statusLower === 'responded' ? 'Yanıtlayan' : statusLower === 'read' ? 'Okuyan' : 'Son güncelleme';
+				return renderSnippet(UniversalStatusBadge, {
+					status,
+					type: "contact",
+					lastActionBy,
+					lastActionAt,
+					lastActionType
+				});
 			},
 		},
 		{
@@ -1126,7 +1167,16 @@
 			header: t('status'),
 			cell: ({ row }) => {
 				const status = row.original?.status;
-				return renderSnippet(UniversalStatusBadge, { status, type: "comment" });
+				const reviewedBy = row.original?.reviewedBy;
+				const lastActionBy = reviewedBy ? (reviewedBy.nickname || reviewedBy.username || reviewedBy.name) : null;
+				const lastActionAt = reviewedBy ? row.original?.reviewedAt : row.original?.updatedAt;
+				return renderSnippet(UniversalStatusBadge, {
+					status,
+					type: "comment",
+					lastActionBy,
+					lastActionAt,
+					lastActionType: lastActionBy ? 'İşlem yapan' : 'Son güncelleme'
+				});
 			},
 		},
 		{
@@ -1623,7 +1673,18 @@
 					const countdownLabel = getDeletionRemainingLabel(row.original.deletionTimestamp);
 					return renderSnippet(DeletionBadge, { countdownLabel });
 				}
-				return renderSnippet(UniversalStatusBadge, { status, type: "user" });
+				// Check for moderation action info
+				const moderationAction = row.original?.moderation_action;
+				const lastActionBy = moderationAction?.moderatorName || null;
+				const lastActionAt = moderationAction?.timestamp || row.original?.updatedAt;
+				const lastActionType = lastActionBy ? 'İşlem yapan' : 'Son güncelleme';
+				return renderSnippet(UniversalStatusBadge, {
+					status,
+					type: "user",
+					lastActionBy,
+					lastActionAt,
+					lastActionType
+				});
 			},
 		},
 		{
@@ -1781,7 +1842,16 @@
 			cell: ({ row }) => {
 				const article = row.original;
 				const status = article?.hidden ? 'hidden' : article?.status;
-				return renderSnippet(UniversalStatusBadge, { status, type: "article" });
+				const reviewedBy = article?.reviewedBy;
+				const lastActionBy = reviewedBy ? (reviewedBy.nickname || reviewedBy.username || reviewedBy.name) : null;
+				const lastActionAt = reviewedBy ? article?.reviewedAt : article?.updatedAt;
+				return renderSnippet(UniversalStatusBadge, {
+					status,
+					type: "article",
+					lastActionBy,
+					lastActionAt,
+					lastActionType: lastActionBy ? 'İşlem yapan' : 'Son güncelleme'
+				});
 			},
 		},
 		{
@@ -1978,6 +2048,8 @@
 					deletedAt: comment.deletedAt ?? null,
 					createdAt: comment.createdAt ?? null,
 					updatedAt: comment.updatedAt ?? null,
+					reviewedBy: comment.reviewedBy ?? null,
+					reviewedAt: comment.reviewedAt ?? null,
 				})) ?? [];
 				commentsInitialized = true;
 				const commentsTab = views.find((v) => v.id === 'comments');
@@ -2034,6 +2106,8 @@
 						slug: article.slug || article.translations?.[article.defaultLanguage ?? ""]?.slug || null,
 						hidden: article.hidden ?? false,
 						deletedAt: article.deletedAt ?? null,
+						reviewedBy: article.reviewedBy ?? null,
+						reviewedAt: article.reviewedAt ?? null,
 					})) ?? [];
 				// Update the badge count
 				const pendingTab = views.find(v => v.id === 'pending-articles');
@@ -4478,12 +4552,12 @@
 	</a>
 {/snippet}
 
-{#snippet UniversalStatusBadge({ status, type = "default" }: { status: string | null | undefined; type?: "default" | "user" | "article" | "donation" | "report" | "contact" | "comment" })}
+{#snippet UniversalStatusBadge({ status, type = "default", lastActionBy, lastActionAt, lastActionType }: { status: string | null | undefined; type?: "default" | "user" | "article" | "donation" | "report" | "contact" | "comment"; lastActionBy?: string | null; lastActionAt?: string | null; lastActionType?: string | null })}
 	{@const getStatusConfig = (status: string | null | undefined, type: string) => {
 		if (!status) return { variant: "outline", class: "text-muted-foreground", label: t('unknown') ?? "Bilinmeyen", icon: "HelpCircleIcon" };
-		
+
 		const statusLower = status.toLowerCase();
-		
+
 		// Common status configurations
 		const commonConfigs = {
 			pending: { variant: "outline", class: "text-yellow-600 border-yellow-600", label: "Beklemede", icon: "ClockIcon" },
@@ -4495,7 +4569,7 @@
 			draft: { variant: "outline", class: "text-gray-600 border-gray-600", label: "Taslak", icon: "EditIcon" },
 			hidden: { variant: "outline", class: "text-orange-600 border-orange-600", label: "Gizli", icon: "EyeOffIcon" },
 		};
-		
+
 		// Type-specific configurations
 		if (type === "contact") {
 			const contactConfigs: Record<string, { variant: string; class: string; label: string; icon: string }> = {
@@ -4508,7 +4582,7 @@
 				return contactConfigs[statusLower];
 			}
 		}
-		
+
 		if (type === "comment") {
 			const commentConfigs: Record<string, { variant: string; class: string; label: string; icon: string }> = {
 				active: { variant: "outline", class: "text-green-600 border-green-600", label: "Aktif", icon: "CircleCheckFilledIcon" },
@@ -4519,7 +4593,7 @@
 				return commentConfigs[statusLower];
 			}
 		}
-		
+
 		if (type === "user") {
 			if (statusLower === "silinecek") {
 				return { variant: "destructive", class: "", label: getDeletionRemainingLabel?.(null) || "Silinecek", icon: "TimerIcon" };
@@ -4528,18 +4602,18 @@
 				return { variant: "outline", class: "text-green-600 border-green-600", label: "Aktif", icon: "CircleCheckFilledIcon" };
 			}
 		}
-		
+
 		// Return common config if found
 		if (commonConfigs[statusLower]) {
 			return commonConfigs[statusLower];
 		}
-		
+
 		// Default fallback
 		return { variant: "outline", class: "text-muted-foreground", label: status, icon: null };
 	}}
-	
+
 	{@const config = getStatusConfig(status, type)}
-	{@const icon = config.icon === "HelpCircleIcon" ? HelpCircleIcon : 
+	{@const icon = config.icon === "HelpCircleIcon" ? HelpCircleIcon :
 		config.icon === "ClockIcon" ? ClockIcon :
 		config.icon === "CircleCheckFilledIcon" ? CircleCheckFilledIcon :
 		config.icon === "CircleXIcon" ? CircleXIcon :
@@ -4548,12 +4622,28 @@
 		config.icon === "EyeIcon" ? EyeIcon :
 		config.icon === "ArchiveIcon" ? ArchiveIcon :
 		null}
-	
-	<Badge variant={config.variant} class={`px-2 py-1 ${config.class}`}>
-		{#if icon}
-			{@const IconComponent = icon}
-			<IconComponent class="mr-1 h-3 w-3" />
-		{/if}
-		{config.label}
-	</Badge>
+
+	{@const hasLastAction = lastActionBy || lastActionAt}
+	{@const tooltipText = hasLastAction
+		? `${lastActionType || 'Son işlem'}: ${lastActionBy || 'Bilinmiyor'}${lastActionAt ? ` (${formatDateTime(lastActionAt)})` : ''}`
+		: null}
+
+	<Tooltip.Provider>
+		<Tooltip.Root>
+			<Tooltip.Trigger>
+				<Badge variant={config.variant} class={`px-2 py-1 ${config.class} ${hasLastAction ? 'cursor-help' : ''}`}>
+					{#if icon}
+						{@const IconComponent = icon}
+						<IconComponent class="mr-1 h-3 w-3" />
+					{/if}
+					{config.label}
+				</Badge>
+			</Tooltip.Trigger>
+			{#if hasLastAction}
+				<Tooltip.Content>
+					<p>{tooltipText}</p>
+				</Tooltip.Content>
+			{/if}
+		</Tooltip.Root>
+	</Tooltip.Provider>
 {/snippet}

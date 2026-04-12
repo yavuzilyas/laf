@@ -196,10 +196,7 @@
       "other": "Other"
     }
   },
-  "common": {
-    "cancel": "Cancel",
-    "save": "Save"
-  },
+
   "ThePage": "page.",
   "Articles": "Articles",
   "Lexicon": "Lexicon",
@@ -876,7 +873,10 @@
     "clear": "Clear",
     "generate": "Generate",
     "apply": "Apply",
-    "showUsers": "Show Users"
+    "showUsers": "Show Users",
+    "save": "Save",
+    "approve": "Approve",
+    "reject": "Reject"
   },
   "pagination": {
     "showing": "Showing",

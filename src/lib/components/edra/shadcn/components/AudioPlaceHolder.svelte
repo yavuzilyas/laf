@@ -4,6 +4,7 @@
 	import { t } from '$lib/stores/i18n.svelte';
 	import { getFileSizeLimit, isFileSizeValid, getFileSizeError } from '../../config/file-limits.js';
 	import { articleEditor } from '$lib/stores/article-editor.svelte.js';
+	import { showToast } from '$lib/hooks/toast.js';
 
 	const { editor }: NodeViewProps = $props();
 	import Audio from '@lucide/svelte/icons/audio-lines';
@@ -66,7 +67,7 @@
 				editor.chain().focus().setAudio(urlFromServer).run();
 				dialogOpen = false;
 			} catch (err) {
-				alert(err instanceof Error ? err.message : 'Upload failed');
+				showToast(err instanceof Error ? err.message : 'Upload failed', 'error');
 			} finally {
 				input.value = '';
 			}

@@ -733,8 +733,17 @@
     "generate": "Oluştur",
     "apply": "Uygula",
     "clear": "Temizle",
-    "showUsers": "Kullanıcıları Göster"
+    "showUsers": "Kullanıcıları Göster",
+    "approve": "Onayla",
+    "reject": "Reddet"
   },
+  "returnToPending":"Beklemeye al",
+    "unhideArticle":"Göster",
+        "deleteArticle":"Sil",
+            "hideArticle":"Gizle",
+
+
+
   "pagination": {
     "showing": "Gösterilen:",
     "of": "toplam",

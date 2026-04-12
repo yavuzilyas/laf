@@ -83,7 +83,7 @@ LAF sadece bir içerik platformu değil — radikal fikirler için dijital bir s
 | **Editor** | Tiptap ProseMirror |
 | **Real-time** | Liveblocks + Yjs |
 | **Auth** | Argon2 + BIP39 mnemonics |
-| **Storage** | AWS S3 / MinIO |
+| **Storage** | Cloudflare R2 |
 | **Crypto** | Monero RPC integration |
 
 ---

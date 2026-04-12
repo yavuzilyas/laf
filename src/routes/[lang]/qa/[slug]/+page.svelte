@@ -261,13 +261,20 @@
         });
     }
 
-    // Reset local state when data changes (page navigation)
+    // Track last question ID to only reset on navigation
+    let lastQuestionId = $state<string | null>(null);
+
+    // Reset local state only when question ID changes (page navigation)
     $effect(() => {
-        likesCount = Number(data.question?.likeCount) || 0;
-        dislikesCount = Number(data.question?.dislikeCount) || 0;
-        reaction = data.userReaction || null;
-        viewCount = data.question?.viewCount || 0;
-        hasViewed = false;
+        const currentQuestionId = data.question?.id;
+        if (currentQuestionId && currentQuestionId !== lastQuestionId) {
+            lastQuestionId = currentQuestionId;
+            likesCount = Number(data.question?.likeCount) || 0;
+            dislikesCount = Number(data.question?.dislikeCount) || 0;
+            reaction = data.userReaction || null;
+            viewCount = data.question?.viewCount || 0;
+            hasViewed = false;
+        }
 
         // Setup image click handlers after content renders
         tick().then(() => {
@@ -311,7 +318,8 @@
 
         if (!question?.id) return;
 
-        let newReaction: 'like' | 'dislike' | null = reaction === type ? null : type;
+        const currentReaction = reaction;
+        const newReaction: 'like' | 'dislike' | null = reaction === type ? null : type;
 
         // Optimistic UI update
         if (reaction === 'like') likesCount--;
@@ -328,11 +336,18 @@
             });
 
             if (!res.ok) {
+                // Revert on error
+                reaction = currentReaction;
+                if (newReaction === 'like') likesCount--;
+                if (newReaction === 'dislike') dislikesCount--;
+                if (currentReaction === 'like') likesCount++;
+                if (currentReaction === 'dislike') dislikesCount++;
                 showToast(t('qa.reactionError'), 'error');
                 return;
             }
 
             const json = await res.json();
+
             if (json.reaction) {
                 reaction = json.reaction;
             }
@@ -341,7 +356,14 @@
                 dislikesCount = Number(json.stats.dislikes) || 0;
             }
         } catch (e) {
+            // Revert on error
+            reaction = currentReaction;
+            if (newReaction === 'like') likesCount--;
+            if (newReaction === 'dislike') dislikesCount--;
+            if (currentReaction === 'like') likesCount++;
+            if (currentReaction === 'dislike') dislikesCount++;
             console.error('Reaction error:', e);
+            showToast(t('qa.reactionError'), 'error');
         }
     }
 

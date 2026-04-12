@@ -36,10 +36,25 @@ export async function GET({ locals, url }) {
 			)
 		);
 
+		// Get unique hidden_by IDs for reviewer info
+		const hiddenByIds = Array.from(
+			new Set(
+				comments
+					.map((comment: any) => comment.hidden_by)
+					.filter((id: any): id is string => Boolean(id))
+			)
+		);
+
 		// Fetch authors
 		const authorsMap = new Map<
 			string,
 			{ fullName: string | null; nickname: string | null; role: string | null }
+		>();
+
+		// Fetch reviewers
+		const reviewersMap = new Map<
+			string,
+			{ id: string; username: string | null; nickname: string | null; name: string | null; surname: string | null; role: string | null }
 		>();
 
 		if (authorIds.length > 0) {
@@ -62,6 +77,24 @@ export async function GET({ locals, url }) {
 			string,
 			{ title: string | null; slug: string | null }
 		>();
+
+		// Fetch reviewer info for hidden comments
+		if (hiddenByIds.length > 0) {
+			for (const reviewerId of hiddenByIds) {
+				const reviewerData = await getUsers({ id: reviewerId });
+				const reviewer = reviewerData[0];
+				if (reviewer) {
+					reviewersMap.set(reviewer.id, {
+						id: reviewer.id,
+						username: reviewer.username || null,
+						nickname: reviewer.nickname || null,
+						name: reviewer.name || null,
+						surname: reviewer.surname || null,
+						role: reviewer.role || null
+					});
+				}
+			}
+		}
 
 		if (articleIds.length > 0) {
 			for (const articleId of articleIds) {
@@ -88,8 +121,10 @@ export async function GET({ locals, url }) {
 		let formattedComments = comments.map((comment: any) => {
 			const authorId = comment.author_id?.toString() ?? '';
 			const articleId = comment.article_id?.toString() ?? '';
+			const hiddenById = comment.hidden_by?.toString() ?? '';
 			const author = authorsMap.get(authorId);
 			const article = articlesMap.get(articleId);
+			const reviewer = hiddenById ? reviewersMap.get(hiddenById) : null;
 
 			// Determine status
 			let status = 'active';
@@ -114,7 +149,16 @@ export async function GET({ locals, url }) {
 				hidden: !!comment.hidden,
 				deletedAt: comment.deleted_at ?? null,
 				createdAt: comment.created_at ?? null,
-				updatedAt: comment.updated_at ?? null
+				updatedAt: comment.updated_at ?? null,
+				reviewedBy: reviewer ? {
+					id: reviewer.id,
+					username: reviewer.username,
+					nickname: reviewer.nickname,
+					name: reviewer.name,
+					surname: reviewer.surname,
+					role: reviewer.role
+				} : null,
+				reviewedAt: comment.hidden_at ?? null
 			};
 		});
 

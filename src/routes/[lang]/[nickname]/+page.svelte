@@ -434,47 +434,6 @@
         input?.click();
     };
 
-    const validateBannerDimensions = (file: File): Promise<{ valid: boolean; error?: string }> => {
-        return new Promise((resolve) => {
-            const img = new Image();
-            const url = URL.createObjectURL(file);
-            
-            img.onload = () => {
-                URL.revokeObjectURL(url);
-                const { width, height } = img;
-                const aspectRatio = width / height;
-                const minRatio = 16 / 9; // 1.777...
-                
-                // Minimum 1920x1080 kontrolü
-                if (width < 1920 || height < 1080) {
-                    resolve({ 
-                        valid: false, 
-                        error: t('profile.bannerResolutionError') || `Banner en az 1920x1080 piksel olmalıdır (yüklendi: ${width}x${height})` 
-                    });
-                    return;
-                }
-                
-                // Yatay veya daha yatay kontrolü (aspect ratio >= 16:9)
-                if (aspectRatio < minRatio) {
-                    resolve({ 
-                        valid: false, 
-                        error: t('profile.bannerAspectError') || `Banner 16:9 veya daha yatay oranda olmalıdır (yüklendi: ${width}x${height})` 
-                    });
-                    return;
-                }
-                
-                resolve({ valid: true });
-            };
-            
-            img.onerror = () => {
-                URL.revokeObjectURL(url);
-                resolve({ valid: false, error: t('profile.bannerLoadError') || 'Görsel boyutları okunurken hata oluştu' });
-            };
-            
-            img.src = url;
-        });
-    };
-
     const handleBannerUpload = async (event: Event) => {
         const input = event.target as HTMLInputElement;
         const file = input.files?.[0];
@@ -490,14 +449,6 @@
 
         if (!file.type.startsWith('image/')) {
             showToast(t('profile.bannerTypeError') || 'Sadece görsel dosyaları yükleyebilirsiniz', 'error');
-            input.value = "";
-            return;
-        }
-
-        // Boyut kontrolü
-        const dimensionCheck = await validateBannerDimensions(file);
-        if (!dimensionCheck.valid) {
-            showToast(dimensionCheck.error || 'Geçersiz banner boyutları', 'error');
             input.value = "";
             return;
         }
@@ -926,7 +877,7 @@
 <Navbar />
 
 <main class="min-h-screen bg-background">
-    <div class="container mx-auto px-3 py-8 sm:px-4 max-w-3xl">
+    <div class="container mx-auto px-3 py-10 sm:px-4 max-w-6xl">
         <!-- Hidden Profile Warning for Moderators/Admins -->
         {#if profileUser?.is_hidden && isModeratorOrAdmin}
             <div class="bg-orange-500/10 border border-orange-500/30 rounded-lg p-3 flex items-center gap-2 text-orange-700 dark:text-orange-400 mb-4">
@@ -938,7 +889,7 @@
         {/if}
 
         <!-- Profile Header -->
-        <div class="mb-4">
+        <div class="mb-8">
             <ProfileCard
                 profileData={profileFormData}
                 profileUser={profileUser}
@@ -979,7 +930,7 @@
         </div>
 
         <!-- Stats Cards -->
-        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
             <Card>
                 <CardContent class="p-4 text-center">
                     <BookOpen class="w-8 h-8 text-primary mx-auto mb-2" />
@@ -1057,7 +1008,6 @@
                     {itemsPerPage}
                     bind:currentPage={currentPage}
                     onPageChange={handlePageChange}
-                    maxColumns={2}
                 />
             </CardContent>
         </Card>

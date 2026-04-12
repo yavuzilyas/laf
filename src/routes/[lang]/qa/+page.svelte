@@ -371,6 +371,9 @@
     let questionLikesCount = $state<Record<string, number>>({});
     let questionDislikesCount = $state<Record<string, number>>({});
     let userFollows = $state<Record<string, boolean>>({});
+
+    // Track initialized question IDs to avoid resetting counts on revalidation
+    let initializedQuestionIds = $state<Set<string>>(new Set());
     
     // User following cache (which users the current user follows)
     let followedUsers = $state<Record<string, boolean>>({});
@@ -1403,7 +1406,10 @@
                                     <Button
                                         variant={userReaction === 'like' ? 'default' : 'ghost'}
                                         size="icon"
-                                        class="h-8 w-8 {userReaction === 'like' ? 'text-black dark:text-white' : ''}"
+                                        class={cn(
+                                            'h-8 w-8 transition-all duration-200',
+                                            userReaction === 'like' && 'bg-primary text-primary-foreground'
+                                        )}
                                         onclick={() => toggleReaction(question.id, 'like')}
                                     >
                                         <ThumbsUp
@@ -1420,7 +1426,11 @@
                                     <Button
                                         variant={userReaction === 'dislike' ? 'default' : 'ghost'}
                                         size="icon"
-                                        class="h-8 w-8 {userReaction === 'dislike' ? 'text-destructive' : ''}"
+                                        class={cn(
+                                            'h-8 w-8 transition-all duration-200',
+                                            userReaction === 'dislike' &&
+                                                'bg-red-500/20 text-red-700 dark:bg-red-500/30 dark:text-red-300'
+                                        )}
                                         onclick={() => toggleReaction(question.id, 'dislike')}
                                     >
                                         <ThumbsDown

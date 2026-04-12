@@ -10,6 +10,7 @@
     import { t } from '$lib/stores/i18n.svelte';
 	import { getFileSizeLimit, isFileSizeValid, getFileSizeError } from '../../config/file-limits.js';
 	import { articleEditor } from '$lib/stores/article-editor.svelte.js';
+	import { showToast } from '$lib/hooks/toast.js';
 
 	let fileInput: HTMLInputElement;
 	let dialogOpen = $state(false);
@@ -91,7 +92,7 @@
 				baseUploadsUrl = urlFromServer;
 			} catch (err) {
 				console.error('[ImagePlaceholder] Upload error:', err);
-				alert(err instanceof Error ? err.message : 'Upload failed');
+				showToast(err instanceof Error ? err.message : 'Upload failed', 'error');
 			} finally {
 				input.value = '';
 			}
