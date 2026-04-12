@@ -291,6 +291,18 @@ import { onMount, onDestroy } from 'svelte';
     showDraftAlertDialog = false;
   }
 
+  // Sync publishedAtInput with store changes
+  $effect(() => {
+    const storeDate = articleData.publishedAt;
+    if (storeDate) {
+      const dateObj = storeDate instanceof Date ? storeDate : new Date(storeDate);
+      const formatted = dateObj.toISOString().slice(0, 16);
+      if (formatted !== publishedAtInput) {
+        publishedAtInput = formatted;
+      }
+    }
+  });
+
   onMount(async () => {
     resetEditorCaches();
     articleEditor.initialize();
@@ -300,7 +312,7 @@ import { onMount, onDestroy } from 'svelte';
 
     if (mode === 'edit' && article) {
       articleEditor.hydrate(article);
-      // Initialize publishedAt input value
+      // Initialize publishedAt input value from article
       const pubDate = article.publishedAt ? new Date(article.publishedAt) : new Date();
       publishedAtInput = pubDate.toISOString().slice(0, 16);
     } else {
@@ -538,8 +550,8 @@ import { onMount, onDestroy } from 'svelte';
                 <Input
                   id="publishedAt"
                   type="datetime-local"
-                  bind:value={publishedAtInput}
-                  onchange={(e) => {
+                  value={publishedAtInput}
+                  oninput={(e) => {
                     const value = (e.target as HTMLInputElement).value;
                     if (value) {
                       publishedAtInput = value;

@@ -357,7 +357,7 @@ async function cleanupUnusedMedia(existing: any, updated: any, articleId: string
             status: data.status || 'draft',
             default_language: data.defaultLanguage || 'tr',
             author_id: user.id,
-            published_at: data.status === 'published' ? new Date() : data.published_at,
+            published_at: data.publishedAt ? new Date(data.publishedAt) : (data.status === 'published' ? new Date() : null),
             // Store reviewer info if status was changed to pending
             ...(data.status === 'pending' && !isPrivileged && {
                 pending_review: {
