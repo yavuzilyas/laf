@@ -213,16 +213,15 @@ import { onMount, onDestroy } from 'svelte';
   }
 
   $effect(() => {
-    // Track available languages
+    // Track available languages and their translations
+    // EdraEditor now handles content updates internally via its own effect
+    // We just need to track the cache to prevent unnecessary operations
     const langs = [...availableLangs];
     
     for (const lang of langs) {
-      // Read editor instance (reactive, but we only care if it exists)
       const editorInstance = editors[lang];
-      
       if (!editorInstance || editorInstance.isDestroyed) continue;
       
-      // Untrack all data operations to prevent loops
       untrack(() => {
         const translation = articleData.translations[lang];
         if (!translation) return;
@@ -237,16 +236,8 @@ import { onMount, onDestroy } from 'svelte';
           return;
         }
 
-        // Skip if already hydrated with this exact content for this editor
-        if (hydratedContentByLang[lang] === targetSerialized && hydratedEditorByLang[lang] === editorInstance) {
-          return;
-        }
-
-        try {
-          editorInstance.commands.setContent(normalized);
-          const serializedAfterSet = JSON.stringify(editorInstance.getJSON());
-          cacheEditorContent(lang, serializedAfterSet);
-        } catch {
+        // Update cache tracking - EdraEditor handles the actual content setting
+        if (hydratedContentByLang[lang] !== targetSerialized || hydratedEditorByLang[lang] !== editorInstance) {
           cacheEditorContent(lang, targetSerialized);
         }
       });
@@ -883,13 +874,16 @@ import { onMount, onDestroy } from 'svelte';
                             }
                           }}
                         >
-                        <EdraEditor
-                          bind:editor={editors[lang]}
-                          content={translation.content}
-class="h-120 max-h-screen overflow-y-scroll pr-2 pl-6 py-4"                          editable={!isTranslator || !isDefaultLanguage}
-                          onUpdate={onEditorUpdate(lang)}
-                          dir={getLanguageDirection(lang)}
-                        />
+                        {#key activeLanguage + lang}
+                          <EdraEditor
+                            bind:editor={editors[lang]}
+                            content={translation.content}
+                            class="h-120 max-h-screen overflow-y-scroll pr-2 pl-6 py-4"
+                            editable={!isTranslator || !isDefaultLanguage}
+                            onUpdate={onEditorUpdate(lang)}
+                            dir={getLanguageDirection(lang)}
+                          />
+                        {/key}
                         </div>
                       {:else}
                         <div class="p-8 text-center text-muted-foreground">

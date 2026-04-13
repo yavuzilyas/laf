@@ -155,16 +155,6 @@ class ArticleEditorStore {
   setActiveLanguage(language: string) {
     if (this._availableLanguages.includes(language)) {
       this._activeLanguage = language;
-
-      // Initialize translation if not exists
-      if (!this._articleData.translations[language]) {
-        this._articleData.translations[language] = {
-          title: '',
-          excerpt: '',
-          content: null,
-          language: language
-        };
-      }
     }
   }
 
@@ -199,6 +189,11 @@ class ArticleEditorStore {
   }
 
   updateTranslation(language: string, field: keyof ArticleTranslation, value: any) {
+    // Only update if language is available (prevents adding languages unexpectedly)
+    if (!this._availableLanguages.includes(language)) {
+      return;
+    }
+
     if (!this._articleData.translations[language]) {
       this._articleData.translations[language] = {
         title: '',

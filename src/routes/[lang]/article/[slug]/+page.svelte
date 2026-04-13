@@ -619,16 +619,27 @@
 	let viewerBlocksProfile = $state(data.viewerBlocksProfile ?? false);
 
 	// Reactive articles based on current locale
+	// Fallback priority: 1. Current locale, 2. English, 3. Default language, 4. First available
 	const articles = $derived(
 		serverArticles.map((article) => {
 			const translations = article.translations || {};
 			const translationKeys = Object.keys(translations);
 			const currentLocale = getCurrentLocale();
-			const fallbackKey = translationKeys[0] || article.language || article.defaultLanguage || 'tr';
-			const displayLanguage =
-				currentLocale && translations[currentLocale] ? currentLocale : fallbackKey;
+			const defaultKey = article.language || article.defaultLanguage || 'tr';
+			
+			// Determine display language with fallback priority
+			let displayLanguage: string;
+			if (currentLocale && translations[currentLocale]) {
+				displayLanguage = currentLocale;
+			} else if (translations['en']) {
+				displayLanguage = 'en';
+			} else if (translations[defaultKey]) {
+				displayLanguage = defaultKey;
+			} else {
+				displayLanguage = translationKeys[0] || 'tr';
+			}
 
-			const translation = translations[displayLanguage] || translations[fallbackKey] || {};
+			const translation = translations[displayLanguage] || translations[defaultKey] || {};
 
 			return {
 				...article,

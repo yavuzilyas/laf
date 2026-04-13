@@ -144,15 +144,23 @@
               const translations = article.translations || {};
               const availableLanguages = Object.keys(translations);
               
-              // Önce mevcut locale'deki çeviriyi dene
+              // Determine which translation to use:
+              // 1. Current locale if available
+              // 2. Fallback to English if available
+              // 3. Fallback to article.language or first available
               let selectedLang = availableLanguages.find(lang => lang === currentLanguage);
               
-              // Yoksa article.language veya defaultLanguage dene
+              // If current locale not available, try English
+              if (!selectedLang) {
+                selectedLang = availableLanguages.find(lang => lang === 'en');
+              }
+              
+              // If English not available, try article.language
               if (!selectedLang && article.language) {
                 selectedLang = availableLanguages.find(lang => lang === article.language);
               }
               
-              // Hala yoksa ilk mevcut çeviriyi kullan
+              // Fallback to first available translation
               if (!selectedLang) {
                 selectedLang = availableLanguages[0];
               }

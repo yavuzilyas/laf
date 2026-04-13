@@ -86,6 +86,32 @@
 		}
 	});
 
+	// Reactively update editor content when content prop changes
+	// This is needed for tab switching in multi-language article editing
+	$effect(() => {
+		// Track content changes by serializing - this triggers the effect when content changes
+		const contentKey = content !== undefined ? JSON.stringify(content) : '';
+		// Also track editor changes
+		const editorInstance = editor;
+
+		if (editorInstance && !editorInstance.isDestroyed && content !== undefined) {
+			const currentContent = editorInstance.getJSON();
+			let newContent;
+			try {
+				newContent = typeof content === 'string' ? JSON.parse(content) : content;
+			} catch {
+				newContent = content;
+			}
+			// Only update if content is actually different
+			if (JSON.stringify(currentContent) !== JSON.stringify(newContent)) {
+				console.log('[EdraEditor] Content changed, updating editor');
+				editorInstance.commands.setContent(newContent);
+			}
+		}
+		// Use void to ignore the contentKey value (effect returns void)
+		void contentKey;
+	});
+
 	onMount(() => {
 		// Clean up any existing editor with the same ID
 		if (editor && !editor.isDestroyed) {
@@ -138,6 +164,25 @@
 				editor.storage.commentId = commentId;
 				console.log('[EdraEditor] onMount: commentId stored in editor.storage:', commentId);
 			}
+
+			// Refresh content after 5 seconds to ensure proper hydration
+			setTimeout(() => {
+				if (editor && !editor.isDestroyed && content !== undefined) {
+					let currentContent;
+					let newContent;
+					try {
+						currentContent = JSON.stringify(editor.getJSON());
+						newContent = typeof content === 'string' ? content : JSON.stringify(content);
+					} catch {
+						newContent = content;
+					}
+					// Only refresh if content is different
+					if (currentContent !== newContent) {
+						const parsedContent = typeof content === 'string' ? JSON.parse(content) : content;
+						editor.commands.setContent(parsedContent);
+					}
+				}
+			}, 5000);
 
 			// Store the editor instance in a weak map for cleanup
 			if (typeof window !== 'undefined') {

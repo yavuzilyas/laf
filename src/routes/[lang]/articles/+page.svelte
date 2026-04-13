@@ -71,15 +71,24 @@
             const translationKeys = Object.keys(translations);
             const currentLang = getCurrentLocale() || 'tr';
             
-            // Önce mevcut locale'deki çeviriyi dene
+            // Determine which translation to use:
+            // 1. Current locale if available
+            // 2. Fallback to English if available
+            // 3. Fallback to defaultLanguage
+            // 4. Fallback to first available
             let selectedKey = translationKeys.find(key => key === currentLang);
             
-            // Yoksa defaultLanguage'i dene
+            // If current locale not available, try English
+            if (!selectedKey) {
+                selectedKey = translationKeys.find(key => key === 'en');
+            }
+            
+            // If English not available, try defaultLanguage
             if (!selectedKey && article.defaultLanguage) {
                 selectedKey = translationKeys.find(key => key === article.defaultLanguage);
             }
             
-            // Hala yoksa ilk mevcut çeviriyi kullan
+            // Fallback to first available
             if (!selectedKey) {
                 selectedKey = translationKeys[0] || article.defaultLanguage || 'tr';
             }

@@ -2176,11 +2176,24 @@ export const getPopularArticles = async (limit: number = 3, excludeId?: string, 
             const collaboratorIds = row.collaborators || [];
             const collaboratorDetails = await getCollaboratorDetails(collaboratorIds);
             
-            // Determine which translation to use: requested language if available, otherwise default
+            // Determine which translation to use:
+            // 1. Requested language if available
+            // 2. Fallback to English if available
+            // 3. Fallback to default language
             const translations = row.translations || {};
             const defaultLang = row.default_language || 'tr';
             const hasTranslation = language && translations[language] && translations[language].title;
-            const displayLang = hasTranslation ? language : defaultLang;
+            const hasEnglish = translations['en'] && translations['en'].title;
+            
+            let displayLang: string;
+            if (hasTranslation) {
+                displayLang = language!;
+            } else if (hasEnglish) {
+                displayLang = 'en';
+            } else {
+                displayLang = defaultLang;
+            }
+            
             const translation = translations[displayLang] || {};
             
             return {
@@ -2375,11 +2388,24 @@ export const getSimilarArticles = async (articleId: string, category: string, ta
             const collaboratorIds = row.collaborators || [];
             const collaboratorDetails = await getCollaboratorDetails(collaboratorIds);
             
-            // Determine which translation to use: requested language if available, otherwise default
+            // Determine which translation to use:
+            // 1. Requested language if available
+            // 2. Fallback to English if available
+            // 3. Fallback to default language
             const translations = row.translations || {};
             const defaultLang = row.default_language || 'tr';
             const hasTranslation = language && translations[language] && translations[language].title;
-            const displayLang = hasTranslation ? language : defaultLang;
+            const hasEnglish = translations['en'] && translations['en'].title;
+            
+            let displayLang: string;
+            if (hasTranslation) {
+                displayLang = language!;
+            } else if (hasEnglish) {
+                displayLang = 'en';
+            } else {
+                displayLang = defaultLang;
+            }
+            
             const translation = translations[displayLang] || {};
             
             return {

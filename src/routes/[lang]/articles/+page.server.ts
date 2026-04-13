@@ -212,11 +212,21 @@ export const load: PageServerLoad = async ({ locals, params }) => {
     }
 
     const defaultLanguage = a.default_language || Object.keys(translations)[0] || 'tr';
-    // Prioritize current locale translation if available, otherwise fall back to default language
+    // Determine which translation to display:
+    // 1. Current locale if available
+    // 2. Fallback to English if available
+    // 3. Fallback to default language
     const hasLocaleTranslation = currentLocale && translations[currentLocale] && translations[currentLocale].title;
-    const displayLanguage = hasLocaleTranslation
-      ? currentLocale
-      : (translations[defaultLanguage] ? defaultLanguage : Object.keys(translations)[0]);
+    const hasEnglish = translations['en'] && translations['en'].title;
+    
+    let displayLanguage: string;
+    if (hasLocaleTranslation) {
+      displayLanguage = currentLocale;
+    } else if (hasEnglish) {
+      displayLanguage = 'en';
+    } else {
+      displayLanguage = translations[defaultLanguage] ? defaultLanguage : Object.keys(translations)[0];
+    }
 
     const translation = displayLanguage ? translations[displayLanguage] : undefined;
     const title = translation?.title || '';

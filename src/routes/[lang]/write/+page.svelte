@@ -15,7 +15,8 @@
     const currentLocale = getCurrentLocale() || 'tr';
     const seoTitle = $derived(`${t('seo.write.title')} | LAF`);
     const seoDescription = $derived(t('seo.write.description') || 'LAF platformunda makale yazın ve yayınlayın.');
-    const canonicalUrl = $derived(typeof window !== 'undefined' ? window.location.href : `${siteUrl}/${currentLocale}/write`);
+    // Use consistent canonical URL without query params to avoid hydration mismatch
+    const canonicalUrl = `${siteUrl}/${currentLocale}/write`;
 </script>
 
 <svelte:head>
