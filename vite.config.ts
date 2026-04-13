@@ -7,7 +7,7 @@ export default defineConfig({
 	logLevel: 'error',
 	build: {
 		rollupOptions: {
-			maxParallelFileOps: 2
+			maxParallelFileOps: 1
 		},
 		sourcemap: false,
 		minify: 'esbuild'
