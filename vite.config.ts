@@ -5,10 +5,14 @@ export default defineConfig({
 	plugins: [sveltekit()],
 	clearScreen: true,
 	logLevel: 'error',
+	json: {
+		stringify: true
+	},
 	build: {
 		rollupOptions: {
 			maxParallelFileOps: 1
 		},
+		chunkSizeWarningLimit: 2000,
 		sourcemap: false,
 		minify: 'esbuild'
 	},
