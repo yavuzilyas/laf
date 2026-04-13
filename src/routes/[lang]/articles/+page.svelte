@@ -22,7 +22,7 @@
     // SEO Meta computation using centralized utility
     const seoConfig = $derived(getPageSEO('articles'));
     const siteUrl = 'https://laf.international';
-    const currentUrl = $derived(typeof window !== 'undefined' ? window.location.href : `${siteUrl}/${currentLocale}/articles`);
+    const currentUrl = $derived(`${siteUrl}/${currentLocale}/articles`);
 
     const seoMeta = $derived(generateSEOMeta({
         title: seoConfig?.title || 'Makaleler',

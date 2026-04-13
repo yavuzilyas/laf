@@ -105,7 +105,6 @@
   "whyAnarchoCapitalismDescription": "El anarcocapitalismo es una ideología que, durante milenios, ha demostrado su existencia a través de la esclavitud, la humillación, la brutalidad, la degeneración y los genocidios masivos; genera pobreza y miseria para el pueblo, obediencia y inmoralidad en los mecanismos de intereses políticos, y representa un monopolio de violencia del Estado que produce presión institucional, ineficiencia, jerarquías y decadencia sociocultural. Rechaza estas jerarquías y sostiene que una alternativa no solo es posible, sino necesaria. Si no se adopta, y si esta perspectiva profunda que aporta múltiples entendimientos sobre la existencia, la civilización y el futuro de la humanidad no es suficiente para definir nuestra posición en la lucha de clases, entonces ¿qué otra cosa podría cumplir esa función?",
   "contact": "contacto",
   "contactDescription": "Complete el siguiente formulario para ponerte en contacto con nosotros.",
-  "help": "ayuda",
   "PhonePlaceholder": "+90 555 123 4567",
   "LocationPlaceholder": "Estambul, Turquía",
   "contactForm": {
@@ -416,7 +415,8 @@
         "mnemonicRequired": "No se encontró una mnemónica para esta cuenta",
         "maxAttemptsReached": "Has enviado demasiados intentos. Por favor, inténtalo de nuevo más tarde."
       }
-    },
+    }
+  },
     "report": {
       "titles": {
         "report": "Informar",
@@ -894,9 +894,9 @@
       "following": "Seguidos",
       "usersInCity": "Miembros",
       "noUsersInCity": "Aún no hay miembros en esta ciudad.",
-      "saveSuccess": "Guardado con éxito."
-    }
-  },
+      "saveSuccess": "Guardado con éxito.",
+      "matrixUsername": "Nombre de usuario de Matrix"
+    },
   "searchLanguages": "Buscar idiomas",
   "addLanguage": "Agregar idioma",
   "noLanguagesFound": "No se encontró el idioma",
@@ -5105,7 +5105,6 @@
   "princess": "princesa",
   "printer": "impresora",
   "procedure": "procedimiento",
-  "profile": "perfil",
   "prohibited": "prohibido",
   "protein": "proteínas",
   "purchase": "comprar",

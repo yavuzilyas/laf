@@ -318,7 +318,8 @@ export const load: PageServerLoad = async ({ params, locals }: any) => {
 		ban_reason: profileUser.ban_reason,
 		is_hidden: profileUser.is_hidden,
 		phone_number: profileUser.phone_number || '',
-		location: profileUser.location || ''
+		location: profileUser.location || '',
+		matrix_username: profileUser.matrix_username || ''
 	};
 
 		return {

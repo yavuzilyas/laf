@@ -1021,7 +1021,8 @@
     "following": "Abonnements",
     "usersInCity": "Membres",
     "noUsersInCity": "Aucun membre dans cette ville pour le moment.",
-    "saveSuccess": "Enregistré avec succès."
+    "saveSuccess": "Enregistré avec succès.",
+    "matrixUsername": "Nom d'utilisateur Matrix"
   },
   "searchLanguages": "Rechercher des Langues",
   "addLanguage": "Ajouter une Langue",
@@ -4598,7 +4599,6 @@
   "hedgehog": "hérisson",
   "height": "de taille",
   "helicopter": "hélicoptère",
-  "help": "aide",
   "herb": "herbe",
   "hidden": "masquée",
   "high": "élevée",
@@ -4864,7 +4864,6 @@
   "princess": "princesse",
   "printer": "imprimante",
   "procedure": "procédure",
-  "profile": "profil",
   "prohibited": "interdit",
   "protein": "de protéine",
   "purchase": "acheter",

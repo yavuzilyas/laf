@@ -1,0 +1,1 @@
+ALTER TABLE users ADD COLUMN IF NOT EXISTS matrix_username VARCHAR(255);

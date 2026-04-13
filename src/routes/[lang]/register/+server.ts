@@ -85,6 +85,7 @@ export const POST: RequestHandler = async ({ request }) => {
     mnemonic_hash: mnemonicHash,
     phone_number: phoneNumber,
     location,
+    matrix_username: typeof body?.matrix_username === 'string' ? body.matrix_username.trim() : null,
     preferences: {
       phoneNumberVisible: false, // Phone hidden by default
       emailVisible: false // Email hidden by default

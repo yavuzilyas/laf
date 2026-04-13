@@ -96,37 +96,32 @@ export const load: PageServerLoad = async ({ params, locals, cookies }) => {
   const { slug } = params;
   const viewer = (locals as any)?.user ?? null;
 
-  // Try finding by slug across known locales
-  const localesToTry = ['en', 'tr', 'de', 'fr', 'es'];
+  // Try finding by slug across all languages
   let article: any = null;
   let matchedLang: string | null = null;
-
-  for (const lang of localesToTry) {
-    // Determine access level for this user
-    const isModeratorOrAdmin = viewer?.role === 'moderator' || viewer?.role === 'admin';
-    
-    // Try to find article by slug and language
-    const found = await getArticleBySlug(slug, lang, { 
-      includeHidden: isModeratorOrAdmin || (viewer && viewer.id),
-      includeDeleted: false
-    });
-    
-    if (!found) continue;
-    
+  const isModeratorOrAdmin = viewer?.role === 'moderator' || viewer?.role === 'admin';
+  const found = await getArticleBySlug(slug, undefined, { 
+    includeHidden: isModeratorOrAdmin || (viewer && viewer.id),
+    includeDeleted: false
+  });
+  
+  if (found) {
     // Check access permissions
+    let hasAccess = true;
     if (!viewer) {
       // Non-logged in users can only see published articles
-      if (found.status !== 'published') continue;
+      if (found.status !== 'published') hasAccess = false;
     } else if (!isModeratorOrAdmin) {
       // Regular users can see published articles and their own drafts/pending
       const isAuthor = viewer.id === found.author_id;
       const isCollaborator = found.collaborators?.includes(viewer.id);
-      if (found.status !== 'published' && !isAuthor && !isCollaborator) continue;
+      if (found.status !== 'published' && !isAuthor && !isCollaborator) hasAccess = false;
     }
-    
-    article = found;
-    matchedLang = lang;
-    break;
+
+    if (hasAccess) {
+      article = found;
+      matchedLang = found.matchedLang;
+    }
   }
 
   if (!article) {
@@ -134,7 +129,6 @@ export const load: PageServerLoad = async ({ params, locals, cookies }) => {
   }
 
   // Eğer makale gizlenmişse ve kullanıcı sahibi veya moderatör/admin değilse erişim engelle
-  const isModeratorOrAdmin = viewer?.role === 'moderator' || viewer?.role === 'admin';
   if (article.is_hidden && (!viewer || (String(article.author_id) !== String(viewer.id) && !isModeratorOrAdmin))) {
     throw redirect(303, '/403');
   }

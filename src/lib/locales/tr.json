@@ -1020,7 +1020,8 @@
     "following": "Takip Edilenler",
     "usersInCity": "Üyeler",
     "noUsersInCity": "Bu şehirde henüz üye bulunmuyor.",
-    "saveSuccess": "Başarıyla kaydedildi."
+    "saveSuccess": "Başarıyla kaydedildi.",
+    "matrixUsername": "Matrix Kullanıcı Adı"
   },
   "searchLanguages": "Dilleri ara",
   "addLanguage": "Dil Ekle",

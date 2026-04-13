@@ -153,10 +153,16 @@ export const load: PageServerLoad = async ({ locals, url }) => {
             } : null
         }));
 
-        // Count for pagination (all questions for moderators, only published for others)
-        const countQuery = isModerator
+        // Count for pagination
+        let countQuery = isModerator
             ? `SELECT COUNT(*) as total FROM questions q LEFT JOIN question_topics t ON q.topic_id = t.id ${selectedTopic ? 'WHERE t.slug = $1' : ''}`
             : `SELECT COUNT(*) as total FROM questions q LEFT JOIN question_topics t ON q.topic_id = t.id WHERE q.status = 'published' ${selectedTopic ? 'AND t.slug = $1' : ''}`;
+        
+        // Add unanswered filter to count query if needed
+        if (sortBy === 'unanswered') {
+            countQuery += (selectedTopic || !isModerator) ? ' AND q.answer_count = 0' : ' WHERE q.answer_count = 0';
+        }
+
         const countParams = selectedTopic ? [selectedTopic] : [];
         const countResult = await query(countQuery, countParams);
         const total = parseInt(countResult.rows[0]?.total || '0');

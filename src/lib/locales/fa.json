@@ -2581,7 +2581,8 @@
     "removeBanner": "حذف بنر",
     "changeBannerColor": "رنگ بنر",
     "bannerAlt": "بنر نمایه",
-    "saveSuccess": "با موفقیت ذخیره شد."
+    "saveSuccess": "با موفقیت ذخیره شد.",
+    "matrixUsername": "نام کاربری ماتریکس"
   },
   "Fractions": "کسرها",
   "France": "فرانسه",

@@ -1020,7 +1020,8 @@
     "following": "Հետևողները",
     "usersInCity": "Օգտատերեր",
     "noUsersInCity": "Այս քաղաքում դեռ օգտատերեր չեն գոյություն ունենում:",
-    "saveSuccess": "Բաջողությամբ պահպանված է."
+    "saveSuccess": "Բաջողությամբ պահպանված է.",
+    "matrixUsername": "Matrix օգտանուն"
   },
   "searchLanguages": "Որոնել լեզուներ",
   "addLanguage": "Ավելացնել լեզու",

@@ -25,6 +25,7 @@ CREATE TABLE IF NOT EXISTS users (
     mnemonic_attempts INTEGER DEFAULT 0,
     status VARCHAR(50) DEFAULT 'active',
     report_count INTEGER DEFAULT 0,
+    matrix_username VARCHAR(255),
     CONSTRAINT users_mnemonic_attempts_non_negative CHECK (mnemonic_attempts >= 0),
     CONSTRAINT users_status_valid CHECK (status IN ('active', 'suspended', 'banned')),
     CONSTRAINT users_mnemonic_hash_format CHECK (mnemonic_hash IS NULL OR mnemonic_hash ~* '^[a-f0-9]{64}$')

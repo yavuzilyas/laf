@@ -39,6 +39,13 @@ export const POST: RequestHandler = async ({ request, locals }: any) => {
     }
 
     try {
+        const fullUserDoc = await getUsers({ id: userId });
+        const user = fullUserDoc[0];
+        
+        if (!user) {
+            throw error(404, 'User not found');
+        }
+
         const profileData = await request.json();
 
         // Validate and sanitize the data
@@ -51,14 +58,22 @@ export const POST: RequestHandler = async ({ request, locals }: any) => {
             'preferences',
             'phone_number',
             'location',
-            'email'
+            'email',
+            'matrix_username'
         ];
 
         const updateData: any = {};
         
         for (const field of allowedFields) {
             if (profileData[field] !== undefined) {
-                updateData[field] = profileData[field];
+                const value = typeof profileData[field] === 'string' ? profileData[field].trim() : profileData[field];
+                
+                // Treat empty strings as null for optional fields to avoid unique constraint issues
+                if (field === 'email' || field === 'phone_number' || field === 'matrix_username' || field === 'location') {
+                    updateData[field] = value || null;
+                } else {
+                    updateData[field] = value;
+                }
             }
         }
 
@@ -70,33 +85,43 @@ export const POST: RequestHandler = async ({ request, locals }: any) => {
 
         // Handle phone number field mapping (camelCase to snake_case)
         if (profileData.phoneNumber !== undefined) {
-            updateData.phone_number = profileData.phoneNumber;
+            const val = typeof profileData.phoneNumber === 'string' ? profileData.phoneNumber.trim() : profileData.phoneNumber;
+            updateData.phone_number = val || null;
             delete updateData.phoneNumber;
+        }
+
+        // Handle matrix username field mapping (camelCase to snake_case)
+        if (profileData.matrixUsername !== undefined) {
+            const val = typeof profileData.matrixUsername === 'string' ? profileData.matrixUsername.trim() : profileData.matrixUsername;
+            updateData.matrix_username = val || null;
+            delete updateData.matrixUsername;
         }
 
         // Handle email field from form data
         if (profileData.email !== undefined) {
-            updateData.email = profileData.email;
+            const val = typeof profileData.email === 'string' ? profileData.email.trim() : profileData.email;
+            updateData.email = val || null;
         }
 
-        // Handle preferences updates (no longer includes location)
+        // Handle preferences updates
         if (profileData.website !== undefined || 
             profileData.interests !== undefined || profileData.bannerColor !== undefined || 
             profileData.bannerImage !== undefined || profileData.socialLinks !== undefined ||
             profileData.phoneNumberVisible !== undefined || profileData.emailVisible !== undefined) {
             
-            const currentPreferences = locals.user.preferences || {};
+            const currentPreferences = user.preferences || {};
             updateData.preferences = {
                 ...currentPreferences,
-                ...(profileData.website && { website: profileData.website }),
-                ...(profileData.interests && { interests: profileData.interests }),
-                ...(profileData.bannerColor && { bannerColor: profileData.bannerColor }),
-                ...(profileData.bannerImage && { bannerImage: profileData.bannerImage }),
-                ...(profileData.socialLinks && { socialLinks: profileData.socialLinks }),
+                ...(profileData.website !== undefined && { website: profileData.website }),
+                ...(profileData.interests !== undefined && { interests: profileData.interests }),
+                ...(profileData.bannerColor !== undefined && { bannerColor: profileData.bannerColor }),
+                ...(profileData.bannerImage !== undefined && { bannerImage: profileData.bannerImage }),
+                ...(profileData.socialLinks !== undefined && { socialLinks: profileData.socialLinks }),
                 ...(profileData.phoneNumberVisible !== undefined && { phoneNumberVisible: profileData.phoneNumberVisible }),
                 ...(profileData.emailVisible !== undefined && { emailVisible: profileData.emailVisible })
             };
             
+            // Clean up temporary fields
             delete updateData.website;
             delete updateData.interests;
             delete updateData.bannerColor;
@@ -107,10 +132,10 @@ export const POST: RequestHandler = async ({ request, locals }: any) => {
         }
 
         // Update the user document
-        const result = await updateUser(locals.user.id, updateData);
+        const result = await updateUser(user.id, updateData);
 
         if (!result) {
-            throw error(404, 'User not found');
+            throw error(500, 'Failed to update user in database');
         }
 
         return json({ 
@@ -120,6 +145,7 @@ export const POST: RequestHandler = async ({ request, locals }: any) => {
         });
 
     } catch (err) {
-        throw error(500, 'Failed to update profile');
+        console.error('Error in profile update API:', err);
+        throw error(500, 'Failed to update profile: ' + (err instanceof Error ? err.message : String(err)));
     }
-};
+}

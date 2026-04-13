@@ -2580,7 +2580,8 @@
     "removeBanner": "Remove Banner",
     "changeBannerColor": "Banner Color",
     "bannerAlt": "Profile banner",
-    "saveSuccess": "Succesfully saved."
+    "saveSuccess": "Succesfully saved.",
+    "matrixUsername": "Matrix Username"
   },
   "Fractions": "Fractions",
   "France": "France",

@@ -342,6 +342,7 @@
         phoneNumberVisible: profileUser?.preferences?.phoneNumberVisible || false,
         email: profileUser?.email || "",
         emailVisible: profileUser?.preferences?.emailVisible || false,
+        matrixUsername: profileUser?.matrix_username || "",
         socialLinks: profileUser?.preferences?.socialLinks || {
             twitter: "",
             github: "",
@@ -380,8 +381,12 @@
             });
 
             if (response.ok) {
-                isEditing = false;
+                isSaving = false;
                 profileUser = { ...profileUser, ...dataToSave };
+                // Ensure matrix_username is synced if matrixUsername was sent
+                if (dataToSave.matrixUsername !== undefined) {
+                    profileUser.matrix_username = dataToSave.matrixUsername;
+                }
                 // Sync profileFormData with saved data
                 profileFormData = { ...profileFormData, ...dataToSave };
                 showToast(t('profile.saveSuccess') ?? 'Profil başarıyla güncellendi', 'success');

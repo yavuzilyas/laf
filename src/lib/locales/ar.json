@@ -1020,7 +1020,8 @@
     "following": "المتابعون",
     "usersInCity": "الأعضاء",
     "noUsersInCity": "لا يوجد أعضاء في هذه المدينة حتى الآن.",
-    "saveSuccess": "تم الحفظ بنجاح."
+    "saveSuccess": "تم الحفظ بنجاح.",
+    "matrixUsername": "اسم مستخدم Matrix"
   },
   "searchLanguages": "بحث عن اللغات",
   "addLanguage": "إضافة لغة",
@@ -5583,7 +5584,6 @@
   "hedgehog": "قنفذ",
   "height": "الطول",
   "helicopter": "طائرة مروحية",
-  "help": "مساعدة",
   "herb": "عشب",
   "hibiscus": "كركديه",
   "hidden": "مخفي",
@@ -5906,7 +5906,6 @@
   "princess": "أميرة",
   "printer": "طابعة",
   "procedure": "إجراء",
-  "profile": "الصفحة الشخصية",
   "prohibited": "ممنوع",
   "protein": "البروتين",
   "purchase": "شراء",

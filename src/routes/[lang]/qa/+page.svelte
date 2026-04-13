@@ -12,14 +12,6 @@
     beforeNavigate(() => {
         userReactions = {};
     });
-    // Split server-loaded questions by status for moderator tabs
-    $effect(() => {
-        if (isModerator && questions.length > 0) {
-            pendingQuestions = questions.filter((q: any) => q.status === 'pending');
-            answeredQuestions = questions.filter((q: any) => q.status === 'answered');
-            rejectedQuestions = questions.filter((q: any) => q.status === 'rejected');
-        }
-    });
     // File upload
     import { Upload, X, Image as ImageIcon } from '@lucide/svelte';
    
@@ -174,7 +166,6 @@
     let isModerator = $state(data.isModerator);
     let user = $state(data.user);
 
-    let activeTab = $state('all');
     let moderatorTab = $state('pending');
 
     // Question form state
@@ -352,15 +343,32 @@
         if (sortBy === 'newest') {
             result = result.sort((a, b) => new Date(b.createdAt || b.created_at).getTime() - new Date(a.createdAt || a.created_at).getTime());
         } else if (sortBy === 'popular') {
-            result = result.sort((a, b) => ((b.likeCount || b.like_count || 0) + (b.viewCount || b.view_count || 0)) - ((a.likeCount || a.like_count || 0) + (a.viewCount || a.view_count || 0)));
+            result = result.sort((a, b) => {
+                const bLikes = b.likeCount || b.like_count || 0;
+                const aLikes = a.likeCount || a.like_count || 0;
+                if (bLikes !== aLikes) return bLikes - aLikes;
+                
+                const bViews = b.viewCount || b.view_count || 0;
+                const aViews = a.viewCount || a.view_count || 0;
+                if (bViews !== aViews) return bViews - aViews;
+                
+                return new Date(b.createdAt || b.created_at).getTime() - new Date(a.createdAt || a.created_at).getTime();
+            });
         }
         // Note: 'unanswered' is handled by API (answer_count = 0 filter)
         // No client-side filtering needed as API returns only unanswered questions
         
         filteredQuestions = result;
-        pagination.page = 1;
-        pagination.total = result.length;
-        pagination.totalPages = Math.ceil(result.length / pagination.limit);
+        
+        // Update pagination from the current local result if we have client-side filters
+        if (searchQuery || selectedTopicFilter || dateRangeFilter || statusFilter || nicknameFilter || onlyFollowingFilter) {
+            pagination.total = result.length;
+            pagination.totalPages = Math.ceil(result.length / pagination.limit);
+        } else {
+            // No filters - use the pagination data that came with the last refresh/load
+            pagination.total = data.pagination.total;
+            pagination.totalPages = data.pagination.totalPages;
+        }
     }
     
     // Handle sort change - fetch fresh data from API
@@ -739,12 +747,15 @@
             if (response.ok) {
                 const result = await response.json();
                 questions = result.questions;
-                pagination = {
+                const newPagination = {
                     page: result.page,
                     limit: result.limit,
                     total: result.total,
                     totalPages: result.totalPages
                 };
+                pagination = newPagination;
+                // Important: also update data.pagination to prevent applyFiltersAndSearch from using old values
+                data.pagination = newPagination;
             }
         } catch (error) {
             console.error('Error refreshing questions:', error);
@@ -796,50 +807,6 @@
         }
     }
 
-    // Preload questions for a specific tab (hover to load)
-    async function preloadQuestions(sortValue: string) {
-        // Don't preload if already preloading, already loaded, or current tab
-        if (isPreloading[sortValue] || preloadedData[sortValue] || sortBy === sortValue) return;
-        
-        isPreloading[sortValue] = true;
-        try {
-            const params = new URLSearchParams();
-            if (selectedTopicFilter) params.append('topic', selectedTopicFilter);
-            if (searchQuery) params.append('search', searchQuery);
-            params.append('page', '1');
-            params.append('sort', sortValue);
-            
-            const response = await fetch(`/api/qa?${params.toString()}`);
-            if (response.ok) {
-                const result = await response.json();
-                preloadedData[sortValue] = {
-                    questions: result.questions,
-                    pagination: {
-                        page: result.page,
-                        limit: result.limit,
-                        total: result.total,
-                        totalPages: result.totalPages
-                    }
-                };
-            }
-        } catch (error) {
-            console.error(`Error preloading ${sortValue} questions:`, error);
-        } finally {
-            isPreloading[sortValue] = false;
-        }
-    }
-
-    // Handle tab click - use preloaded data if available (for hover preload)
-    function handleTabClick(sortValue: string) {
-        sortBy = sortValue;
-        pagination.page = 1;
-        
-        // Use preloaded data if available
-        if (preloadedData[sortValue]) {
-            questions = preloadedData[sortValue].questions;
-            pagination = preloadedData[sortValue].pagination;
-        }
-    }
 
     const formatDate = (dateString: string) => {
     const date = new Date(dateString);
@@ -1345,7 +1312,6 @@
                     }}
                     activeFilters={{
                         topic: selectedTopicFilter,
-                        sortBy: sortBy,
                         customDateRange: dateRangeFilter,
                         status: statusFilter,
                         nickname: nicknameFilter,
@@ -1353,7 +1319,6 @@
                     }}
                     onFiltersChange={(filters) => {
                         selectedTopicFilter = filters.topic || '';
-                        sortBy = filters.sortBy || 'newest';
                         dateRangeFilter = filters.customDateRange;
                         statusFilter = filters.status || '';
                         nicknameFilter = filters.nickname || '';
@@ -1370,35 +1335,47 @@
                 />
             </div>
 
-            <!-- Sort Tabs -->
-            <Tabs.Root value={sortBy} onValueChange={handleSortChange} class="w-full">
-                <Tabs.List class="grid w-full sm:w-auto grid-cols-3 sm:inline-flex">
-                    <Tabs.Trigger 
-                        value="newest" 
-                        class="gap-2"
-                        onmouseenter={() => preloadQuestions('newest')}
-                    >
-                        <Clock class="w-4 h-4" />
-                        En Yeni
-                    </Tabs.Trigger>
-                    <Tabs.Trigger 
-                        value="popular" 
-                        class="gap-2"
-                        onmouseenter={() => preloadQuestions('popular')}
-                    >
-                        <TrendingUp class="w-4 h-4" />
-                        Popüler
-                    </Tabs.Trigger>
-                    <Tabs.Trigger 
-                        value="unanswered" 
-                        class="gap-2"
-                        onmouseenter={() => preloadQuestions('unanswered')}
-                    >
-                        <HelpCircle class="w-4 h-4" />
-                        Cevapsız
-                    </Tabs.Trigger>
-                </Tabs.List>
-            </Tabs.Root>
+            <!-- Sort and Search Header -->
+            <div class="flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center mb-6">
+                <div class="flex items-center gap-2">
+                    <HelpCircle class="w-6 h-6 text-primary" />
+                    <h1 class="text-2xl font-bold">{t('qa.title') || 'Soru & Cevap'}</h1>
+                </div>
+                
+                <div class="flex items-center gap-2 w-full sm:w-auto">
+                    <Label for="sort-select" class="sr-only">Sırala</Label>
+                    <Select.Root value={sortBy} onValueChange={handleSortChange}>
+                        <Select.Trigger class="w-full sm:w-[180px]">
+                            <Select.Value placeholder="Sıralama" />
+                        </Select.Trigger>
+                        <Select.Content>
+                            <Select.Item value="newest">
+                                <div class="flex items-center gap-2">
+                                    <Clock class="w-4 h-4" />
+                                    <span>En Yeni</span>
+                                </div>
+                            </Select.Item>
+                            <Select.Item value="popular">
+                                <div class="flex items-center gap-2">
+                                    <TrendingUp class="w-4 h-4" />
+                                    <span>Popüler</span>
+                                </div>
+                            </Select.Item>
+                            <Select.Item value="unanswered">
+                                <div class="flex items-center gap-2">
+                                    <HelpCircle class="w-4 h-4" />
+                                    <span>Cevapsız</span>
+                                </div>
+                            </Select.Item>
+                        </Select.Content>
+                    </Select.Root>
+                    
+                    <Button variant="default" onclick={() => showAskDialog = true} class="gap-2 shrink-0">
+                        <MessageCircle class="w-4 h-4" />
+                        Soru Sor
+                    </Button>
+                </div>
+            </div>
 
             <!-- Questions List -->
             {#if filteredQuestions.length === 0}
@@ -1419,7 +1396,7 @@
                 </Card>
             {:else}
                 <div>
-                    {#each filteredQuestions.slice((pagination.page - 1) * pagination.limit, pagination.page * pagination.limit) as question (question.id)}
+                    {#each filteredQuestions as question (question.id)}
                         {@const userReaction = userReactions[question.id] || null}
                         <Card class="rounded-none overflow-hidden p-0 bg-background border-none">
                             <div class="flex">

@@ -1017,7 +1017,8 @@
     "following": "Yên şopkirî",
     "usersInCity": "Endamên",
     "noUsersInCity": "Di vê bajarê de hîn endam nîn in.",
-    "saveSuccess": "Bexşê bi serfirazî hate tomarkirin."
+    "saveSuccess": "Bexşê bi serfirazî hate tomarkirin.",
+    "matrixUsername": "Navê bikarhênerê Matrix"
   },
   "searchLanguages": "Zimanên bigerin",
   "addLanguage": "Zimanê zêde bike",

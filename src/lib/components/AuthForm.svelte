@@ -64,6 +64,7 @@ import { BarSpinner } from "$lib/components/spell/bar-spinner";
   let email = $state("");
   let phoneNumber = $state("");
   let location = $state("");
+  let matrixUsername = $state("");
   let mnemonic: string[] = $state([]);
   let showMnemonicAlert = $state(false);
 
@@ -381,6 +382,7 @@ async function finalizeRegister() {
         email: email || undefined,
         phoneNumber: phoneNumber || undefined,
         location: location || undefined,
+        matrix_username: matrixUsername || null,
         mnemonicPhrase: phrase
       })
     });
@@ -1005,7 +1007,7 @@ async function validateEmail(value: string) {
           </div>
             <div class="grid gap-2">
             <Label for="name-{id}">{t('Name')}</Label>
-            <Input id="name-{id}" placeholder="İsminiz" type="name"  bind:value={name} disabled={loading}
+            <Input id="name-{id}" placeholder={t('Name')} type="name"  bind:value={name} disabled={loading}
               oninput={(e) => { const v = (e.target as HTMLInputElement)?.value || ''; name = v; nameError = validateNameClient(v); }} />
             {#if nameError}
               <p class="text-xs text-red-500">{nameError}</p>
@@ -1040,6 +1042,16 @@ async function validateEmail(value: string) {
               id="location-{id}"
               value={location}
               onChange={(val) => location = val}
+              disabled={loading}
+            />
+      </div>
+      <div class="grid gap-2">
+            <Label for="matrix-{id}">{t('profile.matrixUsername') || 'Matrix Username'}</Label>
+            <Input 
+              id="matrix-{id}" 
+              type="text" 
+              placeholder="@username:matrix.org" 
+              bind:value={matrixUsername} 
               disabled={loading}
             />
       </div>

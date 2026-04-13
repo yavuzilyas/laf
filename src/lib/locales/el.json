@@ -1019,7 +1019,8 @@
     "following": "Ακολουθούμενοι",
     "usersInCity": "Μέλη",
     "noUsersInCity": "Δεν υπάρχουν μέλη στην πόλη αυτή ακόμη.",
-    "saveSuccess": "Αποθηκεύτηκε με επιτυχία."
+    "saveSuccess": "Αποθηκεύτηκε με επιτυχία.",
+    "matrixUsername": "Όνομα χρήστη Matrix"
   },
   "searchLanguages": "Αναζήτηση γλωσσών",
   "addLanguage": "Προσθήκη γλώσσας",
@@ -5530,7 +5531,6 @@
   "hedgehog": "σκαντζόχοιρος",
   "height": "Ύψος",
   "helicopter": "ελικόπτερο",
-  "help": "βοήθεια",
   "herb": "βότανο",
   "hibiscus": "ιβίσκος",
   "hidden": "κρυμμένη",
@@ -5835,7 +5835,6 @@
   "princess": "πριγκίπισσα",
   "printer": "εκτυπωτής",
   "procedure": "επέμβαση",
-  "profile": "προφίλ",
   "prohibited": "απαγορεύεται",
   "protein": "Πρωτεΐνες",
   "purchase": "αγορά",

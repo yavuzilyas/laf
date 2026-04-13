@@ -54,7 +54,16 @@ export async function GET({ url, locals }: RequestEvent) {
             paramIndex++;
         }
 
-        // Count query for pagination
+        // Get sort parameter
+        const sortBy = url.searchParams.get('sort') || 'newest';
+        let orderBy = 'q.created_at DESC';
+        
+        // Unanswered filter logic - needs to be before count query
+        if (sortBy === 'unanswered') {
+            whereClause = whereClause ? `${whereClause} AND q.answer_count = 0` : `WHERE q.answer_count = 0`;
+        }
+
+        // Count query for pagination (now with correct whereClause for unanswered)
         const countQuery = `SELECT COUNT(*) as total FROM questions q ${whereClause}`;
         const countResult = await query(countQuery, params);
         const total = parseInt(countResult.rows[0]?.total || '0');
@@ -62,15 +71,10 @@ export async function GET({ url, locals }: RequestEvent) {
         // Main query with pagination
         const offset = (page - 1) * limit;
         
-        // Get sort parameter
-        const sortBy = url.searchParams.get('sort') || 'newest';
-        let orderBy = 'q.created_at DESC';
         if (sortBy === 'popular') {
-            orderBy = 'q.like_count DESC, q.view_count DESC';
+            orderBy = 'q.like_count DESC, q.view_count DESC, q.created_at DESC';
         } else if (sortBy === 'unanswered') {
             orderBy = 'q.created_at DESC';
-            // Filter to only show questions with no answers
-            whereClause = whereClause ? `${whereClause} AND q.answer_count = 0` : `WHERE q.answer_count = 0`;
         }
         
         const mainQuery = `

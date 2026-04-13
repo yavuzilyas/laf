@@ -207,7 +207,8 @@ export const searchUsers = async (searchQuery: string, limit: number = 20) => {
             surname ILIKE $1 OR
             email ILIKE $1 OR
             phone_number ILIKE $1 OR
-            location ILIKE $1
+            location ILIKE $1 OR
+            matrix_username ILIKE $1
         )
         AND (status IS NULL OR status != 'banned')
         ORDER BY 
@@ -229,8 +230,8 @@ export const searchUsers = async (searchQuery: string, limit: number = 20) => {
 export const createUser = async (userData: any) => {
     const id = uuidv4();
     const sql = `
-        INSERT INTO users (id, username, email, password_hash, name, surname, mnemonic_hash, preferences, phone_number, location)
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+        INSERT INTO users (id, username, email, password_hash, name, surname, mnemonic_hash, preferences, phone_number, location, matrix_username)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
         RETURNING *
     `;
     const result = await query(sql, [
@@ -243,13 +244,18 @@ export const createUser = async (userData: any) => {
         userData.mnemonic_hash || null,
         JSON.stringify(userData.preferences || {}),
         userData.phone_number || null,
-        userData.location || null
+        userData.location || null,
+        userData.matrix_username || null
     ]);
     return result.rows[0];
 };
 
 export const updateUser = async (id: string, updates: any) => {
-    const fields = Object.keys(updates).filter(key => key !== 'id');
+    if (!id) throw new Error('User ID is required for update');
+    
+    const fields = Object.keys(updates).filter(key => key !== 'id' && key !== '_id');
+    if (fields.length === 0) return null;
+
     const setClause = fields.map((key, index) => `${key} = $${index + 2}`).join(', ');
     const values = fields.map(key => {
         if (key === 'preferences' || key === 'moderation_action') return JSON.stringify(updates[key]);
@@ -257,9 +263,14 @@ export const updateUser = async (id: string, updates: any) => {
         return updates[key];
     });
     
-    const sql = `UPDATE users SET ${setClause}, updated_at = NOW() WHERE id = $1 RETURNING *`;
-    const result = await query(sql, [id, ...values]);
-    return result.rows[0];
+    try {
+        const sql = `UPDATE users SET ${setClause}, updated_at = NOW() WHERE id = $1 RETURNING *`;
+        const result = await query(sql, [id, ...values]);
+        return result.rows[0];
+    } catch (error) {
+        console.error('Error in updateUser query:', error);
+        throw error;
+    }
 };
 
 export const updateUserAuthFields = async (id: string, authUpdates: any) => {
@@ -482,10 +493,10 @@ export const getArticles = async (filters: any = {}) => {
     }));
 };
 
-// Get article by slug and language
-export const getArticleBySlug = async (slug: string, language: string, options: { includeHidden?: boolean; includeDeleted?: boolean } = {}) => {
-    const conditions = [`a.translations->'${language}'->>'slug' = $1`];
+// Get article by slug - can search in specific language or across all languages
+export const getArticleBySlug = async (slug: string, language?: string, options: { includeHidden?: boolean; includeDeleted?: boolean } = {}) => {
     const params: any[] = [slug];
+    const conditions: string[] = [];
     
     if (!options.includeDeleted) {
         conditions.push('a.deleted_at IS NULL');
@@ -494,18 +505,31 @@ export const getArticleBySlug = async (slug: string, language: string, options: 
         conditions.push('a.is_hidden = FALSE');
     }
     
+    const whereClause = conditions.length > 0 ? 'AND ' + conditions.join(' AND ') : '';
+
     const sql = `
         SELECT a.*, 
+               t.matched_lang,
                u.username as author_name, 
                u.avatar_url as author_avatar,
                u.name as author_full_name,
                u.surname as author_surname,
-               u.nickname as author_nickname
+               u.nickname as author_nickname,
+               u.role as author_role
         FROM articles a
         JOIN users u ON a.author_id = u.id
-        WHERE ${conditions.join(' AND ')}
+        CROSS JOIN LATERAL (
+            SELECT key AS matched_lang 
+            FROM jsonb_each(a.translations) 
+            WHERE value->>'slug' = $1
+            ${language ? `AND key = $2` : ''}
+            LIMIT 1
+        ) t
+        WHERE 1=1 ${whereClause}
         LIMIT 1
     `;
+    
+    if (language) params.push(language);
     
     const result = await query(sql, params);
     if (result.rows.length === 0) return null;
@@ -521,7 +545,8 @@ export const getArticleBySlug = async (slug: string, language: string, options: 
         defaultLanguage: row.default_language,
         likesCount: row.likes_count,
         commentsCount: row.comments_count,
-        isHidden: row.is_hidden
+        isHidden: row.is_hidden,
+        matchedLang: row.matched_lang
     };
 };
 

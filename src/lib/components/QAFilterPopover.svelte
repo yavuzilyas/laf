@@ -18,7 +18,6 @@
 
   interface ActiveFilters {
     topic?: string;
-    sortBy?: string;
     customDateRange?: any;
     status?: string;
     nickname?: string;
@@ -44,7 +43,6 @@
 
   const defaultFilters: ActiveFilters = {
     topic: "",
-    sortBy: "newest",
     customDateRange: undefined,
     status: "",
     nickname: "",
@@ -69,7 +67,6 @@
 
   const hasActiveFilters = $derived(
     filters.topic || 
-    filters.sortBy !== 'newest' ||
     (filters.customDateRange && (filters.customDateRange.start || filters.customDateRange.end)) ||
     filters.status ||
     filters.nickname ||
@@ -79,7 +76,6 @@
   const getActiveFilterCount = $derived(() => {
     let count = 0;
     if (filters.topic) count++;
-    if (filters.sortBy && filters.sortBy !== 'newest') count++;
     if (filters.customDateRange && (filters.customDateRange.start || filters.customDateRange.end)) count++;
     if (filters.status) count++;
     if (filters.nickname) count++;
