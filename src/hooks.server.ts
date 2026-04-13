@@ -5,7 +5,17 @@ import { redirect } from '@sveltejs/kit';
 start_pg().then(() : void => { } ).catch( (err) : void => { } );
 
 // Supported locales
-const SUPPORTED_LOCALES = ['tr', 'en'];
+const localeModules = import.meta.glob('/src/lib/locales/*.json');
+const SUPPORTED_LOCALES = Object.keys(localeModules).map(path => {
+	const match = path.match(/\/([^/]+)\.json$/);
+	return match ? match[1] : '';
+}).filter(Boolean);
+
+// Fallback just in case
+if (SUPPORTED_LOCALES.length === 0) {
+	SUPPORTED_LOCALES.push('tr', 'en');
+}
+
 const DEFAULT_LOCALE = 'tr';
 
 function getLocaleFromRequest(event: any): string {
@@ -95,6 +105,14 @@ export const handle: Handle = async ({ event, resolve }) => {
   }
 
   return resolve(event, {
-    bodySizeLimit: 4 * 1024 * 1024 // 4MB
+    bodySizeLimit: 4 * 1024 * 1024, // 4MB
+    transformPageChunk: ({ html }) => {
+      const locale = event.locals.locale || DEFAULT_LOCALE;
+      const rtlLocales = ['ar', 'he', 'fa', 'ur', 'ps', 'sd', 'yi'];
+      const dir = rtlLocales.includes(locale) ? 'rtl' : 'ltr';
+      return html
+        .replace(/%lang%/g, locale)
+        .replace(/%dir%/g, dir);
+    }
   });
 };

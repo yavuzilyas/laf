@@ -562,3 +562,43 @@ input[type='checkbox'] {
 .tiptap iframe {
 	aspect-ratio: 16 / 9;
 }
+/* RTL Support Overrides */
+.tiptap[dir="rtl"],
+.edra-editor[dir="rtl"] {
+	text-align: right;
+}
+
+.tiptap[dir="rtl"] .is-empty::before {
+	float: right;
+}
+
+.tiptap[dir="rtl"] ul,
+.tiptap[dir="rtl"] ol {
+	padding: 0 1rem;
+	margin: 0.5rem 0.4rem 0.5rem 1rem;
+}
+
+.tiptap[dir="rtl"] blockquote {
+	padding-left: 0;
+	padding-right: 0.75rem;
+}
+
+.tiptap[dir="rtl"] blockquote::before {
+	left: auto;
+	right: 0;
+}
+
+.tiptap[dir="rtl"] table td,
+.tiptap[dir="rtl"] table th {
+	text-align: right;
+}
+
+.tiptap[dir="rtl"] .drag-handle {
+	left: auto;
+	right: -24px;
+}
+
+.tiptap[dir="rtl"] .drag-handle-component {
+	left: auto;
+	right: -24px;
+}

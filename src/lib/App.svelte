@@ -129,10 +129,9 @@ import { cn } from "$lib/utils";
     <!-- Three Column Layout -->
     <div class="grid gap-12 items-start">
       
-      <!-- Who We Are Column -->
       <div class="md:max-w-2xl m-auto">
-        <h2 class="text-xl font-bold mb-1 text-primary">{t('whoWeAre')}</h2>
-        <p class="text-base text-foreground leading-relaxed">
+        <h2 class="text-xl font-bold mb-1 text-primary text-start">{t('whoWeAre')}</h2>
+        <p class="text-base text-foreground leading-relaxed text-start">
           {t('whoWeAreDescription')}
           
         </p>
@@ -158,8 +157,8 @@ import { cn } from "$lib/utils";
 
       <!-- Why Anarcho Capitalism Column -->
       <div class="md:max-w-2xl m-auto">
-        <h2 class="text-xl font-bold mb-1 text-primary">{t('whyAnarchoCapitalism')}</h2>
-        <p class="text-base text-foreground leading-relaxed">
+        <h2 class="text-xl font-bold mb-1 text-primary text-start">{t('whyAnarchoCapitalism')}</h2>
+        <p class="text-base text-foreground leading-relaxed text-start">
           {t('whyAnarchoCapitalismDescription')}
         </p>
 
@@ -167,8 +166,8 @@ import { cn } from "$lib/utils";
       <img class="w-full md:w-1/2 h-auto mx-auto" src="An_Austrian_School_crest_-_Grey1.png" alt="An Austrian School crest" />
       <!-- Our Goal Column -->
       <div class="md:max-w-2xl m-auto mb-6">
-        <h2 class="text-xl font-bold mb-1 text-primary">{t('ourGoal')}</h2>
-        <p class="text-base text-foreground leading-relaxed">
+        <h2 class="text-xl font-bold mb-1 text-primary text-start">{t('ourGoal')}</h2>
+        <p class="text-base text-foreground leading-relaxed text-start">
           {t('ourGoalDescription')}
         </p>
       </div>

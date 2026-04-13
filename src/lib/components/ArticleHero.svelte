@@ -4,6 +4,7 @@
   import { Badge } from "$lib/components/ui/badge";
   import { t } from '$lib/stores/i18n.svelte.ts';
   import { Calendar, Clock, User, Eye, MessageCircle, Heart, ArrowRight } from "@lucide/svelte";
+  import { getLanguageDirection } from "$lib/data/languages";
 
   interface Article {
     id: string;
@@ -23,6 +24,8 @@
     likes: number;
     featured?: boolean;
     coverImage?: string;
+    language?: string;
+    defaultLanguage?: string;
   }
 
   let {
@@ -54,7 +57,9 @@
     "relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary/10 to-secondary/10",
     "min-h-[500px] flex items-end",
     className
-  )} {...restProps}>
+  )} 
+  dir={getLanguageDirection(article.language || article.defaultLanguage || 'tr')}
+  {...restProps}>
     {#if article.coverImage}
       <div class="absolute inset-0">
         <img 
@@ -144,7 +149,9 @@
   <section class={cn(
     "space-y-6 py-12 text-center",
     className
-  )} {...restProps}>
+  )} 
+  dir={getLanguageDirection(article.language || article.defaultLanguage || 'tr')}
+  {...restProps}>
     <div class="flex justify-center">
       <Badge variant="secondary" class="text-sm">
         {article.category}
@@ -198,7 +205,9 @@
     "overflow-hidden rounded-2xl border bg-card text-card-foreground shadow-sm",
     "lg:grid lg:grid-cols-2 lg:gap-8",
     className
-  )} {...restProps}>
+  )} 
+  dir={getLanguageDirection(article.language || article.defaultLanguage || 'tr')}
+  {...restProps}>
     {#if article.coverImage}
       <div class="relative overflow-hidden lg:order-2">
         <img 

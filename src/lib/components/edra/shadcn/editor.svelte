@@ -38,6 +38,7 @@
 	import Link from './menus/Link.svelte';
 	import slashcommand from '../extensions/slash-command/slashcommand.js';
 	import SlashCommandList from './components/SlashCommandList.svelte';
+	import { i18n } from '$lib/stores/i18n.svelte.js';
 
 	const lowlight = createLowlight(all);
 
@@ -55,11 +56,27 @@
 		autofocus = false,
 		class: className,
 		id = editorId,
-		commentId = null
-	}: EdraEditorProps & { id?: string; commentId?: string | null } = $props();
+		commentId = null,
+		dir = null
+	}: EdraEditorProps & { id?: string; commentId?: string | null; dir?: 'rtl' | 'ltr' | null } = $props();
+
+	const effectiveDir = $derived(dir || i18n.dir);
 
 	// Provide commentId to child components via context and editor storage
 	setContext('edraCommentId', () => commentId);
+
+	// Reactively update editor attributes when direction changes
+	$effect(() => {
+		if (editor && !editor.isDestroyed) {
+			editor.setOptions({
+				editorProps: {
+					attributes: {
+						dir: effectiveDir
+					}
+				}
+			});
+		}
+	});
 
 	// Reactively update editor.storage when commentId changes
 	$effect(() => {
@@ -109,7 +126,8 @@
 					editorProps: {
 						attributes: {
 							'data-editor-id': id,
-							class: `edra-editor tiptap ${id}`
+							class: `edra-editor tiptap ${id}`,
+							dir: effectiveDir
 						}
 					}
 				}
@@ -164,5 +182,6 @@
 			focusEditor(editor, event);
 		}
 	}}
+	dir={effectiveDir}
 	class={cn('edra-editor selection:bg-primary selection:text-primary-foreground h-full w-full cursor-auto *:outline-none', className)}
 ></div>

@@ -280,7 +280,7 @@ import { ScrollProgress } from "$lib/components/magic/scroll-progress";
  </Tooltip.Root>
 </Tooltip.Provider>
 
-      <div class="py-2 max-w-50 sm:p-0 sm:max-w-full overflow-auto flex text-secondary-foreground space-x-4 text-xs">
+      <div class="py-2 max-w-50 sm:p-0 sm:max-w-full overflow-auto flex text-secondary-foreground gap-4 text-xs">
         {#each menu as item}
 
             <Tooltip.Provider>

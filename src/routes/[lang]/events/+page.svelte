@@ -364,7 +364,7 @@
         breadcrumb: {
             '@type': 'BreadcrumbList',
             itemListElement: [
-                { '@type': 'ListItem', position: 1, name: 'Ana Sayfa', item: siteUrl },
+                { '@type': 'ListItem', position: 1, name: t('seo.homeTab') || 'Home', item: siteUrl },
                 { '@type': 'ListItem', position: 2, name: t('events.title'), item: canonicalUrl }
             ]
         }

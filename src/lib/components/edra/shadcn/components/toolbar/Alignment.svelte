@@ -3,6 +3,7 @@
 	import commands from '../../../commands/toolbar-commands.js';
 	import type { Editor } from '@tiptap/core';
 	import AlignLeft from '@lucide/svelte/icons/align-left';
+	import AlignRight from '@lucide/svelte/icons/align-right';
 	import EdraToolTip from '../EdraToolTip.svelte';
 	import ChevronDown from '@lucide/svelte/icons/chevron-down';
 	import { buttonVariants } from '$lib/components/ui/button/index.js';
@@ -23,7 +24,7 @@
 	const AlignMentIcon = $derived.by(() => {
 		const a = alignments.find((alignment) => alignment.isActive?.(editor));
 		if (a) return a.icon;
-		else return AlignLeft;
+		else return t.dir === 'rtl' ? AlignRight : AlignLeft;
 	});
 </script>
 

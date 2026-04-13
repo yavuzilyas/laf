@@ -19,7 +19,7 @@ export interface SEOProps {
  * Generate full SEO meta tags for any page
  */
 export function generateSEOMeta(props: SEOProps) {
-	const siteName = 'LAF - Liberteryen Anarşist Faaliyet';
+	const siteName = i18n.t('seo.home.title') || 'LAF - Libertarian Anarchist Foundation';
 	const siteUrl = 'https://laf.international'; // Production URL
 	const defaultImage = '/lafpp.png'; // Fallback OG image
 	const siteSuffix = ' - LAF';
@@ -171,82 +171,16 @@ export function generateBreadcrumbs(items: { name: string; url: string }[]) {
 	};
 }
 
+import { i18n } from '$lib/stores/i18n.svelte';
+
 /**
  * Get page-specific SEO content
  */
 export function getPageSEO(page: 'home' | 'articles' | 'profile' | 'article' | 'events' | 'help' | 'login' | 'register' | 'forgot' | 'links' | 'write' | 'qa' | 'moderation') {
-	const seoContent: Record<string, { title: string; description: string; keywords?: string; noindex?: boolean }> = {
-		home: {
-			title: 'Liberteryen Anarşist Faaliyet',
-			description: 'Anarşist, liberteryen eylem ve entelektüel bilgi paylaşım platformu. Özgürlük, bireysel haklar ve anarko-kapitalizm üzerine makaleler ve analizler.',
-			keywords: 'anarşizm, liberteryen, özgürlük, bireysel haklar'
-		},
-		articles: {
-			title: 'Makaleler',
-			description: 'Liberter anarşizm, özgürlük ve bireysel haklar üzerine makalelerimizi keşfedin. Felsefe, iktisat, devlet teorisi ve daha fazlası.',
-			keywords: 'makaleler, anarşizm, liberteryen, felsefe, iktisat'
-		},
-		article: {
-			title: 'Makale',
-			description: 'LAF platformunda yayınlanan makaleyi okuyun.',
-			keywords: 'makale, anarşizm, liberteryen, özgürlük'
-		},
-		profile: {
-			title: 'Profil',
-			description: 'LAF kullanıcı profili ve makaleleri.',
-			keywords: 'profil, kullanıcı, yazar'
-		},
-		events: {
-			title: 'Faaliyetler ve Duyurular',
-			description: 'LAF etkinlikleri, seminerleri ve duyuruları. Türkiye haritasından şehirleri seçerek yaklaşan ve geçmiş etkinlikleri görüntüleyin.',
-			keywords: 'etkinlik, seminer, duyuru, anarşist etkinlikler, liberteryen buluşma'
-		},
-		help: {
-			title: 'Yardım Merkezi',
-			description: 'LAF platformu kullanımı hakkında sıkça sorulan sorular ve yardım dokümanları.',
-			keywords: 'yardım, sıkça sorulan sorular, nasıl kullanılır, rehber'
-		},
-		login: {
-			title: 'Giriş Yap',
-			description: 'LAF hesabınıza giriş yapın. Bireysel hakları savunan liberteryen anarşist topluluğumuza katılın.',
-			keywords: 'giriş, üye girişi, hesap erişimi',
-			noindex: true
-		},
-		register: {
-			title: 'Kayıt Ol',
-			description: "LAF'a üye olun ve liberteryen anarşist topluluğumuza katılın. Bireysel özgürlükleri savunan bağımsız platformumuzda yerinizi alın.",
-			keywords: 'kayıt, üye ol, hesap oluştur',
-			noindex: true
-		},
-		forgot: {
-			title: 'Şifremi Unuttum',
-			description: 'LAF hesap şifrenizi sıfırlayın. Mnemonic kelimelerinizle güvenli şekilde şifre yenileyin.',
-			keywords: 'şifre sıfırlama, hesap kurtarma',
-			noindex: true
-		},
-		links: {
-			title: 'Bağlantılar',
-			description: 'LAF sosyal medya hesapları ve iletişim bağlantıları. Telegram, Discord ve diğer platformlarda bizi takip edin.',
-			keywords: 'sosyal medya, telegram, discord, iletişim'
-		},
-		write: {
-			title: 'Makale Yaz',
-			description: 'LAF platformunda makale yazın ve yayınlayın. Özgürlük, anarşizm ve liberteryenizm hakkında düşüncelerinizi paylaşın.',
-			keywords: 'makale yaz, içerik oluştur, blog yaz',
-			noindex: true
-		},
-		qa: {
-			title: 'Soru & Cevap',
-			description: 'LAF Soru & Cevap platformunda anarşizm, liberteryenizm ve özgürlük hakkında sorular sorun, moderatörlerimizden cevap alın.',
-			keywords: 'soru cevap, anarşizm soruları, liberteryenizm, özgürlük'
-		},
-		moderation: {
-			title: 'Moderasyon Paneli',
-			description: 'LAF platformu moderasyon yönetim paneli.',
-			keywords: 'moderasyon, içerik yönetimi, admin',
-			noindex: true
-		}
+	return {
+		title: i18n.t(`seo.${page}.title`) || '',
+		description: i18n.t(`seo.${page}.description`) || '',
+		keywords: i18n.t(`seo.${page}.keywords`) || '',
+		noindex: ['login', 'register', 'forgot', 'write', 'moderation'].includes(page)
 	};
-
-	return seoContent[page];
 }

@@ -17,7 +17,7 @@
   import { toggleMode } from "mode-watcher";
   import { Button } from "$lib/components/ui/button/index.js";
   import LanguageSelector from "./LanguageSelector.svelte";
-  import { t } from '$lib/stores/i18n.svelte.ts';
+  import { t, i18n } from '$lib/stores/i18n.svelte.js';
 	import { playSound } from "$lib/stores/sound"; // 🔥 ekle
 	import { highContrast } from "$lib/stores/highcontrast.js";
 
@@ -68,7 +68,9 @@ let list = {
     filter: "blur(0px)",
   },
   hidden: {
-    clipPath: "inset(5% 5% 95% 95% round 12px)", // sağdan sola kapanır
+    clipPath: i18n.isRTL 
+      ? "inset(5% 95% 95% 5% round 12px)"  // RTL: sağdan sola açılır
+      : "inset(5% 5% 95% 95% round 12px)", // LTR: soldan sağa açılır
     transition: {
       duration: 0.6,
       type: "spring",
@@ -81,16 +83,15 @@ let list = {
 let variants = {
   visible: (i: number) => ({
     opacity: 1,
-    x: 0,             // sola kayma animasyonu burada
+    x: 0,
     filter: "blur(0px)",
     transition: { duration: 0.14, delay: i * 0.04},
   }),
   hidden: (i: number) => ({
     opacity: 0,
-    x: 24,            // başlangıçta sağdan 10px ötede
+    x: i18n.isRTL ? -24 : 24,  // RTL: sağdan başla, LTR: soldan başla
     filter: "blur(6px)",
-        transition: { duration: 0.18, delay: i * 0.05},
-
+    transition: { duration: 0.18, delay: i * 0.05},
   }),
 };
 function handleItemClick(item: any) {
@@ -135,7 +136,9 @@ function handleItemClick(item: any) {
       <ul
   use:motion
   class={cn(
-    "absolute flex flex-col gap-1.5 right-0 top-full mt-4 sm:mt-3 z-[60] w-fit  px-3.5 py-2 !bg-background/44  origin-top-right  border !backdrop-blur-sm rounded-xl  ",
+    i18n.isRTL ? "absolute flex flex-col gap-1.5 top-full mt-4 sm:mt-3 z-[60] w-fit px-3.5 py-2 !bg-background/44 border !backdrop-blur-sm rounded-xl left-0" : "absolute flex flex-col gap-1.5 top-full mt-4 sm:mt-3 z-[60] w-fit px-3.5 py-2 !bg-background/44 border !backdrop-blur-sm rounded-xl right-0",
+    i18n.isRTL ? "left-0" : "right-0",
+
     isOpen ? "pointer-events-auto" : "pointer-events-none",
     !mounted && "opacity-0"
   )}

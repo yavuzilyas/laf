@@ -160,6 +160,7 @@ $effect(() => {
 		"relative flex items-center w-full h-full justify-start overflow-hidden",
 		className
 	)}
+	dir="ltr"
 >
 	{#if shuffledImages.length > 0}
 		{#if isMobile}

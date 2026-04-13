@@ -346,14 +346,16 @@
             });
         }
         
-        // Apply sorting
+        // Apply sorting (only for client-side sorting when not using API sort)
+        // Note: API already returns properly sorted data for newest/popular/unanswered
+        // This is mainly for consistency when combining with other filters
         if (sortBy === 'newest') {
-            result = result.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+            result = result.sort((a, b) => new Date(b.createdAt || b.created_at).getTime() - new Date(a.createdAt || a.created_at).getTime());
         } else if (sortBy === 'popular') {
-            result = result.sort((a, b) => (b.viewCount || 0) - (a.viewCount || 0));
-        } else if (sortBy === 'unanswered') {
-            result = result.filter(q => !q.answer && q.status !== 'answered');
+            result = result.sort((a, b) => ((b.likeCount || b.like_count || 0) + (b.viewCount || b.view_count || 0)) - ((a.likeCount || a.like_count || 0) + (a.viewCount || a.view_count || 0)));
         }
+        // Note: 'unanswered' is handled by API (answer_count = 0 filter)
+        // No client-side filtering needed as API returns only unanswered questions
         
         filteredQuestions = result;
         pagination.page = 1;
@@ -361,19 +363,23 @@
         pagination.totalPages = Math.ceil(result.length / pagination.limit);
     }
     
-    // Handle sort change
+    // Handle sort change - fetch fresh data from API
     function handleSortChange(value: string) {
         sortBy = value;
         pagination.page = 1;
-        handleTabClick(value);
-        applyFiltersAndSearch();
+        // Clear cache for this sort value to ensure fresh data
+        delete preloadedData[value];
+        // Fetch from API and apply filters
+        refreshPublicQuestions().then(() => {
+            applyFiltersAndSearch();
+        });
     }
     
-    // Reactive filter - auto apply when filters change
+    // Reactive filter - auto apply when filters or questions change (excluding sortBy - handled by handleSortChange)
     $effect(() => {
-        if (searchQuery !== undefined || selectedTopicFilter !== undefined || sortBy !== undefined || dateRangeFilter !== undefined || statusFilter !== undefined || nicknameFilter !== undefined || onlyFollowingFilter !== undefined) {
-            applyFiltersAndSearch();
-        }
+        // Track all filter dependencies except sortBy (handled separately by handleSortChange)
+        const _ = searchQuery + selectedTopicFilter + dateRangeFilter + statusFilter + nicknameFilter + onlyFollowingFilter + questions.length;
+        applyFiltersAndSearch();
     });
     
     // Load following list when filter is enabled
@@ -823,7 +829,7 @@
         }
     }
 
-    // Handle tab click - use preloaded data if available
+    // Handle tab click - use preloaded data if available (for hover preload)
     function handleTabClick(sortValue: string) {
         sortBy = sortValue;
         pagination.page = 1;
@@ -832,9 +838,6 @@
         if (preloadedData[sortValue]) {
             questions = preloadedData[sortValue].questions;
             pagination = preloadedData[sortValue].pagination;
-        } else {
-            // Fallback to normal fetch
-            refreshPublicQuestions();
         }
     }
 
@@ -1246,7 +1249,7 @@
   <meta name="twitter:description" content={seoDescription} />
 
   <!-- Structured Data - Static to avoid hydration mismatch -->
-  {@html `<script type="application/ld+json">{"@context":"https://schema.org","@type":"QAPage","name":"Soru & Cevap | LAF","description":"LAF Soru & Cevap platformunda anarşizm ve liberteryenizm hakkında sorular sorun.","url":"${siteUrl}/${currentLocale}/qa","mainEntity":{"@type":"Question","name":"Soru & Cevap"}}</script>`}
+  {@html `<script type="application/ld+json">{"@context":"https://schema.org","@type":"QAPage","name":${JSON.stringify(seoTitle)},"description":${JSON.stringify(seoDescription)},"url":"${siteUrl}/${currentLocale}/qa","mainEntity":{"@type":"Question","name":${JSON.stringify(t('qa.title') || 'Soru & Cevap')}}}</script>`}
 
   <!-- RSS Feed -->
   <link rel="alternate" type="application/rss+xml" title="RSS Feed - Soru & Cevap" href={`/rss/qa.xml?lang=${currentLocale}`} />
@@ -1351,13 +1354,16 @@
                     onFiltersChange={(filters) => {
                         selectedTopicFilter = filters.topic || '';
                         sortBy = filters.sortBy || 'newest';
-                        handleTabClick(sortBy);
                         dateRangeFilter = filters.customDateRange;
                         statusFilter = filters.status || '';
                         nicknameFilter = filters.nickname || '';
                         onlyFollowingFilter = filters.onlyFollowing || false;
                         pagination.page = 1;
-                        applyFiltersAndSearch();
+                        // Clear cache and fetch fresh data
+                        delete preloadedData[sortBy];
+                        refreshPublicQuestions().then(() => {
+                            applyFiltersAndSearch();
+                        });
                     }}
                     enableStatusFilter={isModerator}
                     enableFollowingFilter={!!user}
@@ -1673,7 +1679,7 @@
                                                                         <!-- Answer Actions Sidebar (Like/Dislike) -->
                                                                         <div class="flex flex-col items-center gap-1.5 pr-2 pt-1 min-w-[48px]">
                                                                             <Tooltip.Root>
-                                                                                <Tooltip.Trigger>
+                                                                                <Tooltip.Trigger asChild>
                                                                                     <Button
                                                                                         variant={(answerReactions[question.answer.id] ?? null) === 'like' ? 'default' : 'ghost'}
                                                                                         size="icon"
@@ -1693,7 +1699,7 @@
                                                                             <span class="text-sm font-medium">{answerLikesCount[question.answer.id] ?? question.answer.likeCount ?? 0}</span>
                                                                             
                                                                             <Tooltip.Root>
-                                                                                <Tooltip.Trigger>
+                                                                                <Tooltip.Trigger asChild>
                                                                                     <Button
                                                                                         variant={(answerReactions[question.answer.id] ?? null) === 'dislike' ? 'default' : 'ghost'}
                                                                                         size="icon"

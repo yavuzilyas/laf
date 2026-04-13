@@ -7,6 +7,9 @@
 	import { Button } from '$lib/components/ui/button';
 	import { Separator } from '$lib/components/ui/separator';
 	import { t, getCurrentLocale, localeConfig } from '$lib/stores/i18n.svelte';
+	import * as Select from '$lib/components/ui/select/index.js';
+	import { languages, localeNames, getLanguageDirection } from '$lib/data/languages';
+
 
 	// Locale-aware URL helper
 	const l = (path: string) => `/${currentLocale}${path}`;
@@ -1168,6 +1171,11 @@
 	// Separate $state for article.hidden to allow mutation
 	let articleHidden = $state(data.article?.hidden ?? false);
 
+	// Check if current locale is not available in article languages
+	const currentLocaleNotAvailable = $derived(
+		!article.availableLanguages?.includes(currentLocale)
+	);
+
 	$effect(() => {
 		currentLocale = getCurrentLocale();
 	});
@@ -2058,7 +2066,7 @@
 <svelte:head>
 	{#if article}
 		{@const meta = (() => {
-			const siteName = 'LAF - Libertarian Anarchist Foundation';
+			const siteName = t('seo.home.title') || 'LAF - Libertarian Anarchist Foundation';
 			const siteUrl = 'https://laf.international';
 			const url =
 				typeof window !== 'undefined' ? window.location.href : `${siteUrl}/article/${article.slug}`;
@@ -2131,13 +2139,13 @@
 						{
 							'@type': 'ListItem',
 							position: 1,
-							name: 'Ana Sayfa',
+							name: t('seo.homeTab'),
 							item: siteUrl
 						},
 						{
 							'@type': 'ListItem',
 							position: 2,
-							name: 'Makaleler',
+							name: t('seo.articlesTab'),
 							item: `${siteUrl}/articles`
 						},
 						{
@@ -2192,10 +2200,10 @@
 		{@html `<script type="application/ld+json">${JSON.stringify(meta.structuredData)}</script>`}
 		{@html `<script type="application/ld+json">${JSON.stringify(meta.breadcrumbs)}</script>`}
 	{:else}
-		<title>Makale Bulunamadı - LAF</title>
+		<title>{t('seo.notFoundTitle')}</title>
 		<meta
 			name="description"
-			content="Aradığınız makale bulunamadı. LAF platformunda diğer makaleleri keşfedin."
+			content={t('seo.notFoundDesc')}
 		/>
 		<meta name="robots" content="noindex, nofollow" />
 	{/if}
@@ -2238,29 +2246,50 @@
 				<Button size="sm" href={l('/articles')}>{t('articles.allArticles')}</Button>
 			</div>
 		{:else}
-			<article class="container mx-auto px-4 py-12 max-w-3xl">
+			<article
+				class="container mx-auto px-4 py-12 max-w-3xl"
+				dir={getLanguageDirection(article.language)}
+			>
 				<div class="mb-6 flex flex-row gap-2 justify-between items-center">
 					<Button variant="outline" size="xs" href={l('/articles')}>
 						<ArrowLeftIcon triggers={{ hover: false }} animationState="loading" duration={2000} />
 						{t('articles.backToArticles')}
 					</Button>
 					<div class="flex flex-row items-center gap-2">
-						<span class="text-xs text-muted-foreground flex items-center gap-1">
-							<Languages class="w-4 h-4" />
-							{t('articles.languages')}:
-						</span>
-						{#each localeConfig.availableLocales as lang}
-							{@const hasTranslation = lang === article.language || article.availableTranslations?.[lang]}
-							<Button
+						<Select.Root
+							type="single"
+							name="language"
+							value={article.language}
+							onValueChange={(val: string) => switchToLanguage(val)}
+						>
+							<Select.Trigger
 								size="xs"
-								variant={lang === article.language ? 'default' : 'outline'}
-								disabled={!hasTranslation}
-								onclick={() => switchToLanguage(lang)}
+								class="text-secondary-foreground !bg-background/44 w-fit px-3 !text-xs font-bold h-8"
 							>
-								{lang.toUpperCase()}
-							</Button>
-						{/each}
+								<div class="flex items-center gap-2">
+									<Languages class="w-3.5 h-3.5" />
+									{localeNames[article.language] || article.language.toUpperCase()}
+								</div>
+							</Select.Trigger>
+							<Select.Content class="!bg-background/44 -bottom-2 !backdrop-blur-sm !text-xs font-bold">
+								<Select.Group>
+									<Select.Label class="text-secondary-foreground !text-xs">{t('articles.languages')}</Select.Label>
+									{#each localeConfig.availableLocales as lang}
+										{@const hasTranslation = lang === article.language || article.availableTranslations?.[lang]}
+										{#if hasTranslation}
+											<Select.Item
+												class="text-secondary-foreground mt-1 !bg-background/44 !text-xs"
+												value={lang}
+											>
+												{localeNames[lang] || lang.toUpperCase()}
+											</Select.Item>
+										{/if}
+									{/each}
+								</Select.Group>
+							</Select.Content>
+						</Select.Root>
 					</div>
+
 				</div>
 				<Separator />
 
@@ -2272,14 +2301,22 @@
 									{article.title}
 								</h1>
 								<DropdownMenu.Root>
-									<DropdownMenu.Trigger>
-										<Button variant="outline" class="h-8 w-8 p-0 shrink-0">
+									<DropdownMenu.Trigger asChild>
+										<Button variant="outline" class="relative h-8 w-8 p-0 shrink-0">
 											<EllipsisIcon
 												triggers={{ hover: false }}
 												animationState="loading"
 												duration={1400}
 												loop={true}
 											/>
+											{#if currentLocaleNotAvailable}
+												<div
+													class="absolute -top-2 -right-2 p-1 rounded-full bg-primary flex items-center justify-center"
+													title={t('translateArticleHint')}
+												>
+													<Languages  class="text-primary-foreground" />
+												</div>
+											{/if}
 										</Button>
 									</DropdownMenu.Trigger>
 									<DropdownMenu.Content align="end" class="w-48">
@@ -2575,7 +2612,7 @@
 						{@html article.content}
 					{:else if article.content && (article.content.content?.length > 0 || article.content.type)}
 						<div class="rounded-md">
-							<EdraEditor content={article.content} editable={false} />
+							<EdraEditor content={article.content} editable={false} dir={getLanguageDirection(article.language)} />
 						</div>
 					{:else}
 						<p class="text-muted-foreground italic">{t('articles.noContent')}</p>

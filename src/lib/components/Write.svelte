@@ -28,6 +28,8 @@ import { onMount, onDestroy } from 'svelte';
   import { CategoryTree } from '$lib/components/ui/category-tree';
   import { categoryTree } from '$lib/data/categories';
   import UserSearch from '$lib/components/UserSearch.svelte';
+  import { languages as availableLanguages, getLanguageDirection } from '$lib/data/languages';
+
 
 
   import { EdraEditor, EdraToolBar, EdraDragHandleExtended, EdraBubbleMenu } from '$lib/components/edra/shadcn/index.js';
@@ -76,10 +78,8 @@ import { onMount, onDestroy } from 'svelte';
   let selectedCollaborators = $state<Array<{ id: string; username: string; name?: string; surname?: string }>>([]);
   let authorInfo = $state<{ id: string; username: string; name?: string; surname?: string; nickname?: string } | null>(null);
 
-  const availableLanguages = [
-    { value: 'tr', label: 'Türkçe', flag: '🇹🇷' },
-    { value: 'en', label: 'English', flag: '🏴󠁧󠁢󠁥󠁮󠁧󠁿' }
-  ];
+ 
+
 
 
   const articleData = $derived(articleEditor.articleData);
@@ -888,6 +888,7 @@ import { onMount, onDestroy } from 'svelte';
                           content={translation.content}
 class="h-120 max-h-screen overflow-y-scroll pr-2 pl-6 py-4"                          editable={!isTranslator || !isDefaultLanguage}
                           onUpdate={onEditorUpdate(lang)}
+                          dir={getLanguageDirection(lang)}
                         />
                         </div>
                       {:else}

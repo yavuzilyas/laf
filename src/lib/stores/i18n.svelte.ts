@@ -29,14 +29,19 @@ import {
 // Toggle to silence missing translation warnings in terminal
 const WARN_MISSING_TRANSLATIONS = false;
 
-// Static import map - Vite uyumlu
-const LOCALE_MODULES = {
-  'en': () => import('$lib/locales/en.json'),
-  'tr': () => import('$lib/locales/tr.json'),
-  'de': () => import('$lib/locales/de.json'),
-  'fr': () => import('$lib/locales/fr.json'),
-  'es': () => import('$lib/locales/es.json'),
-} as const;
+// Dinamik import map - Vite uyumlu, tüm dilleri otomatik yükler
+const rawModules = import.meta.glob('../locales/*.json');
+const LOCALE_MODULES: Record<string, () => Promise<any>> = {};
+const dynamicLocales: string[] = [];
+
+for (const path in rawModules) {
+  const match = path.match(/([^/]+)\.json$/);
+  if (match) {
+    const localeName = match[1];
+    LOCALE_MODULES[localeName] = rawModules[path] as () => Promise<any>;
+    dynamicLocales.push(localeName);
+  }
+}
 
 class I18nStore {
   private _currentLocale = $state('tr');
@@ -45,24 +50,10 @@ class I18nStore {
   private _config: I18nConfig;
   private _loadedLocales = new Set<string>();
 
-  constructor(config: I18nConfig) {
-    this._config = config;
-    
-    // Browser'da localStorage'dan dil tercihini yükle, yoksa tarayıcı dilini kullan
-    if (browser) {
-      const savedLocale = localStorage.getItem('locale');
-      if (savedLocale && config.availableLocales.includes(savedLocale)) {
-        this._currentLocale = savedLocale;
-      } else {
-        // Tarayıcı dilini kontrol et - Türkçe ise 'tr', değilse 'en'
-        const browserLang = navigator.language || navigator.languages?.[0] || 'en';
-        const isTurkish = browserLang.toLowerCase().startsWith('tr');
-        this._currentLocale = isTurkish ? 'tr' : 'en';
-      }
-    } else {
+    constructor(config: I18nConfig) {
+      this._config = config;
       this._currentLocale = config.defaultLocale;
     }
-  }
 
   // Initialize from server-side rendered data (SSR)
   initFromSSR(locale: string, translations: LocaleData) {
@@ -87,6 +78,14 @@ class I18nStore {
 
   get availableLocales() {
     return this._config.availableLocales;
+  }
+
+  get isRTL() {
+    return ['ar', 'he', 'fa', 'ur', 'ps', 'sd', 'yi'].includes(this._currentLocale);
+  }
+
+  get dir() {
+    return this.isRTL ? 'rtl' : 'ltr';
   }
 
   async setLocale(locale: string, reload: boolean = true) {
@@ -136,8 +135,8 @@ class I18nStore {
 
     this._loading = true;
     try {
-      // Static import map kullanarak yükle - Vite uyumlu
-      const moduleLoader = LOCALE_MODULES[locale as keyof typeof LOCALE_MODULES];
+      // Dinamik import map kullanarak yükle - Vite uyumlu
+      const moduleLoader = LOCALE_MODULES[locale];
       if (!moduleLoader) {
         throw new Error(`Locale '${locale}' not found in LOCALE_MODULES`);
       }
@@ -150,7 +149,7 @@ class I18nStore {
       // Fallback locale'i dene
       if (this._config.fallbackLocale && locale !== this._config.fallbackLocale) {
         try {
-          const fallbackLoader = LOCALE_MODULES[this._config.fallbackLocale as keyof typeof LOCALE_MODULES];
+          const fallbackLoader = LOCALE_MODULES[this._config.fallbackLocale];
           if (fallbackLoader) {
             const fallbackModule = await fallbackLoader();
             this._translations[locale] = fallbackModule.default;
@@ -231,7 +230,7 @@ class I18nStore {
 // Export locale config for use in hooks
 export const localeConfig = {
   defaultLocale: 'tr',
-  availableLocales: ['tr', 'en'] as const,
+  availableLocales: dynamicLocales.length > 0 ? dynamicLocales : ['tr', 'en'],
   fallbackLocale: 'tr'
 };
 
@@ -298,7 +297,9 @@ try {
   Object.defineProperties(tf, {
     currentLocale: { get: () => i18n.currentLocale },
     availableLocales: { get: () => i18n.availableLocales },
-    loading: { get: () => i18n.loading }
+    loading: { get: () => i18n.loading },
+    isRTL: { get: () => i18n.isRTL },
+    dir: { get: () => i18n.dir }
   });
   tf.setLocale = (locale: string) => i18n.setLocale(locale);
   tf.loadLocale = (locale: string) => i18n.loadLocale(locale);

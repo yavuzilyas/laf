@@ -4089,5 +4089,76 @@
   "yellow": "žlutá",
   "yes": "ano",
   "yesterday": "včera",
-  "zinc": "zinek"
+  "zinc": "zinek",
+  "seo": {
+    "home": {
+      "title": "Libertarian Anarchist Foundation",
+      "description": "Anarchist, libertarian action and intellectual knowledge sharing platform. Articles and analysis on freedom, individual rights, and anarcho-capitalism.",
+      "keywords": "anarchism, libertarian, freedom, individual rights"
+    },
+    "articles": {
+      "title": "Articles",
+      "description": "Explore our articles on libertarian anarchism, freedom, and individual rights. Philosophy, economics, state theory and more.",
+      "keywords": "articles, anarchism, libertarian, philosophy, economics"
+    },
+    "article": {
+      "title": "Article",
+      "description": "Read the article published on the LAF platform.",
+      "keywords": "article, anarchism, libertarian, freedom"
+    },
+    "profile": {
+      "title": "Profile",
+      "description": "LAF user profile and articles.",
+      "keywords": "profile, user, author"
+    },
+    "events": {
+      "title": "Activities and Announcements",
+      "description": "LAF events, seminars and announcements. View upcoming and past events by selecting cities from the map.",
+      "keywords": "event, seminar, announcement, anarchist events, libertarian meetup"
+    },
+    "help": {
+      "title": "Help Center",
+      "description": "Frequently asked questions and help documentation about using the LAF platform.",
+      "keywords": "help, faq, how to use, guide"
+    },
+    "login": {
+      "title": "Log In",
+      "description": "Log in to your LAF account. Join our libertarian anarchist community defending individual rights.",
+      "keywords": "login, user login, account access"
+    },
+    "register": {
+      "title": "Register",
+      "description": "Become a member of LAF and join our libertarian anarchist community. Take your place on our independent platform defending individual freedoms.",
+      "keywords": "register, sign up, create account"
+    },
+    "forgot": {
+      "title": "Forgot Password",
+      "description": "Reset your LAF account password. Securely renew your password with your mnemonic words.",
+      "keywords": "password reset, account recovery"
+    },
+    "links": {
+      "title": "Links",
+      "description": "LAF social media accounts and contact links. Follow us on Telegram, Discord, and other platforms.",
+      "keywords": "social media, telegram, discord, contact"
+    },
+    "write": {
+      "title": "Write Article",
+      "description": "Write and publish articles on the LAF platform. Share your thoughts on freedom, anarchism and libertarianism.",
+      "keywords": "write article, create content, write blog"
+    },
+    "qa": {
+      "title": "Q&A",
+      "description": "Ask questions about anarchism, libertarianism and freedom on the LAF Q&A platform, get answers from our moderators.",
+      "keywords": "q&a, questions on anarchism, libertarianism, freedom"
+    },
+    "moderation": {
+      "title": "Moderation Panel",
+      "description": "LAF platform moderation management panel.",
+      "keywords": "moderation, content management, admin"
+    },
+    "notFoundTitle": "Article Not Found - LAF",
+    "notFoundDesc": "The article you are looking for could not be found. Explore other articles on the LAF platform.",
+    "homeTab": "Home",
+    "articlesTab": "Articles"
+  }
 }

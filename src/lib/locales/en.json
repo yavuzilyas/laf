@@ -5,55 +5,52 @@
     "search_placeholder": "Search language...",
     "not_found": "Language not found"
   },
-    "QA":"Q&A",
+  "QA": "Q&A",
   "seo": {
-    "siteName": "LAF - Libertarian Anarchist Foundation",
-    "siteDescription": "Anarchist, libertarian activism and intellectual knowledge sharing platform. Articles and analysis on freedom, individual rights, and anarcho-capitalism.",
-    "defaultImage": "/lafpp.png",
     "home": {
       "title": "Libertarian Anarchist Foundation",
-      "description": "Libertarian anarchist activism and intellectual knowledge sharing platform. Articles and analysis on freedom, individual rights, anarcho-capitalism, and voluntaryist philosophy."
+      "description": "Anarchist, libertarian action and intellectual knowledge sharing platform. Articles and analysis on freedom, individual rights, and anarcho-capitalism.",
+      "keywords": "anarchism, libertarian, freedom, individual rights"
     },
     "articles": {
       "title": "Articles",
-      "description": "Discover our articles on libertarian anarchism, freedom, and individual rights. Philosophy, economics, state theory, natural law, and more."
+      "description": "Explore our articles on libertarian anarchism, freedom, and individual rights. Philosophy, economics, state theory and more.",
+      "keywords": "articles, anarchism, libertarian, philosophy, economics"
     },
     "article": {
       "title": "Article",
-      "description": "Read articles published on the LAF platform.",
+      "description": "Read the article published on the LAF platform.",
       "keywords": "article, anarchism, libertarian, freedom"
     },
     "profile": {
       "title": "Profile",
-      "description": "LAF user profile and articles."
+      "description": "LAF user profile and articles.",
+      "keywords": "profile, user, author"
     },
     "events": {
-      "title": "Announcements & Events",
-      "description": "LAF events, seminars, and announcements. Select cities from the Turkey map to view upcoming and past events.",
-      "keywords": "events, seminars, announcements, anarchist events, libertarian meetup"
+      "title": "Activities and Announcements",
+      "description": "LAF events, seminars and announcements. View upcoming and past events by selecting cities from the map.",
+      "keywords": "event, seminar, announcement, anarchist events, libertarian meetup"
     },
     "help": {
       "title": "Help Center",
-      "description": "Frequently asked questions and help documentation for using the LAF platform.",
-      "keywords": "help, FAQ, how to use, guide"
+      "description": "Frequently asked questions and help documentation about using the LAF platform.",
+      "keywords": "help, faq, how to use, guide"
     },
     "login": {
-      "title": "Login",
+      "title": "Log In",
       "description": "Log in to your LAF account. Join our libertarian anarchist community defending individual rights.",
-      "keywords": "login, sign in, account access",
-      "noindex": true
+      "keywords": "login, user login, account access"
     },
     "register": {
       "title": "Register",
-      "description": "Join LAF and become part of our libertarian anarchist community. Take your place on our independent platform defending individual freedoms.",
-      "keywords": "register, sign up, create account",
-      "noindex": true
+      "description": "Become a member of LAF and join our libertarian anarchist community. Take your place on our independent platform defending individual freedoms.",
+      "keywords": "register, sign up, create account"
     },
     "forgot": {
       "title": "Forgot Password",
-      "description": "Reset your LAF account password. Securely reset your password with your mnemonic words.",
-      "keywords": "password reset, account recovery",
-      "noindex": true
+      "description": "Reset your LAF account password. Securely renew your password with your mnemonic words.",
+      "keywords": "password reset, account recovery"
     },
     "links": {
       "title": "Links",
@@ -62,29 +59,23 @@
     },
     "write": {
       "title": "Write Article",
-      "description": "Write and publish articles on the LAF platform. Share your thoughts on freedom, anarchism, and libertarianism.",
-      "keywords": "write article, create content, blog",
-      "noindex": true
+      "description": "Write and publish articles on the LAF platform. Share your thoughts on freedom, anarchism and libertarianism.",
+      "keywords": "write article, create content, write blog"
     },
     "qa": {
       "title": "Q&A",
-      "description": "Ask questions about anarchism, libertarianism, and freedom on the LAF Q&A platform. Get answers from our moderators.",
-      "keywords": "questions answers, anarchism questions, libertarianism, freedom"
+      "description": "Ask questions about anarchism, libertarianism and freedom on the LAF Q&A platform, get answers from our moderators.",
+      "keywords": "q&a, questions on anarchism, libertarianism, freedom"
     },
     "moderation": {
       "title": "Moderation Panel",
       "description": "LAF platform moderation management panel.",
-      "keywords": "moderation, content management, admin",
-      "noindex": true
+      "keywords": "moderation, content management, admin"
     },
-    "404": {
-      "title": "Page Not Found",
-      "description": "The page you are looking for could not be found. Return to the LAF homepage to explore our articles."
-    },
-    "500": {
-      "title": "Server Error",
-      "description": "A technical error occurred. Please try again later."
-    }
+    "notFoundTitle": "Article Not Found - LAF",
+    "notFoundDesc": "The article you are looking for could not be found. Explore other articles on the LAF platform.",
+    "homeTab": "Home",
+    "articlesTab": "Articles"
   },
   "GoToHomePage": "Go to home page.",
   "footer-text-animation": "$lib/assets/text-lottie-en.json",
@@ -100,7 +91,7 @@
   "ourGoalDescription": "Libertarian Anarchist Foundation is a consistent and principled platform for action and ideas, organized in opposition to the top-down, liberal-libertarian platforms in Turkey that stifle the libertarian youth and systematically operate with anti-libertarian agendas. LAF, established by a completely independent youth movement of free-thinking advocates who have grown weary of the corrupt liberal politics in Turkey that seeks to buy off and pacify through external funding—and who have adopted the motto that this can and must be reorganized—began through the ideological reformation and realignment of its predecessor, 'Liberteryen Gençlik'; Its enduring lifeblood has always been an unwavering opposition to extremism, radicalism, political realism, and opportunism. LAF’s fundamental mission is to introduce libertarian thought—which is needed in Turkey and resonates deeply with youth—to broad segments of the public within a politically realistic framework, and to at least address the genuine concerns of a working-class segment that has little to lose but much to gain, while fostering a broader class consciousness.",
   "whyAnarchoCapitalism": "Why Anarcho Capitalism?",
   "whyAnarchoCapitalismDescription": "For millennia, it has manifested itself through enslavement, humiliation, dehumanization, degeneration, and mass slaughter; the institutional mechanisms of oppression and inefficiency created by the state—a monopoly on violence that has produced poverty and misery for the masses, as well as obedience and immorality within political power structures—and which rejects these hierarchies and sociocultural decay, advocating instead that an alternative is not only possible but necessary; if anarcho-capitalism, if an ideology that offers such a profound perspective and a multifaceted understanding of humanity’s existence, civilization, and future is insufficient to define our position in the class struggle, it is questionable what else could fulfill this function.",
-  "contact": "Contact",
+  "contact": "contact",
   "contactDescription": "To reach us: via our Telegram channel.",
   "help": {
     "title": "Help - LAF",
@@ -196,7 +187,6 @@
       "other": "Other"
     }
   },
-
   "ThePage": "page.",
   "Articles": "Articles",
   "Lexicon": "Lexicon",
@@ -204,7 +194,7 @@
   "FooterQuote-2": "Moderation in pursuit of justice is no virtue.",
   "Donations": "Donations",
   "donations": {
-    "closeForm":"Close Form",
+    "closeForm": "Close Form",
     "chart": {
       "title": "Donation Chart",
       "description": "Donation statistics",
@@ -448,8 +438,7 @@
       "register": "Register"
     },
     "login": {
-            "nicknamePlaceholder":"username",
-
+      "nicknamePlaceholder": "username",
       "subtitle": "Sign in with your username or email and password.",
       "mnemonicAnswer": "Mnemonic Word",
       "mnemonicExample": "Example: abandon ability able about above absent absorb abstract absurd abuse access accuse",
@@ -545,10 +534,10 @@
   "ProfileHidden": "Profile hidden",
   "ProfileUnhidden": "Profile unhidden",
   "FailedToUpdateProfile": "Failed to update profile",
-  "LockTheMessages": "Lock Messages",
-  "HideTheProfile": "Hide Profile",
-  "DeleteTheAccount": "Delete Account",
-  "DeleteTheAccountBIP39Info": "You need your BIP-39 recovery phrase to delete your account. This action cannot be undone.",
+  "LockTheMessages": "Lock the messages",
+  "HideTheProfile": "Hide the profile",
+  "DeleteTheAccount": "Delete the account",
+  "DeleteTheAccountBIP39Info": "You need your BIP-39 password to delete your account.",
   "MnemonicWarning": "Keep your BIP-39 recovery phrase in a safe place. If lost, you cannot access your account.",
   "AreYouSureRegenerateMnemonic": "Are you sure you want to regenerate your BIP-39 phrase? The old phrase will become invalid.",
   "ConfirmRegenerateMnemonic": "Regenerate BIP-39 Phrase",
@@ -628,7 +617,6 @@
   "ShowMnemonic": "Show BIP-39 Phrase",
   "Settings": "Settings",
   "Cancel": "Cancel",
-  "VerificationIsRequired": "Verification is required",
   "addTranslation": "Add translation",
   "moderatorViewingHiddenProfile": "Moderator viewing hidden profile",
   "cta": {
@@ -751,7 +739,12 @@
     },
     "authors": "Authors",
     "author": "author",
-    "share": "Share",
+    "share": {
+      "title": "Share",
+      "copyLink": "Copy Link",
+      "linkCopied": "Link copied!",
+      "shareError": "Share failed"
+    },
     "readTime": "min read",
     "unknownUser": "Unknown User",
     "pendingApproval": "This article is pending approval",
@@ -759,22 +752,16 @@
     "languages": "Languages",
     "replies": "Replies",
     "replyingTo": "replying to",
-    "showReplies": "show replies",
-    "share": {
-      "title": "Share",
-      "copyLink": "Copy Link",
-      "linkCopied": "Link copied!",
-      "shareError": "Share failed"
-    }
+    "showReplies": "show replies"
   },
-  "aProblem": "Having trouble?",
+  "aProblem": "Are you having a problem?",
   "404Title": "Page Not Found",
   "404Description": "The page you are looking for might have been removed, had its name changed, or is temporarily unavailable.",
   "500Title": "Internal Server Error",
   "500Description": "Oops! Something went wrong on our end. Please try again later or contact support if the problem persists.",
   "Go Back": "Go Back",
   "Try Again": "Try Again",
-  "reportToHelpUs": "Report an issue",
+  "reportToHelpUs": "Report to help us.",
   "report": {
     "titles": {
       "report": "Report",
@@ -994,7 +981,12 @@
       "h2": "Heading 2",
       "h3": "Heading 3",
       "h4": "Heading 4",
-      "link": "Link",
+      "link": {
+        "add": "Add Link",
+        "edit": "Edit Link",
+        "url": "URL",
+        "openInNewTab": "Open in new tab"
+      },
       "bold": "Bold",
       "italic": "Italic",
       "underline": "Underline",
@@ -1020,28 +1012,21 @@
         "medium": "Medium",
         "large": "Large",
         "extraLarge": "Extra Large"
-      },
-      "alignments": {
-        "left": "Align Left",
+      },"alignments": {
+        "left": "Sola Hizala",
         "center": "Ortala",
         "right": "Sağa Hizala",
         "justify": "İki Yana Yasla"
       },
-      "link": {
-        "add": "Bağlantı Ekle",
-        "edit": "Bağlantıyı Düzenle",
-        "enterUrl": "Bağlantı URL'sini girin",
-        "urlPlaceholder": "https://ornek.com",
-        "openInNewTab": "Yeni sekmede aç"
-      },
       "colors": {
         "text": "Metin Renkleri",
-        "background": "Arkaplan Renkleri"
+        "background": "Arka Plan Renkleri"
       },
       "searchAndReplace": {
+        "title": "Bul ve Değiştir",
         "search": "Ara",
         "replace": "Değiştir",
-        "caseSensitive": "Büyük/küçük harfe duyarlı",
+        "caseSensitive": "Büyük/Küçük Harf Duyarlı",
         "replaceAll": "Tümünü Değiştir"
       },
       "textFormatting": {
@@ -1091,42 +1076,6 @@
         "alignRight": "Sağa Hizala",
         "alignJustify": "İki Yana Yasla"
       },
-      "alignment": "Hizalama",
-      "alignments": {
-        "left": "Sola Hizala",
-        "center": "Ortala",
-        "right": "Sağa Hizala",
-        "justify": "İki Yana Yasla"
-      },
-      "fontSize": {
-        "title": "Font Size",
-        "tiny": "Tiny",
-        "smaller": "Smaller",
-        "small": "Small",
-        "default": "Default",
-        "medium": "Medium",
-        "large": "Large",
-        "extraLarge": "Extra Large"
-      },
-      "headings": "Headings",
-      "alignment": "Alignment",
-      "colors": {
-        "text": "Text Colours",
-        "background": "Background Colours"
-      },
-      "searchAndReplace": {
-        "title": "Find and Replace",
-        "search": "Search",
-        "replace": "Replace",
-        "caseSensitive": "Cape Sensitive",
-        "replaceAll": "Replace All"
-      },
-      "link": {
-        "add": "Add Link",
-        "edit": "Edit Link",
-        "url": "URL",
-        "openInNewTab": "Open in new tab"
-      },
       "upload": {
         "tooltip": "Upload File",
         "title": "Upload File",
@@ -1138,53 +1087,6 @@
         "selected": "Selected",
         "uploading": "Uploading...",
         "upload": "Upload"
-      },
-      "textFormatting": {
-        "bold": "Kalın",
-        "italic": "İtalik",
-        "underline": "Altı Çizili",
-        "strike": "Üstü Çizili",
-        "code": "Kod"
-      },
-      "lists": {
-        "bullet": "Madde İmi",
-        "ordered": "Numaralı Liste",
-        "task": "Görev Listesi"
-      },
-      "blocks": {
-        "blockquote": "Alıntı",
-        "codeBlock": "Kod Bloğu",
-        "horizontalRule": "Ayırıcı Çizgi"
-      },
-      "media": {
-        "image": "Resim",
-        "video": "Video",
-        "audio": "Ses",
-        "embed": "Göm"
-      },
-      "tables": {
-        "insertTable": "Tablo Ekle",
-        "addRowBefore": "Üste Satır Ekle",
-        "addRowAfter": "Alta Satır Ekle",
-        "deleteRow": "Satırı Sil",
-        "addColumnBefore": "Sola Sütun Ekle",
-        "addColumnAfter": "Sağa Sütun Ekle",
-        "deleteColumn": "Sütunu Sil",
-        "deleteTable": "Tabloyu Sil"
-      },
-      "misc": {
-        "undo": "Geri Al",
-        "redo": "Yinele",
-        "clearFormatting": "Biçimlendirmeyi Temizle",
-        "paragraph": "Paragraf",
-        "heading1": "Başlık 1",
-        "heading2": "Başlık 2",
-        "heading3": "Başlık 3",
-        "heading4": "Başlık 4",
-        "alignLeft": "Sola Hizala",
-        "alignCenter": "Ortala",
-        "alignRight": "Sağa Hizala",
-        "alignJustify": "İki Yana Yasla"
       }
     }
   },
@@ -1234,7 +1136,7 @@
       "newArticlePublished": "{user} published a new article: {title}",
       "newArticlePublishedMessage": "You can read {user}'s new article \"{title}\".",
       "newTranslation": "{user} added a new translation",
-      "newTranslationWithTitle": "{user} added a new translation for {title}",
+      "newTranslationWithTitle": "{user} added a new translation for \"{title}\"",
       "welcomeMessage": "Welcome to Laf! Start writing your first article.",
       "loginDetected": "Your account was logged in. If it wasn't you, please change your password.",
       "passwordChanged": "Your password has been successfully changed",
@@ -1258,11 +1160,8 @@
       "articleStatusChanged": "Article status updated - {moderator}",
       "articleStatusChangedMessage": "Your article status has been changed",
       "articlePending": "{moderator} is reviewing your article",
-      "articlePendingMessage": "Your article \"{title}\" is being reviewed",
       "articlePublished": "{moderator} published your article",
       "articlePublishedMessage": "Your article \"{title}\" has been published.",
-      "articleRejectedWithTitle": "Your article \"{title}\" was rejected",
-      "articleRejectedWithReason": "Reason: {reason}",
       "reportResolved": "{moderator} resolved your report",
       "reportResolvedMessage": "Your report has been resolved.",
       "reportRejected": "{moderator} rejected your report",
@@ -1281,8 +1180,7 @@
       "newDonationMessage": "{donor} donated {amount} XMR.",
       "newEventOrAnnouncement": "New {type}: {title}",
       "newEventOrAnnouncementMessage": "New {type} published: {description}",
-      "newTranslationGeneric": "{user} added a new translation",
-      "newTranslationWithTitle": "{user} added a new translation for \"{title}\""
+      "newTranslationGeneric": "{user} added a new translation"
     }
   },
   "Info": {
@@ -1291,8 +1189,6 @@
   },
   "notLoggedIn": "Not Logged In",
   "loginRequired": "Please login or sign up to view the page.",
-  "aProblem": "Are you having a problem?",
-  "reportToHelpUs": "Report to help us.",
   "403Title": "Access Denied",
   "403Description": "You don't have permission to access this page. Please contact the author if you believe this is a mistake.",
   "SeeItsProfile": "View Profile",
@@ -1300,10 +1196,6 @@
   "MyPlus": "Plus",
   "MyDonations": "My Donations",
   "MyAwards": "My Awards",
-  "DeleteTheAccount": "Delete the account",
-  "LockTheMessages": "Lock the messages",
-  "HideTheProfile": "Hide the profile",
-  "DeleteTheAccountBIP39Info": "You need your BIP-39 password to delete your account.",
   "Surname": "Surname",
   "dataTable": {
     "readMore": "more",
@@ -1381,7 +1273,7 @@
     "fetchPendingError": "Failed to fetch pending articles"
   },
   "moderation": {
-    "title": "Moderation Panel",
+    "title": "Title",
     "description": "Manage reported content and users",
     "overview": "Overview",
     "articles": "Articles",
@@ -1403,7 +1295,6 @@
     "noReportedArticles": "No reported articles",
     "noReportedComments": "No reported comments",
     "noReportedUsers": "No reported users",
-    "title": "Title",
     "author": "Author",
     "reports": "Reports",
     "status": "Status",
@@ -2009,7 +1900,6 @@
   "Camcorder": "Camcorder",
   "Cameras": "Cameras",
   "Canadian": "Canadian",
-  "Cancel": "Cancel",
   "Canceled": "Canceled",
   "Canceling": "Canceling",
   "Cancelled": "Cancelled",
@@ -2105,7 +1995,6 @@
   "Classification": "Classification",
   "Classy": "Classy",
   "Clear": "Clear",
-  "Click": "Click",
   "Climate": "Climate",
   "Climbing": "Climbing",
   "Clinician": "Clinician",
@@ -2173,7 +2062,6 @@
   "Confidentiality": "Confidentiality",
   "Configure": "Configure",
   "Configured": "Configured",
-  "Confirm": "Confirm",
   "Confirmed": "Confirmed",
   "Congo": "Congo",
   "Conjuncts": "Conjuncts",
@@ -2194,7 +2082,6 @@
   "Contents": "Contents",
   "Context": "Context",
   "Continent": "Continent",
-  "Continue": "Continue",
   "Continuous": "Continuous",
   "Contour": "Contour",
   "Contracted": "Contracted",
@@ -2557,7 +2444,6 @@
   "Fahrenheit": "Fahrenheit",
   "Failed": "Failed",
   "Fainting": "Fainting",
-  "Fair": "Fair",
   "Fall": "Fall",
   "Falloff": "Falloff",
   "False": "False",
@@ -2758,7 +2644,6 @@
   "Gold": "Gold",
   "Golden": "Golden",
   "Goldenrod": "Goldenrod",
-  "Good": "Good",
   "Governorate": "Governorate",
   "Grade": "Grade",
   "Gradient": "Gradient",
@@ -2945,7 +2830,6 @@
   "Intensity": "Intensity",
   "Interaction": "Interaction",
   "Intercom": "Intercom",
-  "Interface": "Interface",
   "Interfaces": "Interfaces",
   "Interlaced": "Interlaced",
   "Interpretation": "Interpretation",
@@ -3035,7 +2919,6 @@
   "Ladder": "Ladder",
   "Landed": "Landed",
   "Landscape": "Landscape",
-  "Language": "Language",
   "Languages": "Languages",
   "Lao": "Lao",
   "Laos": "Laos",
@@ -3093,13 +2976,11 @@
   "Lithuania": "Lithuania",
   "Lithuanian": "Lithuanian",
   "Live": "Live",
-  "Loading": "Loading",
   "Local": "Local",
   "Locate": "Locate",
   "Locating": "Locating",
   "Location": "Location",
   "Locations": "Locations",
-  "Lock": "Lock",
   "Locked": "Locked",
   "Locking": "Locking",
   "Locks": "Locks",
@@ -3188,7 +3069,6 @@
   "Menu": "Menu",
   "Merge": "Merge",
   "Message": "Message",
-  "Messages": "Messages",
   "Messaging": "Messaging",
   "Metadata": "Metadata",
   "Metal": "Metal",
@@ -3667,9 +3547,7 @@
   "Reflection": "Reflection",
   "Reflections": "Reflections",
   "Refraction": "Refraction",
-  "Refresh": "Refresh",
   "Refreshing": "Refreshing",
-  "Region": "Region",
   "Registered": "Registered",
   "Registration": "Registration",
   "Regular": "Regular",
@@ -3849,7 +3727,6 @@
   "Secret": "Secret",
   "Secs": "Secs",
   "Section": "Section",
-  "Security": "Security",
   "Sedentary": "Sedentary",
   "Segment": "Segment",
   "Segments": "Segments",
@@ -3881,7 +3758,6 @@
   "Services": "Services",
   "Sessions": "Sessions",
   "Set": "Set",
-  "Settings": "Settings",
   "Setup": "Setup",
   "Severity": "Severity",
   "Sex": "Sex",
@@ -4089,7 +3965,6 @@
   "Subtree": "Subtree",
   "Suburb": "Suburb",
   "Subway": "Subway",
-  "Success": "Success",
   "Suffix": "Suffix",
   "Suggested": "Suggested",
   "Suggestion": "Suggestion",
@@ -4143,7 +4018,6 @@
   "Takeout": "Takeout",
   "Tampered": "Tampered",
   "Tan": "Tan",
-  "Tap": "Tap",
   "Tapped": "Tapped",
   "Task": "Task",
   "Tasks": "Tasks",
@@ -4318,7 +4192,6 @@
   "Unlike": "Unlike",
   "Unlimited": "Unlimited",
   "Unlink": "Unlink",
-  "Unlock": "Unlock",
   "Unlocked": "Unlocked",
   "Unlocks": "Unlocks",
   "Unlove": "Unlove",
@@ -4373,8 +4246,6 @@
   "Vehicle": "Vehicle",
   "Verbosity": "Verbosity",
   "Verified": "Verified",
-  "Verify": "Verify",
-  "Verifying": "Verifying",
   "Version": "Version",
   "Vertical": "Vertical",
   "Vibrance": "Vibrance",
@@ -4508,7 +4379,6 @@
   "ampersand": "ampersand",
   "amphora": "amphora",
   "anchor": "anchor",
-  "and": "and",
   "animal": "animal",
   "anniversary": "anniversary",
   "ant": "ant",
@@ -4689,7 +4559,6 @@
   "connecting": "connecting",
   "consent": "consent",
   "constipation": "constipation",
-  "contact": "contact",
   "content": "content",
   "continue": "continue",
   "cook": "cook",

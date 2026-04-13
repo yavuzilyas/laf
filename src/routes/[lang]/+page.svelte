@@ -5,17 +5,18 @@
 
   let { data } = $props();
 
-  const seo = getPageSEO('home');
-  const meta = generateSEOMeta({
+  const seo = $derived(getPageSEO('home'));
+  const meta = $derived(generateSEOMeta({
     title: seo.title,
     description: seo.description,
     type: 'website',
     canonical: 'https://laf.international/'
-  });
-
-  const breadcrumbs = generateBreadcrumbs([
-    { name: 'Ana Sayfa', url: 'https://laf.international/' }
-  ]);
+  }));
+  import { t } from '$lib/stores/i18n.svelte';
+  
+  const breadcrumbs = $derived(generateBreadcrumbs([
+    { name: t('seo.homeTab') || 'Home', url: 'https://laf.international/' }
+  ]));
 </script>
 
 <svelte:head>

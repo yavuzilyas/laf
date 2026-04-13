@@ -20,7 +20,7 @@
     let { data } = $props();
 
     // SEO Meta computation using centralized utility
-    const seoConfig = getPageSEO('articles');
+    const seoConfig = $derived(getPageSEO('articles'));
     const siteUrl = 'https://laf.international';
     const currentUrl = $derived(typeof window !== 'undefined' ? window.location.href : `${siteUrl}/${currentLocale}/articles`);
 
@@ -32,8 +32,8 @@
     }));
 
     const breadcrumbs = $derived(generateBreadcrumbs([
-        { name: 'Ana Sayfa', url: siteUrl },
-        { name: 'Makaleler', url: currentUrl }
+        { name: t('seo.homeTab') || 'Home', url: siteUrl },
+        { name: t('seo.articlesTab') || 'Articles', url: currentUrl }
     ]));
 
     const serverArticles = data?.articles ?? [];

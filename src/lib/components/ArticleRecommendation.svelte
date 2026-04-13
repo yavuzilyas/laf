@@ -10,6 +10,7 @@
   const l = (path: string) => `/${currentLocale}${path}`;
   import MagicCard from '$lib/components/magic/magic-card/magic-card.svelte';
   import * as Tooltip from "$lib/components/ui/tooltip";
+  import { getLanguageDirection } from "$lib/data/languages";
 
   interface Article {
     id: string;
@@ -37,6 +38,7 @@
       nickname: string;
       avatar?: string;
     }>;
+    language?: string;
   }
 
   let {
@@ -144,7 +146,7 @@
           gradientFrom="#926A0E"
           gradientTo="#eab308"
         >
-          <article class="h-full flex flex-col">
+          <article class="h-full flex flex-col" dir={getLanguageDirection(article.language || 'tr')}>
             <!-- Cover Image -->
             {#if article.coverImage}
               <div class="relative overflow-hidden aspect-[16/10]">

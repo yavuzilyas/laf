@@ -401,11 +401,11 @@ import { BarSpinner } from "$lib/components/spell/bar-spinner";
       {/if}
   <!-- Header Section -->
   <div class="text-center">
-    <h2 class="text-4xl font-bold mb-4 flex items-center justify-center text-left gap-3">
+    <h2 class="text-4xl font-bold mb-4 flex items-center justify-center text-start gap-3">
       <HandCoinsIcon triggers={{ hover: false }} duration={2500} animationState="loading" size={48} class="text-primary" />
       {t('donations.title')}
     </h2>
-    <p class="text-sm  mx-auto text-left">
+    <p class="text-sm  mx-auto text-start">
       {t('donations.description')}
     </p>
   
@@ -428,7 +428,7 @@ import { BarSpinner } from "$lib/components/spell/bar-spinner";
       <!-- How to Donate Accordion -->
       <Accordion.Root type="single" class="w-full">
         <Accordion.Item value="how-to-donate">
-          <Accordion.Trigger class="text-left hover:no-underline">
+          <Accordion.Trigger class="text-start hover:no-underline">
             <span class="flex items-center gap-2 font-medium">
               <CircleHelp class="w-5 h-5 text-primary" />
               {t('help.faq.donate.question')}

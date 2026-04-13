@@ -442,8 +442,8 @@ class ArticleEditorStore {
     const originalContent = this._articleData.translations[defaultLang]?.content;
     if (originalContent) {
       const originalSize = new Blob([JSON.stringify(originalContent)]).size;
-      const minSize = Math.floor(originalSize * 0.75); // -25%
-      const maxSize = Math.ceil(originalSize * 1.25); // +25%
+      const minSize = Math.floor(originalSize * 0.5); // -25%
+      const maxSize = Math.ceil(originalSize * 1.5); // +25%
       
       for (const [lang, translation] of Object.entries(this._articleData.translations)) {
         if (lang === defaultLang) continue; // Skip default language

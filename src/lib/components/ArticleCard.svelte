@@ -11,6 +11,7 @@
   import Lens from '$lib/components/Lens.svelte';
   import A from "$lib/components/ui/a.svelte";
     import { ScrollArea } from "$lib/components/ui/scroll-area";
+    import { getLanguageDirection } from "$lib/data/languages";
 
   interface Article {
     id: string;
@@ -61,6 +62,7 @@
       language?: string;
     }>;
     defaultLanguage?: string;
+    language?: string;
   }
 
   let {
@@ -140,7 +142,9 @@
     "group relative !max-h-fit overflow-hidden rounded-xl border bg-card text-card-foreground shadow-sm transition-all hover:shadow-md",
     "md:grid md:grid-cols-2 md:gap-6",
     className
-  )} {...restProps}>
+  )} 
+  dir={getLanguageDirection(article.language || article.defaultLanguage || 'tr')}
+  {...restProps}>
     {#if article.coverImage}
       <div class="relative overflow-hidden md:order-2">
         <img 
@@ -267,7 +271,9 @@
   <article class={cn(
     "group flex gap-4 h-fit rounded-lg border bg-card p-4 text-card-foreground shadow-sm transition-all hover:shadow-md",
     className
-  )} {...restProps}>
+  )} 
+  dir={getLanguageDirection(article.language || article.defaultLanguage || 'tr')}
+  {...restProps}>
     {#if article.coverImage}
       <div class="relative flex-shrink-0 overflow-hidden rounded-md">
         <img 
@@ -377,7 +383,9 @@
   <article class={cn(
     "group h-fit space-y-3 rounded-lg p-4 transition-all hover:bg-muted/50",
     className
-  )} {...restProps}>
+  )} 
+  dir={getLanguageDirection(article.language || article.defaultLanguage || 'tr')}
+  {...restProps}>
     <div class="flex items-center gap-2 text-xs text-muted-foreground">
       <Badge variant="outline" class="text-xs">
             {t(`${article.category}`)}
@@ -460,7 +468,9 @@
   <article class={cn(
     "group h-fit overflow-hidden rounded-xl border text-card-foreground shadow-sm transition-all hover:shadow-md",
     className
-  )} {...restProps}>
+  )} 
+  dir={getLanguageDirection(article.language || article.defaultLanguage || 'tr')}
+  {...restProps}>
     {#if article.coverImage}
       <div class="relative p-3 pb-0 sm:p-4 sm:pb-0 overflow-hidden">
         <Lens>

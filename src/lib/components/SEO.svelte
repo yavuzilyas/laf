@@ -30,18 +30,18 @@
   const locale = $derived(i18n.currentLocale || 'tr');
   
   // Default JSON-LD structured data
-  const defaultJsonLd = {
+  const defaultJsonLd = $derived({
     '@context': 'https://schema.org',
     '@type': 'Organization',
-    name: 'Libertarian Anarchist Foundation',
+    name: i18n.t('seo.home.title') || 'Libertarian Anarchist Foundation',
     alternateName: 'LAF',
     url: baseUrl,
     logo: `${baseUrl}/logo.png`,
     sameAs: [
       'https://t.me/lafturkiye',
     ],
-    description: 'Libertarian anarchist activism and intellectual knowledge sharing platform'
-  };
+    description: i18n.t('seo.home.description') || 'Libertarian anarchist activism and intellectual knowledge sharing platform'
+  });
   
   const finalJsonLd = $derived(jsonLd || defaultJsonLd);
 </script>
@@ -59,9 +59,12 @@
   <link rel="canonical" href={canonicalUrl} />
   
   <!-- Alternate Languages -->
-  <link rel="alternate" hreflang="tr" href={`${baseUrl}/tr${currentPath.replace(/^\/(en|tr)/, '')}`} />
-  <link rel="alternate" hreflang="en" href={`${baseUrl}/en${currentPath.replace(/^\/(en|tr)/, '')}`} />
-  <link rel="alternate" hreflang="x-default" href={`${baseUrl}/tr${currentPath.replace(/^\/(en|tr)/, '')}`} />
+  {#if i18n.availableLocales && i18n.availableLocales.length > 0}
+    {#each i18n.availableLocales as localeValue}
+      <link rel="alternate" hreflang={localeValue} href={`${baseUrl}/${localeValue}${currentPath.replace(new RegExp(`^/(${i18n.availableLocales.join('|')})(/|$)`), '/').replace(/\/$/, '') || '/'}`} />
+    {/each}
+    <link rel="alternate" hreflang="x-default" href={`${baseUrl}/tr${currentPath.replace(new RegExp(`^/(${i18n.availableLocales.join('|')})(/|$)`), '/').replace(/\/$/, '') || '/'}`} />
+  {/if}
   
   <!-- Open Graph / Facebook -->
   <meta property="og:type" content={ogType} />
@@ -70,7 +73,7 @@
   <meta property="og:description" content={description} />
   <meta property="og:image" content={ogImage} />
   <meta property="og:site_name" content="LAF" />
-  <meta property="og:locale" content={locale === 'tr' ? 'tr_TR' : 'en_US'} />
+  <meta property="og:locale" content={locale === 'tr' ? 'tr_TR' : locale === 'en' ? 'en_US' : `${locale}_${locale.toUpperCase()}`} />
   
   <!-- Twitter -->
   <meta property="twitter:card" content="summary_large_image" />

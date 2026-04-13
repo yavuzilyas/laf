@@ -47,6 +47,11 @@
 
   // Global QR Entry Tracking - works on all pages
   $effect(() => {
+    if (browser && typeof document !== 'undefined') {
+      document.documentElement.lang = i18n.currentLocale;
+      document.documentElement.dir = i18n.dir;
+    }
+    
     if (browser && typeof window !== 'undefined') {
       // Check if URL contains #q hash
       if (window.location.hash === '#q') {

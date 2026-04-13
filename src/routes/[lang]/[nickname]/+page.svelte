@@ -104,7 +104,7 @@
                     {
                         '@type': 'ListItem',
                         position: 1,
-                        name: 'Ana Sayfa',
+                        name: t('seo.homeTab') || 'Home',
                         item: siteUrl
                     },
                     {

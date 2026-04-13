@@ -526,7 +526,7 @@
 </script>
 
 <svelte:head>
-    <title>{question.title} | Q&A</title>
+    <title>{question.title} | {t('qa.title') || 'Q&A'}</title>
     <meta name="description" content={question.contentHtml?.replace(/<[^>]*>/g, '').substring(0, 150)} />
 </svelte:head>
 
@@ -785,7 +785,7 @@
 
                         <!-- More Actions -->
                         <DropdownMenu.Root>
-                            <DropdownMenu.Trigger>
+                            <DropdownMenu.Trigger asChild>
                                 <Button variant="ghost" size="icon">
                                     <MoreVertical class="w-4 h-4" />
                                 </Button>
