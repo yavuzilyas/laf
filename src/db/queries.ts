@@ -2140,7 +2140,8 @@ const getCollaboratorDetails = async (collaboratorIds: string[]): Promise<Array<
 };
 
 // Get popular articles based on engagement (likes + comments + views)
-export const getPopularArticles = async (limit: number = 3, excludeId?: string) => {
+// If language is provided, prioritize that language's translation
+export const getPopularArticles = async (limit: number = 3, excludeId?: string, language?: string) => {
     let sql = `
         SELECT a.*, 
                u.username as author_name, 
@@ -2175,13 +2176,20 @@ export const getPopularArticles = async (limit: number = 3, excludeId?: string) 
             const collaboratorIds = row.collaborators || [];
             const collaboratorDetails = await getCollaboratorDetails(collaboratorIds);
             
+            // Determine which translation to use: requested language if available, otherwise default
+            const translations = row.translations || {};
+            const defaultLang = row.default_language || 'tr';
+            const hasTranslation = language && translations[language] && translations[language].title;
+            const displayLang = hasTranslation ? language : defaultLang;
+            const translation = translations[displayLang] || {};
+            
             return {
                 ...row,
                 id: row.id,
-                slug: row.translations?.[row.default_language]?.slug || row.slug || `article-${row.id}`,
-                title: row.translations?.[row.default_language]?.title || row.title || 'Untitled',
-                excerpt: row.translations?.[row.default_language]?.excerpt || 
-                         (row.translations?.[row.default_language]?.content?.substring(0, 200) + '...') || 
+                slug: translation.slug || row.slug || `article-${row.id}`,
+                title: translation.title || row.title || 'Untitled',
+                excerpt: translation.excerpt || 
+                         (translation.content?.substring(0, 200) + '...') || 
                          (row.content?.substring(0, 200) + '...') || '',
                 author: {
                     id: row.author_id,
@@ -2192,14 +2200,16 @@ export const getPopularArticles = async (limit: number = 3, excludeId?: string) 
                 },
                 author_nickname: row.author_nickname || row.author_name,
                 publishedAt: row.published_at,
-                readTime: Math.ceil((row.translations?.[row.default_language]?.content?.length || row.content?.length || 0) / 1000) || 5,
+                readTime: Math.ceil((translation.content?.length || row.content?.length || 0) / 1000) || 5,
                 category: row.category,
                 coverImage: row.thumbnail,
                 views: row.views || 0,
                 likes: row.likes_count || 0,
                 comments: row.comments_count || 0,
                 dislikes: row.dislikes || 0,
-                collaborators: collaboratorDetails
+                collaborators: collaboratorDetails,
+                language: displayLang,
+                translations: translations
             };
         })
     );
@@ -2314,7 +2324,8 @@ export const getQrEntryStats = async (fromDate?: Date, toDate?: Date) => {
 };
 
 // Get similar articles based on category and tags
-export const getSimilarArticles = async (articleId: string, category: string, tags: string[], limit: number = 3) => {
+// If language is provided, prioritize that language's translation
+export const getSimilarArticles = async (articleId: string, category: string, tags: string[], limit: number = 3, language?: string) => {
     let sql = `
         SELECT a.*, 
                u.username as author_name, 
@@ -2364,13 +2375,20 @@ export const getSimilarArticles = async (articleId: string, category: string, ta
             const collaboratorIds = row.collaborators || [];
             const collaboratorDetails = await getCollaboratorDetails(collaboratorIds);
             
+            // Determine which translation to use: requested language if available, otherwise default
+            const translations = row.translations || {};
+            const defaultLang = row.default_language || 'tr';
+            const hasTranslation = language && translations[language] && translations[language].title;
+            const displayLang = hasTranslation ? language : defaultLang;
+            const translation = translations[displayLang] || {};
+            
             return {
                 ...row,
                 id: row.id,
-                slug: row.translations?.[row.default_language]?.slug || row.slug || `article-${row.id}`,
-                title: row.translations?.[row.default_language]?.title || row.title || 'Untitled',
-                excerpt: row.translations?.[row.default_language]?.excerpt || 
-                         (row.translations?.[row.default_language]?.content?.substring(0, 200) + '...') || 
+                slug: translation.slug || row.slug || `article-${row.id}`,
+                title: translation.title || row.title || 'Untitled',
+                excerpt: translation.excerpt || 
+                         (translation.content?.substring(0, 200) + '...') || 
                          (row.content?.substring(0, 200) + '...') || '',
                 author: {
                     id: row.author_id,
@@ -2381,14 +2399,16 @@ export const getSimilarArticles = async (articleId: string, category: string, ta
                 },
                 author_nickname: row.author_nickname || row.author_name,
                 publishedAt: row.published_at,
-                readTime: Math.ceil((row.translations?.[row.default_language]?.content?.length || row.content?.length || 0) / 1000) || 5,
+                readTime: Math.ceil((translation.content?.length || row.content?.length || 0) / 1000) || 5,
                 category: row.category,
                 coverImage: row.thumbnail,
                 views: row.views || 0,
                 likes: row.likes_count || 0,
                 comments: row.comments_count || 0,
                 dislikes: row.dislikes || 0,
-                collaborators: collaboratorDetails
+                collaborators: collaboratorDetails,
+                language: displayLang,
+                translations: translations
             };
         })
     );

@@ -6,7 +6,7 @@ export const load: PageServerLoad = async ({ locals }) => {
     const locale = locals.locale || 'tr';
     
     try {
-        const popularArticles = await getPopularArticles(3);
+        const popularArticles = await getPopularArticles(3, undefined, locale);
         
         return {
             popularArticles,

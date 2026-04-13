@@ -3,7 +3,8 @@ import { getPopularArticles } from '$db/queries';
 
 export const load: PageServerLoad = async ({ params }) => {
     try {
-        const popularArticles = await getPopularArticles(3);
+        const currentLocale = params.lang || 'tr';
+        const popularArticles = await getPopularArticles(3, undefined, currentLocale);
         
         return {
             popularArticles,

@@ -35,7 +35,8 @@ const toIsoString = (value: unknown): string => {
   return new Date().toISOString();
 };
 
-export const load: PageServerLoad = async ({ locals }) => {
+export const load: PageServerLoad = async ({ locals, params }) => {
+  const currentLocale = params.lang || 'tr';
   const user = (locals as any)?.user ?? null;
 
   // Get viewer data
@@ -211,9 +212,11 @@ export const load: PageServerLoad = async ({ locals }) => {
     }
 
     const defaultLanguage = a.default_language || Object.keys(translations)[0] || 'tr';
-    const displayLanguage = translations[defaultLanguage]
-      ? defaultLanguage
-      : Object.keys(translations)[0];
+    // Prioritize current locale translation if available, otherwise fall back to default language
+    const hasLocaleTranslation = currentLocale && translations[currentLocale] && translations[currentLocale].title;
+    const displayLanguage = hasLocaleTranslation
+      ? currentLocale
+      : (translations[defaultLanguage] ? defaultLanguage : Object.keys(translations)[0]);
 
     const translation = displayLanguage ? translations[displayLanguage] : undefined;
     const title = translation?.title || '';
