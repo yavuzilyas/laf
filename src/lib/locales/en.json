@@ -840,7 +840,19 @@
     "version": "Version",
     "restore": "Restore",
     "noVersions": "No version history available",
-    "loadDraft": "Load Draft"
+    "loadDraft": "Load Draft",
+    "draftAlertTitle": "Saving Draft",
+    "draftAlertDescription": "Files uploaded to your draft will be removed, you will need to re-upload them when you return.",
+    "addEditTranslation": "Add / Edit Translation",
+    "translationSubtitle": "Add a new translation in another language or update an existing translation",
+    "maxFileSize": "Maximum file size must be 4MB.",
+    "onlyImages": "You can only upload images.",
+    "thumbnailRatio": "Thumbnail aspect ratio must be between 1:1 and 16:9.",
+    "thumbnailUploadFailed": "Thumbnail upload failed",
+    "thumbnailUploadError": "Thumbnail upload error",
+    "imageReadError": "Image could not be read.",
+    "publishTranslation": "Publish Translation",
+    "saveAsDraft": "Save as Draft"
   },
   "categories": {
     "philosophy": "Philosophy",
@@ -964,10 +976,26 @@
     "Medium": "Medium",
     "Large": "Large"
   },
+  "linksPage": {
+    "title": "Links",
+    "subtitle": "Follow us on social media and explore our connections",
+    "types": {
+      "social": "Social Media",
+      "donation": "Donation",
+      "external": "Other Links",
+      "contact": "Contact",
+      "other": "Other"
+    },
+    "emptyState": {
+      "title": "No links added yet",
+      "description": "Social media and contact links will appear here soon"
+    }
+  },
   "editor": {
     "media": {
       "addMedia": "Add Media",
       "addImage": "Add Image",
+      "addFile": "Add File",
       "urlOrFile": "Enter URL or select file",
       "insertFromUrl": "Insert from URL",
       "insertFromFile": "Insert from File"
@@ -1001,6 +1029,7 @@
       "image-placeholder": "Image Placeholder",
       "video-placeholder": "Video Placeholder",
       "audio-placeholder": "Audio Placeholder",
+      "file-placeholder": "File Placeholder",
       "iframe-placeholder": "IFrame Placeholder",
       "table": "Table",
       "fontSize": {
@@ -1087,7 +1116,9 @@
         "selected": "Selected",
         "uploading": "Uploading...",
         "upload": "Upload"
-      }
+      },
+      "fileAttachment": "File Attachment",
+      "goToLine": "Go to Line"
     }
   },
   "notifications": {

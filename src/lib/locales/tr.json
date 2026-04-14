@@ -710,7 +710,19 @@
     "version": "Sürüm",
     "restore": "Geri Yükle",
     "noVersions": "Sürüm geçmişi mevcut değil",
-    "loadDraft": "Taslağa Dön"
+    "loadDraft": "Taslağa Dön",
+    "draftAlertTitle": "Taslak Kaydediliyor",
+    "draftAlertDescription": "Taslağınıza yüklenen dosyalar kaldırılacaktır, döndüğünüzde tekrar yüklemelisiniz.",
+    "addEditTranslation": "Çeviri Ekle / Düzenle",
+    "translationSubtitle": "Makaleye yeni bir dilde çeviri ekleyin veya mevcut çeviriyi güncelleyin",
+    "maxFileSize": "Maksimum dosya boyutu 4MB olmalı.",
+    "onlyImages": "Sadece görsel yükleyebilirsiniz.",
+    "thumbnailRatio": "Thumbnail en/boy oranı 1:1 ile 16:9 arasında olmalı.",
+    "thumbnailUploadFailed": "Thumbnail yüklenemedi",
+    "thumbnailUploadError": "Thumbnail yükleme hatası",
+    "imageReadError": "Görsel okunamadı.",
+    "publishTranslation": "Çeviriyi Yayınla",
+    "saveAsDraft": "Taslak Olarak Kaydet"
   },
   "common": {
     "view": "Görüntüle",
@@ -823,6 +835,21 @@
     "Small": "Küçük",
     "Medium": "Orta",
     "Large": "Büyük"
+  },
+  "linksPage": {
+    "title": "Linkler",
+    "subtitle": "Bizi sosyal medyada takip edin ve bağlantılara göz atın",
+    "types": {
+      "social": "Sosyal Medya",
+      "donation": "Bağış",
+      "external": "Diğer Linkler",
+      "contact": "İletişim",
+      "other": "Diğer"
+    },
+    "emptyState": {
+      "title": "Henüz link eklenmemiş",
+      "description": "Yakında sosyal medya ve iletişim linkleri burada görünecek"
+    }
   },
   "Generate": "Oluştur",
   "Language": "Dil",
@@ -1031,6 +1058,7 @@
     "media": {
       "addMedia": "Medya Ekle",
       "addImage": "Resim ekle",
+      "addFile": "Dosya ekle",
       "urlOrFile": "URL giriniz ya da dosya seçiniz",
       "insertFromUrl": "URL'den aktar",
       "insertFromFile": "Dosyadan aktar"
@@ -1064,6 +1092,7 @@
       "image-placeholder": "Resim Yer Tutucu",
       "video-placeholder": "Video Yer Tutucu",
       "audio-placeholder": "Ses Yer Tutucu",
+      "file-placeholder": "Dosya Yer Tutucu",
       "iframe-placeholder": "IFrame Yer Tutucu",
       "table": "Tablo",
       "fontSize": {
@@ -1151,7 +1180,9 @@
         "selected": "Seçildi",
         "uploading": "Yükleniyor...",
         "upload": "Yükle"
-      }
+      },
+      "fileAttachment": "Dosya Eki",
+      "goToLine": "Satıra Git"
     }
   },
   "notLoggedIn": "Giriş Yapılmadı",

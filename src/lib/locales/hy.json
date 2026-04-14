@@ -824,6 +824,21 @@
     "Medium": "Միջին",
     "Large": "Մեծ"
   },
+  "linksPage": {
+    "title": "Հղումներ",
+    "subtitle": "Հետևեք մեզ սոցիալական ցանցերում և ուսումնասիրեք մեր կապերը",
+    "types": {
+      "social": "Սոցիալական Մեդիա",
+      "donation": "Նվիրաբերություն",
+      "external": "Այլ Հղումներ",
+      "contact": "Կապ",
+      "other": "Այլ"
+    },
+    "emptyState": {
+      "title": "Դեռ հղումներ չկան",
+      "description": "Սոցիալական մեդիայի և կապի հղումները շուտով կհայտնվեն այստեղ"
+    }
+  },
   "Generate": "Ստեղծել",
   "Language": "Լեզու",
   "and": "և",
@@ -1031,6 +1046,7 @@
     "media": {
       "addMedia": "Ավելացնել մեդիա",
       "addImage": "Ավելացնել պատկեր",
+      "addFile": "Ավելացնել ֆայլ",
       "urlOrFile": "Մուտքագրեք URL կամ ընտրեք ֆայլ",
       "insertFromUrl": "Փոխարկել URL‑ից",
       "insertFromFile": "Փոխարկել ֆայլից"
@@ -1063,7 +1079,8 @@
       "taskList": "Առաջադրանքների ցուցակ",
       "image-placeholder": "Պատկերի տեղադրվող նշում",
       "video-placeholder": "Վիդեոյի տեղադրվող նշում",
-      "audio-placeholder": "Աուդիոի տեղադրվող նշում",
+      "audio-placeholder": "Աուդիոյի տեղադրվող նշում",
+      "file-placeholder": "Ֆայլի տեղադրվող նշում",
       "iframe-placeholder": "IFrame-ի տեղադրվող նշում",
       "table": "Աղյուսակ",
       "fontSize": {
@@ -1151,7 +1168,9 @@
         "selected": "Ընտրված",
         "uploading": "Բեռնում...",
         "upload": "Բեռնեք"
-      }
+      },
+      "fileAttachment": "Ֆայլի Կցում",
+      "goToLine": "Անցնել Տողին"
     }
   },
   "notLoggedIn": "Չէ մուտքագրված",

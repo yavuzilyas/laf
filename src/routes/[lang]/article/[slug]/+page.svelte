@@ -63,6 +63,7 @@
 	let { data } = $props();
 	let collaborators = $state(data.collaborators || []);
 	let collaboratorProfiles = $state(data.collaboratorProfiles || []);
+	let translatorProfiles = $state(data.translatorProfiles || []);
 	let likesCount = $state<number>(Number(data.article?.stats?.likes) || 0);
 	let dislikesCount = $state<number>(Number(data.article?.stats?.dislikes) || 0);
 	let reaction = $state<'like' | 'dislike' | null>(null);
@@ -1487,6 +1488,18 @@
 		const target = article?.availableTranslations?.[lang];
 		if (target?.slug) {
 			window.location.href = `/article/${target.slug}`;
+		} else {
+			// Navigate to translation page for languages without translation
+			const params = new URLSearchParams({
+				articleId: article._id,
+				mode: 'edit',
+				translator: 'true',
+				targetLang: lang
+			});
+			if (article?.slug) {
+				params.set('slug', article.slug);
+			}
+			window.location.href = `/write?${params.toString()}`;
 		}
 	};
 
@@ -2287,14 +2300,13 @@
 									<Select.Label class="text-secondary-foreground !text-xs">{t('articles.languages')}</Select.Label>
 									{#each localeConfig.availableLocales as lang}
 										{@const hasTranslation = lang === article.language || article.availableTranslations?.[lang]}
-										{#if hasTranslation}
-											<Select.Item
-												class="text-secondary-foreground mt-1 !bg-background/44 !text-xs"
-												value={lang}
-											>
-												{localeNames[lang] || lang.toUpperCase()}
-											</Select.Item>
-										{/if}
+										{@const langLabel = localeNames[lang] || lang.toUpperCase()}
+										<Select.Item
+											class="mt-1 !bg-background/44 !text-xs {hasTranslation ? 'text-secondary-foreground' : 'text-muted-foreground/50'}"
+											value={lang}
+										>
+											{hasTranslation ? langLabel : `${langLabel} - ${t('Translate') || 'Çevir'}`}
+										</Select.Item>
 									{/each}
 								</Select.Group>
 							</Select.Content>
@@ -2379,7 +2391,7 @@
 												</DropdownMenu.Item>
 											{/if}
 										{/if}
-										{#if $page.data.user && !isArticleOwner() && !isCollaborator() && !article?.fullyTranslated}
+										{#if $page.data.user && !isArticleOwner() && !isCollaborator()}
 											<DropdownMenu.Separator />
 											<DropdownMenu.Item onclick={onTranslateArticle}>
 												<Languages class="h-4 w-4" />
@@ -2821,7 +2833,73 @@
 					/>
 				{/if}
 
-				<Separator class="my-10" />
+				<!-- Translators Section -->
+				{#if translatorProfiles && translatorProfiles.length > 0}
+					<div class="mt-8">
+						<div class="flex items-center gap-2 mb-4">
+							<Languages class="w-5 h-5 text-primary" />
+							<h3 class="text-lg font-semibold">{t('articles.translations.title') || 'Çeviri'}</h3>
+						</div>
+						<div class="space-y-6">
+							{#each translatorProfiles as translator (translator.id + translator.language)}
+								<div class="space-y-4">
+									<div class="flex items-center gap-2 text-sm text-muted-foreground mb-2">
+										<span class="font-medium">{translator.language.toUpperCase()}</span>
+										<span>•</span>
+										<span>{new Date(translator.translatedAt).toLocaleDateString(currentLocale)}</span>
+									</div>
+									<ProfileCard
+										profileData={{
+											name: translator.name || '',
+											surname: translator.surname || '',
+											nickname: translator.nickname || '',
+											bio: translator.bio || '',
+											location: '',
+											website: '',
+											interests: [],
+											avatar: translator.avatar || '',
+											bannerColor: translator.bannerColor || '#0f172a',
+											bannerImage: translator.bannerImage || '',
+											socialLinks: {}
+										}}
+										profileUser={{
+											...translator,
+											id: translator.id,
+											username: translator.username,
+											nickname: translator.nickname,
+											name: translator.name,
+											surname: translator.surname,
+											avatar: translator.avatar,
+											bannerColor: translator.bannerColor,
+											bannerImage: translator.bannerImage,
+											followersCount: translator.followersCount,
+											followingCount: translator.followingCount,
+											createdAt: translator.createdAt,
+											updatedAt: translator.updatedAt,
+											stats: translator.stats
+										}}
+										isOwnProfile={currentUserId === translator.id}
+										showProfileLink={true}
+										isEditing={false}
+										isSaving={false}
+										avatarUploading={false}
+										bannerUploading={false}
+										isFollowing={translator.isFollowing || false}
+										isBlocked={false}
+										followersCount={translator.followersCount || 0}
+										followingCount={translator.followingCount || 0}
+										isFollowingMe={false}
+										followersList={[]}
+										followingList={[]}
+										{currentUserId}
+										joinDate={translator.createdAt}
+									/>
+								</div>
+							{/each}
+						</div>
+					</div>
+					<Separator class="my-10" />
+				{/if}
 
 				<!-- Comments Section -->
 				<div class="mt-12">

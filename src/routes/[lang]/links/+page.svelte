@@ -14,13 +14,7 @@ import { LinkIcon } from 'svelte-animate-icons';
   const seoDescription = $derived(t('seo.links.description') || 'LAF sosyal medya hesapları ve iletişim bağlantıları.');
   const canonicalUrl = $derived(typeof window !== 'undefined' ? window.location.href : `${siteUrl}/${currentLocale}/links`);
 
-  const typeLabels: Record<string, string> = {
-    social: 'Sosyal Medya',
-    donation: 'Bağış',
-    external: 'Diğer Linkler',
-    contact: 'İletişim',
-    other: 'Diğer'
-  };
+  // Type labels now come from translations via t('linksPage.types.{type}')
 
   const typeIcons: Record<string, any> = {
     social: MessageCircle,
@@ -79,9 +73,9 @@ import { LinkIcon } from 'svelte-animate-icons';
     <div class="text-center mb-8">
                         <LinkIcon triggers={{ hover: false }} duration={2000} animationState="loading" size={48} class="text-primary" />
 
-      <h1 class="text-4xl font-bold mb-4">Linkler</h1>
+      <h1 class="text-4xl font-bold mb-4">{t('linksPage.title')}</h1>
       <p class="text-muted-foreground text-lg">
-        Bizi sosyal medyada takip edin ve bağlantılara göz atın
+        {t('linksPage.subtitle')}
       </p>
     </div>
 
@@ -92,7 +86,7 @@ import { LinkIcon } from 'svelte-animate-icons';
           <div class="p-2 bg-primary/10 rounded-lg">
             <svelte:component this={typeIcons[type] || Globe} class="w-5 h-5 text-primary" />
           </div>
-          <h2 class="text-xl font-semibold">{typeLabels[type] || type}</h2>
+          <h2 class="text-xl font-semibold">{t(`linksPage.types.${type}`) || type}</h2>
         </div>
 
         <div class="grid gap-4 w-full ">
@@ -125,7 +119,7 @@ import { LinkIcon } from 'svelte-animate-icons';
                 <h3 class="font-semibold truncate group-hover:text-primary transition-colors">
                   {link.title}
                 </h3>
-                {#if link.description}
+                {#if link.description && currentLocale === 'tr'}
                   <p class="text-sm text-muted-foreground line-clamp-2">
                     {link.description}
                   </p>
@@ -142,9 +136,9 @@ import { LinkIcon } from 'svelte-animate-icons';
     {#if links.length === 0}
       <div class="text-center py-16">
         <Globe class="w-16 h-16 text-muted-foreground mx-auto mb-4" />
-        <h3 class="text-lg font-medium mb-2">Henüz link eklenmemiş</h3>
+        <h3 class="text-lg font-medium mb-2">{t('linksPage.emptyState.title')}</h3>
         <p class="text-muted-foreground">
-          Yakında sosyal medya ve iletişim linkleri burada görünecek
+          {t('linksPage.emptyState.description')}
         </p>
       </div>
     {/if}

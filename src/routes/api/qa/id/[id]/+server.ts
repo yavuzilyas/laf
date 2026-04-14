@@ -82,18 +82,65 @@ export async function PUT({ request, params, locals }: RequestEvent) {
             id
         ]);
 
-        const updatedQuestion = result.rows[0];
+        const updatedQuestionRow = result.rows[0];
+        
+        // Fetch full question data with author and topic info
+        const fullQuestionQuery = `
+            SELECT 
+                q.id, q.title, q.slug, q.content, q.content_html, q.status, q.is_anonymous,
+                q.author_name, q.author_email, q.created_at, q.published_at, q.answered_at,
+                q.vote_score, q.view_count, q.answer_count, q.accepted_answer_id, q.follow_count,
+                q.like_count, q.dislike_count,
+                t.id as topic_id, t.name as topic_name, t.slug as topic_slug,
+                u.id as author_user_id, u.username as author_username, 
+                u.nickname as author_nickname, u.avatar_url as author_avatar
+            FROM questions q
+            LEFT JOIN question_topics t ON q.topic_id = t.id
+            LEFT JOIN users u ON q.author_id = u.id
+            WHERE q.id = $1
+        `;
+        const fullResult = await query(fullQuestionQuery, [id]);
+        const row = fullResult.rows[0];
+        
+        // Build full question object
+        const fullQuestion = {
+            id: row.id,
+            title: row.title,
+            slug: row.slug,
+            content: row.content,
+            contentHtml: row.content_html,
+            status: row.status,
+            isAnonymous: row.is_anonymous,
+            authorName: row.is_anonymous ? null : (row.author_name || row.author_username || row.author_nickname),
+            authorEmail: row.is_anonymous ? null : row.author_email,
+            createdAt: row.created_at,
+            publishedAt: row.published_at,
+            answeredAt: row.answered_at,
+            voteScore: row.vote_score || 0,
+            viewCount: row.view_count || 0,
+            answerCount: row.answer_count || 0,
+            likeCount: row.like_count || 0,
+            dislikeCount: row.dislike_count || 0,
+            acceptedAnswerId: row.accepted_answer_id,
+            followCount: row.follow_count || 0,
+            topic: row.topic_id ? {
+                id: row.topic_id,
+                name: row.topic_name,
+                slug: row.topic_slug
+            } : null,
+            author: row.is_anonymous ? null : {
+                id: row.author_user_id,
+                username: row.author_username,
+                nickname: row.author_nickname,
+                avatar: row.author_avatar
+            },
+            answers: [], // Will be refetched on page refresh
+            hasUserAnswered: false
+        };
 
         return json({
             success: true,
-            question: {
-                id: updatedQuestion.id,
-                title: updatedQuestion.title,
-                slug: updatedQuestion.slug,
-                status: updatedQuestion.status,
-                createdAt: updatedQuestion.created_at,
-                updatedAt: updatedQuestion.updated_at
-            },
+            question: fullQuestion,
             message: 'Soru güncellendi'
         });
 

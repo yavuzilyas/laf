@@ -825,6 +825,21 @@
     "Medium": "Moyen",
     "Large": "Grand"
   },
+  "linksPage": {
+    "title": "Liens",
+    "subtitle": "Suivez-nous sur les réseaux sociaux et explorez nos connexions",
+    "types": {
+      "social": "Réseaux Sociaux",
+      "donation": "Don",
+      "external": "Autres Liens",
+      "contact": "Contact",
+      "other": "Autres"
+    },
+    "emptyState": {
+      "title": "Aucun lien ajouté",
+      "description": "Les liens vers les réseaux sociaux et contact apparaîtront ici bientôt"
+    }
+  },
   "Generate": "Générer",
   "Language": "Langue",
   "and": "et",
@@ -1032,6 +1047,7 @@
     "media": {
       "addMedia": "Ajouter un Média",
       "addImage": "Ajouter une Image",
+      "addFile": "Ajouter un Fichier",
       "urlOrFile": "Entrez une URL ou choisissez un fichier",
       "insertFromUrl": "Insérer depuis l'URL",
       "insertFromFile": "Insérer depuis le Fichier"
@@ -1065,6 +1081,7 @@
       "image-placeholder": "Espace réservé pour l'image",
       "video-placeholder": "Espace réservé pour la vidéo",
       "audio-placeholder": "Espace réservé pour l'audio",
+      "file-placeholder": "Espace réservé pour le fichier",
       "iframe-placeholder": "Espace réservé pour l'iframe",
       "table": "Tableau",
       "fontSize": {
@@ -1152,7 +1169,9 @@
         "selected": "Sélectionné",
         "uploading": "Téléversement...",
         "upload": "Téléverser"
-      }
+      },
+      "fileAttachment": "Pièce Jointe",
+      "goToLine": "Aller à la Ligne"
     }
   },
   "notLoggedIn": "Non connecté",

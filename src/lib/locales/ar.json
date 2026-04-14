@@ -824,6 +824,21 @@
     "Medium": "متوسط",
     "Large": "كبير"
   },
+  "linksPage": {
+    "title": "روابط",
+    "subtitle": "تابعنا على وسائل التواصل الاجتماعي واستكشف تواصلنا",
+    "types": {
+      "social": "وسائل التواصل الاجتماعي",
+      "donation": "تبرع",
+      "external": "روابط أخرى",
+      "contact": "اتصال",
+      "other": "أخرى"
+    },
+    "emptyState": {
+      "title": "لم تتم إضافة روابط بعد",
+      "description": "ستظهر روابط التواصل الاجتماعي والاتصال هنا قريباً"
+    }
+  },
   "Generate": "إنشاء",
   "Language": "اللغة",
   "and": "و",
@@ -1031,6 +1046,7 @@
     "media": {
       "addMedia": "إضافة وسائط",
       "addImage": "إضافة صورة",
+      "addFile": "إضافة ملف",
       "urlOrFile": "أدخل URL أو اختر ملفًا",
       "insertFromUrl": "إدراج من URL",
       "insertFromFile": "إدراج من ملف"
@@ -1064,6 +1080,7 @@
       "image-placeholder": "عنصر نائب للصورة",
       "video-placeholder": "عنصر نائب للفيديو",
       "audio-placeholder": "عنصر نائب للصوت",
+      "file-placeholder": "عنصر نائب للملف",
       "iframe-placeholder": "عنصر نائب لإطار iframe",
       "table": "جدول",
       "fontSize": {
@@ -1151,7 +1168,9 @@
         "selected": "تم الاختيار",
         "uploading": "جارٍ الرفع...",
         "upload": "ارفع"
-      }
+      },
+      "fileAttachment": "مرفق الملف",
+      "goToLine": "انتقل إلى السطر"
     }
   },
   "notLoggedIn": "لم يتم تسجيل الدخول",

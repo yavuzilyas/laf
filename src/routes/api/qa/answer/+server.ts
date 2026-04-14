@@ -34,9 +34,9 @@ export async function POST({ request, locals }: RequestEvent) {
             return json({ error: 'Cevap içeriği gerekli' }, { status: 400 });
         }
 
-        // Check if question exists and is pending/answered
+        // Check if question exists
         const checkQuery = `
-            SELECT id, status, answer_id FROM questions WHERE id = $1
+            SELECT id, status FROM questions WHERE id = $1
         `;
         const checkResult = await query(checkQuery, [questionId]);
 
@@ -49,8 +49,14 @@ export async function POST({ request, locals }: RequestEvent) {
             return json({ error: 'Reddedilmiş sorulara cevap verilemez' }, { status: 400 });
         }
 
-        if (question.status === 'published' && question.answer_id) {
-            return json({ error: 'Bu soru zaten cevaplanmış ve yayınlanmış' }, { status: 400 });
+        // Check if user has already answered this question (each user can answer once per question)
+        const existingAnswerQuery = `
+            SELECT id FROM answers WHERE question_id = $1 AND author_id = $2 LIMIT 1
+        `;
+        const existingAnswerResult = await query(existingAnswerQuery, [questionId, user.id]);
+        
+        if (existingAnswerResult.rows.length > 0) {
+            return json({ error: 'Bu soruya zaten cevap verdiniz. Birden fazla cevap veremezsiniz.' }, { status: 400 });
         }
 
         // Create answer
@@ -67,7 +73,7 @@ export async function POST({ request, locals }: RequestEvent) {
             user.id
         ]);
 
-        const answer = answerResult.rows[0];
+        const answerRow = answerResult.rows[0];
 
         // Update question status
         const newStatus = publishImmediately ? 'published' : 'answered';
@@ -80,14 +86,15 @@ export async function POST({ request, locals }: RequestEvent) {
                 answered_at = NOW(),
                 published_at = CASE WHEN $4 = true THEN NOW() ELSE published_at END,
                 moderated_by = $5,
-                moderated_at = NOW()
+                moderated_at = NOW(),
+                answer_count = answer_count + 1
             WHERE id = $6
-            RETURNING id, title, status, published_at
+            RETURNING id, title, status, published_at, answer_count
         `;
 
         const updateResult = await query(updateQuery, [
             newStatus,
-            answer.id,
+            answerRow.id,
             user.id,
             publishImmediately,
             user.id,
@@ -95,20 +102,41 @@ export async function POST({ request, locals }: RequestEvent) {
         ]);
 
         const updatedQuestion = updateResult.rows[0];
+        
+        // Fetch user info for the answer author
+        const userQuery = `
+            SELECT username, nickname, avatar_url 
+            FROM users 
+            WHERE id = $1
+        `;
+        const userResult = await query(userQuery, [user.id]);
+        const userRow = userResult.rows[0];
+
+        // Build full answer object with author info
+        const fullAnswer = {
+            id: answerRow.id,
+            content: answerRow.content,
+            contentHtml: answerRow.content_html,
+            createdAt: answerRow.created_at,
+            voteScore: 0,
+            likeCount: 0,
+            dislikeCount: 0,
+            author: {
+                username: userRow?.username || user.username,
+                nickname: userRow?.nickname || user.nickname,
+                avatar: userRow?.avatar_url || user.avatar
+            }
+        };
 
         return json({
             success: true,
-            answer: {
-                id: answer.id,
-                content: answer.content,
-                contentHtml: answer.content_html,
-                createdAt: answer.created_at
-            },
+            answer: fullAnswer,
             question: {
                 id: updatedQuestion.id,
                 title: updatedQuestion.title,
                 status: updatedQuestion.status,
-                publishedAt: updatedQuestion.published_at
+                publishedAt: updatedQuestion.published_at,
+                answerCount: updatedQuestion.answer_count
             },
             message: publishImmediately 
                 ? 'Cevap yayınlandı' 
@@ -177,16 +205,36 @@ export async function PUT({ request, locals }: RequestEvent) {
             answerId
         ]);
 
-        const updatedAnswer = result.rows[0];
+        const updatedAnswerRow = result.rows[0];
+        
+        // Fetch user info for the answer author
+        const userQuery = `
+            SELECT username, nickname, avatar_url 
+            FROM users 
+            WHERE id = $1
+        `;
+        const userResult = await query(userQuery, [user.id]);
+        const userRow = userResult.rows[0];
+
+        // Build full answer object with author info
+        const fullAnswer = {
+            id: updatedAnswerRow.id,
+            content: updatedAnswerRow.content,
+            contentHtml: updatedAnswerRow.content_html,
+            updatedAt: updatedAnswerRow.updated_at,
+            voteScore: 0,
+            likeCount: 0,
+            dislikeCount: 0,
+            author: {
+                username: userRow?.username || user.username,
+                nickname: userRow?.nickname || user.nickname,
+                avatar: userRow?.avatar_url || user.avatar
+            }
+        };
 
         return json({
             success: true,
-            answer: {
-                id: updatedAnswer.id,
-                content: updatedAnswer.content,
-                contentHtml: updatedAnswer.content_html,
-                updatedAt: updatedAnswer.updated_at
-            },
+            answer: fullAnswer,
             message: 'Cevap güncellendi'
         });
 

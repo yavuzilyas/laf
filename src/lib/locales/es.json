@@ -741,6 +741,21 @@
       "Medium": "Mediano",
       "Large": "Grande"
     },
+    "linksPage": {
+      "title": "Enlaces",
+      "subtitle": "Síguenos en las redes sociales y explora nuestras conexiones",
+      "types": {
+        "social": "Redes Sociales",
+        "donation": "Donación",
+        "external": "Otros Enlaces",
+        "contact": "Contacto",
+        "other": "Otros"
+      },
+      "emptyState": {
+        "title": "Aún no hay enlaces",
+        "description": "Los enlaces de redes sociales y contacto aparecerán aquí pronto"
+      }
+    },
     "Generate": "Generar",
     "Language": "Idioma",
     "and": "y",
@@ -938,6 +953,7 @@
       "image-placeholder": "Marcador de posición de imagen",
       "video-placeholder": "Marcador de posición de video",
       "audio-placeholder": "Marcador de posición de audio",
+      "file-placeholder": "Marcador de posición de archivo",
       "iframe-placeholder": "Marcador de posición de IFrame",
       "table": "Tabla",
       "fontSize": {
@@ -1053,13 +1069,16 @@
       "title": "Subir archivo",
       "description": "Selecciona el tipo de archivo y súbelo",
       "image": "Imagen",
-      "audio": "Audio",
-      "video": "Video",
-      "selectFile": "Seleccionar archivo",
+      "addMedia": "Agregar Medios",
+      "addImage": "Agregar Imagen",
+      "addFile": "Agregar Archivo",
+      "urlOrFile": "Ingresa la URL o selecciona el archivo",
       "selected": "Seleccionado",
       "uploading": "Subiendo...",
       "upload": "Subir"
     },
+    "fileAttachment": "Adjunto de Archivo",
+    "goToLine": "Ir a la Línea",
     "textFormatting": {
       "bold": "Negrita",
       "italic": "Cursiva",

@@ -1,6 +1,6 @@
 import { json } from '@sveltejs/kit';
 import { updateTranslationStatus, getTranslationStatus } from '$db/queries-translation-status';
-import { getArticles } from '$db/queries';
+import { getArticles, deleteNotificationsByTranslationStatusId } from '$db/queries';
 
 // POST /api/translations/[id]/review - Approve or reject a translation
 export async function POST({ params, request, locals }) {
@@ -52,14 +52,19 @@ export async function POST({ params, request, locals }) {
             return json({ error: 'Failed to update translation status' }, { status: 500 });
         }
 
-        // If rejected, remove the translation from the article
-        if (action === 'reject' && status.article_translations) {
-            const translations = { ...status.article_translations };
-            delete translations[status.language_code];
-            
-            // Update article to remove rejected translation
-            const { updateArticle } = await import('$db/queries');
-            await updateArticle(status.article_id, { translations });
+        // If rejected, remove the translation from the article and delete the notification
+        if (action === 'reject') {
+            // Delete the notification for this translation
+            await deleteNotificationsByTranslationStatusId(translationStatusId);
+
+            if (status.article_translations) {
+                const translations = { ...status.article_translations };
+                delete translations[status.language_code];
+                
+                // Update article to remove rejected translation
+                const { updateArticle } = await import('$db/queries');
+                await updateArticle(status.article_id, { translations });
+            }
         }
 
         // If approved, add translator as collaborator if different from author

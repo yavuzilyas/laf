@@ -424,19 +424,38 @@ async function cleanupUnusedMedia(existing: any, updated: any, articleId: string
             
             // Check hourly translation limit for translators (max 4 per hour)
             if (isTranslator) {
-                // Check if article already has any translations - block if it does
+                // Check if any NEW translations being added already exist in the article
                 const existingTranslations = existingArticle.translations || {};
-                const availableLangs = Object.keys(existingTranslations).filter(
-                    lang => existingTranslations[lang] && existingTranslations[lang].title
-                );
                 const defaultLang = existingArticle.default_language || 'tr';
-                const hasDefault = availableLangs.includes(defaultLang);
-                const otherLangs = availableLangs.filter(lang => lang !== defaultLang);
+                const submittedTranslations = data.translations || {};
                 
-                // If article already has default + any other translation, block new translations
-                if (hasDefault && otherLangs.length >= 1) {
+                // Find languages that:
+                // 1. Already have a complete translation in the article (title exists)
+                // 2. AND the user is submitting NEW content for (their submitted title differs from existing)
+                const alreadyTranslatedLangs = Object.keys(submittedTranslations).filter(lang => {
+                    // Skip default language - translators can't modify it anyway
+                    if (lang === defaultLang) return false;
+                    
+                    const existing = existingTranslations[lang];
+                    const submitted = submittedTranslations[lang];
+                    
+                    // Check if article already has a complete translation for this language
+                    const hasExistingTranslation = existing && existing.title && existing.title.trim() !== '';
+                    if (!hasExistingTranslation) return false;
+                    
+                    // Check if user is trying to submit NEW content (different from existing)
+                    const submittedTitle = submitted?.title || '';
+                    const existingTitle = existing?.title || '';
+                    
+                    // Only block if they're trying to modify an existing translation
+                    // Allow if they're just viewing (submitted matches existing)
+                    return submittedTitle.trim() !== '' && submittedTitle !== existingTitle;
+                });
+                
+                // If any of the languages being modified already have a translation, block it
+                if (alreadyTranslatedLangs.length > 0) {
                     return json({ 
-                        error: 'Bu makaleye çeviri eklenemez. Makale zaten çevrilmiş durumda.' 
+                        error: `Bu makaleye çeviri eklenemez. ${alreadyTranslatedLangs.join(', ')} dil(ler)inde zaten çeviri mevcut.` 
                     }, { status: 403 });
                 }
                 
@@ -479,7 +498,7 @@ async function cleanupUnusedMedia(existing: any, updated: any, articleId: string
                         
                         // Check if translator is author, admin, or moderator (privileged)
                         // Only privileged users get auto-approval
-                        const isPrivilegedTranslator = isAuthor || isPrivileged;
+                        const isPrivilegedTranslator = isAuthor || isPrivilegedEdit;
                         
                         console.log(`[TRANSLATION] Translator mode - lang: ${lang}, isPrivileged: ${isPrivilegedTranslator}`);
                         

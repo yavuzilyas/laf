@@ -55,7 +55,7 @@ import { onMount, onDestroy } from 'svelte';
     NotebookPenIcon
   } from '@lucide/svelte';
 
-    let { article, mode, isTranslator = false } = $props();
+    let { article, mode, isTranslator = false, targetLang = null } = $props();
     const user = $derived($page.data.user);
 
   const rt = () => t;
@@ -77,6 +77,8 @@ import { onMount, onDestroy } from 'svelte';
   let showDraftAlertDialog = $state(false);
   let selectedCollaborators = $state<Array<{ id: string; username: string; name?: string; surname?: string }>>([]);
   let authorInfo = $state<{ id: string; username: string; name?: string; surname?: string; nickname?: string } | null>(null);
+  // Track original article languages to hide them in translator mode
+  let originalLanguages = $state<string[]>([]);
 
  
 
@@ -86,6 +88,14 @@ import { onMount, onDestroy } from 'svelte';
   const activeLanguage = $derived(articleEditor.activeLanguage);
   const currentTranslation = $derived(articleEditor.currentTranslation);
   const availableLangs = $derived(articleEditor.availableLanguages);
+  const displayLangs = $derived(
+    isTranslator
+      ? (targetLang
+          ? [...new Set([targetLang, ...availableLangs.filter(l => !originalLanguages.includes(l))])]
+          : availableLangs.filter(l => !originalLanguages.includes(l))
+        )
+      : availableLangs
+  );
   
 
   function cacheEditorContent(language: string, serialized: string) {
@@ -306,12 +316,23 @@ import { onMount, onDestroy } from 'svelte';
       // Initialize publishedAt input value from article
       const pubDate = article.publishedAt ? new Date(article.publishedAt) : new Date();
       publishedAtInput = pubDate.toISOString().slice(0, 16);
+
+      // If targetLang is provided and it's a new translation language, add it
+      if (targetLang && !articleEditor.availableLanguages.includes(targetLang)) {
+        articleEditor.addLanguage(targetLang);
+        articleEditor.setActiveLanguage(targetLang);
+      } else if (targetLang) {
+        // Just activate the existing language
+        articleEditor.setActiveLanguage(targetLang);
+      }
     } else {
       // For new articles, initialize with current date
       publishedAtInput = new Date().toISOString().slice(0, 16);
     }
 
     if (mode === 'edit' && article) {
+      // Store original article languages before any modifications
+      originalLanguages = article.availableLanguages || Object.keys(article.translations || {});
       // Initialize selected collaborators from article data
       if (article.collaborators && article.collaborators.length > 0) {
         // Fetch collaborator user details
@@ -775,8 +796,8 @@ import { onMount, onDestroy } from 'svelte';
         <div class="{isTranslator ? 'lg:col-span-12' : 'lg:col-span-7'}">
           <Tabs.Root value={activeLanguage}>
             <div class="flex items-center justify-between mb-4 gap-2">
-              <Tabs.List class="grid w-full h-min" style="grid-template-columns: repeat({availableLangs.length}, minmax(0, 1fr));">
-                {#each availableLangs as lang}
+              <Tabs.List class="grid w-full h-min" style="grid-template-columns: repeat({displayLangs.length}, minmax(0, 1fr));">
+                {#each displayLangs as lang}
                   {@const langInfo = availableLanguages.find(l => l.value === lang)}
                   <Tabs.Trigger
                     value={lang}
@@ -804,17 +825,38 @@ import { onMount, onDestroy } from 'svelte';
                       <Command.List>
                         <Command.Empty>{t('noLanguagesFound')}</Command.Empty>
                         <Command.Group>
-                          {#each availableLanguages as opt}
-                            {#if !availableLangs.includes(opt.value)}
-                              <Command.Item
-                                value={opt.value}
-                                onclick={() => articleEditor.addLanguage(opt.value)}
-                                class="flex items-center gap-2 cursor-pointer hover:bg-accent px-2 py-1 rounded-sm"
-                              >
+                          {#each availableLanguages.filter(opt => !originalLanguages.includes(opt.value)) as opt}
+                            <Command.Item
+                              value={opt.value}
+                              onclick={() => {
+                                if (availableLangs.includes(opt.value)) {
+                                  removeLanguage(opt.value);
+                                } else {
+                                  articleEditor.addLanguage(opt.value);
+                                }
+                              }}
+                              class="flex items-center justify-between cursor-pointer hover:bg-accent px-2 py-1 rounded-sm"
+                            >
+                              <div class="flex items-center gap-2 overflow-x-hidden">
                                 <span>{opt.flag}</span>
                                 <span>{opt.label}</span>
-                              </Command.Item>
-                            {/if}
+                              </div>
+
+                              {#if availableLangs.includes(opt.value)}
+                                <svg
+                                  xmlns="http://www.w3.org/2000/svg"
+                                  class="h-4 w-4 text-primary"
+                                  viewBox="0 0 20 20"
+                                  fill="currentColor"
+                                >
+                                  <path
+                                    fill-rule="evenodd"
+                                    d="M16.707 5.293a1 1 0 010 1.414l-8.25 8.25a1 1 0 01-1.414 0l-3.75-3.75a1 1 0 111.414-1.414l3.043 3.043 7.543-7.543a1 1 0 011.414 0z"
+                                    clip-rule="evenodd"
+                                  />
+                                </svg>
+                              {/if}
+                            </Command.Item>
                           {/each}
                         </Command.Group>
                       </Command.List>
@@ -824,7 +866,7 @@ import { onMount, onDestroy } from 'svelte';
               {/if}
             </div>
 
-            {#each availableLangs as lang}
+            {#each displayLangs as lang}
               {@const translation = articleData.translations[lang]}
               {@const isDefaultLanguage = articleData.defaultLanguage === lang}
               {@const canEditTranslation = !isTranslator || !isDefaultLanguage}
@@ -854,7 +896,7 @@ import { onMount, onDestroy } from 'svelte';
                     disabled={isTranslator && isDefaultLanguage}
                     oninput={(e) => canEditTranslation && articleEditor.updateTranslation(lang, 'excerpt', (e.target as HTMLTextAreaElement).value)}
                   />
-                  <div class="bg-background z-50 mt-4 size-full max-w-5xl rounded-md border border-dashed {isTranslator && isDefaultLanguage ? 'opacity-75 pointer-events-none' : ''}">
+                  <div class="bg-background z-50 mt-4 size-full max-w-5xl rounded-md border border-dashed {isTranslator && isDefaultLanguage ? 'opacity-75' : ''}">
                     {#if browser && editors[lang] && !editors[lang].isDestroyed && (!isTranslator || !isDefaultLanguage)}
                       <EdraToolBar
                         class="bg-secondary/50 flex w-full items-center overflow-x-auto border-b border-dashed p-0.5"

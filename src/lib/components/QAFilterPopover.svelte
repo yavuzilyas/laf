@@ -7,7 +7,7 @@
   import { Switch } from "$lib/components/ui/switch/index.js";
   import DateRangePicker from "$lib/components/DateRangePicker.svelte";
   import { t } from '$lib/stores/i18n.svelte';
-  import { Filter, Calendar, HelpCircle, SlidersHorizontal, CheckCircle, Clock, XCircle, Users } from "@lucide/svelte";
+  import { Filter, Calendar, HelpCircle, SlidersHorizontal, CheckCircle, Clock, XCircle, Users, TrendingUp, ArrowUpDown } from "@lucide/svelte";
   import * as Select from "$lib/components/ui/select";
 
   interface FilterOptions {
@@ -22,6 +22,7 @@
     status?: string;
     nickname?: string;
     onlyFollowing?: boolean;
+    sort?: string;
   }
 
   let {
@@ -46,7 +47,8 @@
     customDateRange: undefined,
     status: "",
     nickname: "",
-    onlyFollowing: false
+    onlyFollowing: false,
+    sort: "newest"
   };
 
   let filters = $state<ActiveFilters>({
@@ -70,7 +72,8 @@
     (filters.customDateRange && (filters.customDateRange.start || filters.customDateRange.end)) ||
     filters.status ||
     filters.nickname ||
-    filters.onlyFollowing
+    filters.onlyFollowing ||
+    (filters.sort && filters.sort !== "newest")
   );
 
   const getActiveFilterCount = $derived(() => {
@@ -80,6 +83,7 @@
     if (filters.status) count++;
     if (filters.nickname) count++;
     if (filters.onlyFollowing) count++;
+    if (filters.sort && filters.sort !== "newest") count++;
     return count;
   });
 
@@ -90,6 +94,10 @@
 
   const handleStatusChange = (value: string) => {
     filters = { ...filters, status: value };
+  };
+
+  const handleSortChange = (value: string) => {
+    filters = { ...filters, sort: value };
   };
 </script>
 
@@ -129,6 +137,45 @@
               {t('articles.filters.clearAll') || 'Temizle'}
             </Button>
           {/if}
+        </div>
+
+        <!-- Sort Filter -->
+        <div class="space-y-2">
+          <label class="text-xs font-medium flex items-center gap-2">
+            <ArrowUpDown class="h-3 w-3" />
+            {t('qa.filters.sort') || 'Sıralama'}
+          </label>
+          <Select.Root type="single" value={filters.sort || "newest"} onValueChange={handleSortChange}>
+            <Select.Trigger class="w-full text-xs">
+              {#if filters.sort === "popular"}
+                <span class="flex items-center gap-1"><TrendingUp class="h-3 w-3" /> {t('qa.sort.popular') || 'Popüler'}</span>
+              {:else if filters.sort === "unanswered"}
+                <span class="flex items-center gap-1"><HelpCircle class="h-3 w-3" /> {t('qa.sort.unanswered') || 'Cevapsız'}</span>
+              {:else}
+                <span class="flex items-center gap-1"><Clock class="h-3 w-3" /> {t('qa.sort.newest') || 'En Yeni'}</span>
+              {/if}
+            </Select.Trigger>
+            <Select.Content>
+              <Select.Item value="newest">
+                <div class="flex items-center gap-2">
+                  <Clock class="h-4 w-4" />
+                  <span>{t('qa.sort.newest') || 'En Yeni'}</span>
+                </div>
+              </Select.Item>
+              <Select.Item value="popular">
+                <div class="flex items-center gap-2">
+                  <TrendingUp class="h-4 w-4" />
+                  <span>{t('qa.sort.popular') || 'Popüler'}</span>
+                </div>
+              </Select.Item>
+              <Select.Item value="unanswered">
+                <div class="flex items-center gap-2">
+                  <HelpCircle class="h-4 w-4" />
+                  <span>{t('qa.sort.unanswered') || 'Cevapsız'}</span>
+                </div>
+              </Select.Item>
+            </Select.Content>
+          </Select.Root>
         </div>
 
         <Separator />

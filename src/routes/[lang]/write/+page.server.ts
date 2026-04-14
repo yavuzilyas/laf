@@ -36,6 +36,7 @@ export const load: PageServerLoad = async ({ url, locals }) => {
   const articleId = url.searchParams.get('articleId');
   const mode = url.searchParams.get('mode') ?? 'create';
   const isTranslatorMode = url.searchParams.get('translator') === 'true';
+  const targetLang = url.searchParams.get('targetLang');
 
   const user = (locals as any)?.user ?? null;
   if (!user) {
@@ -43,7 +44,8 @@ export const load: PageServerLoad = async ({ url, locals }) => {
       user: null,
       mode,
       article: null,
-      isTranslator: false
+      isTranslator: false,
+      targetLang: null
     };
   }
 
@@ -52,7 +54,8 @@ export const load: PageServerLoad = async ({ url, locals }) => {
       user,
       mode,
       article: null,
-      isTranslator: false
+      isTranslator: false,
+      targetLang
     };
   }
 
@@ -100,10 +103,13 @@ export const load: PageServerLoad = async ({ url, locals }) => {
     }
   }
   
-  // If not author/collaborator, check if this is a translator request
-  // Translator mode: any logged-in user can add translations
-  const isTranslator = isTranslatorMode && !canEdit;
+  // Translator mode: activated when translator=true param is present
+  // Admin/moderator can open any article in translator mode
+  // Author can open their own article in translator mode
+  // Other users can also use translator mode (subject to approval workflow)
+  const isTranslator = isTranslatorMode;
   
+  // Allow access if user can edit, or if translator mode is requested
   if (!canEdit && !isTranslator) {
     throw error(403, 'Unauthorized');
   }
@@ -159,7 +165,8 @@ export const load: PageServerLoad = async ({ url, locals }) => {
     user,
     mode,
     article: responseArticle,
-    isTranslator
+    isTranslator,
+    targetLang
   };
 };
 

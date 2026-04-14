@@ -964,10 +964,26 @@
     "Medium": "متوسط",
     "Large": "بزرگ"
   },
+  "linksPage": {
+    "title": "پیوندها",
+    "subtitle": "ما را در رسانه‌های اجتماعی دنبال کنید و ارتباطات ما را کشف کنید",
+    "types": {
+      "social": "رسانه‌های اجتماعی",
+      "donation": "کمک مالی",
+      "external": "پیوندهای دیگر",
+      "contact": "تماس",
+      "other": "دیگر"
+    },
+    "emptyState": {
+      "title": "هنوز پیوندی اضافه نشده",
+      "description": "پیوندهای رسانه‌های اجتماعی و تماس به‌زودی اینجا نمایش داده می‌شوند"
+    }
+  },
   "editor": {
     "media": {
       "addMedia": "افزودن رسانه",
       "addImage": "افزودن تصویر",
+      "addFile": "افزودن فایل",
       "urlOrFile": "آدرس را وارد کنید یا فایل را انتخاب کنید",
       "insertFromUrl": "درج از آدرس",
       "insertFromFile": "درج از فایل"
@@ -1001,6 +1017,7 @@
       "image-placeholder": "نگهدارنده تصویر",
       "video-placeholder": "نگهدارنده ویدیو",
       "audio-placeholder": "نگهدارنده صدا",
+      "file-placeholder": "نگهدارنده فایل",
       "iframe-placeholder": "نگهدارنده IFrame",
       "table": "جدول",
       "fontSize": {
@@ -1088,7 +1105,9 @@
         "selected": "انتخاب شده",
         "uploading": "در حال بارگذاری...",
         "upload": "بارگذاری"
-      }
+      },
+      "fileAttachment": "پیوست فایل",
+      "goToLine": "برو به خط"
     }
   },
   "notifications": {

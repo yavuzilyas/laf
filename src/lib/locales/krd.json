@@ -824,6 +824,21 @@
     "Medium": "Navîn",
     "Large": "Mezin"
   },
+  "linksPage": {
+    "title": "Girêdan",
+    "subtitle": "Li ser medya civakî me bişopîne û girêdanên me keşf bike",
+    "types": {
+      "social": "Medya Civakî",
+      "donation": "Bexş",
+      "external": "Girêdanên Din",
+      "contact": "Têkilî",
+      "other": "Din"
+    },
+    "emptyState": {
+      "title": "Hîna girêdan nehatine lê zêdekirin",
+      "description": "Girêdanên medya civakî û têkilî dê li vir zû xuya bibin"
+    }
+  },
   "Generate": "Afirandin",
   "Language": "Ziman",
   "and": "û",
@@ -1028,6 +1043,7 @@
     "media": {
       "addMedia": "Medya zêde bike",
       "addImage": "Wêne zêde bike",
+      "addFile": "Pelê zêde bike",
       "urlOrFile": "URL têkeve an pelê hilbijêre",
       "insertFromUrl": "Ji URLê zêde bike",
       "insertFromFile": "Ji pelê zêde bike"
@@ -1061,6 +1077,7 @@
       "image-placeholder": "Wêne cîhê bîrî",
       "video-placeholder": "Vîdeo cîhê bîrî",
       "audio-placeholder": "Deng cîhê bîrî",
+      "file-placeholder": "Pel cîhê bîrî",
       "iframe-placeholder": "IFrame cîhê bîrî",
       "table": "Tablo",
       "fontSize": {
@@ -1148,7 +1165,9 @@
         "selected": "Hilbijartî",
         "uploading": "Bar dibe...",
         "upload": "Bar bike"
-      }
+      },
+      "fileAttachment": "Pêvekê Dosyeyê",
+      "goToLine": "Here Rêzê"
     }
   },
   "notLoggedIn": "Têketin nehatiye kirin",

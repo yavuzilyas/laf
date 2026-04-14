@@ -938,7 +938,7 @@
 					>
 						{#if isEditing}
 							<X class="h-4 w-4" />
-							{t('Cancel')}
+							{t('Close')}
 						{:else}
 							<Edit class="h-4 w-4" />
 							{t('profile.edit')}

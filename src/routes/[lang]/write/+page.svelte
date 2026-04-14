@@ -10,6 +10,7 @@
     let article = data?.article;
     let mode = data?.mode;
     let isTranslator = data?.isTranslator;
+    let targetLang = data?.targetLang;
 
     const siteUrl = 'https://laf.international';
     const currentLocale = getCurrentLocale() || 'tr';
@@ -45,7 +46,7 @@
   {#if !user}
     <NotLogged />
   {:else}
-      <Write {article} {mode} {isTranslator} />
+      <Write {article} {mode} {isTranslator} {targetLang} />
   {/if}
 </div>
 <Footer />

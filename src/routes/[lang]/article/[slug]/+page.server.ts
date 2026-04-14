@@ -2,6 +2,7 @@
 import type { PageServerLoad } from './$types';
 import { error, redirect } from '@sveltejs/kit';
 import { getArticleBySlug, getArticleById, getArticles, incrementArticleViews, getUsers, getBlockedUsers, getFollows, getSimilarArticles } from '$db/queries';
+import { getApprovedTranslatorsForArticle } from '$db/queries-translation-status';
 
 const toSerializableId = (value: unknown) => {
   if (!value) return value;
@@ -465,6 +466,68 @@ export const load: PageServerLoad = async ({ params, locals, cookies }) => {
     }
   }
 
+  // Load approved translators with their profile data
+  const approvedTranslators = await getApprovedTranslatorsForArticle(article.id);
+  const translatorProfiles: any[] = [];
+  
+  // Get list of author and collaborator IDs to exclude them from translators section
+  const authorAndCollaboratorIds = new Set<string>();
+  if (article.author_id) {
+    authorAndCollaboratorIds.add(String(article.author_id));
+  }
+  if (article.collaborators && Array.isArray(article.collaborators)) {
+    article.collaborators.forEach((id: string) => authorAndCollaboratorIds.add(String(id)));
+  }
+  
+  for (const translator of approvedTranslators) {
+    // Skip if translator is already the author or a collaborator
+    if (authorAndCollaboratorIds.has(String(translator.user_id))) {
+      continue;
+    }
+    
+    const translatorArticles = await getArticles({
+      author_id: translator.user_id,
+      status: 'published'
+    });
+
+    const totalArticles = translatorArticles.length;
+    const totalViews = translatorArticles.reduce((sum: number, a: any) => sum + (a.views || 0), 0);
+    const totalLikes = translatorArticles.reduce((sum: number, a: any) => sum + (a.likes_count || 0), 0);
+    const totalComments = translatorArticles.reduce((sum: number, a: any) => sum + (a.comments_count || 0), 0);
+
+    // Get followers and following counts for translator
+    const translatorFollowers = await getFollows({ following_id: translator.user_id });
+    const translatorFollowing = await getFollows({ follower_id: translator.user_id });
+
+    // Check if viewer follows this translator
+    const isFollowingTranslator = viewerId && translatorFollowers.some((f: any) => f.follower_id === viewerId);
+
+    translatorProfiles.push({
+      id: translator.user_id,
+      username: translator.username || translator.nickname || '',
+      nickname: translator.nickname || '',
+      name: translator.name || '',
+      surname: translator.surname || '',
+      avatar: translator.avatar_url || '',
+      bio: translator.bio || '',
+      bannerColor: translator.preferences?.bannerColor || translator.banner_color || '#0f172a',
+      bannerImage: translator.preferences?.bannerImage || translator.banner_image || '',
+      language: translator.language_code,
+      translatedAt: translator.reviewed_at instanceof Date 
+        ? translator.reviewed_at.toISOString() 
+        : translator.reviewed_at,
+      stats: {
+        totalArticles: Number(totalArticles) || 0,
+        totalViews: Number(totalViews) || 0,
+        totalLikes: Number(totalLikes) || 0,
+        totalComments: Number(totalComments) || 0
+      },
+      followersCount: translatorFollowers.length,
+      followingCount: translatorFollowing.length,
+      isFollowing: isFollowingTranslator
+    });
+  }
+
   // Load similar articles based on category and tags
   const similarArticles = await getSimilarArticles(
     article.id,
@@ -523,6 +586,7 @@ export const load: PageServerLoad = async ({ params, locals, cookies }) => {
     similarArticles,
     collaborators,
     collaboratorProfiles,
+    translatorProfiles,
     profileUser: safeProfileUser,
     isFollowing,
     isFollowingMe,

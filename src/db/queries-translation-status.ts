@@ -136,3 +136,37 @@ export async function isTranslationApproved(articleId: string, languageCode: str
         return false;
     }
 }
+
+// Get all approved translators for an article with their profile data
+export async function getApprovedTranslatorsForArticle(articleId: string): Promise<any[]> {
+    try {
+        const sql = `
+            SELECT DISTINCT ON (ats.translator_id, ats.language_code)
+                ats.translator_id,
+                ats.language_code,
+                ats.reviewed_at,
+                u.id as user_id,
+                u.username,
+                u.nickname,
+                u.name,
+                u.surname,
+                u.avatar_url,
+                u.bio,
+                u.banner_color,
+                u.banner_image,
+                u.preferences,
+                u.created_at,
+                u.updated_at,
+                u.role
+            FROM article_translation_statuses ats
+            JOIN users u ON ats.translator_id = u.id
+            WHERE ats.article_id = $1 AND ats.status = 'approved'
+            ORDER BY ats.translator_id, ats.language_code, ats.reviewed_at DESC
+        `;
+        const result = await query(sql, [articleId]);
+        return result.rows;
+    } catch (error) {
+        console.error('Error getting approved translators for article:', error);
+        return [];
+    }
+}

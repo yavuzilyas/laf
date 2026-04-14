@@ -6,7 +6,7 @@
     import { page } from '$app/stores';
     import { beforeNavigate, goto } from '$app/navigation';
     import { untrack } from 'svelte';
-    import logoqa from '$lib/assets/Sorularla-ancap.svg';
+    import logoqa from '$lib/assets/rothbard_institute.svg';
 
     // Reset reactions when navigating away - keep each page independent
     beforeNavigate(() => {
@@ -168,8 +168,9 @@
 
     let moderatorTab = $state('pending');
 
-    // Question form state
-    let showAskDialog = $state(false);
+    // Question form state - inline editing
+    let showAskForm = $state(false); // Show inline new question form
+    let editingQuestionId = $state<string | null>(null); // ID of question being edited inline
     let questionTitle = $state('');
     let questionTopicId = $state('');
     let questionAuthorName = $state('');
@@ -179,11 +180,10 @@
     let questionAttachments: {id: string, file: File, preview?: string}[] = $state([]);
     let isSubmitting = $state(false);
     let questionFileInput: HTMLInputElement | null = $state(null);
-    let editingQuestion: any = $state(null); // Stores question being edited
 
-    // Answer form state (moderators)
-    let selectedQuestion: any = $state(null);
-    let showAnswerDialog = $state(false);
+    // Answer form state - inline editing per question
+    let answeringQuestionId = $state<string | null>(null); // ID of question being answered
+    let editingAnswerId = $state<string | null>(null); // ID of answer being edited
     let answerContent = $state('');
     let answerAttachments: {id: string, file: File, preview?: string}[] = $state([]);
     let isAnswering = $state(false);
@@ -424,6 +424,9 @@
 
     // Track expanded question for view counting
     let expandedQuestionId = $state<string | null>(null);
+    
+    // Track accordion open state for auto-expanding when answer is added
+    let openAccordionValue = $state<string>('');
 
     // Delete confirmation dialog states
     let deleteDialogOpen = $state(false);
@@ -525,13 +528,43 @@
         answerAttachments = answerAttachments.filter(a => a.id !== id);
     }
 
-    function openEditQuestionDialog(question: any) {
-        editingQuestion = question;
+    function startEditingQuestion(question: any) {
+        editingQuestionId = question.id;
         questionTitle = question.title || '';
         questionContent = question.content?.text || question.contentHtml?.replace(/<br>/g, '\n') || '';
         questionTopicId = question.topic?.id || '';
         isAnonymous = question.isAnonymous || false;
-        showAskDialog = true;
+        // Clear inline new question form if open
+        showAskForm = false;
+    }
+
+    function cancelEditingQuestion() {
+        editingQuestionId = null;
+        questionTitle = '';
+        questionContent = '';
+        questionTopicId = '';
+        isAnonymous = false;
+        questionAttachments = [];
+    }
+
+    function startNewQuestion() {
+        showAskForm = true;
+        // Clear editing state
+        editingQuestionId = null;
+        questionTitle = '';
+        questionContent = '';
+        questionTopicId = '';
+        isAnonymous = false;
+        questionAttachments = [];
+    }
+
+    function cancelNewQuestion() {
+        showAskForm = false;
+        questionTitle = '';
+        questionContent = '';
+        questionTopicId = '';
+        isAnonymous = false;
+        questionAttachments = [];
     }
 
     async function submitQuestion() {
@@ -550,8 +583,8 @@
 
         isSubmitting = true;
         try {
-            const isEditing = editingQuestion != null;
-            const url = isEditing ? `/api/qa/id/${editingQuestion.id}` : '/api/qa';
+            const isEditing = editingQuestionId != null;
+            const url = isEditing ? `/api/qa/id/${editingQuestionId}` : '/api/qa';
             const method = isEditing ? 'PUT' : 'POST';
 
             const response = await fetch(url, {
@@ -573,6 +606,23 @@
                 const result = await response.json();
                 showToast(result.message || (isEditing ? 'Soru güncellendi' : 'Sorunuz gönderildi'), 'success');
                 
+                // If editing, update the existing question in the list
+                if (isEditing && editingQuestionId) {
+                    questions = questions.map((q: any) => q.id === editingQuestionId ? result.question : q);
+                    filteredQuestions = filteredQuestions.map((q: any) => q.id === editingQuestionId ? result.question : q);
+                    editingQuestionId = null;
+                } else {
+                    // Add new question to the beginning of the list (like tweeting)
+                    if (result.question) {
+                        questions = [result.question, ...questions];
+                        // Also add to filtered list if it passes current filters
+                        filteredQuestions = [result.question, ...filteredQuestions];
+                        // Update pagination total
+                        pagination.total = (pagination.total || 0) + 1;
+                    }
+                    showAskForm = false;
+                }
+                
                 questionTitle = '';
                 questionTopicId = '';
                 questionAuthorName = '';
@@ -580,14 +630,10 @@
                 isAnonymous = false;
                 questionContent = '';
                 questionAttachments = [];
-                editingQuestion = null;
-                showAskDialog = false;
 
                 if (isModerator) {
                     loadModeratorQuestions();
                 }
-                // Reload page to show updated content
-                window.location.reload();
             } else {
                 const error = await response.json();
                 showToast(error.error || 'Soru gönderilirken hata oluştu', 'error');
@@ -599,9 +645,35 @@
         }
     }
 
-    async function submitAnswer() {
-        if (!selectedQuestion) {
-            showToast('Cevap içeriği gerekli', 'error');
+    function startAnswering(question: any) {
+        answeringQuestionId = question.id;
+        editingAnswerId = null;
+        answerContent = '';
+        answerAttachments = [];
+        // Auto-expand accordion
+        openAccordionValue = `answer-${question.id}`;
+    }
+
+    function startEditingAnswer(question: any, answer: any) {
+        answeringQuestionId = question.id;
+        editingAnswerId = answer.id;
+        answerContent = answer.content?.text || answer.contentHtml?.replace(/<br>/g, '\n') || '';
+        answerAttachments = [];
+        // Auto-expand accordion
+        openAccordionValue = `answer-${question.id}`;
+    }
+
+    function cancelAnswering() {
+        answeringQuestionId = null;
+        editingAnswerId = null;
+        answerContent = '';
+        answerAttachments = [];
+    }
+
+    async function submitAnswer(questionId: string) {
+        const targetQuestion = questions.find((q: any) => q.id === questionId);
+        if (!targetQuestion) {
+            showToast('Soru bulunamadı', 'error');
             return;
         }
 
@@ -613,13 +685,11 @@
         // Convert newlines to HTML
         const contentHtml = answerContent.replace(/\n/g, '<br>');
 
-        // Check if editing existing answer
-        const existingAnswerId = selectedQuestion?.answer?.id;
-        const isEditing = !!existingAnswerId;
+        const isEditing = editingAnswerId != null;
 
         isAnswering = true;
         try {
-            const url = isEditing ? '/api/qa/answer' : '/api/qa/answer';
+            const url = '/api/qa/answer';
             const method = isEditing ? 'PUT' : 'POST';
             
             const requestBody: any = {
@@ -629,11 +699,9 @@
             };
 
             if (isEditing) {
-                // PUT request for editing
-                requestBody.answerId = existingAnswerId;
+                requestBody.answerId = editingAnswerId;
             } else {
-                // POST request for new answer
-                requestBody.questionId = selectedQuestion.id;
+                requestBody.questionId = questionId;
                 requestBody.publishImmediately = publishImmediately;
             }
             
@@ -647,13 +715,33 @@
                 const result = await response.json();
                 showToast(result.message || (isEditing ? 'Cevap güncellendi' : 'Cevap gönderildi'), 'success');
                 
-                selectedQuestion = null;
-                showAnswerDialog = false;
+                // Update the question with the new/edited answer (like tweeting - immediate insertion)
+                if (result.answer) {
+                    const updatedAnswers = isEditing 
+                        ? (targetQuestion.answers || []).map((a: any) => a.id === result.answer.id ? result.answer : a)
+                        : [result.answer, ...(targetQuestion.answers || [])];
+                    
+                    const updatedQuestion = {
+                        ...targetQuestion,
+                        answers: updatedAnswers,
+                        answerCount: result.question?.answerCount || updatedAnswers.length,
+                        hasUserAnswered: true,
+                        status: result.question?.status || targetQuestion.status
+                    };
+                    
+                    // Update in questions array
+                    questions = questions.map((q: any) => q.id === questionId ? updatedQuestion : q);
+                    // Update in filtered questions array
+                    filteredQuestions = filteredQuestions.map((q: any) => q.id === questionId ? updatedQuestion : q);
+                }
+                
+                // Reset inline answer form
+                answeringQuestionId = null;
+                editingAnswerId = null;
                 answerContent = '';
                 answerAttachments = [];
 
                 loadModeratorQuestions();
-                refreshPublicQuestions();
             } else {
                 const error = await response.json();
                 showToast(error.error || 'Cevap gönderilirken hata oluştu', 'error');
@@ -832,17 +920,6 @@
         }
     }
 
-    function openAnswerDialog(question: any) {
-        selectedQuestion = question;
-        // Load existing answer content if editing
-        if (question?.answer?.content?.text) {
-            answerContent = question.answer.content.text;
-        } else {
-            answerContent = '';
-        }
-        showAnswerDialog = true;
-    }
-
     function getDisplayQuestions() {
         if (moderatorTab === 'pending') return pendingQuestions;
         if (moderatorTab === 'rejected') return rejectedQuestions;
@@ -895,16 +972,24 @@
             ? [...questions, ...pendingQuestions, ...answeredQuestions, ...rejectedQuestions]
             : questions);
         
-        const questionsWithAnswers = allVisible.filter(q => q.answer?.id);
-        if (questionsWithAnswers.length === 0) return;
+        // Collect all answer IDs from all questions
+        const allAnswerIds: string[] = [];
+        allVisible.forEach(q => {
+            if (q.answers?.length > 0) {
+                q.answers.forEach((a: any) => {
+                    if (a.id) allAnswerIds.push(a.id);
+                });
+            }
+        });
+        
+        if (allAnswerIds.length === 0) return;
         
         try {
             const reactions: Record<string, 'like' | 'dislike' | null> = {};
             const likes: Record<string, number> = {};
             const dislikes: Record<string, number> = {};
             
-            for (const question of questionsWithAnswers) {
-                const answerId = question.answer.id;
+            for (const answerId of allAnswerIds) {
                 
                 const response = await fetch(`/api/qa/answer/${answerId}/react`);
                 if (response.ok) {
@@ -1241,20 +1326,15 @@
     <!-- Header -->
     <div class="flex flex-col items-center gap-3">
 
-        <h1 class="text-xl tracking-tight md:text-4xl font-bold flex flex-row items-center">
-                        <img class="w-auto sm:h-28 md:h-32" src={logoqa} alt="LAF QA" />
-        </h1>
-        <p class="py-4 text-base  text-secondary-foreground max-w-2xl">
-            SORUN, CEVAPLAYALIM!
-        </p>
+                        <img class="w-auto sm:h-24 md:h-28" src={logoqa} alt="LAF QA" />
+        <h1 class="text-3xl tracking-tight md:text-4xl font-bold flex flex-row items-center">
+            {t('QA')}
+        
+                    </h1>
+       
     </div>
 
     <!-- Action Bar -->
-    <div class="flex flex-col sm:flex-row gap-4 my-4">
-        <Button onclick={() => { console.log('Opening ask dialog'); showAskDialog = true; }} size="xs" class="gap-2">
-            <MessageCircle class="w-4 h-4" />
-            Soru Sor
-        </Button>
         
         {#if isModerator}
             <div class="flex gap-2 flex-wrap">
@@ -1272,12 +1352,15 @@
                 </Badge>
             </div>
         {/if}
-    </div>
 
     <!-- Main Content - Unified View for All -->
         <div>
             <!-- Search & Filter Section using Article-style components -->
-            <div class="flex flex-col sm:flex-row gap-3 mb-6">
+            <div class="mx-auto flex flex-col sm:flex-row justify-center items-center max-w-lg gap-3 mt-6 mb-4">
+                    <Button size="xs" onclick={startNewQuestion}>
+                        <MessageCircle class="w-4 h-4" />
+                        Soru Sor
+                    </Button>
                 <!-- Search Input with Suggestions -->
                 <QASearch
                     value={searchQuery}
@@ -1315,7 +1398,8 @@
                         customDateRange: dateRangeFilter,
                         status: statusFilter,
                         nickname: nicknameFilter,
-                        onlyFollowing: onlyFollowingFilter
+                        onlyFollowing: onlyFollowingFilter,
+                        sort: sortBy
                     }}
                     onFiltersChange={(filters) => {
                         selectedTopicFilter = filters.topic || '';
@@ -1324,57 +1408,20 @@
                         nicknameFilter = filters.nickname || '';
                         onlyFollowingFilter = filters.onlyFollowing || false;
                         pagination.page = 1;
-                        // Clear cache and fetch fresh data
-                        delete preloadedData[sortBy];
-                        refreshPublicQuestions().then(() => {
-                            applyFiltersAndSearch();
-                        });
+                        // Handle sort change - only fetch from API when sort changes
+                        if (filters.sort && filters.sort !== sortBy) {
+                            sortBy = filters.sort;
+                            // Clear cache for this sort value
+                            delete preloadedData[sortBy];
+                            // Fetch from API - applyFiltersAndSearch will be called by $effect when questions updates
+                            refreshPublicQuestions();
+                        }
+                        // Other filters (topic, date, status, nickname, following) are client-side only
+                        // $effect will automatically call applyFiltersAndSearch when filter states change
                     }}
                     enableStatusFilter={isModerator}
                     enableFollowingFilter={!!user}
                 />
-            </div>
-
-            <!-- Sort and Search Header -->
-            <div class="flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center mb-6">
-                <div class="flex items-center gap-2">
-                    <HelpCircle class="w-6 h-6 text-primary" />
-                    <h1 class="text-2xl font-bold">{t('qa.title') || 'Soru & Cevap'}</h1>
-                </div>
-                
-                <div class="flex items-center gap-2 w-full sm:w-auto">
-                    <Label for="sort-select" class="sr-only">Sırala</Label>
-                    <Select.Root value={sortBy} onValueChange={handleSortChange}>
-                        <Select.Trigger class="w-full sm:w-[180px]">
-                            <Select.Value placeholder="Sıralama" />
-                        </Select.Trigger>
-                        <Select.Content>
-                            <Select.Item value="newest">
-                                <div class="flex items-center gap-2">
-                                    <Clock class="w-4 h-4" />
-                                    <span>En Yeni</span>
-                                </div>
-                            </Select.Item>
-                            <Select.Item value="popular">
-                                <div class="flex items-center gap-2">
-                                    <TrendingUp class="w-4 h-4" />
-                                    <span>Popüler</span>
-                                </div>
-                            </Select.Item>
-                            <Select.Item value="unanswered">
-                                <div class="flex items-center gap-2">
-                                    <HelpCircle class="w-4 h-4" />
-                                    <span>Cevapsız</span>
-                                </div>
-                            </Select.Item>
-                        </Select.Content>
-                    </Select.Root>
-                    
-                    <Button variant="default" onclick={() => showAskDialog = true} class="gap-2 shrink-0">
-                        <MessageCircle class="w-4 h-4" />
-                        Soru Sor
-                    </Button>
-                </div>
             </div>
 
             <!-- Questions List -->
@@ -1391,62 +1438,184 @@
                         {:else}
                             <p class="text-muted-foreground mb-4">Henüz yayınlanmış soru yok</p>
                         {/if}
-                        <Button onclick={() => showAskDialog = true}>İlk Soruyu Siz Sorun</Button>
+                        <Button onclick={startNewQuestion}>İlk Soruyu Siz Sorun</Button>
                     </CardContent>
                 </Card>
             {:else}
-                <div>
+                <div class="flex flex-col gap-4">
+                    
+                    <!-- Inline New Question Form -->
+                    {#if showAskForm}
+                        <Card class="overflow-hidden p-0 bg-background border-primary/30">
+                            <div class="p-4 md:p-6 space-y-4">
+                                <div class="flex items-center gap-2 text-primary">
+                                    <MessageCircle class="w-5 h-5" />
+                                    <h3 class="font-semibold">Yeni Soru</h3>
+                                </div>
+                                
+                                <!-- Topic Selection -->
+                                <div class="space-y-2">
+                                    <Label for="topic">Konu</Label>
+                                    <Select.Root type="single" bind:value={questionTopicId}>
+                                        <Select.Trigger id="topic" class="w-full">
+                                            {questionTopicId ? topics.find((t: any) => t.id === questionTopicId)?.name : 'Konu seçin (isteğe bağlı)'}
+                                        </Select.Trigger>
+                                        <Select.Content class="z-50">
+                                            <Select.Item value="">Konu seçin</Select.Item>
+                                            {#each topics as topic (topic.id)}
+                                                <Select.Item value={topic.id}>{topic.name}</Select.Item>
+                                            {/each}
+                                        </Select.Content>
+                                    </Select.Root>
+                                </div>
+
+                                <!-- Title -->
+                                <div class="space-y-2">
+                                    <Label for="title">Soru Başlığı *</Label>
+                                    <Input 
+                                        id="title"
+                                        bind:value={questionTitle}
+                                        placeholder="Sorunuzu kısa bir başlıkla özetleyin"
+                                    />
+                                </div>
+
+                                <!-- Content -->
+                                <div class="space-y-2">
+                                    <Label>Soru Detayı *</Label>
+                                    <textarea
+                                        bind:value={questionContent}
+                                        rows={4}
+                                        maxlength="250"
+                                        placeholder="Sorunuzu detaylı bir şekilde açıklayın..."
+                                        class="resize-none w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-ring"
+                                    ></textarea>
+                                    <div class="text-xs text-muted-foreground text-right">
+                                        {questionContent.length}/250 karakter
+                                    </div>
+                                </div>
+
+                                <!-- Attachments -->
+                                <div class="space-y-2">
+                                    <input
+                                        bind:this={questionFileInput}
+                                        type="file"
+                                        accept="image/*"
+                                        multiple
+                                        class="hidden"
+                                        onchange={handleQuestionFileSelect}
+                                    />
+                                    <Button
+                                        type="button"
+                                        variant="outline"
+                                        size="sm"
+                                        class="gap-2"
+                                        onclick={() => questionFileInput?.click()}
+                                    >
+                                        <ImageIcon class="w-4 h-4" />
+                                        Resim Ekle
+                                    </Button>
+                                    {#if questionAttachments.length > 0}
+                                        <div class="flex flex-wrap gap-2 mt-2">
+                                            {#each questionAttachments as attachment (attachment.id)}
+                                                <div class="relative group">
+                                                    <img src={attachment.preview} alt="" class="w-20 h-20 object-cover rounded-lg border" />
+                                                    <button
+                                                        type="button"
+                                                        onclick={() => removeQuestionAttachment(attachment.id)}
+                                                        class="absolute -top-2 -right-2 w-5 h-5 bg-destructive text-white rounded-full flex items-center justify-center"
+                                                    >
+                                                        <X class="w-3 h-3" />
+                                                    </button>
+                                                </div>
+                                            {/each}
+                                        </div>
+                                    {/if}
+                                </div>
+
+                                <!-- Anonymous Option -->
+                                {#if user}
+                                    <div class="flex items-center gap-2">
+                                        <input type="checkbox" id="anonymous" bind:checked={isAnonymous} class="rounded border-gray-300" />
+                                        <Label for="anonymous" class="cursor-pointer">Anonim olarak sor</Label>
+                                    </div>
+                                {/if}
+
+                                <!-- Guest Info -->
+                                {#if !user}
+                                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                        <Input bind:value={questionAuthorName} placeholder="İsim *" />
+                                        <Input bind:value={questionAuthorEmail} type="email" placeholder="E-posta *" />
+                                    </div>
+                                {/if}
+
+                                <!-- Actions -->
+                                <div class="flex justify-end gap-2 pt-2">
+                                    <Button variant="outline" size="sm" onclick={cancelNewQuestion}>İptal</Button>
+                                    <Button size="sm" onclick={submitQuestion} disabled={isSubmitting} class="gap-2">
+                                        {#if isSubmitting}
+                                            <Loader2 class="w-4 h-4 animate-spin" />
+                                            Gönderiliyor...
+                                        {:else}
+                                            <Send class="w-4 h-4" />
+                                            Soruyu Gönder
+                                        {/if}
+                                    </Button>
+                                </div>
+                            </div>
+                        </Card>
+                    {/if}
+
                     {#each filteredQuestions as question (question.id)}
                         {@const userReaction = userReactions[question.id] || null}
-                        <Card class="rounded-none overflow-hidden p-0 bg-background border-none">
+                        <Card class="overflow-hidden p-0 bg-background ">
                             <div class="flex">
                                 <!-- Like/Dislike Sidebar -->
-                                <div class="flex flex-col items-center gap-1.5 py-2 px-2 md:px-3 md:py-4 border-r border-border/60 md:min-w-[64px] min-w-[52px] shrink-0">
+                                <div class="flex flex-col items-center gap-1 py-1 px-1 md:px-2 md:py-2 border-r border-border/60 md:min-w-[44px] min-w-[36px] shrink-0">
                                     <!-- Like Button -->
                                     <Button
                                         variant={userReaction === 'like' ? 'default' : 'ghost'}
                                         size="icon"
                                         class={cn(
-                                            'h-8 w-8 transition-all duration-200',
+                                            'h-6 w-6 transition-all duration-200',
                                             userReaction === 'like' && 'bg-primary text-primary-foreground'
                                         )}
                                         onclick={() => toggleReaction(question.id, 'like')}
                                     >
                                         <ThumbsUp
-                                            size={16}
+                                            size={14}
                                             class={cn(
                                                 'transition-all duration-200',
                                                 userReaction === 'like' && 'fill-current'
                                             )}
                                         />
                                     </Button>
-                                    <span class="font-semibold text-sm">{formatNumber(questionLikesCount[question.id] ?? question.likeCount ?? 0)}</span>
+                                    <span class="font-semibold text-xs">{formatNumber(questionLikesCount[question.id] ?? question.likeCount ?? 0)}</span>
 
                                     <!-- Dislike Button -->
                                     <Button
                                         variant={userReaction === 'dislike' ? 'default' : 'ghost'}
                                         size="icon"
                                         class={cn(
-                                            'h-8 w-8 transition-all duration-200',
+                                            'h-6 w-6 transition-all duration-200',
                                             userReaction === 'dislike' &&
                                                 'bg-red-500/20 text-red-700 dark:bg-red-500/30 dark:text-red-300'
                                         )}
                                         onclick={() => toggleReaction(question.id, 'dislike')}
                                     >
                                         <ThumbsDown
-                                            size={16}
+                                            size={14}
                                             class={cn(
                                                 'transition-all duration-200',
                                                 userReaction === 'dislike' && 'fill-current'
                                             )}
                                         />
                                     </Button>
-                                    <span class="font-semibold text-sm">{formatNumber(questionDislikesCount[question.id] ?? question.dislikeCount ?? 0)}</span>
+                                    <span class="font-semibold text-xs">{formatNumber(questionDislikesCount[question.id] ?? question.dislikeCount ?? 0)}</span>
 
                                     <!-- Unified Actions Menu -->
                                     <DropdownMenu.Root>
-                                        <DropdownMenu.Trigger class="h-7 w-7 inline-flex items-center justify-center rounded-md hover:bg-accent hover:text-accent-foreground mt-1">
-                                            <MoreVertical class="w-4 h-4" />
+                                        <DropdownMenu.Trigger class="h-5 w-5 inline-flex items-center justify-center rounded-md hover:bg-accent hover:text-accent-foreground mt-0.5">
+                                            <MoreVertical class="w-3 h-3" />
                                         </DropdownMenu.Trigger>
                                         <DropdownMenu.Content align="end" class="w-48">
                                             <!-- Everyone can see: Share & View -->
@@ -1467,7 +1636,7 @@
                                                 <!-- Answer option (only if question is not user's own) -->
                                                 {@const isQuestionOwnerCheck = (user?.id && (question.authorId == user.id || question.author?.id == user.id)) || (user?.username && question.author?.username === user.username)}
                                                 {#if !isQuestionOwnerCheck}
-                                                    <DropdownMenu.Item onclick={() => openAnswerDialog(question)}>
+                                                    <DropdownMenu.Item onclick={() => startAnswering(question)}>
                                                         <MessageCircle class="w-4 h-4 mr-2" />
                                                         Cevapla
                                                     </DropdownMenu.Item>
@@ -1482,7 +1651,7 @@
                                             {#if user?.id && (question.authorId == user.id || question.author?.id == user.id)}
                                                 <DropdownMenu.Separator />
                                                 <DropdownMenu.Label>Sizin Sorunuz</DropdownMenu.Label>
-                                                <DropdownMenu.Item onclick={() => openEditQuestionDialog(question)}>
+                                                <DropdownMenu.Item onclick={() => startEditingQuestion(question)}>
                                                     <Pencil class="w-4 h-4 mr-2" />
                                                     Düzenle
                                                 </DropdownMenu.Item>
@@ -1513,7 +1682,7 @@
                                                     </DropdownMenu.Item>
                                                 {/if}
                                                 {#if isModerator && question.status === 'answered'}
-                                                    <DropdownMenu.Item onclick={() => openAnswerDialog(question)}>
+                                                    <DropdownMenu.Item onclick={() => startAnswering(question)}>
                                                         <Pencil class="w-4 h-4 mr-2" />
                                                         Cevabı Düzenle
                                                     </DropdownMenu.Item>
@@ -1623,234 +1792,22 @@
                                         <!-- Moderator Actions -->
                                         {#if isModerator && question.status === 'pending'}
                                             <div class="flex flex-wrap gap-2 pt-1">
-                                                <Button size="xs" onclick={() => openAnswerDialog(question)} class="gap-1 h-7">
+                                                <Button size="xs" onclick={() => startAnswering(question)} class="gap-1 h-7">
                                                     <MessageCircle class="w-3.5 h-3.5" />
                                                     Cevapla
                                                 </Button>
                                             </div>
                                         {/if}
 
-                                                    {#if question.answer}
-                                                    <Accordion.Root type="single" class="mt-3 border rounded-lg bg-muted/30">
-                                                        <Accordion.Item value="answer-{question.id}" class="border-0 px-3 py-2">
-                                                            <Accordion.Trigger
-                                                                class="py-1 hover:no-underline w-full justify-start gap-2 text-left [&[data-state=open]>svg]:rotate-180"
-                                                                onclick={() => onQuestionExpand(question.id)}
-                                                            >
-                                                                <span class="text-sm flex items-center gap-2 font-medium">
-                                                                    <MessageCircle class="w-4 h-4 text-primary" />
-                                                                    {#if question.acceptedAnswerId === question.answer.id}
-                                                                        <Badge variant="default" class="gap-1 bg-green-500 hover:bg-green-600 h-5 text-xs px-2">
-                                                                            <Award class="w-3 h-3" />
-                                                                            Cevap görüntüle
-                                                                        </Badge>
-                                                                    {:else}
-                                                                        <span class="text-muted-foreground">Cevap görüntüle</span>
-                                                                    {/if}
-                                                                </span>
-                                                            </Accordion.Trigger>
-                                                            <Accordion.Content class="pb-0">
-                                                                <div class="pt-4 pb-2">
-                                                                    <!-- Answer Content -->
-                                                                    <div class="flex gap-3">
-                                                                        <!-- Answer Actions Sidebar (Like/Dislike) -->
-                                                                        <div class="flex flex-col items-center gap-1.5 pr-2 pt-1 min-w-[48px]">
-                                                                            <Tooltip.Root>
-                                                                                <Tooltip.Trigger asChild>
-                                                                                    <Button
-                                                                                        variant={(answerReactions[question.answer.id] ?? null) === 'like' ? 'default' : 'ghost'}
-                                                                                        size="icon"
-                                                                                        class="h-8 w-8 {(answerReactions[question.answer.id] ?? null) === 'like' ? 'text-primary' : ''}"
-                                                                                        onclick={() => toggleAnswerReaction(question.answer.id, 'like')}
-                                                                                        disabled={!user}
-                                                                                    >
-                                                                                        <ThumbsUp class="w-4 h-4" />
-                                                                                    </Button>
-                                                                                </Tooltip.Trigger>
-                                                                                {#if !user}
-                                                                                    <Tooltip.Content>
-                                                                                        <p>Beğenmek için giriş yapmalısınız</p>
-                                                                                    </Tooltip.Content>
-                                                                                {/if}
-                                                                            </Tooltip.Root>
-                                                                            <span class="text-sm font-medium">{answerLikesCount[question.answer.id] ?? question.answer.likeCount ?? 0}</span>
-                                                                            
-                                                                            <Tooltip.Root>
-                                                                                <Tooltip.Trigger asChild>
-                                                                                    <Button
-                                                                                        variant={(answerReactions[question.answer.id] ?? null) === 'dislike' ? 'default' : 'ghost'}
-                                                                                        size="icon"
-                                                                                        class="h-8 w-8 {(answerReactions[question.answer.id] ?? null) === 'dislike' ? 'text-destructive' : ''}"
-                                                                                        onclick={() => toggleAnswerReaction(question.answer.id, 'dislike')}
-                                                                                        disabled={!user}
-                                                                                    >
-                                                                                        <ThumbsDown class="w-4 h-4" />
-                                                                                    </Button>
-                                                                                </Tooltip.Trigger>
-                                                                                {#if !user}
-                                                                                    <Tooltip.Content>
-                                                                                        <p>Beğenmemek için giriş yapmalısınız</p>
-                                                                                    </Tooltip.Content>
-                                                                                {/if}
-                                                                            </Tooltip.Root>
-                                                                            <span class="text-sm font-medium">{answerDislikesCount[question.answer.id] ?? question.answer.dislikeCount ?? 0}</span>
-
-                                                                            <!-- Dropdown Menu for all users -->
-                                                                            <DropdownMenu.Root>
-                                                                                <DropdownMenu.Trigger class="h-7 w-7 inline-flex items-center justify-center rounded-md hover:bg-accent hover:text-accent-foreground">
-                                                                                    <MoreVertical class="w-4 h-4" />
-                                                                                </DropdownMenu.Trigger>
-                                                                                <DropdownMenu.Content align="start" class="w-48">
-                                                                                    <!-- Answer Owner: Edit & Delete -->
-                                                                                    {#if (user?.id && question.answer?.author?.id == user.id) || (user?.username && question.answer?.author?.username === user.username)}
-                                                                                        <DropdownMenu.Label>Sizin Cevabınız</DropdownMenu.Label>
-                                                                                        <DropdownMenu.Item onclick={() => openAnswerDialog(question)}>
-                                                                                            <Pencil class="w-4 h-4 mr-2" />
-                                                                                            Düzenle
-                                                                                        </DropdownMenu.Item>
-                                                                                        <DropdownMenu.Item onclick={() => openDeleteDialog('answer', question.id, question.answer.id)} class="text-destructive">
-                                                                                            <Trash2 class="w-4 h-4 mr-2" />
-                                                                                            Sil
-                                                                                        </DropdownMenu.Item>
-                                                                                        <DropdownMenu.Separator />
-                                                                                    {/if}
-
-                                                                                    {#if user && (user.role === 'moderator' || user.role === 'admin')}
-                                                                                        <DropdownMenu.Label>Moderasyon</DropdownMenu.Label>
-                                                                                        {#if question.status === 'answered'}
-                                                                                            <DropdownMenu.Item onclick={() => moderateQuestion(question.id, 'publish')}>
-                                                                                                <Eye class="w-4 h-4 mr-2" />
-                                                                                                Yayınla
-                                                                                            </DropdownMenu.Item>
-                                                                                        {/if}
-                                                                                        <!-- Moderators can also edit/delete even if not owner -->
-                                                                                        {@const isAnswerOwnerCheck = (user?.id && question.answer?.author?.id == user.id) || (user?.username && question.answer?.author?.username === user.username)}
-                                                                                        {#if !isAnswerOwnerCheck}
-                                                                                            <DropdownMenu.Item onclick={() => openAnswerDialog(question)}>
-                                                                                                <Pencil class="w-4 h-4 mr-2" />
-                                                                                                Düzenle
-                                                                                            </DropdownMenu.Item>
-                                                                                        {/if}
-                                                                                        {#if question.acceptedAnswerId === question.answer.id}
-                                                                                            <DropdownMenu.Item onclick={() => acceptAnswer(question.answer.id, question)} class="text-yellow-600">
-                                                                                                <Award class="w-4 h-4 mr-2" />
-                                                                                                En İyi Cevabı Kaldır
-                                                                                            </DropdownMenu.Item>
-                                                                                        {:else}
-                                                                                            <DropdownMenu.Item onclick={() => acceptAnswer(question.answer.id, question)} class="text-green-600">
-                                                                                                <Award class="w-4 h-4 mr-2" />
-                                                                                                En İyi Cevap Seç
-                                                                                            </DropdownMenu.Item>
-                                                                                        {/if}
-                                                                                        {#if !isAnswerOwnerCheck}
-                                                                                            <DropdownMenu.Item onclick={() => openDeleteDialog('answer', question.id, question.answer.id)} class="text-destructive">
-                                                                                                <Trash2 class="w-4 h-4 mr-2" />
-                                                                                                Sil
-                                                                                            </DropdownMenu.Item>
-                                                                                        {/if}
-                                                                                        <DropdownMenu.Separator />
-                                                                                    {/if}
-                                                                                    {#if user}
-                                                                                        <DropdownMenu.Item onclick={() => openReportDrawer({...question, reportType: 'answer', answerId: question.answer.id})}>
-                                                                                            <Flag class="w-4 h-4 mr-2" />
-                                                                                            Bildir
-                                                                                        </DropdownMenu.Item>
-                                                                                    {/if}
-                                                                                    <DropdownMenu.Item onclick={() => shareQuestion(question)}>
-                                                                                        <Share2 class="w-4 h-4 mr-2" />
-                                                                                        Paylaş
-                                                                                    </DropdownMenu.Item>
-                                                                                </DropdownMenu.Content>
-                                                                            </DropdownMenu.Root>
-                                                                        </div>
-
-                                                                        <div class="flex-1 min-w-0">
-                                                                            <!-- Answer Author Profile Card -->
-                                                                            <div class="flex items-center gap-2.5 mb-3 pb-3 border-b border-border/60">
-                                                                                {#if (question.answer?.author?.nickname || question.answer?.author?.username || '')}
-                                                                                    {@const author = question.answer.author}
-                                                                                    {@const answerAuthorName = author?.name || author?.surname ? `${author?.name || ''} ${author?.surname || ''}`.trim() : author?.nickname || author?.username || 'Moderatör'}
-                                                                                    {@const answerAuthorIdentifier = author?.nickname || author?.username || ''}
-                                                                                    <A href="/{lang}/{answerAuthorIdentifier}" class="flex items-center gap-2.5 hover:opacity-80 transition-opacity">
-                                                                                        <Avatar.Root class="h-8 w-8">
-                                                                                            <Avatar.Image
-                                                                                                src={author?.avatar}
-                                                                                                alt={answerAuthorName}
-                                                                                            />
-                                                                                            <Avatar.Fallback class="bg-primary/10 text-primary text-xs">
-                                                                                                {answerAuthorName[0]?.toUpperCase() || 'M'}
-                                                                                            </Avatar.Fallback>
-                                                                                        </Avatar.Root>
-                                                                                        <div class="min-w-0">
-                                                                                            <p class="font-medium text-sm truncate">
-                                                                                                {answerAuthorName}
-                                                                                            </p>
-                                                                                            <div class="flex items-center gap-1.5 flex-wrap">
-                                                                                                <Badge variant="outline" class="h-4 text-[10px] px-1">
-                                                                                                    <Award class="w-3 h-3 mr-1" />
-                                                                                                    Cevaplayan
-                                                                                                </Badge>
-                                                                                                <span class="text-xs text-muted-foreground">
-                                                                                                    {formatDate(question.answer.createdAt)}
-                                                                                                </span>
-                                                                                            </div>
-                                                                                        </div>
-                                                                                    </A>
-                                                                                {:else}
-                                                                                    {@const author = question.answer.author}
-                                                                                    {@const answerAuthorName = author?.name || author?.surname ? `${author?.name || ''} ${author?.surname || ''}`.trim() : author?.nickname || author?.username || 'Moderatör'}
-                                                                                    <Avatar.Root class="h-8 w-8">
-                                                                                        <Avatar.Image
-                                                                                            src={author?.avatar}
-                                                                                            alt={answerAuthorName}
-                                                                                        />
-                                                                                        <Avatar.Fallback class="bg-primary/10 text-primary text-xs">
-                                                                                            {answerAuthorName[0]?.toUpperCase() || 'M'}
-                                                                                        </Avatar.Fallback>
-                                                                                    </Avatar.Root>
-                                                                                    <div class="min-w-0">
-                                                                                        <p class="font-medium text-sm truncate">
-                                                                                            {answerAuthorName}
-                                                                                        </p>
-                                                                                        <div class="flex items-center gap-1.5 flex-wrap">
-                                                                                            <Badge variant="outline" class="h-4 text-[10px] px-1">
-                                                                                                <Award class="w-3 h-3 mr-1" />
-                                                                                                Cevaplayan
-                                                                                            </Badge>
-                                                                                            <span class="text-xs text-muted-foreground">
-                                                                                                {formatDate(question.answer.createdAt)}
-                                                                                            </span>
-                                                                                        </div>
-                                                                                    </div>
-                                                                                {/if}
-                                                                            </div>
-
-                                                                            <!-- Best Answer Badge -->
-                                                                            {#if question.acceptedAnswerId === question.answer.id}
-                                                                                <Badge class="mb-3 gap-1 bg-green-500 hover:bg-green-600 h-5 text-xs px-2">
-                                                                                    <Award class="w-3 h-3" />
-                                                                                    Kabul Edilen Cevap
-                                                                                </Badge>
-                                                                            {/if}
-
-                                                                            <div class="text-sm leading-relaxed prose prose-sm max-w-none text-foreground/90">
-                                                                                {@html question.answer.contentHtml}
-                                                                            </div>
-
-                                                                        </div>
-                                                                    </div>
-                                                                </div>
-                                                            </Accordion.Content>
-                                                        </Accordion.Item>
-                                                    </Accordion.Root>
-                                                    {:else}
+                                                    {#if question.answers?.length === 0}
                                                         <!-- No Answer Section -->
                                                         <div class="mt-4">
-                                                            {#if isModerator && (question.status === 'pending' || question.status === 'answered')}
+                                                            {#if user && !question.hasUserAnswered}
+                                                                <!-- Any logged-in user who hasn't answered can answer -->
                                                                 <Button 
                                                                     size="sm" 
                                                                     variant="outline"
-                                                                    onclick={() => openAnswerDialog(question)}
+                                                                    onclick={() => startAnswering(question)}
                                                                     class="gap-2"
                                                                 >
                                                                     <MessageCircle class="w-4 h-4" />
@@ -1867,8 +1824,215 @@
                                 </div>
                             </div>
                         </Card>
+
+                        <!-- Answer Section (Outside Card) -->
+                        {#if question.answers?.length > 0}
+                        {@const firstAnswer = question.answers[0]}
+                        <Accordion.Root type="single" bind:value={openAccordionValue} class="border-x border-b rounded-b-lg -mt-5">
+                            <Accordion.Item value="answer-{question.id}" class="border-0">
+                                <Accordion.Trigger
+                                    class="pb-2 pt-3 pl-10 pr-3 hover:no-underline w-full justify-start gap-2 text-left [&[data-state=open]>svg]:rotate-180"
+                                    onclick={() => onQuestionExpand(question.id)}
+                                >
+                                    <span class="text-xs flex items-center gap-2 font-medium">
+                                        <span class="text-muted-foreground">
+                                            {question.answers.length} Cevap görüntüle
+                                        </span>
+                                    </span>
+                                </Accordion.Trigger>
+                                <Accordion.Content class="pb-0">
+                                    <div>
+                                        <!-- Loop through all answers -->
+                                        {#each question.answers as answer, answerIndex}
+                                        {@const answerReaction = answerReactions[answer.id] || null}
+                                        {@const answerAuthorName = answer?.author?.nickname || answer?.author?.username || 'Moderatör'}
+                                        <div class="{answerIndex > 0 ? 'border-t border-border/60 mt-4 pt-4' : ''}">
+                                            <!-- Answer Content -->
+                                            <div class="flex">
+                                                <!-- Answer Actions Sidebar (Like/Dislike) - Matches Question Sidebar -->
+                                                <div class="flex flex-col items-center gap-1 py-1 px-1 md:px-2 md:py-2 border-r border-border/60 md:min-w-[44px] min-w-[36px] shrink-0">
+                                                    <Tooltip.Root>
+                                                        <Tooltip.Trigger asChild>
+                                                            <Button
+                                                                variant={answerReaction === 'like' ? 'default' : 'ghost'}
+                                                                size="icon"
+                                                                class={cn(
+                                                                    'h-6 w-6 transition-all duration-200',
+                                                                    answerReaction === 'like' && 'bg-primary text-primary-foreground'
+                                                                )}
+                                                                onclick={() => toggleAnswerReaction(answer.id, 'like')}
+                                                                disabled={!user}
+                                                            >
+                                                                <ThumbsUp
+                                                                    size={14}
+                                                                    class={cn(
+                                                                        'transition-all duration-200',
+                                                                        answerReaction === 'like' && 'fill-current'
+                                                                    )}
+                                                                />
+                                                            </Button>
+                                                        </Tooltip.Trigger>
+                                                        {#if !user}
+                                                            <Tooltip.Content>
+                                                                <p>Beğenmek için giriş yapmalısınız</p>
+                                                            </Tooltip.Content>
+                                                        {/if}
+                                                    </Tooltip.Root>
+                                                    <span class="font-semibold text-xs">{formatNumber(answerLikesCount[answer.id] ?? answer.likeCount ?? 0)}</span>
+
+                                                    <Tooltip.Root>
+                                                        <Tooltip.Trigger asChild>
+                                                            <Button
+                                                                variant={answerReaction === 'dislike' ? 'default' : 'ghost'}
+                                                                size="icon"
+                                                                class={cn(
+                                                                    'h-6 w-6 transition-all duration-200',
+                                                                    answerReaction === 'dislike' &&
+                                                                        'bg-red-500/20 text-red-700 dark:bg-red-500/30 dark:text-red-300'
+                                                                )}
+                                                                onclick={() => toggleAnswerReaction(answer.id, 'dislike')}
+                                                                disabled={!user}
+                                                            >
+                                                                <ThumbsDown
+                                                                    size={14}
+                                                                    class={cn(
+                                                                        'transition-all duration-200',
+                                                                        answerReaction === 'dislike' && 'fill-current'
+                                                                    )}
+                                                                />
+                                                            </Button>
+                                                        </Tooltip.Trigger>
+                                                        {#if !user}
+                                                            <Tooltip.Content>
+                                                                <p>Beğenmemek için giriş yapmalısınız</p>
+                                                            </Tooltip.Content>
+                                                        {/if}
+                                                    </Tooltip.Root>
+                                                    <span class="font-semibold text-xs">{formatNumber(answerDislikesCount[answer.id] ?? answer.dislikeCount ?? 0)}</span>
+
+                                                    <!-- Dropdown Menu for all users -->
+                                                    <DropdownMenu.Root>
+                                                        <DropdownMenu.Trigger class="h-5 w-5 inline-flex items-center justify-center rounded-md hover:bg-accent hover:text-accent-foreground">
+                                                            <MoreVertical class="w-3 h-3" />
+                                                        </DropdownMenu.Trigger>
+                                                        <DropdownMenu.Content align="start" class="w-48">
+                                                            <!-- Answer Owner: Edit & Delete -->
+                                                            {#if (user?.id && answer?.author?.id == user.id) || (user?.username && answer?.author?.username === user.username)}
+                                                                <DropdownMenu.Label>Sizin Cevabınız</DropdownMenu.Label>
+                                                                <DropdownMenu.Item onclick={() => startEditingAnswer(question, answer)}>
+                                                                    <Pencil class="w-4 h-4 mr-2" />
+                                                                    Düzenle
+                                                                </DropdownMenu.Item>
+                                                                <DropdownMenu.Item onclick={() => openDeleteDialog('answer', question.id, answer.id)} class="text-destructive">
+                                                                    <Trash2 class="w-4 h-4 mr-2" />
+                                                                    Sil
+                                                                </DropdownMenu.Item>
+                                                                <DropdownMenu.Separator />
+                                                            {/if}
+
+                                                            {#if user && (user.role === 'moderator' || user.role === 'admin')}
+                                                                <DropdownMenu.Label>Moderasyon</DropdownMenu.Label>
+                                                                {@const isAnswerOwnerCheck = (user?.id && answer?.author?.id == user.id) || (user?.username && answer?.author?.username === user.username)}
+                                                                {#if !isAnswerOwnerCheck}
+                                                                    <DropdownMenu.Item onclick={() => startEditingAnswer(question, answer)}>
+                                                                        <Pencil class="w-4 h-4 mr-2" />
+                                                                        Düzenle
+                                                                    </DropdownMenu.Item>
+                                                                {/if}
+                                                                {#if question.acceptedAnswerId === answer.id}
+                                                                    <DropdownMenu.Item onclick={() => acceptAnswer(answer.id, question)} class="text-yellow-600">
+                                                                        <Award class="w-4 h-4 mr-2" />
+                                                                        En İyi Cevabı Kaldır
+                                                                    </DropdownMenu.Item>
+                                                                {:else}
+                                                                    <DropdownMenu.Item onclick={() => acceptAnswer(answer.id, question)} class="text-green-600">
+                                                                        <Award class="w-4 h-4 mr-2" />
+                                                                        En İyi Cevap Seç
+                                                                    </DropdownMenu.Item>
+                                                                {/if}
+                                                                {#if !isAnswerOwnerCheck}
+                                                                    <DropdownMenu.Item onclick={() => openDeleteDialog('answer', question.id, answer.id)} class="text-destructive">
+                                                                        <Trash2 class="w-4 h-4 mr-2" />
+                                                                        Sil
+                                                                    </DropdownMenu.Item>
+                                                                {/if}
+                                                                <DropdownMenu.Separator />
+                                                            {/if}
+                                                            {#if user}
+                                                                <DropdownMenu.Item onclick={() => openReportDrawer({...question, reportType: 'answer', answerId: answer.id})}>
+                                                                    <Flag class="w-4 h-4 mr-2" />
+                                                                    Bildir
+                                                                </DropdownMenu.Item>
+                                                            {/if}
+                                                            <DropdownMenu.Item onclick={() => shareQuestion(question)}>
+                                                                <Share2 class="w-4 h-4 mr-2" />
+                                                                Paylaş
+                                                            </DropdownMenu.Item>
+                                                        </DropdownMenu.Content>
+                                                    </DropdownMenu.Root>
+                                                </div>
+
+                                                <div class="flex flex-col py-2 px-3 md:px-6 md:py-4 gap-3 md:gap-4 flex-1 min-w-0">
+                                                    <!-- Answer Author Profile Card -->
+                                                    <div class="flex items-center gap-2.5 mb-3 pb-3 border-b border-border/60">
+                                                        <a href="/{lang}/{answer?.author?.username || ''}" class="!no-underline flex items-center gap-2.5 hover:opacity-80 transition-opacity">
+                                                            <Avatar.Root class="h-8 w-8">
+                                                                <Avatar.Image
+                                                                    src={answer?.author?.avatar}
+                                                                    alt={answerAuthorName}
+                                                                />
+                                                                <Avatar.Fallback class="bg-primary/10 text-primary text-xs">
+                                                                    {answerAuthorName[0]?.toUpperCase() || 'M'}
+                                                                </Avatar.Fallback>
+                                                            </Avatar.Root>
+                                                            <div class="min-w-0">
+                                                                <p class="font-medium text-sm truncate">
+                                                                    {answerAuthorName}
+                                                                </p>
+                                                                <div class="flex items-center gap-1.5 flex-wrap">
+                                                                    {#if question.acceptedAnswerId === answer.id}
+                                                                        <Badge variant="default" class="h-4 text-[10px] px-1">
+                                                                            <Award class="w-3 h-3 mr-1" />
+                                                                            En İyi
+                                                                        </Badge>
+                                                                    {/if}
+                                                                    <span class="text-xs text-muted-foreground">
+                                                                        {formatDate(answer.createdAt)}
+                                                                    </span>
+                                                                </div>
+                                                            </div>
+                                                        </a>
+                                                    </div>
+
+                                                    <div class="text-sm leading-relaxed prose prose-sm max-w-none text-foreground/90">
+                                                        {@html answer.contentHtml}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        {/each}
+
+                                        <!-- Answer Button for logged-in users who haven't answered -->
+                                        {#if user && !question.hasUserAnswered}
+                                            <div class="mt-4 pt-4 border-t border-border/60 flex justify-center">
+                                                <Button 
+                                                    size="sm" 
+                                                    variant="outline"
+                                                    onclick={() => openAnswerDialog(question)}
+                                                    class="gap-2"
+                                                >
+                                                    <MessageCircle class="w-4 h-4" />
+                                                    Sen de Cevapla
+                                                </Button>
+                                            </div>
+                                        {/if}
+                                    </div>
+                                </Accordion.Content>
+                            </Accordion.Item>
+                        </Accordion.Root>
+                        {/if}
                     {/each}
-                </div>
+                    </div>
 
                 <!-- Pagination -->
                 {#if pagination.totalPages > 1}

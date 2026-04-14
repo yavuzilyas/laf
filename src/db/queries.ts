@@ -1169,6 +1169,12 @@ export const deleteNotificationsByActor = async (userId: string, actorId: string
     return result.rowCount;
 };
 
+export const deleteNotificationsByTranslationStatusId = async (translationStatusId: string) => {
+    const sql = `DELETE FROM notifications WHERE data->'meta'->>'translationStatusId' = $1`;
+    const result = await query(sql, [translationStatusId]);
+    return result.rowCount;
+};
+
 export const findExistingNotification = async (userId: string, type: string, meta: any, createdAt: Date) => {
     let sql = 'SELECT * FROM notifications WHERE user_id = $1 AND type = $2 AND created_at >= $3';
     const params = [userId, type, createdAt];
