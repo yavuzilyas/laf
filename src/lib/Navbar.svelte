@@ -286,7 +286,7 @@ import { ScrollProgress } from "$lib/components/magic/scroll-progress";
             <Tooltip.Provider>
   <Tooltip.Root>
     <Tooltip.Trigger>
-<A href={item.href} data-sveltekit-preload-data="hover" class="group text-shadow-xs text-shadow-background/44 flex items-center gap-1.5 font-bold cursor-pointer">
+<A href={item.href} class="group text-shadow-xs text-shadow-background/44 flex items-center gap-1.5 font-bold cursor-pointer">
   {#if item.icon}
     <svelte:component this={item.icon} size={14} strokeWidth={2.25} />
   {:else if item.iconSvg}

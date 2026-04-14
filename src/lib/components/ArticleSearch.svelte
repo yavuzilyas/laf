@@ -483,15 +483,8 @@
                   {#if article.slug}
                     <a 
                       href={`/article/${article.slug}`}
-                      data-sveltekit-preload-data={article.slug ? 'hover' : false}
                       dir={getLanguageDirection(article.language || 'tr')}
                       class="flex flex-col gap-1 rounded-md px-2 py-1.5 text-sm hover:bg-accent hover:text-accent-foreground cursor-pointer transition-colors {isSelected(articleIdx) ? 'bg-accent text-accent-foreground ring-2 ring-primary/30' : ''}"
-                      on:click|preventDefault={() => {
-                        if (article.slug) {
-                          goto(l(`/article/${article.slug}`));
-                        }
-                      }}
-                    
                     >
                       <span class="font-medium">{article.title}</span>
                       {#if article.author?.name}

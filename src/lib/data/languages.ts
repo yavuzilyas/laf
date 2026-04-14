@@ -14,6 +14,7 @@ export const languages = [
   { value: 'ja', label: '日本語', flag: '🇯🇵' },
   { value: 'ko', label: '한국어', flag: '🇰🇷' },
   { value: 'ar', label: 'العربية', flag: '🇸🇦' },
+  { value: 'fa', label: 'فارسی', flag: '🇮🇷' },
   { value: 'he', label: 'עברית', flag: '🇮🇱' },
   { value: 'hi', label: 'हिन्दी', flag: '🇮🇳' },
   { value: 'hy', label: 'Հայերեն', flag: '🇦🇲' },
@@ -38,7 +39,7 @@ export const languages = [
   { value: 'ca', label: 'Català', flag: '🇪🇸' }
 ];
 
-export const mainLanguageCodes = ['tr', 'en', 'es', 'fr', 'ar', 'hy', 'el'];
+export const mainLanguageCodes = ['tr', 'en', 'es', 'fr', 'ar', 'hy', 'el', 'fa'];
 
 export const localeNames = languages.reduce((acc, lang) => {
   acc[lang.value] = lang.label;

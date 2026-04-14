@@ -14,6 +14,11 @@
     },
     "articles": {
       "title": "Makaleler",
+      "rssFeed": {
+        "title": "RSS Feed",
+        "articlesButton": "Makaleler RSS",
+        "allContentButton": "Tüm İçerik RSS"
+      },
       "description": "Liberter anarşizm, özgürlük ve bireysel haklar üzerine makalelerimizi keşfedin. Felsefe, iktisat, devlet teorisi ve daha fazlası.",
       "keywords": "makaleler, anarşizm, liberteryen, felsefe, iktisat"
     },
@@ -546,6 +551,10 @@
     "similarArticles": "Benzer Makaleler",
     "popularArticles": "Popüler Makaleler",
     "allArticles": "Tüm Makaleler",
+    "rssFeed": {
+      "title": "RSS Feed",
+      "description": "Makalelerimize RSS feed ile abone olun: {url}"
+    },
     "subtitle": "Anarko kapitalizm, radikalizm, revizyonist tarih gibi alanlar hakkında makalelerimizi keşfedin.",
     "description": "Liberter anarşizm, özgürlük ve bireysel haklar hakkında makaleler okuyun",
     "featured": "Öne Çıkan",

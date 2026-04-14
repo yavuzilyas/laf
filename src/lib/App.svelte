@@ -58,9 +58,25 @@ import { cn } from "$lib/utils";
   import ContactForm from '$lib/components/ContactForm.svelte';
   import { Button } from "$lib/components/ui/button";
   import { Link } from '@lucide/svelte';
+  import { showToast } from '$lib/hooks/toast';
 
   import { onMount } from 'svelte';
   import { browser } from '$app/environment';
+
+  // Copy RSS URL to clipboard
+  const copyRssUrl = async (url: string) => {
+    if (!browser) return;
+    try {
+      // Add ?lang=tr only for Turkish locale
+      const fullUrl = currentLocale === 'tr'
+        ? `${window.location.origin}${url}?lang=tr`
+        : `${window.location.origin}${url}`;
+      await navigator.clipboard.writeText(fullUrl);
+      showToast('RSS URL kopyalandı!', 'success', 2000);
+    } catch (err) {
+      showToast('Kopyalama başarısız oldu', 'error', 2000);
+    }
+  };
 
   let { data } = $props();
 
@@ -112,7 +128,7 @@ import { cn } from "$lib/utils";
 >
       <DitheredImageSlider  images={sliderImages} />
 
-      <MorphingText class="absolute sm:top-1/2 top-2/5 left-1/2 transform -translate-x-1/2 -translate-y-1/2" texts={[t('firstPart'), t('secondPart')]} />
+      <MorphingText class="absolute sm:top-4/9 top-2/5 left-1/2 transform -translate-x-1/2 -translate-y-1/2" texts={[t('firstPart'), t('secondPart')]} />
 
 
 
@@ -215,13 +231,49 @@ import { cn } from "$lib/utils";
 {#if data.popularArticles && data.popularArticles.length > 0}
   <section class="w-full py-12 px-4 sm:px-6 lg:px-8 ">
     <div class="max-w-7xl mx-auto">
-      <ArticleRecommendation 
-        articles={data.popularArticles} 
+      <ArticleRecommendation
+        articles={data.popularArticles}
         title={t('articles.popularArticles') || 'Popüler Makaleler'}
       />
     </div>
   </section>
 {/if}
+
+<!-- RSS Feed Section -->
+<section class="w-full my-8 py-8 px-4 sm:px-6 lg:px-8 bg-muted/30 border-y border-border/50">
+  <div class="max-w-4xl mx-auto text-center">
+    <div class="flex items-center justify-center gap-2 mb-3">
+      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-primary">
+        <path d="M4 11a9 9 0 0 1 9 9"/>
+        <path d="M4 4a16 16 0 0 1 16 16"/>
+        <circle cx="5" cy="19" r="1"/>
+      </svg>
+      <h3 class="text-lg font-semibold text-foreground">{t('articles.rssFeed.title') || 'RSS Feed'}</h3>
+    </div>
+    <p class="text-sm text-muted-foreground mb-4">
+      {t('articles.rssFeed.description', { url: `/rss/articles.xml` })}
+    </p>
+    <div class="flex flex-wrap items-center justify-center gap-2">
+      <Button variant="outline" size="sm" onclick={() => copyRssUrl('/rss/articles.xml')}>
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mr-2">
+          <path d="M4 11a9 9 0 0 1 9 9"/>
+          <path d="M4 4a16 16 0 0 1 16 16"/>
+          <circle cx="5" cy="19" r="1"/>
+        </svg>
+        {t('seo.articles.rssFeed.articlesButton') || 'Makaleler RSS'}
+      </Button>
+      <Button variant="outline" size="sm" onclick={() => copyRssUrl('/rss/all.xml')}>
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mr-2">
+          <path d="M4 11a9 9 0 0 1 9 9"/>
+          <path d="M4 4a16 16 0 0 1 16 16"/>
+          <circle cx="5" cy="19" r="1"/>
+        </svg>
+        {t('seo.articles.rssFeed.allContentButton') || 'Tüm İçerik RSS'}
+      </Button>
+    </div>
+  </div>
+</section>
+
 <!-- Contact Section - Modern Form Design -->
 <div class="px-4 sm:px-6 lg:px-8">
   <div class="text-center mb-10">

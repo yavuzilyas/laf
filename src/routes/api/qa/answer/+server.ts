@@ -73,7 +73,7 @@ export async function POST({ request, locals }: RequestEvent) {
             user.id
         ]);
 
-        const answerRow = answerResult.rows[0];
+        const answer = answerResult.rows[0];
 
         // Update question status
         const newStatus = publishImmediately ? 'published' : 'answered';
@@ -86,15 +86,14 @@ export async function POST({ request, locals }: RequestEvent) {
                 answered_at = NOW(),
                 published_at = CASE WHEN $4 = true THEN NOW() ELSE published_at END,
                 moderated_by = $5,
-                moderated_at = NOW(),
-                answer_count = answer_count + 1
+                moderated_at = NOW()
             WHERE id = $6
-            RETURNING id, title, status, published_at, answer_count
+            RETURNING id, title, status, published_at
         `;
 
         const updateResult = await query(updateQuery, [
             newStatus,
-            answerRow.id,
+            answer.id,
             user.id,
             publishImmediately,
             user.id,
@@ -102,41 +101,20 @@ export async function POST({ request, locals }: RequestEvent) {
         ]);
 
         const updatedQuestion = updateResult.rows[0];
-        
-        // Fetch user info for the answer author
-        const userQuery = `
-            SELECT username, nickname, avatar_url 
-            FROM users 
-            WHERE id = $1
-        `;
-        const userResult = await query(userQuery, [user.id]);
-        const userRow = userResult.rows[0];
-
-        // Build full answer object with author info
-        const fullAnswer = {
-            id: answerRow.id,
-            content: answerRow.content,
-            contentHtml: answerRow.content_html,
-            createdAt: answerRow.created_at,
-            voteScore: 0,
-            likeCount: 0,
-            dislikeCount: 0,
-            author: {
-                username: userRow?.username || user.username,
-                nickname: userRow?.nickname || user.nickname,
-                avatar: userRow?.avatar_url || user.avatar
-            }
-        };
 
         return json({
             success: true,
-            answer: fullAnswer,
+            answer: {
+                id: answer.id,
+                content: answer.content,
+                contentHtml: answer.content_html,
+                createdAt: answer.created_at
+            },
             question: {
                 id: updatedQuestion.id,
                 title: updatedQuestion.title,
                 status: updatedQuestion.status,
-                publishedAt: updatedQuestion.published_at,
-                answerCount: updatedQuestion.answer_count
+                publishedAt: updatedQuestion.published_at
             },
             message: publishImmediately 
                 ? 'Cevap yayınlandı' 
@@ -205,36 +183,16 @@ export async function PUT({ request, locals }: RequestEvent) {
             answerId
         ]);
 
-        const updatedAnswerRow = result.rows[0];
-        
-        // Fetch user info for the answer author
-        const userQuery = `
-            SELECT username, nickname, avatar_url 
-            FROM users 
-            WHERE id = $1
-        `;
-        const userResult = await query(userQuery, [user.id]);
-        const userRow = userResult.rows[0];
-
-        // Build full answer object with author info
-        const fullAnswer = {
-            id: updatedAnswerRow.id,
-            content: updatedAnswerRow.content,
-            contentHtml: updatedAnswerRow.content_html,
-            updatedAt: updatedAnswerRow.updated_at,
-            voteScore: 0,
-            likeCount: 0,
-            dislikeCount: 0,
-            author: {
-                username: userRow?.username || user.username,
-                nickname: userRow?.nickname || user.nickname,
-                avatar: userRow?.avatar_url || user.avatar
-            }
-        };
+        const updatedAnswer = result.rows[0];
 
         return json({
             success: true,
-            answer: fullAnswer,
+            answer: {
+                id: updatedAnswer.id,
+                content: updatedAnswer.content,
+                contentHtml: updatedAnswer.content_html,
+                updatedAt: updatedAnswer.updated_at
+            },
             message: 'Cevap güncellendi'
         });
 

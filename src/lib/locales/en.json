@@ -14,6 +14,11 @@
     },
     "articles": {
       "title": "Articles",
+      "rssFeed": {
+        "title": "RSS Feed",
+        "articlesButton": "Articles RSS",
+        "allContentButton": "All Content RSS"
+      },
       "description": "Explore our articles on libertarian anarchism, freedom, and individual rights. Philosophy, economics, state theory and more.",
       "keywords": "articles, anarchism, libertarian, philosophy, economics"
     },
@@ -628,6 +633,10 @@
     "similarArticles": "Similar Articles",
     "popularArticles": "Popular Articles",
     "allArticles": "All Articles",
+    "rssFeed": {
+      "title": "RSS Feed",
+      "description": "Subscribe to our articles via RSS feed: {url}"
+    },
     "subtitle": "Explore our collection of articles on libertarian anarchism, freedom, and individual rights.",
     "description": "Read articles about libertarian anarchism, freedom, and individual rights",
     "writeArticle": "Write",

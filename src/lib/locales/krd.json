@@ -14,6 +14,12 @@
     },
     "articles": {
       "title": "Gotarên",
+      "rssFeed": {
+        "title": "RSS Feed",
+        "description": "Bi RSS bibe beşdarî gotarên me: {url}",
+        "articlesButton": "RSS Gotarên",
+        "allContentButton": "RSS Hemû Naverok"
+      },
       "description": "Gotarên me li ser anarşîzmê lîberter, azadî û mafên kesane keşf bikin. Felsefe, aborî, teorya dewletê û zêdetir.",
       "keywords": "gotar, anarşîzm, lîberteryen, felsefe, aborî"
     },
@@ -546,6 +552,10 @@
     "similarArticles": "Gotarên Wekhev",
     "popularArticles": "Gotarên Popûler",
     "allArticles": "Hemû Gotar",
+    "rssFeed": {
+      "title": "RSS Feed",
+      "description": "Bi RSS bibe beşdarî gotarên me: {url}"
+    },
     "subtitle": "Maqalên me li ser anarkokapitalîzm, radîkalisme, dîrokê revizyonî û hwd. lê binihêrin.",
     "description": "Gotarên li ser anarşîzmê lîberter, azadî û mafên kesane bixwînin",
     "featured": "Pêşniyar",

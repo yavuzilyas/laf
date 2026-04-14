@@ -168,9 +168,8 @@
 
     let moderatorTab = $state('pending');
 
-    // Question form state - inline editing
-    let showAskForm = $state(false); // Show inline new question form
-    let editingQuestionId = $state<string | null>(null); // ID of question being edited inline
+    // Question form state - inline form (not dialog)
+    let showAskForm = $state(false);
     let questionTitle = $state('');
     let questionTopicId = $state('');
     let questionAuthorName = $state('');
@@ -180,10 +179,11 @@
     let questionAttachments: {id: string, file: File, preview?: string}[] = $state([]);
     let isSubmitting = $state(false);
     let questionFileInput: HTMLInputElement | null = $state(null);
+    let editingQuestion: any = $state(null); // Stores question being edited
 
-    // Answer form state - inline editing per question
-    let answeringQuestionId = $state<string | null>(null); // ID of question being answered
-    let editingAnswerId = $state<string | null>(null); // ID of answer being edited
+    // Answer form state - inline forms per question
+    let answeringQuestionId: string | null = $state(null);
+    let editingAnswerId: string | null = $state(null);
     let answerContent = $state('');
     let answerAttachments: {id: string, file: File, preview?: string}[] = $state([]);
     let isAnswering = $state(false);
@@ -424,9 +424,6 @@
 
     // Track expanded question for view counting
     let expandedQuestionId = $state<string | null>(null);
-    
-    // Track accordion open state for auto-expanding when answer is added
-    let openAccordionValue = $state<string>('');
 
     // Delete confirmation dialog states
     let deleteDialogOpen = $state(false);
@@ -528,43 +525,19 @@
         answerAttachments = answerAttachments.filter(a => a.id !== id);
     }
 
-    function startEditingQuestion(question: any) {
-        editingQuestionId = question.id;
+    function openEditQuestionDialog(question: any) {
+        editingQuestion = question;
         questionTitle = question.title || '';
         questionContent = question.content?.text || question.contentHtml?.replace(/<br>/g, '\n') || '';
         questionTopicId = question.topic?.id || '';
         isAnonymous = question.isAnonymous || false;
-        // Clear inline new question form if open
-        showAskForm = false;
-    }
-
-    function cancelEditingQuestion() {
-        editingQuestionId = null;
-        questionTitle = '';
-        questionContent = '';
-        questionTopicId = '';
-        isAnonymous = false;
-        questionAttachments = [];
-    }
-
-    function startNewQuestion() {
         showAskForm = true;
-        // Clear editing state
-        editingQuestionId = null;
-        questionTitle = '';
-        questionContent = '';
-        questionTopicId = '';
-        isAnonymous = false;
-        questionAttachments = [];
-    }
-
-    function cancelNewQuestion() {
-        showAskForm = false;
-        questionTitle = '';
-        questionContent = '';
-        questionTopicId = '';
-        isAnonymous = false;
-        questionAttachments = [];
+        // Scroll to top form
+        if (typeof window !== 'undefined') {
+            setTimeout(() => {
+                document.getElementById('ask-form-container')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }, 100);
+        }
     }
 
     async function submitQuestion() {
@@ -583,8 +556,8 @@
 
         isSubmitting = true;
         try {
-            const isEditing = editingQuestionId != null;
-            const url = isEditing ? `/api/qa/id/${editingQuestionId}` : '/api/qa';
+            const isEditing = editingQuestion != null;
+            const url = isEditing ? `/api/qa/id/${editingQuestion.id}` : '/api/qa';
             const method = isEditing ? 'PUT' : 'POST';
 
             const response = await fetch(url, {
@@ -606,23 +579,6 @@
                 const result = await response.json();
                 showToast(result.message || (isEditing ? 'Soru güncellendi' : 'Sorunuz gönderildi'), 'success');
                 
-                // If editing, update the existing question in the list
-                if (isEditing && editingQuestionId) {
-                    questions = questions.map((q: any) => q.id === editingQuestionId ? result.question : q);
-                    filteredQuestions = filteredQuestions.map((q: any) => q.id === editingQuestionId ? result.question : q);
-                    editingQuestionId = null;
-                } else {
-                    // Add new question to the beginning of the list (like tweeting)
-                    if (result.question) {
-                        questions = [result.question, ...questions];
-                        // Also add to filtered list if it passes current filters
-                        filteredQuestions = [result.question, ...filteredQuestions];
-                        // Update pagination total
-                        pagination.total = (pagination.total || 0) + 1;
-                    }
-                    showAskForm = false;
-                }
-                
                 questionTitle = '';
                 questionTopicId = '';
                 questionAuthorName = '';
@@ -630,10 +586,14 @@
                 isAnonymous = false;
                 questionContent = '';
                 questionAttachments = [];
+                editingQuestion = null;
+                showAskForm = false;
 
                 if (isModerator) {
                     loadModeratorQuestions();
                 }
+                // Reload page to show updated content
+                window.location.reload();
             } else {
                 const error = await response.json();
                 showToast(error.error || 'Soru gönderilirken hata oluştu', 'error');
@@ -645,38 +605,7 @@
         }
     }
 
-    function startAnswering(question: any) {
-        answeringQuestionId = question.id;
-        editingAnswerId = null;
-        answerContent = '';
-        answerAttachments = [];
-        // Auto-expand accordion
-        openAccordionValue = `answer-${question.id}`;
-    }
-
-    function startEditingAnswer(question: any, answer: any) {
-        answeringQuestionId = question.id;
-        editingAnswerId = answer.id;
-        answerContent = answer.content?.text || answer.contentHtml?.replace(/<br>/g, '\n') || '';
-        answerAttachments = [];
-        // Auto-expand accordion
-        openAccordionValue = `answer-${question.id}`;
-    }
-
-    function cancelAnswering() {
-        answeringQuestionId = null;
-        editingAnswerId = null;
-        answerContent = '';
-        answerAttachments = [];
-    }
-
-    async function submitAnswer(questionId: string) {
-        const targetQuestion = questions.find((q: any) => q.id === questionId);
-        if (!targetQuestion) {
-            showToast('Soru bulunamadı', 'error');
-            return;
-        }
-
+    async function submitAnswer(questionId: string, answerId?: string) {
         if (!answerContent.trim()) {
             showToast('Cevap içeriği gerekli', 'error');
             return;
@@ -685,7 +614,7 @@
         // Convert newlines to HTML
         const contentHtml = answerContent.replace(/\n/g, '<br>');
 
-        const isEditing = editingAnswerId != null;
+        const isEditing = !!answerId;
 
         isAnswering = true;
         try {
@@ -699,8 +628,10 @@
             };
 
             if (isEditing) {
-                requestBody.answerId = editingAnswerId;
+                // PUT request for editing
+                requestBody.answerId = answerId;
             } else {
+                // POST request for new answer
                 requestBody.questionId = questionId;
                 requestBody.publishImmediately = publishImmediately;
             }
@@ -715,33 +646,14 @@
                 const result = await response.json();
                 showToast(result.message || (isEditing ? 'Cevap güncellendi' : 'Cevap gönderildi'), 'success');
                 
-                // Update the question with the new/edited answer (like tweeting - immediate insertion)
-                if (result.answer) {
-                    const updatedAnswers = isEditing 
-                        ? (targetQuestion.answers || []).map((a: any) => a.id === result.answer.id ? result.answer : a)
-                        : [result.answer, ...(targetQuestion.answers || [])];
-                    
-                    const updatedQuestion = {
-                        ...targetQuestion,
-                        answers: updatedAnswers,
-                        answerCount: result.question?.answerCount || updatedAnswers.length,
-                        hasUserAnswered: true,
-                        status: result.question?.status || targetQuestion.status
-                    };
-                    
-                    // Update in questions array
-                    questions = questions.map((q: any) => q.id === questionId ? updatedQuestion : q);
-                    // Update in filtered questions array
-                    filteredQuestions = filteredQuestions.map((q: any) => q.id === questionId ? updatedQuestion : q);
-                }
-                
-                // Reset inline answer form
+                // Reset inline form state
                 answeringQuestionId = null;
                 editingAnswerId = null;
                 answerContent = '';
                 answerAttachments = [];
 
                 loadModeratorQuestions();
+                refreshPublicQuestions();
             } else {
                 const error = await response.json();
                 showToast(error.error || 'Cevap gönderilirken hata oluştu', 'error');
@@ -751,6 +663,29 @@
         } finally {
             isAnswering = false;
         }
+    }
+
+    function cancelAnswerForm() {
+        answeringQuestionId = null;
+        editingAnswerId = null;
+        answerContent = '';
+        answerAttachments = [];
+    }
+
+    function openAnswerForm(question: any, existingAnswer?: any) {
+        if (existingAnswer) {
+            // Editing mode
+            editingAnswerId = existingAnswer.id;
+            answerContent = existingAnswer.content?.text || '';
+        } else {
+            // New answer mode
+            editingAnswerId = null;
+            answerContent = '';
+        }
+        answeringQuestionId = question.id;
+        answerAttachments = [];
+        // Ensure accordion is expanded so the inline form is visible
+        onQuestionExpand(question.id);
     }
 
     async function moderateQuestion(questionId: string, action: 'publish' | 'reject' | 'unpublish', note?: string) {
@@ -919,6 +854,7 @@
                 return { variant: 'outline' as const, label: status, icon: AlertCircle };
         }
     }
+
 
     function getDisplayQuestions() {
         if (moderatorTab === 'pending') return pendingQuestions;
@@ -1357,9 +1293,9 @@
         <div>
             <!-- Search & Filter Section using Article-style components -->
             <div class="mx-auto flex flex-col sm:flex-row justify-center items-center max-w-lg gap-3 mt-6 mb-4">
-                    <Button size="xs" onclick={startNewQuestion}>
+                    <Button size="xs" onclick={() => showAskForm = !showAskForm} variant={showAskForm ? 'secondary' : 'default'}>
                         <MessageCircle class="w-4 h-4" />
-                        Soru Sor
+                        {showAskForm ? 'İptal' : 'Soru Sor'}
                     </Button>
                 <!-- Search Input with Suggestions -->
                 <QASearch
@@ -1424,6 +1360,167 @@
                 />
             </div>
 
+            <!-- Inline Ask Form (Twitter/X style) -->
+            {#if showAskForm}
+                <div id="ask-form-container" class="mb-6 transition-all duration-200">
+                    <Card class="bg-background border-border">
+                        <CardContent class="p-4">
+                            <div class="flex gap-3">
+                                <Avatar.Root class="h-10 w-10 shrink-0">
+                                    {#if (user as any)?.avatar}
+                                        <Avatar.Image src={(user as any).avatar} alt={user?.username || 'Kullanıcı'} />
+                                    {/if}
+                                    <Avatar.Fallback class="bg-primary/10 text-primary">
+                                        {user ? (user.username?.[0] || 'U').toUpperCase() : '?'}
+                                    </Avatar.Fallback>
+                                </Avatar.Root>
+                                <div class="flex-1 min-w-0 space-y-3">
+                                    <!-- Topic Selection (inline) -->
+                                    <div class="flex items-center gap-2">
+                                        <Select.Root type="single" bind:value={questionTopicId}>
+                                            <Select.Trigger class="w-auto h-8 text-xs px-2 py-1">
+                                                <span class="text-muted-foreground">{questionTopicId ? topics.find((t: any) => t.id === questionTopicId)?.name : '+ Konu ekle'}</span>
+                                            </Select.Trigger>
+                                            <Select.Content class="z-50">
+                                                <Select.Item value="">Konu seçin</Select.Item>
+                                                {#each topics as topic (topic.id)}
+                                                    <Select.Item value={topic.id}>{topic.name}</Select.Item>
+                                                {/each}
+                                            </Select.Content>
+                                        </Select.Root>
+                                    </div>
+                                    
+                                    <!-- Title Input -->
+                                    <Input
+                                        bind:value={questionTitle}
+                                        placeholder="Sorunuzın başlığı..."
+                                        class="border-0 bg-transparent px-0 text-lg font-medium placeholder:text-muted-foreground/60 focus-visible:ring-0 focus-visible:ring-offset-0"
+                                    />
+                                    
+                                    <!-- Content Textarea -->
+                                    <textarea
+                                        bind:value={questionContent}
+                                        placeholder="Sorunuzu detaylandırın..."
+                                        rows={3}
+                                        maxlength="250"
+                                        class="w-full bg-transparent border-0 px-0 resize-none focus:outline-none focus:ring-0 placeholder:text-muted-foreground/60 text-sm"
+                                    ></textarea>
+                                    
+                                    <!-- Character Count & Attachments -->
+                                    <div class="flex items-center justify-between pt-2 border-t border-border/60">
+                                        <div class="flex items-center gap-2">
+                                            <input
+                                                bind:this={questionFileInput}
+                                                type="file"
+                                                accept="image/*"
+                                                multiple
+                                                class="hidden"
+                                                onchange={handleQuestionFileSelect}
+                                            />
+                                            <Button
+                                                type="button"
+                                                variant="ghost"
+                                                size="icon"
+                                                class="h-8 w-8 text-primary hover:bg-primary/10"
+                                                onclick={() => questionFileInput?.click()}
+                                            >
+                                                <ImageIcon class="w-5 h-5" />
+                                            </Button>
+                                            
+                                            {#if questionAttachments.length > 0}
+                                                <div class="flex flex-wrap gap-2">
+                                                    {#each questionAttachments as attachment (attachment.id)}
+                                                        <div class="relative group">
+                                                            <img
+                                                                src={attachment.preview}
+                                                                alt="Attachment"
+                                                                class="w-12 h-12 object-cover rounded-lg border"
+                                                            />
+                                                            <button
+                                                                type="button"
+                                                                onclick={() => removeQuestionAttachment(attachment.id)}
+                                                                class="absolute -top-1 -right-1 w-4 h-4 bg-destructive text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                                                            >
+                                                                <X class="w-2.5 h-2.5" />
+                                                            </button>
+                                                        </div>
+                                                    {/each}
+                                                </div>
+                                            {/if}
+                                        </div>
+                                        <span class="text-xs text-muted-foreground">{questionContent.length}/250</span>
+                                    </div>
+                                    
+                                    <!-- Guest Info (if not logged in) -->
+                                    {#if !user}
+                                        <div class="grid grid-cols-2 gap-3 pt-2">
+                                            <Input 
+                                                bind:value={questionAuthorName}
+                                                placeholder="İsminiz"
+                                                class="h-9 text-sm"
+                                            />
+                                            <Input 
+                                                bind:value={questionAuthorEmail}
+                                                type="email"
+                                                placeholder="E-posta"
+                                                class="h-9 text-sm"
+                                            />
+                                        </div>
+                                    {/if}
+                                    
+                                    <!-- Anonymous Option -->
+                                    {#if user && !editingQuestion}
+                                        <div class="flex items-center gap-2 pt-2">
+                                            <input 
+                                                type="checkbox" 
+                                                id="anonymous" 
+                                                bind:checked={isAnonymous}
+                                                class="rounded border-gray-300"
+                                            />
+                                            <Label for="anonymous" class="cursor-pointer text-sm text-muted-foreground">
+                                                Anonim olarak sor
+                                            </Label>
+                                        </div>
+                                    {/if}
+                                    
+                                    <!-- Action Buttons -->
+                                    <div class="flex justify-end gap-2 pt-3">
+                                        <Button 
+                                            variant="ghost" 
+                                            size="sm" 
+                                            onclick={() => { 
+                                                showAskForm = false; 
+                                                editingQuestion = null;
+                                                questionTitle = '';
+                                                questionContent = '';
+                                                questionTopicId = '';
+                                                questionAttachments = [];
+                                            }}
+                                        >
+                                            İptal
+                                        </Button>
+                                        <Button 
+                                            size="sm" 
+                                            onclick={submitQuestion} 
+                                            disabled={isSubmitting || !questionTitle.trim() || questionTitle.trim().length < 5 || !questionContent.trim()}
+                                            class="gap-2"
+                                        >
+                                            {#if isSubmitting}
+                                                <Loader2 class="w-4 h-4 animate-spin" />
+                                                {editingQuestion ? 'Güncelleniyor...' : 'Gönderiliyor...'}
+                                            {:else}
+                                                <Send class="w-4 h-4" />
+                                                {editingQuestion ? 'Güncelle' : 'Soruyu Gönder'}
+                                            {/if}
+                                        </Button>
+                                    </div>
+                                </div>
+                            </div>
+                        </CardContent>
+                    </Card>
+                </div>
+            {/if}
+
             <!-- Questions List -->
             {#if filteredQuestions.length === 0}
                 <Card class="bg-background border-none">
@@ -1438,132 +1535,11 @@
                         {:else}
                             <p class="text-muted-foreground mb-4">Henüz yayınlanmış soru yok</p>
                         {/if}
-                        <Button onclick={startNewQuestion}>İlk Soruyu Siz Sorun</Button>
+                        <Button onclick={() => showAskForm = true}>İlk Soruyu Siz Sorun</Button>
                     </CardContent>
                 </Card>
             {:else}
-                <div class="flex flex-col gap-4">
-                    
-                    <!-- Inline New Question Form -->
-                    {#if showAskForm}
-                        <Card class="overflow-hidden p-0 bg-background border-primary/30">
-                            <div class="p-4 md:p-6 space-y-4">
-                                <div class="flex items-center gap-2 text-primary">
-                                    <MessageCircle class="w-5 h-5" />
-                                    <h3 class="font-semibold">Yeni Soru</h3>
-                                </div>
-                                
-                                <!-- Topic Selection -->
-                                <div class="space-y-2">
-                                    <Label for="topic">Konu</Label>
-                                    <Select.Root type="single" bind:value={questionTopicId}>
-                                        <Select.Trigger id="topic" class="w-full">
-                                            {questionTopicId ? topics.find((t: any) => t.id === questionTopicId)?.name : 'Konu seçin (isteğe bağlı)'}
-                                        </Select.Trigger>
-                                        <Select.Content class="z-50">
-                                            <Select.Item value="">Konu seçin</Select.Item>
-                                            {#each topics as topic (topic.id)}
-                                                <Select.Item value={topic.id}>{topic.name}</Select.Item>
-                                            {/each}
-                                        </Select.Content>
-                                    </Select.Root>
-                                </div>
-
-                                <!-- Title -->
-                                <div class="space-y-2">
-                                    <Label for="title">Soru Başlığı *</Label>
-                                    <Input 
-                                        id="title"
-                                        bind:value={questionTitle}
-                                        placeholder="Sorunuzu kısa bir başlıkla özetleyin"
-                                    />
-                                </div>
-
-                                <!-- Content -->
-                                <div class="space-y-2">
-                                    <Label>Soru Detayı *</Label>
-                                    <textarea
-                                        bind:value={questionContent}
-                                        rows={4}
-                                        maxlength="250"
-                                        placeholder="Sorunuzu detaylı bir şekilde açıklayın..."
-                                        class="resize-none w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-ring"
-                                    ></textarea>
-                                    <div class="text-xs text-muted-foreground text-right">
-                                        {questionContent.length}/250 karakter
-                                    </div>
-                                </div>
-
-                                <!-- Attachments -->
-                                <div class="space-y-2">
-                                    <input
-                                        bind:this={questionFileInput}
-                                        type="file"
-                                        accept="image/*"
-                                        multiple
-                                        class="hidden"
-                                        onchange={handleQuestionFileSelect}
-                                    />
-                                    <Button
-                                        type="button"
-                                        variant="outline"
-                                        size="sm"
-                                        class="gap-2"
-                                        onclick={() => questionFileInput?.click()}
-                                    >
-                                        <ImageIcon class="w-4 h-4" />
-                                        Resim Ekle
-                                    </Button>
-                                    {#if questionAttachments.length > 0}
-                                        <div class="flex flex-wrap gap-2 mt-2">
-                                            {#each questionAttachments as attachment (attachment.id)}
-                                                <div class="relative group">
-                                                    <img src={attachment.preview} alt="" class="w-20 h-20 object-cover rounded-lg border" />
-                                                    <button
-                                                        type="button"
-                                                        onclick={() => removeQuestionAttachment(attachment.id)}
-                                                        class="absolute -top-2 -right-2 w-5 h-5 bg-destructive text-white rounded-full flex items-center justify-center"
-                                                    >
-                                                        <X class="w-3 h-3" />
-                                                    </button>
-                                                </div>
-                                            {/each}
-                                        </div>
-                                    {/if}
-                                </div>
-
-                                <!-- Anonymous Option -->
-                                {#if user}
-                                    <div class="flex items-center gap-2">
-                                        <input type="checkbox" id="anonymous" bind:checked={isAnonymous} class="rounded border-gray-300" />
-                                        <Label for="anonymous" class="cursor-pointer">Anonim olarak sor</Label>
-                                    </div>
-                                {/if}
-
-                                <!-- Guest Info -->
-                                {#if !user}
-                                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                        <Input bind:value={questionAuthorName} placeholder="İsim *" />
-                                        <Input bind:value={questionAuthorEmail} type="email" placeholder="E-posta *" />
-                                    </div>
-                                {/if}
-
-                                <!-- Actions -->
-                                <div class="flex justify-end gap-2 pt-2">
-                                    <Button variant="outline" size="sm" onclick={cancelNewQuestion}>İptal</Button>
-                                    <Button size="sm" onclick={submitQuestion} disabled={isSubmitting} class="gap-2">
-                                        {#if isSubmitting}
-                                            <Loader2 class="w-4 h-4 animate-spin" />
-                                            Gönderiliyor...
-                                        {:else}
-                                            <Send class="w-4 h-4" />
-                                            Soruyu Gönder
-                                        {/if}
-                                    </Button>
-                                </div>
-                            </div>
-                        </Card>
-                    {/if}
+                            <div class="flex flex-col gap-4">
 
                     {#each filteredQuestions as question (question.id)}
                         {@const userReaction = userReactions[question.id] || null}
@@ -1624,7 +1600,7 @@
                                                 Paylaş
                                             </DropdownMenu.Item>
                                             <DropdownMenu.Item>
-                                                <a href="/{lang}/qa/{question.slug}" data-sveltekit-preload-data="hover" class="flex items-center w-full">
+                                                <a href="/{lang}/qa/{question.slug}" class="flex items-center w-full">
                                                     <ViewIcon class="w-4 h-4 mr-2" />
                                                     Detaylı görüntüle
                                                 </a>
@@ -1636,7 +1612,7 @@
                                                 <!-- Answer option (only if question is not user's own) -->
                                                 {@const isQuestionOwnerCheck = (user?.id && (question.authorId == user.id || question.author?.id == user.id)) || (user?.username && question.author?.username === user.username)}
                                                 {#if !isQuestionOwnerCheck}
-                                                    <DropdownMenu.Item onclick={() => startAnswering(question)}>
+                                                    <DropdownMenu.Item onclick={() => openAnswerForm(question)}>
                                                         <MessageCircle class="w-4 h-4 mr-2" />
                                                         Cevapla
                                                     </DropdownMenu.Item>
@@ -1651,7 +1627,7 @@
                                             {#if user?.id && (question.authorId == user.id || question.author?.id == user.id)}
                                                 <DropdownMenu.Separator />
                                                 <DropdownMenu.Label>Sizin Sorunuz</DropdownMenu.Label>
-                                                <DropdownMenu.Item onclick={() => startEditingQuestion(question)}>
+                                                <DropdownMenu.Item onclick={() => openEditQuestionDialog(question)}>
                                                     <Pencil class="w-4 h-4 mr-2" />
                                                     Düzenle
                                                 </DropdownMenu.Item>
@@ -1682,7 +1658,7 @@
                                                     </DropdownMenu.Item>
                                                 {/if}
                                                 {#if isModerator && question.status === 'answered'}
-                                                    <DropdownMenu.Item onclick={() => startAnswering(question)}>
+                                                    <DropdownMenu.Item onclick={() => openAnswerForm(question, question.answers?.[0])}>
                                                         <Pencil class="w-4 h-4 mr-2" />
                                                         Cevabı Düzenle
                                                     </DropdownMenu.Item>
@@ -1713,7 +1689,7 @@
                                                 </Badge>
                                             {/if}
                                         </div>
-                                        <a href="/{lang}/qa/{question.slug}" data-sveltekit-preload-data="hover" class="font-semibold text-sm md:text-lg hover:text-primary hover:underline cursor-pointer block leading-snug">
+                                        <a href="/{lang}/qa/{question.slug}" class="font-semibold text-sm md:text-lg hover:text-primary hover:underline cursor-pointer block leading-snug">
                                             {question.title}
                                         </a>
 
@@ -1792,7 +1768,7 @@
                                         <!-- Moderator Actions -->
                                         {#if isModerator && question.status === 'pending'}
                                             <div class="flex flex-wrap gap-2 pt-1">
-                                                <Button size="xs" onclick={() => startAnswering(question)} class="gap-1 h-7">
+                                                <Button size="xs" onclick={() => openAnswerForm(question)} class="gap-1 h-7">
                                                     <MessageCircle class="w-3.5 h-3.5" />
                                                     Cevapla
                                                 </Button>
@@ -1807,7 +1783,7 @@
                                                                 <Button 
                                                                     size="sm" 
                                                                     variant="outline"
-                                                                    onclick={() => startAnswering(question)}
+                                                                    onclick={() => openAnswerForm(question)}
                                                                     class="gap-2"
                                                                 >
                                                                     <MessageCircle class="w-4 h-4" />
@@ -1828,7 +1804,7 @@
                         <!-- Answer Section (Outside Card) -->
                         {#if question.answers?.length > 0}
                         {@const firstAnswer = question.answers[0]}
-                        <Accordion.Root type="single" bind:value={openAccordionValue} class="border-x border-b rounded-b-lg -mt-5">
+                        <Accordion.Root type="single" class="border-x border-b rounded-b-lg -mt-5">
                             <Accordion.Item value="answer-{question.id}" class="border-0">
                                 <Accordion.Trigger
                                     class="pb-2 pt-3 pl-10 pr-3 hover:no-underline w-full justify-start gap-2 text-left [&[data-state=open]>svg]:rotate-180"
@@ -1919,7 +1895,7 @@
                                                             <!-- Answer Owner: Edit & Delete -->
                                                             {#if (user?.id && answer?.author?.id == user.id) || (user?.username && answer?.author?.username === user.username)}
                                                                 <DropdownMenu.Label>Sizin Cevabınız</DropdownMenu.Label>
-                                                                <DropdownMenu.Item onclick={() => startEditingAnswer(question, answer)}>
+                                                                <DropdownMenu.Item onclick={() => openAnswerForm(question, answer)}>
                                                                     <Pencil class="w-4 h-4 mr-2" />
                                                                     Düzenle
                                                                 </DropdownMenu.Item>
@@ -1934,7 +1910,7 @@
                                                                 <DropdownMenu.Label>Moderasyon</DropdownMenu.Label>
                                                                 {@const isAnswerOwnerCheck = (user?.id && answer?.author?.id == user.id) || (user?.username && answer?.author?.username === user.username)}
                                                                 {#if !isAnswerOwnerCheck}
-                                                                    <DropdownMenu.Item onclick={() => startEditingAnswer(question, answer)}>
+                                                                    <DropdownMenu.Item onclick={() => openAnswerForm(question, answer)}>
                                                                         <Pencil class="w-4 h-4 mr-2" />
                                                                         Düzenle
                                                                     </DropdownMenu.Item>
@@ -2012,13 +1988,117 @@
                                         </div>
                                         {/each}
 
-                                        <!-- Answer Button for logged-in users who haven't answered -->
-                                        {#if user && !question.hasUserAnswered}
+                                        <!-- Inline Answer Form or Answer Button -->
+                                        {#if answeringQuestionId === question.id}
+                                            <!-- Inline Answer Form -->
+                                            <div class="mt-4 pt-4 border-t border-border/60">
+                                                <div class="flex gap-3">
+                                                    <Avatar.Root class="h-10 w-10 shrink-0">
+                                                        {#if (user as any)?.avatar}
+                                                            <Avatar.Image src={(user as any).avatar} alt={user?.username || 'Kullanıcı'} />
+                                                        {/if}
+                                                        <Avatar.Fallback class="bg-primary/10 text-primary">
+                                                            {(user?.username?.[0] || 'U').toUpperCase()}
+                                                        </Avatar.Fallback>
+                                                    </Avatar.Root>
+                                                    <div class="flex-1 min-w-0 space-y-3">
+                                                        <textarea
+                                                            bind:value={answerContent}
+                                                            placeholder="Cevabınızı yazın..."
+                                                            rows={3}
+                                                            class="w-full bg-transparent border-0 px-0 resize-none focus:outline-none focus:ring-0 placeholder:text-muted-foreground/60 text-sm"
+                                                        ></textarea>
+                                                        
+                                                        <!-- Attachments -->
+                                                        <div class="flex items-center gap-2">
+                                                            <input
+                                                                bind:this={answerFileInput}
+                                                                type="file"
+                                                                accept="image/*"
+                                                                multiple
+                                                                class="hidden"
+                                                                onchange={handleAnswerFileSelect}
+                                                            />
+                                                            <Button
+                                                                type="button"
+                                                                variant="ghost"
+                                                                size="icon"
+                                                                class="h-8 w-8 text-primary hover:bg-primary/10"
+                                                                onclick={() => answerFileInput?.click()}
+                                                            >
+                                                                <ImageIcon class="w-5 h-5" />
+                                                            </Button>
+                                                            
+                                                            {#if answerAttachments.length > 0}
+                                                                <div class="flex flex-wrap gap-2">
+                                                                    {#each answerAttachments as attachment (attachment.id)}
+                                                                        <div class="relative group">
+                                                                            <img
+                                                                                src={attachment.preview}
+                                                                                alt="Attachment"
+                                                                                class="w-12 h-12 object-cover rounded-lg border"
+                                                                            />
+                                                                            <button
+                                                                                type="button"
+                                                                                onclick={() => removeAnswerAttachment(attachment.id)}
+                                                                                class="absolute -top-1 -right-1 w-4 h-4 bg-destructive text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                                                                            >
+                                                                                <X class="w-2.5 h-2.5" />
+                                                                            </button>
+                                                                        </div>
+                                                                    {/each}
+                                                                </div>
+                                                            {/if}
+                                                        </div>
+                                                        
+                                                        <!-- Publish Options (Moderators only) -->
+                                                        {#if isModerator}
+                                                            <div class="flex items-center gap-2">
+                                                                <input 
+                                                                    type="checkbox" 
+                                                                    id="publishImmediately-{question.id}" 
+                                                                    bind:checked={publishImmediately}
+                                                                    class="rounded border-gray-300"
+                                                                />
+                                                                <Label for="publishImmediately-{question.id}" class="cursor-pointer text-sm text-muted-foreground">
+                                                                    Hemen yayınla
+                                                                </Label>
+                                                            </div>
+                                                        {/if}
+                                                        
+                                                        <!-- Action Buttons -->
+                                                        <div class="flex justify-end gap-2">
+                                                            <Button 
+                                                                variant="ghost" 
+                                                                size="sm" 
+                                                                onclick={cancelAnswerForm}
+                                                            >
+                                                                İptal
+                                                            </Button>
+                                                            <Button 
+                                                                size="sm" 
+                                                                onclick={() => submitAnswer(question.id, editingAnswerId || undefined)}
+                                                                disabled={isAnswering || !answerContent.trim()}
+                                                                class="gap-2"
+                                                            >
+                                                                {#if isAnswering}
+                                                                    <Loader2 class="w-4 h-4 animate-spin" />
+                                                                    Gönderiliyor...
+                                                                {:else}
+                                                                    <Send class="w-4 h-4" />
+                                                                    {editingAnswerId ? 'Güncelle' : 'Cevapla'}
+                                                                {/if}
+                                                            </Button>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        {:else if user && !question.hasUserAnswered}
                                             <div class="mt-4 pt-4 border-t border-border/60 flex justify-center">
                                                 <Button 
                                                     size="sm" 
                                                     variant="outline"
-                                                    onclick={() => openAnswerDialog(question)}
+                                                    onclick={() => openAnswerForm(question)}
                                                     class="gap-2"
                                                 >
                                                     <MessageCircle class="w-4 h-4" />
@@ -2067,291 +2147,6 @@
 </div>
 </div>
 </Tooltip.Provider>
-
-<!-- Ask Question Dialog -->
-<Dialog.Root open={showAskDialog} onOpenChange={(open) => {
-        showAskDialog = open;
-        if (!open) {
-            questionContent = '';
-            questionAttachments = [];
-            if (questionFileInput) questionFileInput.value = '';
-            editingQuestion = null;
-        }
-    }}
->
-    <Dialog.Content class="max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
-        <Dialog.Header>
-            <Dialog.Title class="flex items-center gap-2">
-                <MessageCircle class="w-5 h-5" />
-                {editingQuestion ? 'Soruyu Düzenle' : 'Soru Sor'}
-            </Dialog.Title>
-            <Dialog.Description>
-                {editingQuestion ? 'Sorunuzu güncelleyin' : 'Sorunuz yayınlandı!'}
-            </Dialog.Description>
-        </Dialog.Header>
-
-        <ScrollArea class="flex-1 overflow-y-auto pr-4">
-            <div class="space-y-6 py-4">
-                <!-- Topic Selection -->
-                <div class="space-y-2">
-                    <Label for="topic">Konu</Label>
-                    <Select.Root type="single" bind:value={questionTopicId}>
-                        <Select.Trigger id="topic" class="w-full">
-                            {questionTopicId ? topics.find((t: any) => t.id === questionTopicId)?.name : 'Konu seçin (isteğe bağlı)'}
-                        </Select.Trigger>
-                        <Select.Content class="z-50" portalProps={{ disabled: true }}>
-                            <Select.Item value="">Konu seçin</Select.Item>
-                            {#each topics as topic (topic.id)}
-                                <Select.Item value={topic.id}>{topic.name}</Select.Item>
-                            {/each}
-                        </Select.Content>
-                    </Select.Root>
-                </div>
-
-                <!-- Title -->
-                <div class="space-y-2">
-                    <Label for="title">Soru Başlığı *</Label>
-                    <Input 
-                        id="title"
-                        bind:value={questionTitle}
-                        placeholder="Sorunuzu kısa bir başlıkla özetleyin"
-                    />
-                </div>
-
-                <!-- Content Textarea -->
-                <div class="space-y-2">
-                    <Label>Soru Detayı *</Label>
-                    <textarea
-                        bind:value={questionContent}
-                        rows={4}
-                        maxlength="250"
-                        placeholder="Sorunuzu detaylı bir şekilde açıklayın..."
-                        class="resize-none"
-                    ></textarea>
-                    <div class="text-xs text-muted-foreground text-right mt-1">
-                        {questionContent.length}/250 karakter
-                    </div>
-                    
-                    <!-- Attachment Upload -->
-                    <div class="space-y-2">
-                        <input
-                            bind:this={questionFileInput}
-                            type="file"
-                            accept="image/*"
-                            multiple
-                            class="hidden"
-                            onchange={handleQuestionFileSelect}
-                        />
-                        <Button
-                            type="button"
-                            variant="outline"
-                            size="sm"
-                            class="gap-2"
-                            onclick={() => questionFileInput?.click()}
-                        >
-                            <ImageIcon class="w-4 h-4" />
-                            Resim Ekle
-                        </Button>
-                        
-                        <!-- Attachment Previews -->
-                        {#if questionAttachments.length > 0}
-                            <div class="flex flex-wrap gap-2 mt-2">
-                                {#each questionAttachments as attachment (attachment.id)}
-                                    <div class="relative group">
-                                        <img
-                                            src={attachment.preview}
-                                            alt="Attachment"
-                                            class="w-20 h-20 object-cover rounded-lg border"
-                                        />
-                                        <button
-                                            type="button"
-                                            onclick={() => removeQuestionAttachment(attachment.id)}
-                                            class="absolute -top-2 -right-2 w-5 h-5 bg-destructive text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
-                                        >
-                                            <X class="w-3 h-3" />
-                                        </button>
-                                    </div>
-                                {/each}
-                            </div>
-                        {/if}
-                    </div>
-                </div>
-
-                <!-- Guest Info (if not logged in) -->
-                {#if !user}
-                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <div class="space-y-2">
-                            <Label for="authorName">İsim *</Label>
-                            <Input 
-                                id="authorName"
-                                bind:value={questionAuthorName}
-                                placeholder="Adınız"
-                            />
-                        </div>
-                        <div class="space-y-2">
-                            <Label for="authorEmail">E-posta *</Label>
-                            <Input 
-                                id="authorEmail"
-                                type="email"
-                                bind:value={questionAuthorEmail}
-                                placeholder="E-posta adresiniz"
-                            />
-                        </div>
-                    </div>
-                {/if}
-
-                <!-- Anonymous Option (if logged in and creating new question) -->
-                {#if user && !editingQuestion}
-                    <div class="flex items-center gap-2">
-                        <input 
-                            type="checkbox" 
-                            id="anonymous" 
-                            bind:checked={isAnonymous}
-                            class="rounded border-gray-300"
-                        />
-                        <Label for="anonymous" class="cursor-pointer">
-                            Anonim olarak sor (kimliğim gizlensin)
-                        </Label>
-                    </div>
-                {/if}
-            </div>
-        </ScrollArea>
-
-        <Dialog.Footer class="mt-4">
-            <Button variant="outline" size="xs" onclick={() => { showAskDialog = false; editingQuestion = null; }}>İptal</Button>
-            <Button size="xs" onclick={submitQuestion} disabled={isSubmitting} class="gap-2">
-                {#if isSubmitting}
-                    <Loader2 class="w-4 h-4 animate-spin" />
-                    {editingQuestion ? 'Güncelleniyor...' : 'Gönderiliyor...'}
-                {:else}
-                    <Send class="w-4 h-4" />
-                    {editingQuestion ? 'Güncelle' : 'Soruyu Gönder'}
-                {/if}
-            </Button>
-        </Dialog.Footer>
-    </Dialog.Content>
-</Dialog.Root>
-
-<!-- Answer Dialog (Moderator & Answer Owner) -->
-{#if isModerator || (user && selectedQuestion?.answer?.author?.id === user.id)}
-    <Dialog.Root open={showAnswerDialog} onOpenChange={(open) => {
-        showAnswerDialog = open;
-        if (!open) {
-            answerContent = '';
-            answerAttachments = [];
-            if (answerFileInput) answerFileInput.value = '';
-        }
-    }}>
-        <Dialog.Content class="max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
-            <Dialog.Header>
-                <Dialog.Title class="flex items-center gap-2">
-                    <MessageCircle class="w-5 h-5" />
-                    {selectedQuestion?.answer?.id ? 'Cevabı Düzenle' : 'Cevap Ver'}
-                </Dialog.Title>
-                <Dialog.Description>
-                    {selectedQuestion?.title}
-                </Dialog.Description>
-            </Dialog.Header>
-
-            <ScrollArea class="flex-1 overflow-y-auto pr-4">
-                <div class="space-y-6 py-4">
-                    <!-- Original Question -->
-                    {#if selectedQuestion}
-                        <div class="bg-muted/50 rounded-lg p-4">
-                            <h4 class="font-semibold mb-2">Orijinal Soru</h4>
-                            <p class="font-medium mb-2">{selectedQuestion.title}</p>
-                            <div class="prose prose-sm max-w-none dark:prose-invert">
-                                {@html selectedQuestion.contentHtml}
-                            </div>
-                        </div>
-                    {/if}
-
-                    <!-- Answer Textarea -->
-                    <div class="space-y-2">
-                        <Label>Cevabınız *</Label>
-                        <textarea
-                            bind:value={answerContent}
-                            placeholder="Cevabınızı yazın..."
-                            class="w-full min-h-[200px] max-h-[300px] p-3 border rounded-lg resize-y focus:outline-none focus:ring-2 focus:ring-ring"
-                        ></textarea>
-                        
-                        <!-- Attachment Upload -->
-                        <div class="space-y-2">
-                            <input
-                                bind:this={answerFileInput}
-                                type="file"
-                                accept="image/*"
-                                multiple
-                                class="hidden"
-                                onchange={handleAnswerFileSelect}
-                            />
-                            <Button
-                                type="button"
-                                variant="outline"
-                                size="sm"
-                                class="gap-2"
-                                onclick={() => answerFileInput?.click()}
-                            >
-                                <ImageIcon class="w-4 h-4" />
-                                Resim Ekle
-                            </Button>
-                            
-                            <!-- Attachment Previews -->
-                            {#if answerAttachments.length > 0}
-                                <div class="flex flex-wrap gap-2 mt-2">
-                                    {#each answerAttachments as attachment (attachment.id)}
-                                        <div class="relative group">
-                                            <img
-                                                src={attachment.preview}
-                                                alt="Attachment"
-                                                class="w-20 h-20 object-cover rounded-lg border"
-                                            />
-                                            <button
-                                                type="button"
-                                                onclick={() => removeAnswerAttachment(attachment.id)}
-                                                class="absolute -top-2 -right-2 w-5 h-5 bg-destructive text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
-                                            >
-                                                <X class="w-3 h-3" />
-                                            </button>
-                                        </div>
-                                    {/each}
-                                </div>
-                            {/if}
-                        </div>
-                    </div>
-
-                    <!-- Publish Options (Moderators only) -->
-                    {#if isModerator}
-                        <div class="flex items-center gap-2">
-                            <input 
-                                type="checkbox" 
-                                id="publishImmediately" 
-                                bind:checked={publishImmediately}
-                                class="rounded border-gray-300"
-                            />
-                            <Label for="publishImmediately" class="cursor-pointer">
-                                Cevabı hemen yayınla (işaretlemezseniz taslak olarak kaydedilir)
-                            </Label>
-                        </div>
-                    {/if}
-                </div>
-            </ScrollArea>
-
-            <Dialog.Footer class="mt-4">
-                <Button size="xs" variant="outline" onclick={() => showAnswerDialog = false}>İptal</Button>
-                <Button size="xs" onclick={submitAnswer} disabled={isAnswering} class="gap-2">
-                    {#if isAnswering}
-                        <Loader2 class="w-4 h-4 animate-spin" />
-                        Gönderiliyor...
-                    {:else}
-                        <Send class="w-4 h-4" />
-                        Cevabı Gönder
-                    {/if}
-                </Button>
-            </Dialog.Footer>
-        </Dialog.Content>
-    </Dialog.Root>
-{/if}
 
 <!-- Delete Confirmation Alert Dialog -->
 <AlertDialog.Root bind:open={deleteDialogOpen}>

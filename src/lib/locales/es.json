@@ -14,6 +14,12 @@
     },
     "articles": {
       "title": "Artículos",
+      "rssFeed": {
+        "title": "RSS Feed",
+        "description": "Suscríbete a nuestros artículos mediante RSS: {url}",
+        "articlesButton": "RSS Artículos",
+        "allContentButton": "RSS Todo Contenido"
+      },
       "description": "Explora nuestros artículos sobre anarquismo libertario, libertad y derechos individuales. Filosofía, economía, teoría del estado y más.",
       "keywords": "artículos, anarquismo, libertario, filosofía, economía"
     },
@@ -463,6 +469,10 @@
       "similarArticles": "Artículos similares",
       "popularArticles": "Artículos populares",
       "allArticles": "Todos los artículos",
+      "rssFeed": {
+        "title": "RSS Feed",
+        "description": "Suscríbete a nuestros artículos mediante RSS: {url}"
+      },
       "subtitle": "Descubre nuestros artículos sobre anarcocapitalismo, radicalismo, historia revisionista y más.",
       "description": "Lee artículos sobre anarquismo libertario, libertad y derechos individuales",
       "featured": "Destacados",
