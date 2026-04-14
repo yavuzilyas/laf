@@ -356,6 +356,7 @@
                   {#if question.slug}
                     <a 
                       href={`/qa/${question.slug}`}
+                      data-sveltekit-preload-data={question.slug ? 'hover' : false}
                       class="flex flex-col gap-1 rounded-md px-2 py-1.5 text-sm hover:bg-accent hover:text-accent-foreground cursor-pointer transition-colors {isSelected(questionIdx) ? 'bg-accent text-accent-foreground ring-2 ring-primary/30' : ''}"
                     >
                       <span class="font-medium">{question.title}</span>

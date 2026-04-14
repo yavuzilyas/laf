@@ -1600,7 +1600,7 @@
                                                 Paylaş
                                             </DropdownMenu.Item>
                                             <DropdownMenu.Item>
-                                                <a href="/{lang}/qa/{question.slug}" class="flex items-center w-full">
+                                                <a href="/{lang}/qa/{question.slug}" data-sveltekit-preload-data="hover" class="flex items-center w-full">
                                                     <ViewIcon class="w-4 h-4 mr-2" />
                                                     Detaylı görüntüle
                                                 </a>
@@ -1689,7 +1689,7 @@
                                                 </Badge>
                                             {/if}
                                         </div>
-                                        <a href="/{lang}/qa/{question.slug}" class="font-semibold text-sm md:text-lg hover:text-primary hover:underline cursor-pointer block leading-snug">
+                                        <a href="/{lang}/qa/{question.slug}" data-sveltekit-preload-data="hover" class="font-semibold text-sm md:text-lg hover:text-primary hover:underline cursor-pointer block leading-snug">
                                             {question.title}
                                         </a>
 
@@ -1866,7 +1866,10 @@
                                                                                 </Button>
                                                                                 <Button 
                                                                                     size="sm" 
-                                                                                    onclick={() => submitAnswer(question.id, editingAnswerId || undefined)}
+                                                                                    onclick={() => {
+                                                                                        console.log('Submit answer clicked (no answers)', question.id, editingAnswerId);
+                                                                                        submitAnswer(question.id, editingAnswerId || undefined);
+                                                                                    }}
                                                                                     disabled={isAnswering || !answerContent.trim()}
                                                                                     class="gap-2"
                                                                                 >
@@ -2181,7 +2184,10 @@
                                                             </Button>
                                                             <Button 
                                                                 size="sm" 
-                                                                onclick={() => submitAnswer(question.id, editingAnswerId || undefined)}
+                                                                onclick={() => {
+                                                                    console.log('Submit answer clicked', question.id, editingAnswerId);
+                                                                    submitAnswer(question.id, editingAnswerId || undefined);
+                                                                }}
                                                                 disabled={isAnswering || !answerContent.trim()}
                                                                 class="gap-2"
                                                             >
