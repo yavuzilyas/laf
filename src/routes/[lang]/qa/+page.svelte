@@ -1778,7 +1778,111 @@
                                                     {#if question.answers?.length === 0}
                                                         <!-- No Answer Section -->
                                                         <div class="mt-4">
-                                                            {#if user && !question.hasUserAnswered}
+                                                            {#if answeringQuestionId === question.id}
+                                                                <!-- Inline Answer Form for questions without answers -->
+                                                                <div class="border-t border-border/60 pt-4">
+                                                                    <div class="flex gap-3">
+                                                                        <Avatar.Root class="h-10 w-10 shrink-0">
+                                                                            {#if (user as any)?.avatar}
+                                                                                <Avatar.Image src={(user as any).avatar} alt={user?.username || 'Kullanıcı'} />
+                                                                            {/if}
+                                                                            <Avatar.Fallback class="bg-primary/10 text-primary">
+                                                                                {(user?.username?.[0] || 'U').toUpperCase()}
+                                                                            </Avatar.Fallback>
+                                                                        </Avatar.Root>
+                                                                        <div class="flex-1 min-w-0 space-y-3">
+                                                                            <textarea
+                                                                                bind:value={answerContent}
+                                                                                placeholder="Cevabınızı yazın..."
+                                                                                rows={3}
+                                                                                class="w-full bg-transparent border-0 px-0 resize-none focus:outline-none focus:ring-0 placeholder:text-muted-foreground/60 text-sm"
+                                                                            ></textarea>
+                                                                            
+                                                                            <!-- Attachments -->
+                                                                            <div class="flex items-center gap-2">
+                                                                                <input
+                                                                                    bind:this={answerFileInput}
+                                                                                    type="file"
+                                                                                    accept="image/*"
+                                                                                    multiple
+                                                                                    class="hidden"
+                                                                                    onchange={handleAnswerFileSelect}
+                                                                                />
+                                                                                <Button
+                                                                                    type="button"
+                                                                                    variant="ghost"
+                                                                                    size="icon"
+                                                                                    class="h-8 w-8 text-primary hover:bg-primary/10"
+                                                                                    onclick={() => answerFileInput?.click()}
+                                                                                >
+                                                                                    <ImageIcon class="w-5 h-5" />
+                                                                                </Button>
+                                                                                
+                                                                                {#if answerAttachments.length > 0}
+                                                                                    <div class="flex flex-wrap gap-2">
+                                                                                        {#each answerAttachments as attachment (attachment.id)}
+                                                                                            <div class="relative group">
+                                                                                                <img
+                                                                                                    src={attachment.preview}
+                                                                                                    alt="Attachment"
+                                                                                                    class="w-12 h-12 object-cover rounded-lg border"
+                                                                                                />
+                                                                                                <button
+                                                                                                    type="button"
+                                                                                                    onclick={() => removeAnswerAttachment(attachment.id)}
+                                                                                                    class="absolute -top-1 -right-1 w-4 h-4 bg-destructive text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                                                                                                >
+                                                                                                    <X class="w-2.5 h-2.5" />
+                                                                                                </button>
+                                                                                            </div>
+                                                                                        {/each}
+                                                                                    </div>
+                                                                                {/if}
+                                                                            </div>
+                                                                            
+                                                                            <!-- Publish Options (Moderators only) -->
+                                                                            {#if isModerator}
+                                                                                <div class="flex items-center gap-2">
+                                                                                    <input 
+                                                                                        type="checkbox" 
+                                                                                        id="publishImmediately-{question.id}" 
+                                                                                        bind:checked={publishImmediately}
+                                                                                        class="rounded border-gray-300"
+                                                                                    />
+                                                                                    <Label for="publishImmediately-{question.id}" class="cursor-pointer text-sm text-muted-foreground">
+                                                                                        Hemen yayınla
+                                                                                    </Label>
+                                                                                </div>
+                                                                            {/if}
+                                                                            
+                                                                            <!-- Action Buttons -->
+                                                                            <div class="flex justify-end gap-2">
+                                                                                <Button 
+                                                                                    variant="ghost" 
+                                                                                    size="sm" 
+                                                                                    onclick={cancelAnswerForm}
+                                                                                >
+                                                                                    İptal
+                                                                                </Button>
+                                                                                <Button 
+                                                                                    size="sm" 
+                                                                                    onclick={() => submitAnswer(question.id, editingAnswerId || undefined)}
+                                                                                    disabled={isAnswering || !answerContent.trim()}
+                                                                                    class="gap-2"
+                                                                                >
+                                                                                    {#if isAnswering}
+                                                                                        <Loader2 class="w-4 h-4 animate-spin" />
+                                                                                        Gönderiliyor...
+                                                                                    {:else}
+                                                                                        <Send class="w-4 h-4" />
+                                                                                        {editingAnswerId ? 'Güncelle' : 'Cevapla'}
+                                                                                    {/if}
+                                                                                </Button>
+                                                                            </div>
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                            {:else if user && !question.hasUserAnswered}
                                                                 <!-- Any logged-in user who hasn't answered can answer -->
                                                                 <Button 
                                                                     size="sm" 

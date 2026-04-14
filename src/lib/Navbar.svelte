@@ -271,8 +271,10 @@ import { ScrollProgress } from "$lib/components/magic/scroll-progress";
     <div class="flex items-center justify-between">
       <Tooltip.Provider>
  <Tooltip.Root>
-  <Tooltip.Trigger>   
-    <A href={l("/")} ><img class="h-3.5 sm:h-4 text-primary" src="{logo}" alt="LAF" /></A> 
+  <Tooltip.Trigger>
+    {#snippet child({ props })}
+      <A href={l("/")} {...props}><img class="h-3.5 sm:h-4 text-primary" src="{logo}" alt="LAF" /></A>
+    {/snippet}
   </Tooltip.Trigger>
   <Tooltip.Content>
    <p>{t('GoToHomePage')}</p>
@@ -286,15 +288,17 @@ import { ScrollProgress } from "$lib/components/magic/scroll-progress";
             <Tooltip.Provider>
   <Tooltip.Root>
     <Tooltip.Trigger>
-<A href={item.href} class="group text-shadow-xs text-shadow-background/44 flex items-center gap-1.5 font-bold cursor-pointer">
-  {#if item.icon}
-    <svelte:component this={item.icon} size={14} strokeWidth={2.25} />
-  {:else if item.iconSvg}
-    <span class="w-auto h-3.5 sm:h-4 flex items-center justify-center [&>svg]:w-full [&>svg]:h-full">{@html item.iconSvg}</span>
-  {/if}
-  {item.name}
-</A>
-</Tooltip.Trigger>
+      {#snippet child({ props })}
+        <A href={item.href} {...props} class="group text-shadow-xs text-shadow-background/44 flex items-center gap-1.5 font-bold cursor-pointer">
+          {#if item.icon}
+            <svelte:component this={item.icon} size={14} strokeWidth={2.25} />
+          {:else if item.iconSvg}
+            <span class="w-auto h-3.5 sm:h-4 flex items-center justify-center [&>svg]:w-full [&>svg]:h-full">{@html item.iconSvg}</span>
+          {/if}
+          {item.name}
+        </A>
+      {/snippet}
+    </Tooltip.Trigger>
     <Tooltip.Content>
       <p>{#if currentLocale === 'tr'}<span class="font-bold text-secondary-foreground">{dativeSuffix(typeof item.name === 'string' ? item.name : String(item.name ?? ''))}</span> {t('goto')}{:else}{t('goto')} <span class="font-bold text-secondary-foreground">{item.name}</span>{/if}</p>
 <!-- son harfine göre ek alır -->
