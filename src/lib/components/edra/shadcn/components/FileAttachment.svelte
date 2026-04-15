@@ -15,6 +15,9 @@
 	const size = node.attrs.size as string;
 	const type = node.attrs.type as string;
 
+	// Dynamic animation duration based on filename length (base 8s + 0.3s per character)
+	const animationDuration = $derived(Math.max(8, filename.length * 0.5) + 's');
+
 	// Keep the initial URL to identify uploaded files for cleanup
 	const initialUrl: string | undefined = url;
 
@@ -74,7 +77,7 @@
 </div>
 			<div class="marquee-container">
 				<span class="marquee-text-placeholder">{filename}</span>
-				<div class="marquee-content">
+				<div class="marquee-content" style="animation-duration: {animationDuration};">
 					<span class="marquee-text">{filename}</span>
 					<span class="marquee-text">{filename}</span>
 					<span class="marquee-text">{filename}</span>
@@ -117,7 +120,7 @@
 		position: absolute;
 		top: 0;
 		left: 0;
-		animation: marquee 15s linear infinite;
+		animation: marquee linear infinite;
 	}
 
 	.marquee-text {

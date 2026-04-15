@@ -382,6 +382,7 @@
 
             if (response.ok) {
                 isSaving = false;
+                isEditing = false;
                 profileUser = { ...profileUser, ...dataToSave };
                 // Ensure matrix_username is synced if matrixUsername was sent
                 if (dataToSave.matrixUsername !== undefined) {

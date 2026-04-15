@@ -72,9 +72,18 @@
   z-index: 39 !important;
 }
 
-.tiptap a {
-  color: #fac800ff;
-  text-decoration: underline;
+.tiptap a,
+.tiptap a[style],
+.edra-editor a,
+.edra-editor a[style] {
+  color: #fac800 !important;
+  text-decoration: underline !important;
+  cursor: pointer;
+}
+
+.tiptap a:hover,
+.edra-editor a:hover {
+  color: #fac800 !important;
 }
 
 /* Ensure dropdown menus are not clipped */
