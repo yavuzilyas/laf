@@ -545,6 +545,7 @@ export const load: PageServerLoad = async ({ params, locals, cookies }) => {
     title: tr?.title ?? '',
     excerpt: tr?.excerpt ?? '',
     content: tr?.content ?? '',
+    slug: tr?.slug ?? article.id,
     thumbnail: article.thumbnail || '',
     category: article.category,
     subcategory: article.subcategory,

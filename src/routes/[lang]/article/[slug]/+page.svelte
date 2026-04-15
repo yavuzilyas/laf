@@ -2089,140 +2089,105 @@
 
 <svelte:head>
 	{#if article}
-		{@const meta = (() => {
-			const siteName = t('seo.home.title') || 'LAF - Libertarian Anarchist Foundation';
-			const siteUrl = 'https://laf.international';
-			const url =
-				typeof window !== 'undefined' ? window.location.href : `${siteUrl}/article/${article.slug}`;
-			const ogImage = article.thumbnail || `${siteUrl}/og-default.png`;
-			const authorName =
-				article.author?.name && article.author?.surname
-					? `${article.author.name} ${article.author.surname}`
-					: article.author?.nickname || 'LAF';
+		{@const siteName = t('seo.home.title') || 'LAF - Libertarian Anarchist Foundation'}
+		{@const siteUrl = 'https://laf.international'}
+		{@const articleUrl = `${siteUrl}/article/${article.slug}`}
+		{@const ogImage = article.thumbnail || `${siteUrl}/og-default.png`}
+		{@const authorName = article.author?.name && article.author?.surname
+			? `${article.author.name} ${article.author.surname}`
+			: article.author?.nickname || 'LAF'}
+		{@const articleDescription = article.excerpt || (typeof article.content === 'string' ? article.content.substring(0, 160) : '') || ''}
 
-			return {
-				title: article.title,
-				description:
-					article.excerpt ||
-					(typeof article.content === 'string' ? article.content.substring(0, 160) : '') ||
-					'',
-				canonical: url,
-				og: {
-					title: article.title,
-					description: article.excerpt || '',
-					type: 'article',
-					url: url,
-					site_name: siteName,
-					image: ogImage,
-					image_alt: article.title,
-					article_published_time: article.publishedAt,
-					article_modified_time: article.updatedAt,
-					article_author: authorName,
-					article_section: article.category,
-					article_tag: article.tags?.join(', ')
-				},
-				twitter: {
-					card: 'summary_large_image',
-					site: '@lafoundation',
-					title: article.title,
-					description: article.excerpt || '',
-					image: ogImage,
-					image_alt: article.title
-				},
-				robots: article.status === 'published' ? 'index, follow' : 'noindex, nofollow',
-				structuredData: {
-					'@context': 'https://schema.org',
-					'@type': 'Article',
-					headline: article.title,
-					description: article.excerpt || '',
-					url: url,
-					image: ogImage,
-					author: {
-						'@type': 'Person',
-						name: authorName,
-						url: article.author?.nickname ? `${siteUrl}/${article.author.nickname}` : undefined
-					},
-					publisher: {
-						'@type': 'Organization',
-						name: siteName,
-						logo: {
-							'@type': 'ImageObject',
-							url: `${siteUrl}/logo.png`
-						}
-					},
-					datePublished: article.publishedAt,
-					dateModified: article.updatedAt || article.publishedAt,
-					keywords: article.tags?.join(', ') || '',
-					articleSection: article.category,
-					inLanguage: article.language || 'tr'
-				},
-				breadcrumbs: {
-					'@context': 'https://schema.org',
-					'@type': 'BreadcrumbList',
-					itemListElement: [
-						{
-							'@type': 'ListItem',
-							position: 1,
-							name: t('seo.homeTab'),
-							item: siteUrl
-						},
-						{
-							'@type': 'ListItem',
-							position: 2,
-							name: t('seo.articlesTab'),
-							item: `${siteUrl}/articles`
-						},
-						{
-							'@type': 'ListItem',
-							position: 3,
-							name: article.title,
-							item: url
-						}
-					]
-				}
-			};
-		})()}
-
-		<title>{meta.title}</title>
-		<meta name="description" content={meta.description} />
-		<link rel="canonical" href={meta.canonical} />
+		<title>{article.title}</title>
+		<meta name="description" content={articleDescription} />
+		<link rel="canonical" href={articleUrl} />
 
 		<!-- Open Graph -->
-		<meta property="og:title" content={meta.og.title} />
-		<meta property="og:description" content={meta.og.description} />
-		<meta property="og:type" content={meta.og.type} />
-		<meta property="og:url" content={meta.og.url} />
-		<meta property="og:site_name" content={meta.og.site_name} />
-		<meta property="og:image" content={meta.og.image} />
-		<meta property="og:image:alt" content={meta.og.image_alt} />
+		<meta property="og:title" content={article.title} />
+		<meta property="og:description" content={article.excerpt || ''} />
+		<meta property="og:type" content="article" />
+		<meta property="og:url" content={articleUrl} />
+		<meta property="og:site_name" content={siteName} />
+		<meta property="og:image" content={ogImage} />
+		<meta property="og:image:alt" content={article.title} />
 		<meta property="og:image:width" content="1200" />
 		<meta property="og:image:height" content="630" />
-		{#if meta.og.article_published_time}
-			<meta property="article:published_time" content={meta.og.article_published_time} />
+		{#if article.publishedAt}
+			<meta property="article:published_time" content={article.publishedAt} />
 		{/if}
-		{#if meta.og.article_modified_time}
-			<meta property="article:modified_time" content={meta.og.article_modified_time} />
+		{#if article.updatedAt}
+			<meta property="article:modified_time" content={article.updatedAt} />
 		{/if}
-		<meta property="article:author" content={meta.og.article_author} />
-		<meta property="article:section" content={meta.og.article_section} />
-		{#if meta.og.article_tag}
-			<meta property="article:tag" content={meta.og.article_tag} />
+		<meta property="article:author" content={authorName} />
+		<meta property="article:section" content={article.category} />
+		{#if article.tags?.length}
+			<meta property="article:tag" content={article.tags.join(', ')} />
 		{/if}
 
 		<!-- Twitter Cards -->
-		<meta name="twitter:card" content={meta.twitter.card} />
-		<meta name="twitter:site" content={meta.twitter.site} />
-		<meta name="twitter:title" content={meta.twitter.title} />
-		<meta name="twitter:description" content={meta.twitter.description} />
-		<meta name="twitter:image" content={meta.twitter.image} />
-		<meta name="twitter:image:alt" content={meta.twitter.image_alt} />
+		<meta name="twitter:card" content="summary_large_image" />
+		<meta name="twitter:site" content="@lafoundation" />
+		<meta name="twitter:title" content={article.title} />
+		<meta name="twitter:description" content={article.excerpt || ''} />
+		<meta name="twitter:image" content={ogImage} />
+		<meta name="twitter:image:alt" content={article.title} />
 
 		<!-- Robots -->
-		<meta name="robots" content={meta.robots} />
+		<meta name="robots" content={article.status === 'published' ? 'index, follow' : 'noindex, nofollow'} />
 
 		<!-- Structured Data -->
-		{@html `<script type="application/ld+json">${JSON.stringify(meta.structuredData)}</script>`}
-		{@html `<script type="application/ld+json">${JSON.stringify(meta.breadcrumbs)}</script>`}
+		{@html `<script type="application/ld+json">${JSON.stringify({
+			'@context': 'https://schema.org',
+			'@type': 'Article',
+			headline: article.title,
+			description: article.excerpt || '',
+			url: articleUrl,
+			image: ogImage,
+			author: {
+				'@type': 'Person',
+				name: authorName,
+				url: article.author?.nickname ? `${siteUrl}/${article.author.nickname}` : undefined
+			},
+			publisher: {
+				'@type': 'Organization',
+				name: siteName,
+				logo: {
+					'@type': 'ImageObject',
+					url: `${siteUrl}/logo.png`
+				}
+			},
+			datePublished: article.publishedAt,
+			dateModified: article.updatedAt || article.publishedAt,
+			keywords: article.tags?.join(', ') || '',
+			articleSection: article.category,
+			inLanguage: article.language || 'tr'
+		})}</script>`}
+
+		<!-- Breadcrumbs -->
+		{@html `<script type="application/ld+json">${JSON.stringify({
+			'@context': 'https://schema.org',
+			'@type': 'BreadcrumbList',
+			itemListElement: [
+				{
+					'@type': 'ListItem',
+					position: 1,
+					name: t('seo.homeTab'),
+					item: siteUrl
+				},
+				{
+					'@type': 'ListItem',
+					position: 2,
+					name: t('seo.articlesTab'),
+					item: `${siteUrl}/articles`
+				},
+				{
+					'@type': 'ListItem',
+					position: 3,
+					name: article.title,
+					item: articleUrl
+				}
+			]
+		})}</script>`}
 	{:else}
 		<title>{t('seo.notFoundTitle')}</title>
 		<meta
@@ -2538,30 +2503,33 @@
 						<div class="flex items-center gap-2">
 							<Tooltip.Provider>
 								<Tooltip.Root>
-									<Tooltip.Trigger>
-										<Motion whileTap={{ scale: 0.95 }} let:motion>
-											<div use:motion>
-												<Button
-													variant={reaction === 'like' ? 'default' : 'ghost'}
-													size="sm"
-													class={cn(
-														'h-8 gap-1 transition-all duration-200',
-														reaction === 'like' && 'bg-primary text-primary-foreground'
-													)}
-													onclick={() => toggleReaction('like')}
-												>
-													<ThumbsUp
+									<Tooltip.Trigger asChild>
+										{#snippet child({ props })}
+											<Motion whileTap={{ scale: 0.95 }} let:motion>
+												<div use:motion>
+													<Button
+														{...props}
+														variant={reaction === 'like' ? 'default' : 'ghost'}
+														size="sm"
 														class={cn(
-															'h-4 w-4 transition-all duration-200',
-															reaction === 'like' && 'fill-current'
+															'h-8 gap-1 transition-all duration-200',
+															reaction === 'like' && 'bg-primary text-primary-foreground'
 														)}
-													/>
-													<span class={cn('max-w-12 w-4', reaction === 'like' && 'font-medium')}
-														>{formatNumber(likesCount)}</span
+														onclick={() => toggleReaction('like')}
 													>
-												</Button>
-											</div>
-										</Motion>
+														<ThumbsUp
+															class={cn(
+																'h-4 w-4 transition-all duration-200',
+																reaction === 'like' && 'fill-current'
+															)}
+														/>
+														<span class={cn('max-w-12 w-4', reaction === 'like' && 'font-medium')}
+															>{formatNumber(likesCount)}</span
+														>
+													</Button>
+												</div>
+											</Motion>
+										{/snippet}
 									</Tooltip.Trigger>
 									<Tooltip.Content>
 										<p>{likesCount.toLocaleString()} {t('articles.stats.like')}</p>
@@ -2571,31 +2539,34 @@
 
 							<Tooltip.Provider>
 								<Tooltip.Root>
-									<Tooltip.Trigger>
-										<Motion whileTap={{ scale: 0.95 }} let:motion>
-											<div use:motion>
-												<Button
-													variant={reaction === 'dislike' ? 'default' : 'ghost'}
-													size="sm"
-													class={cn(
-														'h-8 gap-1 transition-all duration-200',
-														reaction === 'dislike' &&
-															'bg-red-500/20 text-red-700 dark:bg-red-500/30 dark:text-red-300'
-													)}
-													onclick={() => toggleReaction('dislike')}
-												>
-													<ThumbsDown
+									<Tooltip.Trigger asChild>
+										{#snippet child({ props })}
+											<Motion whileTap={{ scale: 0.95 }} let:motion>
+												<div use:motion>
+													<Button
+														{...props}
+														variant={reaction === 'dislike' ? 'default' : 'ghost'}
+														size="sm"
 														class={cn(
-															'h-4 w-4 transition-all duration-200',
-															reaction === 'dislike' && 'fill-current'
+															'h-8 gap-1 transition-all duration-200',
+															reaction === 'dislike' &&
+																'bg-red-500/20 text-red-700 dark:bg-red-500/30 dark:text-red-300'
 														)}
-													/>
-													<span class={cn('max-w-12 w-4', reaction === 'dislike' && 'font-medium')}
-														>{formatNumber(dislikesCount)}</span
+														onclick={() => toggleReaction('dislike')}
 													>
-												</Button>
-											</div>
-										</Motion>
+														<ThumbsDown
+															class={cn(
+																'h-4 w-4 transition-all duration-200',
+																reaction === 'dislike' && 'fill-current'
+															)}
+														/>
+														<span class={cn('max-w-12 w-4', reaction === 'dislike' && 'font-medium')}
+															>{formatNumber(dislikesCount)}</span
+														>
+													</Button>
+												</div>
+											</Motion>
+										{/snippet}
 									</Tooltip.Trigger>
 									<Tooltip.Content>
 										<p>{dislikesCount.toLocaleString()} {t('articles.stats.dislike')}</p>

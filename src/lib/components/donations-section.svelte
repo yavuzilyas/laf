@@ -554,7 +554,7 @@ import { BarSpinner } from "$lib/components/spell/bar-spinner";
               <BarSpinner class="text-primary" />
               {t('donations.submitting')}
             {:else}
-              <Send class="w-4 h-4 mr-2" />
+              <Send class="w-3.5 h-3.5" />
               {t('donations.submitDonation')}
             {/if}
           </Button>

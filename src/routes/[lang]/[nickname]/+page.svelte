@@ -45,7 +45,7 @@
     const seoMeta = $derived((() => {
         const siteName = 'LAF - Libertarian Anarchist Foundation';
         const siteUrl = 'https://laf.international';
-        const url = typeof window !== 'undefined' ? window.location.href : `${siteUrl}/${profileUser?.username || profileUser?.id}`;
+        const url = `${siteUrl}/${profileUser?.username || profileUser?.id}`;
 
         const displayName = profileUser?.name && profileUser?.surname
             ? `${profileUser.name} ${profileUser.surname}`
@@ -141,7 +141,7 @@
         let previoususername = $page.params.nickname;
         
         return afterNavigate(({ to }) => {
-            const newusername = to?.params.nickname;
+            const newusername = to?.params?.nickname;
             if (newusername && newusername !== previoususername) {
                 previoususername = newusername;
                 // Force a full page reload to ensure all data is refreshed

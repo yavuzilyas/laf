@@ -526,8 +526,116 @@
 </script>
 
 <svelte:head>
-    <title>{question.title} | {t('qa.title') || 'Q&A'}</title>
-    <meta name="description" content={question.contentHtml?.replace(/<[^>]*>/g, '').substring(0, 150)} />
+    {#if question}
+        {@const siteName = 'LAF - Libertarian Anarchist Foundation'}
+        {@const siteUrl = 'https://laf.international'}
+        {@const pageUrl = typeof window !== 'undefined' ? window.location.href : `${siteUrl}/qa/${question.slug || question.id}`}
+        {@const ogImage = question.attachments?.[0] || `${siteUrl}/og-default.png`}
+        {@const plainContent = question.contentHtml?.replace(/<[^>]*>/g, '') || ''}
+        {@const description = plainContent.substring(0, 160) || question.title || ''}
+        {@const authorName = question.author?.name && question.author?.surname
+            ? `${question.author.name} ${question.author.surname}`
+            : question.author?.nickname || 'LAF'}
+
+        <title>{question.title} | {t('qa.title') || 'Q&A'}</title>
+        <meta name="description" content={description} />
+        <link rel="canonical" href={pageUrl} />
+
+        <!-- Open Graph -->
+        <meta property="og:title" content={question.title} />
+        <meta property="og:description" content={description} />
+        <meta property="og:type" content="article" />
+        <meta property="og:url" content={pageUrl} />
+        <meta property="og:site_name" content={siteName} />
+        <meta property="og:image" content={ogImage} />
+        <meta property="og:image:alt" content={question.title} />
+        <meta property="og:image:width" content="1200" />
+        <meta property="og:image:height" content="630" />
+        {#if question.createdAt}
+            <meta property="article:published_time" content={new Date(question.createdAt).toISOString()} />
+        {/if}
+        <meta property="article:author" content={authorName} />
+        {#if question.category}
+            <meta property="article:section" content={question.category} />
+        {/if}
+        {#if question.tags?.length}
+            <meta property="article:tag" content={question.tags.join(', ')} />
+        {/if}
+
+        <!-- Twitter Cards -->
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:site" content="@lafoundation" />
+        <meta name="twitter:title" content={question.title} />
+        <meta name="twitter:description" content={description} />
+        <meta name="twitter:image" content={ogImage} />
+        <meta name="twitter:image:alt" content={question.title} />
+
+        <!-- Robots -->
+        <meta name="robots" content="index, follow" />
+
+        <!-- Structured Data -->
+        {@html `<script type="application/ld+json">${JSON.stringify({
+            '@context': 'https://schema.org',
+            '@type': 'QAPage',
+            mainEntity: {
+                '@type': 'Question',
+                name: question.title,
+                text: plainContent,
+                url: pageUrl,
+                datePublished: question.createdAt ? new Date(question.createdAt).toISOString() : undefined,
+                author: {
+                    '@type': 'Person',
+                    name: authorName,
+                    url: question.author?.nickname ? `${siteUrl}/${question.author.nickname}` : undefined
+                },
+                answerCount: answers?.length || 0,
+                ...(answers?.length > 0 ? {
+                    acceptedAnswer: answers.find((a: any) => a.isAccepted) ? {
+                        '@type': 'Answer',
+                        text: answers.find((a: any) => a.isAccepted)?.contentHtml?.replace(/<[^>]*>/g, '').substring(0, 200),
+                        url: `${pageUrl}#answer-${answers.find((a: any) => a.isAccepted)?.id}`,
+                        author: {
+                            '@type': 'Person',
+                            name: answers.find((a: any) => a.isAccepted)?.author?.nickname || 'LAF'
+                        },
+                        datePublished: answers.find((a: any) => a.isAccepted)?.createdAt
+                            ? new Date(answers.find((a: any) => a.isAccepted)!.createdAt).toISOString()
+                            : undefined
+                    } : undefined
+                } : {})
+            }
+        })}</script>`}
+
+        <!-- Breadcrumbs -->
+        {@html `<script type="application/ld+json">${JSON.stringify({
+            '@context': 'https://schema.org',
+            '@type': 'BreadcrumbList',
+            itemListElement: [
+                {
+                    '@type': 'ListItem',
+                    position: 1,
+                    name: t('seo.homeTab') || 'Home',
+                    item: siteUrl
+                },
+                {
+                    '@type': 'ListItem',
+                    position: 2,
+                    name: t('qa.title') || 'Q&A',
+                    item: `${siteUrl}/qa`
+                },
+                {
+                    '@type': 'ListItem',
+                    position: 3,
+                    name: question.title?.substring(0, 50) || 'Soru',
+                    item: pageUrl
+                }
+            ]
+        })}</script>`}
+    {:else}
+        <title>{t('qa.title') || 'Q&A'}</title>
+        <meta name="description" content={t('qa.description') || 'Sorular ve cevaplar'} />
+        <meta name="robots" content="noindex, nofollow" />
+    {/if}
 </svelte:head>
 
 <div class="min-h-screen bg-background">
