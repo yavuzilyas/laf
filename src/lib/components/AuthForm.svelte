@@ -120,7 +120,7 @@ import logo from '$lib/assets/hatlaf.png';
     const v = (value || "").trim();
     if (v.length < 3 || v.length > 20) return t("auth.errors.usernameLength") || "3-20 karakter olmalı";
     if (v.length === 0) return t("auth.errors.usernameRequired") || "Kullanıcı adı gerekli";
-    if (!/^[a-z]+$/.test(v)) return t("auth.errors.usernameFormat") || "Sadece küçük harfler";
+    if (!/^[a-z0-9_-]+$/.test(v)) return t("auth.errors.usernameFormat") || "Sadece küçük harf, rakam, tire ve alt çizgi";
     return "";
   }
 
@@ -869,19 +869,19 @@ async function validateEmail(value: string) {
               maxlength="20"
               oninput={(e) => {
                 let v = (e.target as HTMLInputElement)?.value || '';
-                // Convert to lowercase and remove non-letter characters
-                v = v.toLowerCase().replace(/[^a-z]/g, '');
+                // Convert to lowercase and allow letters, numbers, hyphen, underscore
+                v = v.toLowerCase().replace(/[^a-z0-9_-]/g, '');
                 nickname = v;
                 nicknameError = validateNicknameClient(v);
                 if (!nicknameError) validateNickname(v);
               }}
               onkeydown={(e) => {
-                // Allow only lowercase letters, backspace, delete, tab, escape, enter
-                const allowedKeys = ['Backspace', 'Delete', 'Tab', 'Escape', 'Enter'];
+                // Allow control keys
+                const allowedKeys = ['Backspace', 'Delete', 'Tab', 'Escape', 'Enter', 'ArrowLeft', 'ArrowRight', 'Home', 'End'];
                 if (allowedKeys.includes(e.key)) return;
                 
-                // Prevent uppercase letters and non-letter characters
-                if (e.key.length === 1 && (!/^[a-z]$/.test(e.key) || e.shiftKey)) {
+                // Allow lowercase letters, numbers, hyphen, underscore
+                if (e.key.length === 1 && !/^[a-z0-9_-]$/.test(e.key)) {
                   e.preventDefault();
                 }
               }}
@@ -889,8 +889,8 @@ async function validateEmail(value: string) {
                 e.preventDefault();
                 const pastedText = e.clipboardData?.getData('text/plain') || '';
                 
-                // Filter to only lowercase letters
-                const filteredText = pastedText.toLowerCase().replace(/[^a-z]/g, '');
+                // Filter to allow letters, numbers, hyphen, underscore
+                const filteredText = pastedText.toLowerCase().replace(/[^a-z0-9_-]/g, '');
                 
                 // Insert the text at cursor position
                 const target = e.target as HTMLInputElement;

@@ -22,11 +22,13 @@ export function generateSEOMeta(props: SEOProps) {
 	const siteName = i18n.t('seo.home.title') || 'LAF - Libertarian Anarchist Foundation';
 	const siteUrl = 'https://laf.international'; // Production URL
 	const defaultImage = '/lafpp.png'; // Fallback OG image
+	const siteSuffix = ' - LAF';
+
 	const url = props.canonical || (browser ? window.location.href : '');
 	const ogImage = props.image || `${siteUrl}${defaultImage}`;
 
-	// Use title directly from translations without adding suffix
-	const finalTitle = props.title;
+	// Add suffix to title
+	const finalTitle = `${props.title}${siteSuffix}`;
 
 	return {
 		// Basic Meta

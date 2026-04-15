@@ -269,7 +269,8 @@ import { User, KeyRound, Eye, EyeOff, ArrowLeft, Lock } from "@lucide/svelte";
                     disabled={loading}
                     oninput={(e) => {
                       let v = (e.target as HTMLInputElement)?.value || '';
-                      v = v.toLowerCase().replace(/[^a-z]/g, '');
+                      // Allow email and username characters: lowercase, numbers, @, ., -, _
+                      v = v.toLowerCase().replace(/[^a-z0-9@._-]/g, '');
                       identifier = v;
                     }}
                   />
