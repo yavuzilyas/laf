@@ -173,6 +173,13 @@
         }).format(date);
     }
 
+    function formatTimeRange(startDateStr: string, endDateStr?: string): string {
+        const startTime = formatTime(startDateStr);
+        if (!endDateStr) return startTime;
+        const endTime = formatTime(endDateStr);
+        return `${startTime} - ${endTime}`;
+    }
+
     function handleCitySelect(event: CustomEvent<{ city: string; plate: string }>) {
         selectedCity = event.detail.city;
         announcementsPage = 1;
@@ -579,7 +586,7 @@
                                     {#if !event.isPast}
                                         <span class="flex items-center gap-1">
                                             <Clock class="w-3 h-3" />
-                                            {formatTime(event.date)}
+                                            {formatTimeRange(event.date, event.endDate)}
                                         </span>
                                     {/if}
 {#if event.city || event.location}
@@ -719,7 +726,7 @@
                 {#if selectedEvent?.eventStatus !== 'completed' && selectedEvent?.type === 'event'}
                     <div class="flex items-center gap-2">
                         <Clock class="w-4 h-4" />
-                        <span>{formatTime(selectedEvent.date)}</span>
+                        <span>{formatTimeRange(selectedEvent.date, selectedEvent.endDate)}</span>
                     </div>
                 {/if}
                 {#if selectedEvent?.city || selectedEvent?.location}
