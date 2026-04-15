@@ -44,6 +44,13 @@
   });
   import Loader from "$lib/components/load.svelte";
   import { page } from '$app/stores';
+  import { page as pageState } from '$app/state';
+
+  // Check if current page handles its own SEO (article pages and home pages)
+  const pathname = $derived(pageState.url.pathname);
+  const isArticlePage = $derived(pathname.match(/\/article\/[^/]+$/) !== null);
+  const isHomePage = $derived(pathname === '/' || pathname.match(/^\/(tr|en|ar|ru|es|fr|de|it|pt|nl|pl|uk|ja|ko|zh)(\/|$)/) !== null);
+  const useDefaultSEO = $derived(!isArticlePage && !isHomePage);
 
   // Global QR Entry Tracking - works on all pages
   $effect(() => {
@@ -74,7 +81,9 @@
   });
 </script>
 <Loader />
-<SEO />
+{#if useDefaultSEO}
+  <SEO />
+{/if}
 <svelte:head>
   <link rel="icon" href={favicon} />
 </svelte:head>

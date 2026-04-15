@@ -1164,8 +1164,9 @@
 		category: string;
 		subcategory?: string;
 		tags: string[];
-		publishedAt: string;
+		publishedAt?: string;
 		createdAt?: string;
+		updatedAt?: string;
 		readTime?: number;
 		featured?: boolean;
 		coverImage?: string;
@@ -2091,16 +2092,31 @@
 	{#if article}
 		{@const siteName = t('seo.home.title') || 'LAF - Libertarian Anarchist Foundation'}
 		{@const siteUrl = 'https://laf.international'}
-		{@const articleUrl = `${siteUrl}/article/${article.slug}`}
+		{@const articleUrl = `${siteUrl}/${currentLocale}/article/${article.slug}`}
 		{@const ogImage = article.thumbnail || `${siteUrl}/og-default.png`}
 		{@const authorName = article.author?.name && article.author?.surname
 			? `${article.author.name} ${article.author.surname}`
 			: article.author?.nickname || 'LAF'}
-		{@const articleDescription = article.excerpt || (typeof article.content === 'string' ? article.content.substring(0, 160) : '') || ''}
+		{@const articleDescription = article.excerpt?.trim()
+			|| (typeof article.content === 'string' ? article.content.replace(/<[^>]*>/g, '').substring(0, 160).trim() + '...' : '')
+			|| t('seo.article.defaultDescription', { title: article.title })}
 
-		<title>{article.title}</title>
+		<title>{article.title} | {siteName}</title>
 		<meta name="description" content={articleDescription} />
 		<link rel="canonical" href={articleUrl} />
+
+		<!-- Hreflang Alternate Links -->
+		<!-- Self-referencing link for current language -->
+		<link rel="alternate" hreflang={article.language || currentLocale} href={articleUrl} />
+		{#if article.availableTranslations}
+			{#each Object.entries(article.availableTranslations) as [lang, translation]}
+				{#if translation?.slug && lang !== (article.language || currentLocale)}
+					<link rel="alternate" hreflang={lang} href={`${siteUrl}/${lang}/article/${translation.slug}`} />
+				{/if}
+			{/each}
+		{/if}
+		<!-- x-default points to the default language version (TR) -->
+		<link rel="alternate" hreflang="x-default" href={`${siteUrl}/tr/article/${article.availableTranslations?.tr?.slug || article.slug}`} />
 
 		<!-- Open Graph -->
 		<meta property="og:title" content={article.title} />
@@ -2230,7 +2246,7 @@
 	<main class="min-h-screen bg-background">
 		{#if !article}
 			<div class="container mx-auto px-4 py-12 text-center">
-				<h1 class="text-2xl font-bold mb-4">{t('articles.noArticles')}</h1>
+				<h2 class="text-2xl font-bold mb-4">{t('articles.noArticles')}</h2>
 				<p class="text-muted-foreground mb-6">{t('articles.noArticlesDescription')}</p>
 				<Button size="sm" href={l('/articles')}>{t('articles.allArticles')}</Button>
 			</div>

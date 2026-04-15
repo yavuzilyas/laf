@@ -1,21 +1,23 @@
 <script lang="ts">
   import App from '$lib/App.svelte';
   import { getPageSEO, generateSEOMeta, generateBreadcrumbs } from '$lib/utils/seo.js';
+  import { t, i18n } from '$lib/stores/i18n.svelte';
 
   let { data } = $props();
 
-  import { t } from '$lib/stores/i18n.svelte';
-  
+  const baseUrl = 'https://laf.international';
+  const canonicalUrl = $derived(`${baseUrl}/`);
+
   const seo = $derived(getPageSEO('home'));
   const meta = $derived(generateSEOMeta({
     title: seo.title,
     description: seo.description,
     type: 'website',
-    canonical: 'https://laf.international/'
+    canonical: canonicalUrl
   }));
 
   const breadcrumbs = $derived(generateBreadcrumbs([
-    { name: t('seo.homeTab') || 'Home', url: 'https://laf.international/' }
+    { name: t('seo.homeTab') || 'Home', url: canonicalUrl }
   ]));
 </script>
 
@@ -47,12 +49,23 @@
   <meta name="twitter:image" content={meta.twitter.image} />
   <meta name="twitter:image:alt" content={meta.twitter.image_alt} />
 
+  <!-- Alternate Languages -->
+  {#if i18n.availableLocales && i18n.availableLocales.length > 0}
+    <!-- Self-referencing alternate link for default locale (tr) -->
+    <link rel="alternate" hreflang="tr" href={canonicalUrl} />
+    {#each i18n.availableLocales as localeValue}
+      {#if localeValue !== 'tr'}
+        <link rel="alternate" hreflang={localeValue} href={`${baseUrl}/${localeValue}/`} />
+      {/if}
+    {/each}
+    <link rel="alternate" hreflang="x-default" href={canonicalUrl} />
+  {/if}
+
   <!-- Structured Data / JSON-LD -->
   {@html `<script type="application/ld+json">${JSON.stringify(meta.structuredData)}</script>`}
   {@html `<script type="application/ld+json">${JSON.stringify(breadcrumbs)}</script>`}
 </svelte:head>
 
 <main>
-  <slot />
   <App {data} />
 </main>

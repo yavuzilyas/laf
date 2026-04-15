@@ -59,8 +59,16 @@ function getLocaleFromRequest(event: any): string {
 }
 
 export const handle: Handle = async ({ event, resolve }) => {
-	// Check if URL has lang prefix
 	const url = new URL(event.request.url);
+
+	// Redirect www to non-www with 301 (SEO best practice)
+	if (url.hostname.startsWith('www.')) {
+		const newUrl = new URL(url);
+		newUrl.hostname = url.hostname.replace(/^www\./, '');
+		throw redirect(301, newUrl.toString());
+	}
+
+	// Check if URL has lang prefix
 	const pathParts = url.pathname.split('/').filter(Boolean);
 	const firstSegment = pathParts[0];
 	
