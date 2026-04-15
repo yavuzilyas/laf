@@ -27,9 +27,9 @@ export async function POST({ request, locals }) {
   try {
     const currentUser = (locals as any)?.user;
     
-    // Check authentication and authorization
-    if (!currentUser || (currentUser.role !== 'moderator' && currentUser.role !== 'admin')) {
-      return json({ error: 'Unauthorized' }, { status: 403 });
+    // Check authentication and authorization - only admin can delete/undo-delete users
+    if (!currentUser || currentUser.role !== 'admin') {
+      return json({ error: 'Unauthorized - Admin access required' }, { status: 403 });
     }
 
     const { userId, reason, verificationToken } = await request.json();
@@ -159,9 +159,9 @@ export async function PUT({ request, locals }) {
   try {
     const currentUser = (locals as any)?.user;
     
-    // Check authentication and authorization
-    if (!currentUser || (currentUser.role !== 'moderator' && currentUser.role !== 'admin')) {
-      return json({ error: 'Unauthorized' }, { status: 403 });
+    // Check authentication and authorization - only admin can delete/undo-delete users
+    if (!currentUser || currentUser.role !== 'admin') {
+      return json({ error: 'Unauthorized - Admin access required' }, { status: 403 });
     }
 
     const { userId, reason } = await request.json();

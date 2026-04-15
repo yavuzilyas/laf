@@ -47,6 +47,10 @@ export async function POST({ request, locals }) {
           hidden_reason: null
         });
       } else if (action === 'delete') {
+        // Only admin can delete articles
+        if (user.role !== 'admin') {
+          return json({ error: 'Unauthorized - Admin access required for deletion' }, { status: 403 });
+        }
         // Get article to find author_id before soft deleting
         const article = await getArticleById(targetId);
         
@@ -92,6 +96,10 @@ export async function POST({ request, locals }) {
           hidden_reason: null
         });
       } else if (action === 'delete') {
+        // Only admin can delete comments
+        if (user.role !== 'admin') {
+          return json({ error: 'Unauthorized - Admin access required for deletion' }, { status: 403 });
+        }
         await updateComment(targetId, {
           deleted_at: new Date()
         });

@@ -7,9 +7,9 @@ export const DELETE: RequestHandler = async ({ params, locals }) => {
     try {
         const user = (locals as any).user;
         
-        // Check if user is moderator or admin
-        if (!user || (user.role !== 'moderator' && user.role !== 'admin')) {
-            return json({ error: 'Yetkisiz erişim' }, { status: 403 });
+        // Only admin can delete donations
+        if (!user || user.role !== 'admin') {
+            return json({ error: 'Yetkisiz erişim - Sadece admin silebilir' }, { status: 403 });
         }
         
         const donationId = params.id;

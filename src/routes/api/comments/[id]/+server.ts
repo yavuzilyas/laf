@@ -9,7 +9,10 @@ import { slugify } from '$lib/utils/slugify';
 export async function DELETE({ params, locals }) {
   const user = (locals as any)?.user;
 
-  // if (!user) return json({ error: 'Unauthorized' }, { status: 401 });
+  // Only admin can delete comments
+  if (!user || user.role !== 'admin') {
+    return json({ error: 'Unauthorized - Admin access required' }, { status: 403 });
+  }
 
   const commentId = params.id;
   // const userId = user.id;

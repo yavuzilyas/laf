@@ -3929,10 +3929,12 @@
 			<DropdownMenu.Item onclick={() => requestPasswordVerification(() => applyReportGroupStatus(row.original, 'rejected'))}>
 				{t('rejected') ?? 'Reddedildi'}
 			</DropdownMenu.Item>
-			<DropdownMenu.Separator />
-			<DropdownMenu.Item variant="destructive" onclick={() => requestPasswordVerification(() => deleteReportGroup(row.original))}>
-				{t('delete') ?? t('common.delete') ?? 'Sil'}
-			</DropdownMenu.Item>
+			{#if currentUser?.role === 'admin'}
+				<DropdownMenu.Separator />
+				<DropdownMenu.Item variant="destructive" onclick={() => requestPasswordVerification(() => deleteReportGroup(row.original))}>
+					{t('delete') ?? t('common.delete') ?? 'Sil'}
+				</DropdownMenu.Item>
+			{/if}
 		</DropdownMenu.Content>
 	</DropdownMenu.Root>
 {/snippet}
@@ -4082,11 +4084,13 @@
 							{t('demoteFromModerator')}
 						</DropdownMenu.Item>
 					{/if}
-					<DropdownMenu.Separator />
-					<DropdownMenu.Item variant="destructive" onclick={() => requestPasswordVerification(() => deleteUser(rowId))}>
-						<Trash2Icon class=" h-4 w-4" />
-						{t('deleteAccount')}
-					</DropdownMenu.Item>
+					{#if currentUser?.role === 'admin'}
+						<DropdownMenu.Separator />
+						<DropdownMenu.Item variant="destructive" onclick={() => requestPasswordVerification(() => deleteUser(rowId))}>
+							<Trash2Icon class=" h-4 w-4" />
+							{t('deleteAccount')}
+						</DropdownMenu.Item>
+					{/if}
 				{/if}
 			</DropdownMenu.Content>
 		</DropdownMenu.Root>
@@ -4214,14 +4218,16 @@
 						{t('hideArticle') ?? 'Gizle'}
 					</DropdownMenu.Item>
 				{/if}
-				<DropdownMenu.Item class="text-destructive focus:text-destructive" onclick={() =>
-					requestPasswordVerification(() =>
-						performArticleModerationAction('delete', article.id, defaultRejectReason)
-					)
-				}>
-					<Trash2Icon class=" h-4 w-4" />
-					{t('deleteArticle') ?? 'Sil'}
-				</DropdownMenu.Item>
+				{#if currentUser?.role === 'admin'}
+					<DropdownMenu.Item class="text-destructive focus:text-destructive" onclick={() =>
+						requestPasswordVerification(() =>
+							performArticleModerationAction('delete', article.id, defaultRejectReason)
+						)
+					}>
+						<Trash2Icon class=" h-4 w-4" />
+						{t('deleteArticle') ?? 'Sil'}
+					</DropdownMenu.Item>
+				{/if}
 			</DropdownMenu.Content>
 		</DropdownMenu.Root>
 	{:else}
@@ -4284,14 +4290,16 @@
 					</DropdownMenu.Item>
 				{/if}
 				
-				<DropdownMenu.Item class="text-destructive focus:text-destructive" onclick={() =>
-					requestPasswordVerification(() =>
-						performArticleModerationAction('delete', article.id, defaultRejectReason)
-					)
-				}>
-					<Trash2Icon class=" h-4 w-4" />
-					{t('deleteArticle') ?? 'Sil'}
-				</DropdownMenu.Item>
+				{#if currentUser?.role === 'admin'}
+					<DropdownMenu.Item class="text-destructive focus:text-destructive" onclick={() =>
+						requestPasswordVerification(() =>
+							performArticleModerationAction('delete', article.id, defaultRejectReason)
+						)
+					}>
+						<Trash2Icon class=" h-4 w-4" />
+						{t('deleteArticle') ?? 'Sil'}
+					</DropdownMenu.Item>
+				{/if}
 			</DropdownMenu.Content>
 		</DropdownMenu.Root>
 	{:else}
@@ -4330,7 +4338,7 @@
 					Göster
 				</DropdownMenu.Item>
 			{/if}
-			{#if comment.status !== 'deleted'}
+			{#if comment.status !== 'deleted' && currentUser?.role === 'admin'}
 				<DropdownMenu.Item class="text-destructive focus:text-destructive" onclick={() => requestPasswordVerification(() => performCommentModerationAction('delete', comment.id))}>
 					<Trash2Icon class="mr-2 h-4 w-4" />
 					Sil

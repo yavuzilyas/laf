@@ -204,6 +204,10 @@ export async function POST({ request, locals }) {
 				hidden_by: null
 			});
 		} else if (action === 'delete') {
+			// Only admin can delete comments
+			if (user.role !== 'admin') {
+				return json({ error: 'Unauthorized - Admin access required for deletion' }, { status: 403 });
+			}
 			await updateComment(targetId, {
 				deleted_at: new Date()
 			});

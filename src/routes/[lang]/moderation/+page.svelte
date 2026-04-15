@@ -954,14 +954,21 @@
     return pages;
   }
 
+  // Convert UTC date to local datetime-local format (YYYY-MM-DDTHH:mm)
+  function toLocalDateTimeInput(dateStr: string): string {
+    const date = new Date(dateStr);
+    const tzOffset = date.getTimezoneOffset() * 60000; // offset in milliseconds
+    return new Date(date.getTime() - tzOffset).toISOString().slice(0, 16);
+  }
+
   function openEventDialog(event?: any) {
     if (event) {
       editingEvent = event;
       eventForm = {
         title: event.title,
         description: event.description,
-        date: event.date ? new Date(event.date).toISOString().slice(0, 16) : '',
-        endDate: event.endDate ? new Date(event.endDate).toISOString().slice(0, 16) : '',
+        date: event.date ? toLocalDateTimeInput(event.date) : '',
+        endDate: event.endDate ? toLocalDateTimeInput(event.endDate) : '',
         city: event.city,
         location: event.location,
         type: event.type,
@@ -1020,11 +1027,18 @@
     // Removed required validation as per user request
 
     try {
+      // Convert datetime-local values to UTC ISO format
+      const formData = {
+        ...eventForm,
+        date: eventForm.date ? new Date(eventForm.date).toISOString() : '',
+        endDate: eventForm.endDate ? new Date(eventForm.endDate).toISOString() : null
+      };
+
       const response = await fetch('/api/events/manage', {
         method: editingEvent ? 'PUT' : 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          ...eventForm,
+          ...formData,
           id: editingEvent?.id
         })
       });
@@ -1347,6 +1361,13 @@
 
     const executeSave = async () => {
       try {
+        // Convert datetime-local values to UTC ISO format
+        const formData = {
+          ...eventForm,
+          date: eventForm.date ? new Date(eventForm.date).toISOString() : '',
+          endDate: eventForm.endDate ? new Date(eventForm.endDate).toISOString() : null
+        };
+
         const response = await fetch('/api/events/manage', {
           method: editingEvent ? 'PUT' : 'POST',
           headers: { 
@@ -1354,7 +1375,7 @@
             ...(verificationToken ? { 'X-Verification-Token': verificationToken } : {})
           },
           body: JSON.stringify({
-            ...eventForm,
+            ...formData,
             id: editingEvent?.id
           })
         });

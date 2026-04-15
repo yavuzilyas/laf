@@ -198,13 +198,13 @@ export const PUT: RequestHandler = async ({ request, locals }) => {
   }
 };
 
-// DELETE /api/events/manage - Delete event
+// DELETE /api/events/manage - Delete event (admin only)
 export const DELETE: RequestHandler = async ({ request, locals }) => {
   try {
     const user = locals.user;
-    if (!user || (user.role !== 'admin' && user.role !== 'moderator')) {
+    if (!user || user.role !== 'admin') {
       return json(
-        { success: false, error: 'Unauthorized' },
+        { success: false, error: 'Unauthorized - Admin access required' },
         { status: 403 }
       );
     }

@@ -6,8 +6,9 @@ import type { RequestHandler } from '@sveltejs/kit';
 export const DELETE: RequestHandler = async ({ params, locals }) => {
   const user = (locals as any)?.user;
 
-  if (!user || (user.role !== 'moderator' && user.role !== 'admin')) {
-    return json({ error: 'Unauthorized' }, { status: 401 });
+  // Only admin can delete reports
+  if (!user || user.role !== 'admin') {
+    return json({ error: 'Unauthorized - Admin access required' }, { status: 403 });
   }
 
   try {

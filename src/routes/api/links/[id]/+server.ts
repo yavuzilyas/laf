@@ -52,7 +52,7 @@ export const PUT: RequestHandler = async ({ params, request, locals }) => {
     }
 };
 
-// DELETE /api/links/[id] - Delete link (admin/moderator only)
+// DELETE /api/links/[id] - Delete link (admin only)
 export const DELETE: RequestHandler = async ({ params, locals }) => {
     const user = (locals as any)?.user;
     
@@ -60,9 +60,9 @@ export const DELETE: RequestHandler = async ({ params, locals }) => {
         return json({ error: 'Unauthorized' }, { status: 401 });
     }
     
-    // Only admin and moderator can delete links
-    if (user.role !== 'admin' && user.role !== 'moderator') {
-        return json({ error: 'Forbidden - Admin or moderator access required' }, { status: 403 });
+    // Only admin can delete links
+    if (user.role !== 'admin') {
+        return json({ error: 'Forbidden - Admin access required' }, { status: 403 });
     }
 
     try {
