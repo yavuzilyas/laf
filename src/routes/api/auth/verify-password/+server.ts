@@ -5,7 +5,7 @@ const { verify } = pkg;
 import type { RequestHandler } from './$types';
 
 // Rate limiting configuration
-const MAX_ATTEMPTS = 5;
+const MAX_ATTEMPTS = 6;
 const RATE_LIMIT_WINDOW = 15 * 60 * 1000; // 15 minutes
 
 export async function POST({ request, cookies }) {

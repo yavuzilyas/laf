@@ -49,7 +49,7 @@ import { BarSpinner } from "$lib/components/spell/bar-spinner";
   let mnemonicIndex = $state<number | null>(null);
   let mnemonicAnswer = $state("");
   let attemptCount = $state(0);
-  let maxAttempts = $state(3);
+  let maxAttempts = $state(6);
   let remainingAttempts = $derived(maxAttempts - attemptCount);
   let mnemonicQuestion = $state("");
   let verificationToken = $state<string | null>(null);
@@ -456,7 +456,7 @@ async function finalizeRegister() {
           // İki adımlı doğrulama gerekiyor
           mnemonicStep = true;
           attemptCount = data.attemptCount || 0;
-          maxAttempts = data.maxAttempts || 3;
+          maxAttempts = data.maxAttempts || 6;
           verificationToken = data.verificationToken || null;
 
           mnemonicQuestion = `${t('VerificationIsRequired')}`;
@@ -492,7 +492,7 @@ async function finalizeRegister() {
           // Yanlış mnemonic, yeniden dene
           mnemonicStep = true;
           attemptCount = data.attemptCount || 0;
-          maxAttempts = data.maxAttempts || 3;
+          maxAttempts = data.maxAttempts || 6;
           if (data.verificationToken) {
             verificationToken = data.verificationToken;
           }
@@ -527,7 +527,7 @@ async function finalizeRegister() {
     mnemonicAnswer = "";
     mnemonicIndex = null;
     attemptCount = 0;
-    maxAttempts = 3;
+    maxAttempts = 6;
     verificationToken = null;
     mnemonicPhrase = "";
     clearMnemonicPhrase();

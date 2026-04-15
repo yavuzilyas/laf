@@ -6,7 +6,7 @@ import type { RequestHandler } from './$types';
 const VERIFICATION_TOKEN_EXPIRY = 5 * 60 * 1000;
 
 // Rate limiting configuration
-const MAX_ATTEMPTS = 5;
+const MAX_ATTEMPTS = 6;
 const RATE_LIMIT_WINDOW = 15 * 60 * 1000; // 15 minutes
 
 // Helper function for timing-safe comparison

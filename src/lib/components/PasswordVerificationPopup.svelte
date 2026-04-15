@@ -37,7 +37,7 @@ import { BarSpinner } from "$lib/components/spell/bar-spinner";
   let loading = $state(false);
   let password = $state("");
   let attemptCount = $state(0);
-  let remainingAttempts = $state(3);
+  let remainingAttempts = $state(6);
   let errorMessage = $state("");
   let errorMessageKey = $state(0);
   let errorMessageExiting = $state(false);
@@ -96,7 +96,7 @@ import { BarSpinner } from "$lib/components/spell/bar-spinner";
       }, 2000);
     } else {
       attemptCount++;
-      remainingAttempts = 3 - attemptCount;
+      remainingAttempts = 6 - attemptCount;
       password = "";
       const errorMsg = data.error || t('WrongPasswordRemainingAttempts') + ' ' + remainingAttempts;
       if (errorMessage !== errorMsg) {
@@ -121,7 +121,7 @@ import { BarSpinner } from "$lib/components/spell/bar-spinner";
   function resetState() {
     password = "";
     attemptCount = 0;
-    remainingAttempts = 3;
+    remainingAttempts = 6;
     if (errorMessage) {
       errorMessageExiting = true;
       const oldErrorKey = errorMessageKey;

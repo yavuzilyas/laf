@@ -4,7 +4,7 @@ import pkg from 'argon2';
 const { verify } = pkg;
 
 // Rate limiting configuration
-const MAX_ATTEMPTS = 5;
+const MAX_ATTEMPTS = 6;
 const RATE_LIMIT_WINDOW = 15 * 60 * 1000; // 15 minutes
 
 // Helper function for timing-safe comparison

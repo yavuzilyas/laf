@@ -26,8 +26,8 @@ import { User, KeyRound, Eye, EyeOff, ArrowLeft, Lock } from "@lucide/svelte";
   let mnemonicPhrase = $state("");
   let verificationToken = $state<string | null>(null);
   let userId = $state<string | null>(null);
-  let maxAttempts = $state(3);
-  let remainingAttempts = $state(3);
+  let maxAttempts = $state(6);
+  let remainingAttempts = $state(6);
 
   // Step 3
   let newPassword = $state("");
@@ -87,8 +87,8 @@ import { User, KeyRound, Eye, EyeOff, ArrowLeft, Lock } from "@lucide/svelte";
       if (res.ok) {
         verificationToken = data.verificationToken;
         userId = data.userId;
-        maxAttempts = data.maxAttempts || 3;
-        remainingAttempts = data.remainingAttempts || 3;
+        maxAttempts = data.maxAttempts || 6;
+        remainingAttempts = data.remainingAttempts || 6;
         step = 2;
         showToast(data.message || 'Mnemonic doğrulaması gerekli', 'info');
       } else {
@@ -127,7 +127,7 @@ import { User, KeyRound, Eye, EyeOff, ArrowLeft, Lock } from "@lucide/svelte";
         step = 3;
         showToast(data.message || 'Doğrulama başarılı', 'success');
       } else {
-        maxAttempts = data.maxAttempts || 3;
+        maxAttempts = data.maxAttempts || 6;
         remainingAttempts = data.remainingAttempts || 0;
         if (data.reset) {
           // Too many failed attempts, go back to step 1

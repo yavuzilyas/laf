@@ -4435,11 +4435,13 @@
 					Geri Al/Onayla
 				</DropdownMenu.Item>
 			{/if}
-			<DropdownMenu.Separator />
-			<DropdownMenu.Item class="text-destructive focus:text-destructive" onclick={() => requestPasswordVerification(() => handleDeleteDonation(donation.id))}>
-				<Trash2Icon class="mr-2 h-4 w-4" />
-				Sil
-			</DropdownMenu.Item>
+			{#if currentUser?.role === 'admin'}
+				<DropdownMenu.Separator />
+				<DropdownMenu.Item class="text-destructive focus:text-destructive" onclick={() => requestPasswordVerification(() => handleDeleteDonation(donation.id))}>
+					<Trash2Icon class="mr-2 h-4 w-4" />
+					Sil
+				</DropdownMenu.Item>
+			{/if}
 		</DropdownMenu.Content>
 	</DropdownMenu.Root>
 {/snippet}
@@ -4470,11 +4472,13 @@
 					Arşivden çıkar
 				</DropdownMenu.Item>
 			{/if}
-			<DropdownMenu.Separator />
-			<DropdownMenu.Item class="text-destructive focus:text-destructive" onclick={() => handleDeleteContactMessage(message.id)}>
-				<Trash2Icon class="mr-2 h-4 w-4" />
-				Sil
-			</DropdownMenu.Item>
+			{#if currentUser?.role === 'admin'}
+				<DropdownMenu.Separator />
+				<DropdownMenu.Item class="text-destructive focus:text-destructive" onclick={() => handleDeleteContactMessage(message.id)}>
+					<Trash2Icon class="mr-2 h-4 w-4" />
+					Sil
+				</DropdownMenu.Item>
+			{/if}
 		</DropdownMenu.Content>
 	</DropdownMenu.Root>
 {/snippet}
