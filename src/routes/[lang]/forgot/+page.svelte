@@ -26,6 +26,7 @@ import { User, KeyRound, Eye, EyeOff, ArrowLeft, Lock } from "@lucide/svelte";
   let mnemonicPhrase = $state("");
   let verificationToken = $state<string | null>(null);
   let userId = $state<string | null>(null);
+  let maxAttempts = $state(3);
   let remainingAttempts = $state(3);
 
   // Step 3
@@ -86,6 +87,7 @@ import { User, KeyRound, Eye, EyeOff, ArrowLeft, Lock } from "@lucide/svelte";
       if (res.ok) {
         verificationToken = data.verificationToken;
         userId = data.userId;
+        maxAttempts = data.maxAttempts || 3;
         remainingAttempts = data.remainingAttempts || 3;
         step = 2;
         showToast(data.message || 'Mnemonic doğrulaması gerekli', 'info');
@@ -125,6 +127,7 @@ import { User, KeyRound, Eye, EyeOff, ArrowLeft, Lock } from "@lucide/svelte";
         step = 3;
         showToast(data.message || 'Doğrulama başarılı', 'success');
       } else {
+        maxAttempts = data.maxAttempts || 3;
         remainingAttempts = data.remainingAttempts || 0;
         if (data.reset) {
           // Too many failed attempts, go back to step 1
@@ -298,7 +301,7 @@ import { User, KeyRound, Eye, EyeOff, ArrowLeft, Lock } from "@lucide/svelte";
                 {t('auth.forgot.step2Description') || 'Hesabınızı kurtarmak için 12 kelimelik mnemonic silsilenizi girin'}
               </p>
 
-              {#if remainingAttempts < 3}
+              {#if remainingAttempts < maxAttempts}
                 <p class="text-xs text-red-500">
                   {remainingAttempts} {t('auth.forgot.attemptsRemaining') || 'deneme hakkınız kaldı'}
                 </p>

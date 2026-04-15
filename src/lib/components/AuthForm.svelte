@@ -49,7 +49,8 @@ import { BarSpinner } from "$lib/components/spell/bar-spinner";
   let mnemonicIndex = $state<number | null>(null);
   let mnemonicAnswer = $state("");
   let attemptCount = $state(0);
-    let remainingAttempts = $state(3);
+  let maxAttempts = $state(3);
+  let remainingAttempts = $derived(maxAttempts - attemptCount);
   let mnemonicQuestion = $state("");
   let verificationToken = $state<string | null>(null);
   let mnemonicPhrase = $state("");
@@ -455,7 +456,7 @@ async function finalizeRegister() {
           // İki adımlı doğrulama gerekiyor
           mnemonicStep = true;
           attemptCount = data.attemptCount || 0;
-          remainingAttempts = 3 - attemptCount;
+          maxAttempts = data.maxAttempts || 3;
           verificationToken = data.verificationToken || null;
 
           mnemonicQuestion = `${t('VerificationIsRequired')}`;
@@ -491,7 +492,7 @@ async function finalizeRegister() {
           // Yanlış mnemonic, yeniden dene
           mnemonicStep = true;
           attemptCount = data.attemptCount || 0;
-          remainingAttempts = 3 - attemptCount;
+          maxAttempts = data.maxAttempts || 3;
           if (data.verificationToken) {
             verificationToken = data.verificationToken;
           }
@@ -526,7 +527,7 @@ async function finalizeRegister() {
     mnemonicAnswer = "";
     mnemonicIndex = null;
     attemptCount = 0;
-    remainingAttempts = 3;
+    maxAttempts = 3;
     verificationToken = null;
     mnemonicPhrase = "";
     clearMnemonicPhrase();
@@ -691,17 +692,17 @@ async function validateEmail(value: string) {
               maxlength="20"
               oninput={(e) => {
                 let v = (e.target as HTMLInputElement)?.value || '';
-                // Convert to lowercase and remove non-letter characters
-                v = v.toLowerCase().replace(/[^a-z]/g, '');
+                // Convert to lowercase but allow email characters (@, ., numbers, etc.)
+                v = v.toLowerCase();
                 identifier = v;
               }}
               onkeydown={(e) => {
-                // Allow only lowercase letters, backspace, delete, tab, escape, enter
-                const allowedKeys = ['Backspace', 'Delete', 'Tab', 'Escape', 'Enter'];
+                // Allow control keys
+                const allowedKeys = ['Backspace', 'Delete', 'Tab', 'Escape', 'Enter', 'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Home', 'End'];
                 if (allowedKeys.includes(e.key)) return;
                 
-                // Prevent uppercase letters and non-letter characters
-                if (e.key.length === 1 && (!/^[a-z]$/.test(e.key) || e.shiftKey)) {
+                // Allow lowercase letters, numbers, and email special characters (@, ., -, _)
+                if (e.key.length === 1 && e.shiftKey && !['@', '_', '-', '.'].includes(e.key)) {
                   e.preventDefault();
                 }
               }}
@@ -709,8 +710,8 @@ async function validateEmail(value: string) {
                 e.preventDefault();
                 const pastedText = e.clipboardData?.getData('text/plain') || '';
                 
-                // Filter to only lowercase letters
-                const filteredText = pastedText.toLowerCase().replace(/[^a-z]/g, '');
+                // Allow email characters: lowercase letters, numbers, @, ., -, _
+                const filteredText = pastedText.toLowerCase().replace(/[^a-z0-9@._-]/g, '');
                 
                 // Insert the text at cursor position
                 const target = e.target as HTMLInputElement;
@@ -811,7 +812,7 @@ async function validateEmail(value: string) {
   </Accordion.Item>
   </Accordion.Root>
 
-                    {#if remainingAttempts < 3}
+                    {#if remainingAttempts < maxAttempts}
 
             <p class="text-xs text-red-500 error-message">
               {remainingAttempts} deneme hakkınız kaldı.

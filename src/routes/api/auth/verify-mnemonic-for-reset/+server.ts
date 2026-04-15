@@ -74,6 +74,7 @@ export const POST: RequestHandler = async ({ request }) => {
       return json({
         error: 'Geçersiz doğrulama tokenı',
         remainingAttempts,
+        maxAttempts: MAX_ATTEMPTS,
         reset: remainingAttempts <= 0
       }, { status: 400 });
     }
@@ -119,6 +120,7 @@ export const POST: RequestHandler = async ({ request }) => {
           ? `Yanlış mnemonic. Kalan deneme hakkınız: ${remainingAttempts}`
           : 'Çok fazla başarısız deneme. Lütfen daha sonra tekrar deneyin.',
         remainingAttempts,
+        maxAttempts: MAX_ATTEMPTS,
         reset: remainingAttempts <= 0
       }, { status: 400 });
     }

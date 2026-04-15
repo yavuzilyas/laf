@@ -70,6 +70,7 @@ export const POST: RequestHandler = async ({ request }) => {
       userId: user.id,
       verificationToken,
       remainingAttempts,
+      maxAttempts: MAX_ATTEMPTS,
       expiresIn: VERIFICATION_TOKEN_EXPIRY / 1000
     });
 

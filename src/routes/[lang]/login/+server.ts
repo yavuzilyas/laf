@@ -90,7 +90,8 @@ export const POST: RequestHandler = async ({ request, cookies }) => {
         errorKey: remainingAttempts > 0 ? "auth.errors.wrongMnemonic" : "auth.errors.maxAttemptsReached",
         requiresMnemonic: remainingAttempts > 0,
         resetMnemonic: remainingAttempts <= 0,
-        attemptCount: MAX_ATTEMPTS - remainingAttempts
+        attemptCount: MAX_ATTEMPTS - remainingAttempts,
+        maxAttempts: MAX_ATTEMPTS
       }), { status: 400 });
     }
 
@@ -125,7 +126,8 @@ export const POST: RequestHandler = async ({ request, cookies }) => {
         errorKey: remainingAttempts > 0 ? "auth.errors.wrongMnemonic" : "auth.errors.maxAttemptsReached",
         requiresMnemonic: remainingAttempts > 0,
         resetMnemonic: remainingAttempts <= 0,
-        attemptCount: MAX_ATTEMPTS - remainingAttempts
+        attemptCount: MAX_ATTEMPTS - remainingAttempts,
+        maxAttempts: MAX_ATTEMPTS
       }), { status: 400 });
     }
   } else {
@@ -144,6 +146,7 @@ export const POST: RequestHandler = async ({ request, cookies }) => {
       success: true,
       requiresMnemonic: true,
       attemptCount: 0,
+      maxAttempts: MAX_ATTEMPTS,
       verificationToken: newVerificationToken,
       expiresIn: VERIFICATION_TOKEN_EXPIRY / 1000,
       infoKey: "auth.success.passwordCorrect"
