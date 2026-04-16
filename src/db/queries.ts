@@ -2142,12 +2142,13 @@ export const getPopularArticles = async (limit: number = 3, excludeId?: string, 
                u.nickname as author_nickname
         FROM articles a
         JOIN users u ON a.author_id = u.id
-        WHERE a.status = 'published' 
+        WHERE a.status = 'published'
         AND a.deleted_at IS NULL
         AND a.is_hidden = FALSE
+        AND a.category <> 'design'
     `;
     const params: any[] = [];
-    
+
     if (excludeId) {
         sql += ` AND a.id <> $${params.length + 1}`;
         params.push(excludeId);
