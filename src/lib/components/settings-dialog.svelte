@@ -4,6 +4,10 @@
 	import * as Dialog from "$lib/components/ui/dialog/index.js";
 	import * as Sidebar from "$lib/components/ui/sidebar/index.js";
 	import { Separator } from "$lib/components/ui/separator/index.js";
+	import AlignLeft from '@lucide/svelte/icons/align-left';
+	import AlignCenter from '@lucide/svelte/icons/align-center';
+	import AlignRight from '@lucide/svelte/icons/align-right';
+	import AlignJustify from '@lucide/svelte/icons/align-justify';
 	import GlobeIcon from "@lucide/svelte/icons/globe";
 	import KeyboardIcon from "@lucide/svelte/icons/keyboard";
 	import LockIcon from "@lucide/svelte/icons/lock";
@@ -38,6 +42,7 @@ import { BarSpinner } from "$lib/components/spell/bar-spinner";
 	import { userStore } from "$lib/stores/user.js";
 import type { User } from "$lib/stores/user.js";
     import { fontSize, type FontSize } from "$lib/stores/fontSize.js";
+import { textAlignment, type TextAlignment } from "$lib/stores/textAlignment.js";
 
 	// Import default preferences for initialization
 	const defaultPreferences = {
@@ -816,8 +821,8 @@ function handleOpenChange(newOpen: boolean) {
 							</div>
 						</header>
 						<main class="flex h-full flex-1 flex-col py-6 px-10 gapy-6 px-10">
-							<div class="space-y-4">
-								<div class="flex items-center justify-between py-3 px-4 rounded-lg border">
+							<div class="space-y-2">
+								<div class="flex items-center justify-between py-2 px-3.5 rounded-lg border">
 									<Label for="dark-mode" class="cursor-pointer text-xs">{t('DarkMode')}</Label>
 									<Button size="xs" class="w-fit !bg-background/44 h-9 flex flex-row text-xs justify-center gap-2" onclick={toggleMode} variant="outline">
 										<Sun strokeWidth={2.25}
@@ -828,7 +833,7 @@ function handleOpenChange(newOpen: boolean) {
 										/>
 									</Button>
 								</div>
-								<div class="flex items-center justify-between py-3 px-4 rounded-lg border">
+								<div class="flex items-center justify-between py-2 px-3.5 rounded-lg border">
 									<Label for="high-contrast" class="cursor-pointer text-xs">{t('HighContrast')}</Label>
 									<Button size="xs" class="w-fit !bg-background/44 h-9 flex flex-row text-xs justify-center gap-2" onclick={toggleHighContrast} variant="outline">
 										{#if isHighContrast}
@@ -865,11 +870,24 @@ function handleOpenChange(newOpen: boolean) {
 										<ToggleGroup.Item value="large" class="text-xs px-2 h-7">{t('Large')}</ToggleGroup.Item>
 									</ToggleGroup.Root>
 								</div>
-								
-								<Separator class="my-4"/>
+								<div class="flex items-center justify-between py-3 px-4 rounded-lg border">
+									<Label for="text-alignment" class="cursor-pointer text-xs">{t('TextAlignment')}</Label>
+									<ToggleGroup.Root
+										type="single"
+										value={$textAlignment}
+										onValueChange={(v) => { if (v) textAlignment.set(v as TextAlignment); }}
+										class="justify-end h-8"
+									>
+										<ToggleGroup.Item value="justify" class="text-xs px-2 h-7"><AlignJustify class="w-3.5 h-3.5" /></ToggleGroup.Item>
+										<ToggleGroup.Item value="left" class="text-xs px-2 h-7"><AlignLeft class="w-3.5 h-3.5" /></ToggleGroup.Item>
+										<ToggleGroup.Item value="center" class="text-xs px-2 h-7"><AlignCenter class="w-3.5 h-3.5" /></ToggleGroup.Item>
+										<ToggleGroup.Item value="right" class="text-xs px-2 h-7"><AlignRight class="w-3.5 h-3.5" /></ToggleGroup.Item>
+									</ToggleGroup.Root>
+								</div>
+
 								
 								<!-- Sound Effects Section -->
-								<div class="space-y-4">
+								<div class="space-y-2">
 									<div class="flex items-center justify-between">
 										<Label class="text-sm font-medium">{t('SoundEffects')}</Label>
 										<div class="flex gap-2">

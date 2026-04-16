@@ -2339,13 +2339,14 @@ export const getSimilarArticles = async (articleId: string, category: string, ta
                u.nickname as author_nickname
         FROM articles a
         JOIN users u ON a.author_id = u.id
-        WHERE a.status = 'published' 
+        WHERE a.status = 'published'
         AND a.deleted_at IS NULL
         AND a.is_hidden = FALSE
         AND a.id <> $1
+        AND a.category <> 'design'
     `;
     const params: any[] = [articleId];
-    
+
     // Category match is weighted more heavily
     if (category) {
         sql += ` AND (a.category = $${params.length + 1}`;

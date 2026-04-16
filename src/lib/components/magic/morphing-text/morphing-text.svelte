@@ -93,7 +93,7 @@
 
 <div
 	class={cn(
-		"relative mx-auto h-16 w-full max-w-screen-md text-center font-serif text-6xl md:text-8xl leading-none font-bold [filter:url(#threshold)_blur(0.6px)] md:h-24",
+		"relative mx-auto h-16 w-full max-w-screen-md text-center font-serif text-5xl md:text-8xl leading-none font-bold [filter:url(#threshold)_blur(0.6px)] md:h-24",
 		className
 	)}
 >

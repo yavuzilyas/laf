@@ -128,7 +128,7 @@ import { cn } from "$lib/utils";
 >
       <DitheredImageSlider  images={sliderImages} />
 
-      <MorphingText class="absolute sm:top-4/9 top-2/5 left-1/2 transform -translate-x-1/2 -translate-y-1/2" texts={[t('firstPart'), t('secondPart')]} />
+      <MorphingText class="absolute sm:top-4/9 top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2" texts={[t('firstPart'), t('secondPart')]} />
 
 
 

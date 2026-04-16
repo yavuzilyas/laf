@@ -969,7 +969,8 @@
     "MnemonicRegenerated": "عبارت BIP‑39 بازسازی شد",
     "FailedToRegenerateMnemonic": "بازسازی عبارت BIP‑39 ناموفق بود",
     "ShowMnemonic": "نمایش عبارت BIP‑39",
-    "EditorFontSize": "اندازهٔ فونت ویرایشگر",
+    "EditorFontSize": "اندازه فونت ویرایشگر",
+    "TextAlignment": "تراز متن",
     "Small": "کوچک",
     "Medium": "متوسط",
     "Large": "بزرگ"

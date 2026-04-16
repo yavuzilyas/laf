@@ -681,7 +681,7 @@
 
 <!-- Event/Announcement Details Dialog -->
 <Dialog.Root bind:open={dialogOpen}>
-    <Dialog.Content class="sm:max-w-2/3 md:max-w-1/2">
+    <Dialog.Content class="max-h-3/4 overflow-y-auto sm:max-w-2/3 md:max-w-1/2">
         <div class="flex items-start justify-between">
             <Dialog.Header class="flex-1">
                 <Dialog.Title>{selectedEvent?.title}</Dialog.Title>

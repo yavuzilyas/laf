@@ -32,6 +32,48 @@
 	line-height: 1.6;
 }
 
+/* Default text alignment - justify */
+.tiptap,
+.edra-editor,
+[data-editor-text-align="justify"] .tiptap,
+[data-editor-text-align="justify"] .edra-editor,
+[data-editor-text-align="justify"] .tiptap p,
+[data-editor-text-align="justify"] .edra-editor p,
+[data-editor-text-align="justify"] .tiptap li,
+[data-editor-text-align="justify"] .edra-editor li {
+	text-align: justify;
+}
+
+/* Left alignment */
+[data-editor-text-align="left"] .tiptap,
+[data-editor-text-align="left"] .edra-editor,
+[data-editor-text-align="left"] .tiptap p,
+[data-editor-text-align="left"] .edra-editor p,
+[data-editor-text-align="left"] .tiptap li,
+[data-editor-text-align="left"] .edra-editor li {
+	text-align: left;
+}
+
+/* Center alignment */
+[data-editor-text-align="center"] .tiptap,
+[data-editor-text-align="center"] .edra-editor,
+[data-editor-text-align="center"] .tiptap p,
+[data-editor-text-align="center"] .edra-editor p,
+[data-editor-text-align="center"] .tiptap li,
+[data-editor-text-align="center"] .edra-editor li {
+	text-align: center;
+}
+
+/* Right alignment */
+[data-editor-text-align="right"] .tiptap,
+[data-editor-text-align="right"] .edra-editor,
+[data-editor-text-align="right"] .tiptap p,
+[data-editor-text-align="right"] .edra-editor p,
+[data-editor-text-align="right"] .tiptap li,
+[data-editor-text-align="right"] .edra-editor li {
+	text-align: right;
+}
+
 .tiptap :first-child {
 	margin-top: 0;
 }
@@ -183,7 +225,7 @@ ol > li > .drag-handle {
 	bottom: 0;
 	width: 0.25rem;
 	background-color: var(--blockquote-border);
-	border-radius: 0.5rem;
+	border-radius: var(--radius-md);
 }
 
 .tiptap blockquote p {
@@ -200,7 +242,7 @@ ol > li > .drag-handle {
 /* Inline Code */
 .tiptap code:not(pre code) {
 	background-color: var(--code-bg);
-	border-radius: 0.25rem;
+	border-radius: var(--radius-xs);
 	padding: 0.2rem 0.3rem;
 	font-family: monospace;
 	font-size: 0.875rem;
@@ -265,7 +307,7 @@ input[type='checkbox'] {
 	cursor: pointer;
 	width: 1rem;
 	height: 1rem;
-	border-radius: 0.25rem;
+	border-radius: var(--radius-xs);
 }
 
 /* Color Swatches */
@@ -279,7 +321,7 @@ input[type='checkbox'] {
 	display: inline-block;
 	width: 1rem;
 	height: 1rem;
-	border-radius: 0.25rem;
+	border-radius: var(--radius-xs);
 	border: 1px solid var(--border-color);
 	vertical-align: middle;
 	background-color: var(--color);
@@ -368,7 +410,7 @@ input[type='checkbox'] {
 	box-sizing: border-box;
 	width: 100%;
 	border-collapse: collapse;
-	border-radius: 0.25rem;
+	border-radius: var(--radius-xs);
 	border: 1px solid var(--table-border);
 }
 
@@ -533,7 +575,7 @@ input[type='checkbox'] {
 
 .code-wrapper {
 	background-color: var(--codeblock-bg);
-	border-radius: 0.5rem;
+	border-radius: var(--radius-md);
 	padding: 1rem;
 	position: relative;
 	height: fit-content;

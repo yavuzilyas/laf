@@ -52,6 +52,7 @@ export const load: PageServerLoad = async ({ locals, url }) => {
         
         const statusFilter = filterConditions.length > 0 ? `WHERE ${filterConditions.join(' AND ')}` : '';
 
+        // First get questions
         let questionsQuery = `
             SELECT 
                 q.id,
@@ -77,21 +78,10 @@ export const load: PageServerLoad = async ({ locals, url }) => {
                 u.username as author_username,
                 u.nickname as author_nickname,
                 u.avatar_url as author_avatar,
-                u.id as author_user_id,
-                a.id as answer_id,
-                a.content as answer_content,
-                a.content_html as answer_content_html,
-                a.created_at as answer_created_at,
-                a.vote_score as answer_vote_score,
-                COALESCE(a.author_id, q.answered_by) as answer_author_id,
-                au.username as answer_author_username,
-                au.nickname as answer_author_nickname,
-                au.avatar_url as answer_author_avatar
+                u.id as author_user_id
             FROM questions q
             LEFT JOIN question_topics t ON q.topic_id = t.id
             LEFT JOIN users u ON q.author_id = u.id
-            LEFT JOIN answers a ON q.answer_id = a.id
-            LEFT JOIN users au ON au.id = COALESCE(a.author_id, q.answered_by)
             ${statusFilter}
         `;
 
@@ -137,21 +127,70 @@ export const load: PageServerLoad = async ({ locals, url }) => {
                 username: row.author_username,
                 nickname: row.author_nickname,
                 avatar: row.author_avatar
-            },
-            answer: row.answer_id ? {
-                id: row.answer_id,
-                content: row.answer_content,
-                contentHtml: row.answer_content_html,
-                createdAt: row.answer_created_at,
-                voteScore: row.answer_vote_score || 0,
-                author: {
-                    id: row.answer_author_id,
-                    username: row.answer_author_username,
-                    nickname: row.answer_author_nickname,
-                    avatar: row.answer_author_avatar
-                }
-            } : null
+            }
         }));
+
+        // Fetch all answers for these questions
+        const questionIds = questionsResult.rows.map(r => r.id);
+        let answersMap: Record<string, any[]> = {};
+        let userAnswerMap: Record<string, string[]> = {};
+
+        if (questionIds.length > 0) {
+            const answersQuery = `
+                SELECT 
+                    a.id,
+                    a.question_id,
+                    a.content,
+                    a.content_html,
+                    a.created_at,
+                    a.vote_score,
+                    a.like_count,
+                    a.dislike_count,
+                    a.author_id,
+                    u.username,
+                    u.nickname,
+                    u.avatar_url
+                FROM answers a
+                LEFT JOIN users u ON a.author_id = u.id
+                WHERE a.question_id = ANY($1)
+                ORDER BY a.created_at ASC
+            `;
+            const answersResult = await query(answersQuery, [questionIds]);
+
+            answersResult.rows.forEach((a: any) => {
+                if (!answersMap[a.question_id]) {
+                    answersMap[a.question_id] = [];
+                }
+                answersMap[a.question_id].push(a);
+
+                // Track which answers belong to current user
+                if (user && a.author_id === user.id) {
+                    if (!userAnswerMap[a.question_id]) {
+                        userAnswerMap[a.question_id] = [];
+                    }
+                    userAnswerMap[a.question_id].push(a.id);
+                }
+            });
+        }
+
+        // Attach answers to questions
+        questions.forEach((q: any) => {
+            q.answers = (answersMap[q.id] || []).map((a: any) => ({
+                id: a.id,
+                content: a.content,
+                contentHtml: a.content_html,
+                createdAt: a.created_at,
+                voteScore: a.vote_score || 0,
+                likeCount: a.like_count || 0,
+                dislikeCount: a.dislike_count || 0,
+                author: {
+                    username: a.username,
+                    nickname: a.nickname,
+                    avatar: a.avatar_url
+                }
+            }));
+            q.hasUserAnswered = (userAnswerMap[q.id] || []).length > 0;
+        });
 
         // Count for pagination
         let countQuery = isModerator

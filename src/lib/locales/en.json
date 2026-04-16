@@ -981,6 +981,7 @@
     "FailedToRegenerateMnemonic": "Failed to regenerate BIP-39 phrase",
     "ShowMnemonic": "Show BIP-39 Phrase",
     "EditorFontSize": "Editor Font Size",
+    "TextAlignment": "Text Alignment",
     "Small": "Small",
     "Medium": "Medium",
     "Large": "Large"
