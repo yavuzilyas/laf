@@ -341,8 +341,8 @@ export async function notifyNewArticle(params: {
         await createNotification({
             user_id: followerId,
             type: 'announcement',
-            title: { key: 'notifications.messages.newArticlePublished', values: { title: articleTitle } },
-            content: { key: 'notifications.messages.newArticlePublishedMessage', values: { title: articleTitle } },
+            title: { key: 'notifications.messages.newArticlePublished', values: { user: authorName, title: articleTitle } },
+            content: { key: 'notifications.messages.newArticlePublishedMessage', values: { user: authorName, title: articleTitle } },
             data: {
                 link: `/article/${articleSlugValue}`,
                 actor: {
@@ -353,6 +353,64 @@ export async function notifyNewArticle(params: {
                     kind: 'new-article',
                     articleId: articleIdStr,
                     articleSlug: articleSlugValue
+                }
+            }
+        });
+    });
+
+    await Promise.all(notificationPromises);
+}
+
+export async function notifyNewArticleWithCollaborators(params: {
+    articleId: string;
+    articleSlug?: string | null;
+    authorId: string;
+    articleTitle: string;
+    authorName: string;
+    collaborators: string[];
+}) {
+    const { articleId, articleSlug, authorId, articleTitle, authorName, collaborators } = params;
+    const articleIdStr = toIdString(articleId);
+    if (!articleIdStr || collaborators.length === 0) return;
+
+    const articleSlugValue = articleSlug ?? (await resolveArticleSlug(articleId)) ?? articleIdStr;
+
+    // Get all followers of each collaborator
+    const allFollowers: string[] = [];
+    for (const collaboratorId of collaborators) {
+        const followersList = await getFollowersList(collaboratorId);
+        for (const follower of followersList) {
+            // Don't add if already in list, or if it's the author, or if it's the collaborator themselves
+            if (!allFollowers.includes(follower.id) && follower.id !== authorId && follower.id !== collaboratorId) {
+                allFollowers.push(follower.id);
+            }
+        }
+    }
+
+    if (allFollowers.length === 0) return;
+
+    // Get collaborator names
+    const collaboratorUsers = await getUsers({ id: { $in: collaborators } });
+    const collaboratorNames = collaboratorUsers.map((u: any) => u.username || u.name || 'Bir kullanıcı').join(', ');
+
+    // Create notifications for each follower of collaborators
+    const notificationPromises = allFollowers.map(async (followerId) => {
+        await createNotification({
+            user_id: followerId,
+            type: 'announcement',
+            title: { key: 'notifications.messages.newArticleWithCollaborator', values: { author: authorName, collaborators: collaboratorNames, title: articleTitle } },
+            content: { key: 'notifications.messages.newArticleWithCollaboratorMessage', values: { author: authorName, collaborators: collaboratorNames, title: articleTitle } },
+            data: {
+                link: `/article/${articleSlugValue}`,
+                actor: {
+                    id: authorId,
+                    name: authorName
+                },
+                meta: {
+                    kind: 'new-article-collaborator',
+                    articleId: articleIdStr,
+                    articleSlug: articleSlugValue,
+                    collaboratorIds: collaborators
                 }
             }
         });

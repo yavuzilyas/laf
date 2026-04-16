@@ -6,7 +6,7 @@ import { slugify } from '$lib/utils/slugify';
 import { rm } from 'fs/promises';
 import { resolve } from 'path';
 import { env } from '$env/dynamic/private';
-import { notifyNewArticle, notifyModeratorsNewArticle } from '$lib/server/notifications-pg';
+import { notifyNewArticle, notifyModeratorsNewArticle, notifyNewArticleWithCollaborators } from '$lib/server/notifications-pg';
 import { notifyTranslationReview } from '$lib/server/translation-notifications';
 import { createTranslationStatus } from '$db/queries-translation-status';
 
@@ -666,11 +666,11 @@ async function cleanupUnusedMedia(existing: any, updated: any, articleId: string
             if (!existingId && originalStatus === 'published') {
               const authorData = await getUsers({ id: user.id });
               const author = authorData[0];
-              
+
               if (author) {
                 const defaultLang = articleData.default_language || 'tr';
                 const title = articleData.translations?.[defaultLang]?.title || 'Yeni Makale';
-                
+
                 await notifyNewArticle({
                   articleId: articleId,
                   articleSlug: articleData.translations?.[defaultLang]?.slug,
@@ -678,6 +678,19 @@ async function cleanupUnusedMedia(existing: any, updated: any, articleId: string
                   articleTitle: title,
                   authorName: author.username || author.name || 'Bir kullanıcı'
                 });
+
+                // Notify followers of collaborators if there are any collaborators
+                const collaborators = articleData.collaborators || [];
+                if (collaborators.length > 0) {
+                  await notifyNewArticleWithCollaborators({
+                    articleId: articleId,
+                    articleSlug: articleData.translations?.[defaultLang]?.slug,
+                    authorId: user.id,
+                    articleTitle: title,
+                    authorName: author.username || author.name || 'Bir kullanıcı',
+                    collaborators: collaborators
+                  });
+                }
               }
             }
 

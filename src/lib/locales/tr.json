@@ -1495,7 +1495,9 @@
       "newEventOrAnnouncementMessage": "{type} yayınlandı: {description}",
       "newTranslation": "{user} yeni çeviri ekledi",
       "newTranslationWithTitle": "{user} {title} için yeni çeviri ekledi",
-      "articleRejectedWithTitle": "{title} makaleniz reddedildi"
+      "articleRejectedWithTitle": "{title} makaleniz reddedildi",
+      "newArticleWithCollaborator": "{author} ve {collaborators} yeni makale: {title}",
+      "newArticleWithCollaboratorMessage": "Takip ettiğiniz {collaborators} kullanıcısı {author} ile birlikte \"{title}\" makalesinde işbirliği yaptı."
     }
   },
   "Moderation": "Moderasyon",
