@@ -10,6 +10,7 @@ export interface SEOProps {
 	publishedAt?: string;
 	modifiedAt?: string;
 	tags?: string[];
+	keywords?: string[];
 	type?: 'website' | 'article' | 'profile';
 	noIndex?: boolean;
 	noFollow?: boolean;
@@ -30,11 +31,16 @@ export function generateSEOMeta(props: SEOProps) {
 	// Add suffix to title
 	const finalTitle = `${props.title}${siteSuffix}`;
 
+	// Combine tags and keywords for meta keywords
+	const keywordsArray = [...(props.tags || []), ...(props.keywords || [])];
+	const keywordsString = keywordsArray.length > 0 ? keywordsArray.join(', ') : '';
+
 	return {
 		// Basic Meta
 		title: finalTitle,
 		description: props.description,
 		canonical: url,
+		keywords: keywordsString,
 
 		// Open Graph
 		og: {

@@ -344,6 +344,9 @@
 <svelte:head>
     <title>{seoMeta.title}</title>
     <meta name="description" content={seoMeta.description} />
+    {#if seoMeta.keywords}
+        <meta name="keywords" content={seoMeta.keywords} />
+    {/if}
     <link rel="canonical" href={seoMeta.canonical} />
 
     <!-- Open Graph -->

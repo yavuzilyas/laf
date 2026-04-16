@@ -416,17 +416,12 @@ export const getArticles = async (filters: any = {}) => {
         sql += ' WHERE ' + conditions.join(' AND ');
     }
     
-    // Sorting - prioritize admin and moderator articles, but design category always at bottom
+    // Sorting - design category always at bottom
     if (filters.sort_by === 'published_at') {
         sql += ` ORDER BY 
             CASE 
                 WHEN a.category = 'design' THEN 2
                 ELSE 1
-            END,
-            CASE 
-                WHEN u.role = 'admin' THEN 1
-                WHEN u.role = 'moderator' THEN 2
-                ELSE 3
             END,
             a.published_at DESC`;
     } else if (filters.sort_by === 'views') {
@@ -437,11 +432,6 @@ export const getArticles = async (filters: any = {}) => {
                 ELSE 1
             END,
             DATE_TRUNC('month', a.published_at) DESC,
-            CASE 
-                WHEN u.role = 'admin' THEN 1
-                WHEN u.role = 'moderator' THEN 2
-                ELSE 3
-            END,
             a.likes_count DESC,
             a.views DESC,
             a.published_at DESC`;
@@ -450,11 +440,6 @@ export const getArticles = async (filters: any = {}) => {
             CASE 
                 WHEN a.category = 'design' THEN 2
                 ELSE 1
-            END,
-            CASE 
-                WHEN u.role = 'admin' THEN 1
-                WHEN u.role = 'moderator' THEN 2
-                ELSE 3
             END,
             a.created_at DESC`;
     }

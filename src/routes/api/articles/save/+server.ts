@@ -25,7 +25,7 @@ const profanityList = [
   'fuck', 'shit', 'cunt', 'dick', 'pussy'
 ];
 
-function checkArticleRateLimit(userId: string, limit: number = 5, windowMs: number = 3600000): boolean {
+function checkArticleRateLimit(userId: string, limit: number = 5, windowMs: number = 900000): boolean {
   const now = Date.now();
   const key = `article:${userId}`;
   const record = articleRateLimitStore.get(key);
@@ -270,36 +270,36 @@ async function cleanupUnusedMedia(existing: any, updated: any, articleId: string
             }
         }
 
-        // Check article limit for non-privileged users (hourly: max 2 articles per hour)
+        // Check article limit for non-privileged users (15 min: max 10 articles per 15 min)
         if (data.status === 'published' && !isPrivileged) {
-            // Count user's published articles in the last hour
-            const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
+            // Count user's published articles in the last 15 minutes
+            const fifteenMinAgo = new Date(Date.now() - 15 * 60 * 1000);
             
             // Get all articles by user and filter manually for last hour
             const userArticles = await getArticles({ 
                 author_id: user.id 
             });
             
-            const publishedLastHour = userArticles.filter((article: any) => 
-                article.status === 'published' && 
-                new Date(article.created_at) >= oneHourAgo
+            const publishedLast15Min = userArticles.filter((article: any) =>
+                article.status === 'published' &&
+                new Date(article.created_at) >= fifteenMinAgo
             );
 
-            if (publishedLastHour.length >= 10) {
+            if (publishedLast15Min.length >= 10) {
                 return json({
-                    error: 'Saatlik makale yayınlama limitinize ulaştınız. Saatte en fazla 10 makale yayınlayabilirsiniz.'
+                    error: '15 dakikalık makale yayınlama limitinize ulaştınız. 15 dakikada en fazla 10 makale yayınlayabilirsiniz.'
                 }, { status: 403 });
             }
 
-            // Check draft limit for non-privileged users (hourly: max 10 drafts per hour)
+            // Check draft limit for non-privileged users (15 min: max 10 drafts per 15 min)
             // Only check for NEW drafts (not when editing existing draft/article)
             if (!data.id && !data._id) {
-                const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
-                const draftCount = await countDraftsByUser(user.id, oneHourAgo);
+                const fifteenMinAgo = new Date(Date.now() - 15 * 60 * 1000);
+                const draftCount = await countDraftsByUser(user.id, fifteenMinAgo);
 
                 if (draftCount >= 10) {
                     return json({
-                        error: 'Saatlik taslak oluşturma limitinize ulaştınız. Saatte en fazla 10 taslak oluşturabilirsiniz.'
+                        error: '15 dakikalık taslak oluşturma limitinize ulaştınız. 15 dakikada en fazla 10 taslak oluşturabilirsiniz.'
                     }, { status: 403 });
                 }
             }

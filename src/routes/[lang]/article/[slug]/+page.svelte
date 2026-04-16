@@ -2102,7 +2102,11 @@
 			|| t('seo.article.defaultDescription', { title: article.title })}
 
 		<title>{article.title} | {siteName}</title>
+		<meta name="title" content={article.title} />
 		<meta name="description" content={articleDescription} />
+		{#if article.tags?.length}
+			<meta name="keywords" content={article.tags.join(', ')} />
+		{/if}
 		<link rel="canonical" href={articleUrl} />
 
 		<!-- Hreflang Alternate Links -->
