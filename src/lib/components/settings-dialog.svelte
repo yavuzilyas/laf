@@ -871,7 +871,7 @@ function handleOpenChange(newOpen: boolean) {
 									</ToggleGroup.Root>
 								</div>
 								<div class="flex items-center justify-between py-3 px-4 rounded-lg border">
-									<Label for="text-alignment" class="cursor-pointer text-xs">{t('TextAlignment')}</Label>
+									<Label for="text-alignment" class="cursor-pointer text-xs">{t('settings.TextAlignment')}</Label>
 									<ToggleGroup.Root
 										type="single"
 										value={$textAlignment}
