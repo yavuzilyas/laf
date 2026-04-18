@@ -810,7 +810,7 @@ function handleOpenChange(newOpen: boolean) {
 				<Tabs.Content value="interface">
 					<ScrollArea orientation="vertical" class="h-full">
 						<header class="flex h-16 shrink-0 items-center gap-2 transition-[width,height] ease-linear group-has-[[data-collapsible=icon]]/sidebar-wrapper:h-12 border-b">
-							<div class="flex items-center gap-2 px-6">
+							<div class="flex items-center gap-2 px-4">
 								<Breadcrumb.Root>
 									<Breadcrumb.List>
 										<Breadcrumb.Item class="hidden md:block">
@@ -820,9 +820,9 @@ function handleOpenChange(newOpen: boolean) {
 								</Breadcrumb.Root>
 							</div>
 						</header>
-						<main class="flex h-full flex-1 flex-col py-6 px-10 gapy-6 px-10">
+						<main class="flex h-full flex-1 flex-col py-6 px-4 gapy-6">
 							<div class="space-y-2">
-								<div class="flex items-center justify-between py-2 px-3.5 rounded-lg border">
+								<div class="flex items-center justify-between py-2 px-3 rounded-lg border">
 									<Label for="dark-mode" class="cursor-pointer text-xs">{t('DarkMode')}</Label>
 									<Button size="xs" class="w-fit !bg-background/44 h-9 flex flex-row text-xs justify-center gap-2" onclick={toggleMode} variant="outline">
 										<Sun strokeWidth={2.25}
@@ -833,7 +833,7 @@ function handleOpenChange(newOpen: boolean) {
 										/>
 									</Button>
 								</div>
-								<div class="flex items-center justify-between py-2 px-3.5 rounded-lg border">
+								<div class="flex items-center justify-between py-2 px-3 rounded-lg border">
 									<Label for="high-contrast" class="cursor-pointer text-xs">{t('HighContrast')}</Label>
 									<Button size="xs" class="w-fit !bg-background/44 h-9 flex flex-row text-xs justify-center gap-2" onclick={toggleHighContrast} variant="outline">
 										{#if isHighContrast}
@@ -857,7 +857,7 @@ function handleOpenChange(newOpen: boolean) {
 										{/if}
 									</Button>
 								</div>
-								<div class="flex items-center justify-between py-3 px-4 rounded-lg border">
+								<div class="flex items-center justify-between py-3 px-3 rounded-lg border">
 									<Label for="font-size" class="cursor-pointer text-xs">{t('EditorFontSize')}</Label>
 									<ToggleGroup.Root
 										type="single"
@@ -870,7 +870,7 @@ function handleOpenChange(newOpen: boolean) {
 										<ToggleGroup.Item value="large" class="text-xs px-2 h-7">{t('Large')}</ToggleGroup.Item>
 									</ToggleGroup.Root>
 								</div>
-								<div class="flex items-center justify-between py-3 px-4 rounded-lg border">
+								<div class="flex items-center justify-between py-3 px-3 rounded-lg border">
 									<Label for="text-alignment" class="cursor-pointer text-xs">{t('settings.TextAlignment')}</Label>
 									<ToggleGroup.Root
 										type="single"

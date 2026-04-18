@@ -13,17 +13,7 @@ export async function POST({ request, locals }: RequestEvent) {
         }
 
         const data = await request.json();
-        const { questionId, content, contentHtml, attachments, publishImmediately = true } = data;
-
-        // Process attachments - append to contentHtml as <img> tags
-        let finalContentHtml = contentHtml || '';
-        if (attachments && Array.isArray(attachments) && attachments.length > 0) {
-            const attachmentHtml = attachments
-                .filter((url: string) => url && url.startsWith('data:image/'))
-                .map((url: string) => `<br><img src="${url}" style="max-width:100%;height:auto;" /><br>`)
-                .join('');
-            finalContentHtml += attachmentHtml;
-        }
+        const { questionId, content, contentHtml, publishImmediately = true } = data;
 
         // Validation
         if (!questionId) {
@@ -32,6 +22,12 @@ export async function POST({ request, locals }: RequestEvent) {
 
         if (!content || !contentHtml) {
             return json({ error: 'Cevap içeriği gerekli' }, { status: 400 });
+        }
+
+        // Edra editor content is JSON format - no strict character limit
+        // Content structure is validated by checking it's a valid doc format
+        if (typeof content !== 'object' || !content.type || content.type !== 'doc') {
+            return json({ error: 'Geçersiz içerik formatı' }, { status: 400 });
         }
 
         // Check if question exists
@@ -69,7 +65,7 @@ export async function POST({ request, locals }: RequestEvent) {
         const answerResult = await query(insertAnswerQuery, [
             questionId,
             JSON.stringify(content),
-            finalContentHtml,
+            contentHtml,
             user.id
         ]);
 
@@ -108,7 +104,14 @@ export async function POST({ request, locals }: RequestEvent) {
                 id: answer.id,
                 content: answer.content,
                 contentHtml: answer.content_html,
-                createdAt: answer.created_at
+                createdAt: answer.created_at,
+                authorId: user.id,
+                author: {
+                    id: user.id,
+                    username: user.username,
+                    nickname: user.nickname,
+                    avatar: user.avatar
+                }
             },
             question: {
                 id: updatedQuestion.id,
@@ -145,6 +148,12 @@ export async function PUT({ request, locals }: RequestEvent) {
 
         if (!content || !contentHtml) {
             return json({ error: 'Cevap içeriği gerekli' }, { status: 400 });
+        }
+
+        // Edra editor content is JSON format - no strict character limit
+        // Content structure is validated by checking it's a valid doc format
+        if (typeof content !== 'object' || !content.type || content.type !== 'doc') {
+            return json({ error: 'Geçersiz içerik formatı' }, { status: 400 });
         }
 
         // Check if answer exists and get author info (fallback to question.answered_by if author_id is null)
@@ -191,7 +200,14 @@ export async function PUT({ request, locals }: RequestEvent) {
                 id: updatedAnswer.id,
                 content: updatedAnswer.content,
                 contentHtml: updatedAnswer.content_html,
-                updatedAt: updatedAnswer.updated_at
+                updatedAt: updatedAnswer.updated_at,
+                authorId: user.id,
+                author: {
+                    id: user.id,
+                    username: user.username,
+                    nickname: user.nickname,
+                    avatar: user.avatar
+                }
             },
             message: 'Cevap güncellendi'
         });

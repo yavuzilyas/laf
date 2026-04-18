@@ -203,7 +203,9 @@ export async function GET({ url, locals }: RequestEvent) {
                 voteScore: a.vote_score || 0,
                 likeCount: a.like_count || 0,
                 dislikeCount: a.dislike_count || 0,
+                authorId: a.author_id,
                 author: {
+                    id: a.author_id,
                     username: a.username,
                     nickname: a.nickname,
                     avatar: a.avatar_url
@@ -238,30 +240,29 @@ export async function POST({ request, locals }: RequestEvent) {
             title,
             content,
             contentHtml,
-            attachments,
             topicId,
             authorName,
             authorEmail,
             isAnonymous
         } = data;
 
-        // Process attachments - append to contentHtml as <img> tags
-        let finalContentHtml = contentHtml || '';
-        if (attachments && Array.isArray(attachments) && attachments.length > 0) {
-            const attachmentHtml = attachments
-                .filter((url: string) => url && url.startsWith('data:image/'))
-                .map((url: string) => `<br><img src="${url}" style="max-width:100%;height:auto;" /><br>`)
-                .join('');
-            finalContentHtml += attachmentHtml;
-        }
-
         // Validation
         if (!title || title.trim().length < 5) {
             return json({ error: 'Başlık en az 5 karakter olmalıdır' }, { status: 400 });
         }
 
+        if (title.trim().length > 50) {
+            return json({ error: 'Başlık en fazla 50 karakter olabilir' }, { status: 400 });
+        }
+
         if (!content || !contentHtml) {
             return json({ error: 'Soru içeriği gerekli' }, { status: 400 });
+        }
+
+        // Edra editor content is JSON format - no strict character limit
+        // Content structure is validated by checking it's a valid doc format
+        if (typeof content !== 'object' || !content.type || content.type !== 'doc') {
+            return json({ error: 'Geçersiz içerik formatı' }, { status: 400 });
         }
 
         // For non-logged users, require name and email
@@ -297,7 +298,7 @@ export async function POST({ request, locals }: RequestEvent) {
             title.trim(),
             slug,
             JSON.stringify(content),
-            finalContentHtml,
+            contentHtml,
             topicId || null,
             user?.id || null,
             isAnonymous ? null : (user?.username || authorName || null),

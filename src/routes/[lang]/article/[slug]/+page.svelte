@@ -2912,7 +2912,7 @@
 								<EdraToolBar
 									editor={commentEditor}
 									disableFileUploads={true}
-									class="bg-background/44 backdrop-blur-sm border-b rounded-md rounded-b-none flex w-full items-center overflow-x-scroll sm:overflow-x-auto  z-1 self-start"
+									class="bg-background/44 backdrop-blur-sm border-b rounded-md rounded-b-none flex w-full max-w-full items-center overflow-x-auto scrollbar-hide z-1 self-start"
 								/>
 							{/if}
 							<EdraEditor
@@ -3024,11 +3024,11 @@
 											<Separator class="mb-4" />
 											<div class="text-sm mb-2">
 												{#if editingCommentId === comment.id}
-													<div class="border p-2 rounded-lg">
+													<div class="border p-2 rounded-lg overflow-x-auto">
 														{#if editingEditor}
 															<EdraToolBar
 																editor={editingEditor}
-																class="bg-background/44 backdrop-blur-sm border-b rounded-md rounded-b-none flex w-full items-center overflow-x-scroll sm:overflow-x-auto  z-1 self-start"
+																class="bg-background/44 backdrop-blur-sm border-b rounded-md rounded-b-none flex w-full max-w-full items-center overflow-x-auto scrollbar-hide z-1 self-start"
 															/>
 														{/if}
 														<EdraEditor
@@ -3040,7 +3040,11 @@
 															commentId={editingCommentId}
 														/>
 														<div class="flex justify-end gap-2 mt-2">
-															<Button variant="ghost" size="xs" onclick={cancelEditComment}>
+															<Button
+																variant="ghost"
+																size="sm"
+																onclick={cancelEditComment}
+															>
 																{t('articles.comments.cancel')}
 															</Button>
 															<Button
@@ -3187,11 +3191,11 @@
 											{#if replyingTo === comment.id}
 												<div class="mt-4">
 													{#key replyingTo}
-														<div class="mb-2 border p-2 rounded-lg max-w-[92vw]">
+														<div class="mb-2 border p-2 rounded-lg max-w-full overflow-x-auto">
 															{#if replyEditors[comment.id]}
 																<EdraToolBar
 																	editor={replyEditors[comment.id]}
-																	class="bg-background/44 backdrop-blur-sm border-b rounded-md rounded-b-none flex w-full items-center overflow-x-scroll sm:overflow-x-auto  z-1 self-start"
+																	class="bg-background/44 backdrop-blur-sm border-b rounded-md rounded-b-none flex w-full max-w-full items-center overflow-x-auto scrollbar-hide z-1 self-start"
 																/>
 															{/if}
 															<EdraEditor
@@ -3300,7 +3304,7 @@
 																							<EyeOff class="h-3 w-3 text-orange-600" />
 																						</Tooltip.Trigger>
 																						<Tooltip.Content>
-																							<p>{t('articles.comments.hidden')}</p>
+																							<p>{t('hidden')}</p>
 																						</Tooltip.Content>
 																					</Tooltip.Root>
 																				</Tooltip.Provider>
@@ -3316,11 +3320,11 @@
 																<Separator />
 																<div class="text-sm my-3">
 																	{#if editingCommentId === reply.id}
-																		<div class="mb-2 border p-2 rounded-lg max-w-[92vw]">
+																		<div class="mb-2 border p-2 rounded-lg max-w-full overflow-x-auto">
 																			{#if editingEditor}
 																				<EdraToolBar
 																					editor={editingEditor}
-																					class="bg-background/44 backdrop-blur-sm border-b rounded-md rounded-b-none flex w-full items-center overflow-x-scroll sm:overflow-x-auto  z-1 self-start"
+																					class="bg-background/44 backdrop-blur-sm border-b rounded-md rounded-b-none flex w-full max-w-full items-center overflow-x-auto scrollbar-hide z-1 self-start"
 																				/>
 																			{/if}
 																			<EdraEditor
@@ -3486,13 +3490,13 @@
 
 																<!-- Reply form for this reply -->
 																{#if replyingTo === reply.id}
-																	<div class="mt-3 border p-2 rounded-lg">
+																	<div class="mt-3 border p-2 rounded-lg overflow-x-auto">
 																		{#key replyingTo}
-																			<div class="mb-2 max-w-[65vw]">
+																			<div class="mb-2 max-w-full">
 																				{#if replyEditors[reply.id]}
 																					<EdraToolBar
 																						editor={replyEditors[reply.id]}
-																						class="bg-background/44 backdrop-blur-sm border-b rounded-md rounded-b-none flex w-full items-center overflow-x-scroll sm:overflow-x-auto  z-1 self-start"
+																						class="bg-background/44 backdrop-blur-sm border-b rounded-md rounded-b-none flex w-full max-w-full items-center overflow-x-auto scrollbar-hide z-1 self-start"
 																					/>
 																				{/if}
 																				<EdraEditor
@@ -3766,13 +3770,13 @@
 
 				<!-- Reply form -->
 				{#if replyingTo === reply.id}
-					<div class="mt-2 ml-2 border p-1 rounded-lg">
+					<div class="mt-2 ml-2 border p-1 rounded-lg overflow-x-auto">
 						{#key replyingTo}
-							<div class="mb-1 max-w-[65vw] sm:max-w-[40vw]">
+							<div class="mb-1 max-w-full">
 								{#if replyEditors[reply.id]}
 									<EdraToolBar
 										editor={replyEditors[reply.id]}
-										class="bg-background/44 backdrop-blur-sm border-b rounded-md rounded-b-none flex w-full items-center overflow-x-scroll sm:overflow-x-auto  z-1 self-start"
+										class="bg-background/44 backdrop-blur-sm border-b rounded-md rounded-b-none flex w-full max-w-full items-center overflow-x-auto scrollbar-hide z-1 self-start"
 									/>
 								{/if}
 								<EdraEditor
@@ -4000,13 +4004,13 @@
 							<div class="text-sm my-3">
 								{#if editingCommentId === comment.id}
 									<!-- Edit form -->
-									<div class="border p-2 rounded-lg">
+									<div class="border p-2 rounded-lg overflow-x-auto">
 										{#key editingCommentId}
-											<div class="mb-2 max-w-[65vw] sm:max-w-[40vw]">
+											<div class="mb-2 max-w-full">
 												{#if editingEditor}
 													<EdraToolBar
 														editor={editingEditor}
-														class="bg-background/44 backdrop-blur-sm border-b rounded-md rounded-b-none flex w-full items-center overflow-x-scroll sm:overflow-x-auto  z-1 self-start"
+														class="bg-background/44 backdrop-blur-sm border-b rounded-md rounded-b-none flex w-full max-w-full items-center overflow-x-auto scrollbar-hide z-1 self-start"
 													/>
 												{/if}
 												<EdraEditor
@@ -4163,13 +4167,13 @@
 					</div>
 					<!-- Reply form -->
 					{#if replyingTo === comment.id}
-						<div class="mt-3 border p-2 rounded-lg">
+						<div class="mt-3 border p-2 rounded-lg overflow-x-auto">
 							{#key replyingTo}
-								<div class="mb-2 max-w-[65vw] sm:max-w-[40vw]">
+								<div class="mb-2 max-w-full">
 									{#if replyEditors[comment.id]}
 										<EdraToolBar
 											editor={replyEditors[comment.id]}
-											class="bg-background/44 backdrop-blur-sm border-b rounded-md rounded-b-none flex w-full items-center overflow-x-scroll sm:overflow-x-auto  z-1 self-start"
+											class="bg-background/44 backdrop-blur-sm border-b rounded-md rounded-b-none flex w-full max-w-full items-center overflow-x-auto scrollbar-hide z-1 self-start"
 										/>
 									{/if}
 									<EdraEditor
@@ -4287,14 +4291,14 @@
 				<div class="text-xs my-2">
 					{#if editingCommentId === reply.id}
 						<!-- Edit form for nested reply -->
-						<div class="border p-2 rounded-lg">
+						<div class="border p-2 rounded-lg overflow-x-auto">
 							{#key editingCommentId}
-								<div class="mb-2 max-w-[65vw] sm:max-w-[40vw]">
+								<div class="mb-2 max-w-full">
 									{#if editingEditor}
 										<EdraToolBar
 											editor={editingEditor}
-											class="bg-background/44 backdrop-blur-sm border-b rounded-md rounded-b-none flex w-full items-center overflow-x-scroll sm:overflow-x-auto  z-1 self-start"
-										/>/>
+											class="bg-background/44 backdrop-blur-sm border-b rounded-md rounded-b-none flex w-full max-w-full items-center overflow-x-auto scrollbar-hide z-1 self-start"
+										/>
 									{/if}
 									<EdraEditor
 										bind:editor={editingEditor}
@@ -4469,11 +4473,11 @@
 		{#if replyingTo === reply.id}
 			<div class="mt-2 ml-2 border p-1 rounded-lg">
 				{#key replyingTo}
-					<div class="mb-1 max-w-[65vw] sm:max-w-[40vw]">
+					<div class="mb-1 max-w-full">
 						{#if replyEditors[reply.id]}
 							<EdraToolBar
 								editor={replyEditors[reply.id]}
-								class="bg-background/44 backdrop-blur-sm border-b rounded-md rounded-b-none flex w-full items-center overflow-x-scroll sm:overflow-x-auto  z-1 self-start"
+								class="bg-background/44 backdrop-blur-sm border-b rounded-md rounded-b-none flex w-full max-w-full items-center overflow-x-auto scrollbar-hide z-1 self-start"
 							/>
 						{/if}
 						<EdraEditor

@@ -12,7 +12,10 @@
     beforeNavigate(() => {
         userReactions = {};
     });
-    // File upload
+    // Edra Editor
+    import { EdraEditor, EdraToolBar } from '$lib/components/edra/shadcn/index.js';
+
+    // File upload - kept for reference, will be handled by editor
     import { Upload, X, Image as ImageIcon } from '@lucide/svelte';
    
     
@@ -175,19 +178,18 @@
     let questionAuthorName = $state('');
     let questionAuthorEmail = $state('');
     let isAnonymous = $state(false);
-    let questionContent = $state('');
-    let questionAttachments: {id: string, file: File, preview?: string}[] = $state([]);
+    let questionContent = $state({ type: 'doc', content: [{ type: 'paragraph' }] }); // Edra editor JSON content
+    let questionEditor = $state<any>(null); // Edra editor instance
     let isSubmitting = $state(false);
-    let questionFileInput: HTMLInputElement | null = $state(null);
     let editingQuestion: any = $state(null); // Stores question being edited
+    let editingQuestionId = $state<string | null>(null); // Track question ID for file uploads
 
     // Answer form state - inline forms per question
     let answeringQuestionId: string | null = $state(null);
     let editingAnswerId: string | null = $state(null);
-    let answerContent = $state('');
-    let answerAttachments: {id: string, file: File, preview?: string}[] = $state([]);
+    let answerContent = $state({ type: 'doc', content: [{ type: 'paragraph' }] }); // Edra editor JSON content
+    let answerEditors = $state<Record<string, any>>({}); // Map of questionId -> editor instance
     let isAnswering = $state(false);
-    let answerFileInput: HTMLInputElement | null = $state(null);
     let publishImmediately = $state(true);
 
     // Moderator pending questions
@@ -424,6 +426,9 @@
 
     // Track expanded question for view counting
     let expandedQuestionId = $state<string | null>(null);
+    
+    // Accordion value state for controlling accordion open/close
+    let accordionValue = $state<string>('');
 
     // Delete confirmation dialog states
     let deleteDialogOpen = $state(false);
@@ -474,61 +479,22 @@
         }
     }
 
-    // File upload handlers
-    function handleQuestionFileSelect(event: Event) {
-        const input = event.target as HTMLInputElement;
-        if (input.files) {
-            const files = Array.from(input.files);
-            files.forEach(file => {
-                if (file.type.startsWith('image/')) {
-                    const reader = new FileReader();
-                    reader.onload = (e) => {
-                        questionAttachments = [...questionAttachments, {
-                            id: crypto.randomUUID(),
-                            file,
-                            preview: e.target?.result as string
-                        }];
-                    };
-                    reader.readAsDataURL(file);
-                }
-            });
-        }
-        input.value = '';
-    }
-
-    function removeQuestionAttachment(id: string) {
-        questionAttachments = questionAttachments.filter(a => a.id !== id);
-    }
-
-    function handleAnswerFileSelect(event: Event) {
-        const input = event.target as HTMLInputElement;
-        if (input.files) {
-            const files = Array.from(input.files);
-            files.forEach(file => {
-                if (file.type.startsWith('image/')) {
-                    const reader = new FileReader();
-                    reader.onload = (e) => {
-                        answerAttachments = [...answerAttachments, {
-                            id: crypto.randomUUID(),
-                            file,
-                            preview: e.target?.result as string
-                        }];
-                    };
-                    reader.readAsDataURL(file);
-                }
-            });
-        }
-        input.value = '';
-    }
-
-    function removeAnswerAttachment(id: string) {
-        answerAttachments = answerAttachments.filter(a => a.id !== id);
-    }
-
     function openEditQuestionDialog(question: any) {
         editingQuestion = question;
+        editingQuestionId = question.id;
         questionTitle = question.title || '';
-        questionContent = question.content?.text || question.contentHtml?.replace(/<br>/g, '\n') || '';
+        // Handle edra editor content format
+        if (question.content && typeof question.content === 'object' && question.content.type === 'doc') {
+            questionContent = question.content;
+        } else if (question.contentHtml) {
+            // Convert HTML to plain text for the editor
+            const tempDiv = document.createElement('div');
+            tempDiv.innerHTML = question.contentHtml;
+            const text = tempDiv.textContent || tempDiv.innerText || '';
+            questionContent = { type: 'doc', content: [{ type: 'paragraph', content: text ? [{ type: 'text', text }] : [] }] };
+        } else {
+            questionContent = { type: 'doc', content: [{ type: 'paragraph' }] };
+        }
         questionTopicId = question.topic?.id || '';
         isAnonymous = question.isAnonymous || false;
         showAskForm = true;
@@ -546,13 +512,21 @@
             return;
         }
 
-        if (!questionContent.trim()) {
+        // Get content from editor - check if editor has content
+        const editorContent = questionEditor?.getJSON();
+        const hasContent = editorContent && (
+            editorContent.content?.length > 1 ||
+            (editorContent.content?.[0]?.content?.length > 0) ||
+            (editorContent.content?.[0]?.type !== 'paragraph')
+        );
+
+        if (!hasContent) {
             showToast('Soru içeriği gerekli', 'error');
             return;
         }
 
-        // Convert newlines to HTML
-        const contentHtml = questionContent.replace(/\n/g, '<br>');
+        // Get HTML from editor
+        const contentHtml = questionEditor?.getHTML() || '';
 
         isSubmitting = true;
         try {
@@ -565,9 +539,8 @@
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     title: questionTitle.trim(),
-                    content: { text: questionContent },
+                    content: editorContent,
                     contentHtml,
-                    attachments: questionAttachments.map(a => a.preview),
                     topicId: questionTopicId || null,
                     authorName: user ? user.username : questionAuthorName,
                     authorEmail: user ? user.nickname : questionAuthorEmail,
@@ -578,15 +551,16 @@
             if (response.ok) {
                 const result = await response.json();
                 showToast(result.message || (isEditing ? 'Soru güncellendi' : 'Sorunuz gönderildi'), 'success');
-                
+
                 questionTitle = '';
                 questionTopicId = '';
                 questionAuthorName = '';
                 questionAuthorEmail = '';
                 isAnonymous = false;
-                questionContent = '';
-                questionAttachments = [];
+                questionContent = { type: 'doc', content: [{ type: 'paragraph' }] };
+                questionEditor = null;
                 editingQuestion = null;
+                editingQuestionId = null;
                 showAskForm = false;
 
                 if (isModerator) {
@@ -606,13 +580,24 @@
     }
 
     async function submitAnswer(questionId: string, answerId?: string) {
-        if (!answerContent.trim()) {
+        // Get the editor instance for this question
+        const editor = answerEditors[questionId];
+
+        // Get content from editor - check if editor has content
+        const editorContent = editor?.getJSON();
+        const hasContent = editorContent && (
+            editorContent.content?.length > 1 ||
+            (editorContent.content?.[0]?.content?.length > 0) ||
+            (editorContent.content?.[0]?.type !== 'paragraph')
+        );
+
+        if (!hasContent) {
             showToast('Cevap içeriği gerekli', 'error');
             return;
         }
 
-        // Convert newlines to HTML
-        const contentHtml = answerContent.replace(/\n/g, '<br>');
+        // Get HTML from editor
+        const contentHtml = editor?.getHTML() || '';
 
         const isEditing = !!answerId;
 
@@ -620,11 +605,10 @@
         try {
             const url = '/api/qa/answer';
             const method = isEditing ? 'PUT' : 'POST';
-            
+
             const requestBody: any = {
-                content: { text: answerContent },
-                contentHtml,
-                attachments: answerAttachments.map(a => a.preview)
+                content: editorContent,
+                contentHtml
             };
 
             if (isEditing) {
@@ -635,7 +619,7 @@
                 requestBody.questionId = questionId;
                 requestBody.publishImmediately = publishImmediately;
             }
-            
+
             const response = await fetch(url, {
                 method,
                 headers: { 'Content-Type': 'application/json' },
@@ -645,12 +629,13 @@
             if (response.ok) {
                 const result = await response.json();
                 showToast(result.message || (isEditing ? 'Cevap güncellendi' : 'Cevap gönderildi'), 'success');
-                
+
                 // Reset inline form state
                 answeringQuestionId = null;
                 editingAnswerId = null;
-                answerContent = '';
-                answerAttachments = [];
+                answerContent = { type: 'doc', content: [{ type: 'paragraph' }] };
+                // Clear the editor for this question
+                delete answerEditors[questionId];
 
                 loadModeratorQuestions();
                 refreshPublicQuestions();
@@ -666,25 +651,40 @@
     }
 
     function cancelAnswerForm() {
+        const questionId = answeringQuestionId;
         answeringQuestionId = null;
         editingAnswerId = null;
-        answerContent = '';
-        answerAttachments = [];
+        answerContent = { type: 'doc', content: [{ type: 'paragraph' }] };
+        // Clear the editor for this question
+        if (questionId) {
+            delete answerEditors[questionId];
+        }
     }
 
     function openAnswerForm(question: any, existingAnswer?: any) {
         if (existingAnswer) {
             // Editing mode
             editingAnswerId = existingAnswer.id;
-            answerContent = existingAnswer.content?.text || '';
+            // Handle edra editor content format
+            if (existingAnswer.content && typeof existingAnswer.content === 'object' && existingAnswer.content.type === 'doc') {
+                answerContent = existingAnswer.content;
+            } else if (existingAnswer.contentHtml) {
+                // Convert HTML to plain text for the editor
+                const tempDiv = document.createElement('div');
+                tempDiv.innerHTML = existingAnswer.contentHtml;
+                const text = tempDiv.textContent || tempDiv.innerText || '';
+                answerContent = { type: 'doc', content: [{ type: 'paragraph', content: text ? [{ type: 'text', text }] : [] }] };
+            } else {
+                answerContent = { type: 'doc', content: [{ type: 'paragraph' }] };
+            }
         } else {
             // New answer mode
             editingAnswerId = null;
-            answerContent = '';
+            answerContent = { type: 'doc', content: [{ type: 'paragraph' }] };
         }
         answeringQuestionId = question.id;
-        answerAttachments = [];
         // Ensure accordion is expanded so the inline form is visible
+        accordionValue = `answer-${question.id}`;
         onQuestionExpand(question.id);
     }
 
@@ -1169,23 +1169,38 @@
     }
 
 
-    // Track view when expanding question
+    // Track view when expanding question (15 min cooldown per question)
     async function onQuestionExpand(questionId: string) {
         if (expandedQuestionId !== questionId) {
             expandedQuestionId = questionId;
-            // Increment view count locally
-            questions = questions.map((q: any) => 
-                q.id === questionId ? { ...q, viewCount: (q.viewCount || 0) + 1 } : q
-            );
-            // Track view on server
-            try {
-                await fetch('/api/qa/view', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ questionId })
-                });
-            } catch (e) {
-                // Silent fail for view tracking
+            
+            // Check if 15 minutes have passed since last view
+            const VIEW_COOLDOWN_MS = 15 * 60 * 1000; // 15 minutes
+            const storageKey = `qa_view_${questionId}`;
+            const lastViewTime = localStorage.getItem(storageKey);
+            const now = Date.now();
+            
+            const shouldCountView = !lastViewTime || (now - parseInt(lastViewTime)) > VIEW_COOLDOWN_MS;
+            
+            if (shouldCountView) {
+                // Store current time
+                localStorage.setItem(storageKey, now.toString());
+                
+                // Increment view count locally
+                questions = questions.map((q: any) => 
+                    q.id === questionId ? { ...q, viewCount: (q.viewCount || 0) + 1 } : q
+                );
+                
+                // Track view on server
+                try {
+                    await fetch('/api/qa/view', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ questionId })
+                    });
+                } catch (e) {
+                    // Silent fail for view tracking
+                }
             }
         }
     }
@@ -1363,160 +1378,125 @@
             <!-- Inline Ask Form (Twitter/X style) -->
             {#if showAskForm}
                 <div id="ask-form-container" class="mb-6 transition-all duration-200">
-                    <Card class="bg-background border-border">
-                        <CardContent class="p-4">
-                            <div class="flex gap-3">
-                                <Avatar.Root class="h-10 w-10 shrink-0">
+                    <Card class="bg-background border-border overflow-hidden">
+                        <div class="flex">
+                            <!-- Sidebar - Same as question card -->
+                            <div class="flex flex-col items-center gap-1 py-1 px-1 md:px-2 md:py-2 border-r border-border/60 md:min-w-[44px] min-w-[36px] shrink-0">
+                                <Avatar.Root class="h-8 w-8">
                                     {#if (user as any)?.avatar}
                                         <Avatar.Image src={(user as any).avatar} alt={user?.username || 'Kullanıcı'} />
                                     {/if}
-                                    <Avatar.Fallback class="bg-primary/10 text-primary">
+                                    <Avatar.Fallback class="bg-primary/10 text-primary text-xs">
                                         {user ? (user.username?.[0] || 'U').toUpperCase() : '?'}
                                     </Avatar.Fallback>
                                 </Avatar.Root>
-                                <div class="flex-1 min-w-0 space-y-3">
-                                    <!-- Topic Selection (inline) -->
-                                    <div class="flex items-center gap-2">
-                                        <Select.Root type="single" bind:value={questionTopicId}>
-                                            <Select.Trigger class="w-auto h-8 text-xs px-2 py-1">
-                                                <span class="text-muted-foreground">{questionTopicId ? topics.find((t: any) => t.id === questionTopicId)?.name : '+ Konu ekle'}</span>
-                                            </Select.Trigger>
-                                            <Select.Content class="z-50">
-                                                <Select.Item value="">Konu seçin</Select.Item>
-                                                {#each topics as topic (topic.id)}
-                                                    <Select.Item value={topic.id}>{topic.name}</Select.Item>
-                                                {/each}
-                                            </Select.Content>
-                                        </Select.Root>
-                                    </div>
-                                    
-                                    <!-- Title Input -->
-                                    <Input
-                                        bind:value={questionTitle}
-                                        placeholder="Sorunuzın başlığı..."
-                                        class="border-0 bg-transparent px-0 text-lg font-medium placeholder:text-muted-foreground/60 focus-visible:ring-0 focus-visible:ring-offset-0"
-                                    />
-                                    
-                                    <!-- Content Textarea -->
-                                    <textarea
-                                        bind:value={questionContent}
+                            </div>
+                            
+                            <!-- Content Area -->
+                            <div class="flex-1 min-w-0 p-3 md:p-4 space-y-3">
+                                <!-- Topic Selection (inline) -->
+                                <div class="flex items-center gap-2">
+                                    <Select.Root type="single" bind:value={questionTopicId}>
+                                        <Select.Trigger class="w-auto h-8 text-xs px-2 py-1">
+                                            <span class="text-muted-foreground">{questionTopicId ? topics.find((t: any) => t.id === questionTopicId)?.name : '+ Konu ekle'}</span>
+                                        </Select.Trigger>
+                                        <Select.Content class="z-50">
+                                            <Select.Item value="">Konu seçin</Select.Item>
+                                            {#each topics as topic (topic.id)}
+                                                <Select.Item value={topic.id}>{topic.name}</Select.Item>
+                                            {/each}
+                                        </Select.Content>
+                                    </Select.Root>
+                                </div>
+                                
+                                <!-- Title Input -->
+                                <Input
+                                    bind:value={questionTitle}
+                                    placeholder="Sorunuzın başlığı..."
+                                    maxlength="50"
+                                    class="border-0 bg-transparent px-0 text-lg font-medium placeholder:text-muted-foreground/60 focus-visible:ring-0 focus-visible:ring-offset-0"
+                                />
+                                
+                                <!-- Content Editor -->
+                                <div class="border rounded-lg overflow-hidden bg-background">
+                                    <EdraToolBar editor={questionEditor} />
+                                    <EdraEditor
+                                        bind:editor={questionEditor}
+                                        content={questionContent}
+                                        onUpdate={(editor: any) => {
+                                            questionContent = editor.getJSON();
+                                        }}
                                         placeholder="Sorunuzu detaylandırın..."
-                                        rows={3}
-                                        maxlength="250"
-                                        class="w-full bg-transparent border-0 px-0 resize-none focus:outline-none focus:ring-0 placeholder:text-muted-foreground/60 text-sm"
-                                    ></textarea>
-                                    
-                                    <!-- Character Count & Attachments -->
-                                    <div class="flex items-center justify-between pt-2 border-t border-border/60">
-                                        <div class="flex items-center gap-2">
-                                            <input
-                                                bind:this={questionFileInput}
-                                                type="file"
-                                                accept="image/*"
-                                                multiple
-                                                class="hidden"
-                                                onchange={handleQuestionFileSelect}
-                                            />
-                                            <Button
-                                                type="button"
-                                                variant="ghost"
-                                                size="icon"
-                                                class="h-8 w-8 text-primary hover:bg-primary/10"
-                                                onclick={() => questionFileInput?.click()}
-                                            >
-                                                <ImageIcon class="w-5 h-5" />
-                                            </Button>
-                                            
-                                            {#if questionAttachments.length > 0}
-                                                <div class="flex flex-wrap gap-2">
-                                                    {#each questionAttachments as attachment (attachment.id)}
-                                                        <div class="relative group">
-                                                            <img
-                                                                src={attachment.preview}
-                                                                alt="Attachment"
-                                                                class="w-12 h-12 object-cover rounded-lg border"
-                                                            />
-                                                            <button
-                                                                type="button"
-                                                                onclick={() => removeQuestionAttachment(attachment.id)}
-                                                                class="absolute -top-1 -right-1 w-4 h-4 bg-destructive text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
-                                                            >
-                                                                <X class="w-2.5 h-2.5" />
-                                                            </button>
-                                                        </div>
-                                                    {/each}
-                                                </div>
-                                            {/if}
-                                        </div>
-                                        <span class="text-xs text-muted-foreground">{questionContent.length}/250</span>
+                                        class="min-h-[150px] max-h-[300px] overflow-y-auto p-3"
+                                    />
+                                </div>
+                                
+                                <!-- Guest Info (if not logged in) -->
+                                {#if !user}
+                                    <div class="grid grid-cols-2 gap-3 pt-2">
+                                        <Input 
+                                            bind:value={questionAuthorName}
+                                            placeholder="İsminiz"
+                                            class="h-9 text-sm"
+                                        />
+                                        <Input 
+                                            bind:value={questionAuthorEmail}
+                                            type="email"
+                                            placeholder="E-posta"
+                                            class="h-9 text-sm"
+                                        />
                                     </div>
-                                    
-                                    <!-- Guest Info (if not logged in) -->
-                                    {#if !user}
-                                        <div class="grid grid-cols-2 gap-3 pt-2">
-                                            <Input 
-                                                bind:value={questionAuthorName}
-                                                placeholder="İsminiz"
-                                                class="h-9 text-sm"
-                                            />
-                                            <Input 
-                                                bind:value={questionAuthorEmail}
-                                                type="email"
-                                                placeholder="E-posta"
-                                                class="h-9 text-sm"
-                                            />
-                                        </div>
-                                    {/if}
-                                    
-                                    <!-- Anonymous Option -->
-                                    {#if user && !editingQuestion}
-                                        <div class="flex items-center gap-2 pt-2">
-                                            <input 
-                                                type="checkbox" 
-                                                id="anonymous" 
-                                                bind:checked={isAnonymous}
-                                                class="rounded border-gray-300"
-                                            />
-                                            <Label for="anonymous" class="cursor-pointer text-sm text-muted-foreground">
-                                                Anonim olarak sor
-                                            </Label>
-                                        </div>
-                                    {/if}
-                                    
-                                    <!-- Action Buttons -->
-                                    <div class="flex justify-end gap-2 pt-3">
-                                        <Button 
-                                            variant="ghost" 
-                                            size="sm" 
-                                            onclick={() => { 
-                                                showAskForm = false; 
-                                                editingQuestion = null;
-                                                questionTitle = '';
-                                                questionContent = '';
-                                                questionTopicId = '';
-                                                questionAttachments = [];
-                                            }}
-                                        >
-                                            İptal
-                                        </Button>
-                                        <Button 
-                                            size="sm" 
-                                            onclick={submitQuestion} 
-                                            disabled={isSubmitting || !questionTitle.trim() || questionTitle.trim().length < 5 || !questionContent.trim()}
-                                            class="gap-2"
-                                        >
-                                            {#if isSubmitting}
-                                                <Loader2 class="w-4 h-4 animate-spin" />
-                                                {editingQuestion ? 'Güncelleniyor...' : 'Gönderiliyor...'}
-                                            {:else}
-                                                <Send class="w-4 h-4" />
-                                                {editingQuestion ? 'Güncelle' : 'Soruyu Gönder'}
-                                            {/if}
-                                        </Button>
+                                {/if}
+                                
+                                <!-- Anonymous Option -->
+                                {#if user && !editingQuestion}
+                                    <div class="flex items-center gap-2 pt-2">
+                                        <input 
+                                            type="checkbox" 
+                                            id="anonymous" 
+                                            bind:checked={isAnonymous}
+                                            class="rounded border-gray-300"
+                                        />
+                                        <Label for="anonymous" class="cursor-pointer text-sm text-muted-foreground">
+                                            Anonim olarak sor
+                                        </Label>
                                     </div>
+                                {/if}
+                                
+                                <!-- Action Buttons -->
+                                <div class="flex justify-end gap-2 pt-3">
+                                    <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        onclick={() => {
+                                            showAskForm = false;
+                                            editingQuestion = null;
+                                            editingQuestionId = null;
+                                            questionTitle = '';
+                                            questionContent = { type: 'doc', content: [{ type: 'paragraph' }] };
+                                            questionEditor = null;
+                                            questionTopicId = '';
+                                        }}
+                                    >
+                                        İptal
+                                    </Button>
+                                    <Button
+                                        size="sm"
+                                        onclick={submitQuestion}
+                                        disabled={isSubmitting || !questionTitle.trim() || questionTitle.trim().length < 5}
+                                        class="gap-2"
+                                    >
+                                        {#if isSubmitting}
+                                            <Loader2 class="w-4 h-4 animate-spin" />
+                                            {editingQuestion ? 'Güncelleniyor...' : 'Gönderiliyor...'}
+                                        {:else}
+                                            <Send class="w-4 h-4" />
+                                            {editingQuestion ? 'Güncelle' : 'Soruyu Gönder'}
+                                        {/if}
+                                    </Button>
                                 </div>
                             </div>
-                        </CardContent>
+                        </div>
                     </Card>
                 </div>
             {/if}
@@ -1780,69 +1760,37 @@
                                                         <div class="mt-4">
                                                             {#if answeringQuestionId === question.id}
                                                                 <!-- Inline Answer Form for questions without answers -->
-                                                                <div class="border-t border-border/60 pt-4">
-                                                                    <div class="flex gap-3">
-                                                                        <Avatar.Root class="h-10 w-10 shrink-0">
-                                                                            {#if (user as any)?.avatar}
-                                                                                <Avatar.Image src={(user as any).avatar} alt={user?.username || 'Kullanıcı'} />
-                                                                            {/if}
-                                                                            <Avatar.Fallback class="bg-primary/10 text-primary">
-                                                                                {(user?.username?.[0] || 'U').toUpperCase()}
-                                                                            </Avatar.Fallback>
-                                                                        </Avatar.Root>
-                                                                        <div class="flex-1 min-w-0 space-y-3">
-                                                                            <textarea
-                                                                                bind:value={answerContent}
-                                                                                placeholder="Cevabınızı yazın..."
-                                                                                rows={3}
-                                                                                class="w-full bg-transparent border-0 px-0 resize-none focus:outline-none focus:ring-0 placeholder:text-muted-foreground/60 text-sm"
-                                                                            ></textarea>
-                                                                            
-                                                                            <!-- Attachments -->
-                                                                            <div class="flex items-center gap-2">
-                                                                                <input
-                                                                                    bind:this={answerFileInput}
-                                                                                    type="file"
-                                                                                    accept="image/*"
-                                                                                    multiple
-                                                                                    class="hidden"
-                                                                                    onchange={handleAnswerFileSelect}
-                                                                                />
-                                                                                <Button
-                                                                                    type="button"
-                                                                                    variant="ghost"
-                                                                                    size="icon"
-                                                                                    class="h-8 w-8 text-primary hover:bg-primary/10"
-                                                                                    onclick={() => answerFileInput?.click()}
-                                                                                >
-                                                                                    <ImageIcon class="w-5 h-5" />
-                                                                                </Button>
-                                                                                
-                                                                                {#if answerAttachments.length > 0}
-                                                                                    <div class="flex flex-wrap gap-2">
-                                                                                        {#each answerAttachments as attachment (attachment.id)}
-                                                                                            <div class="relative group">
-                                                                                                <img
-                                                                                                    src={attachment.preview}
-                                                                                                    alt="Attachment"
-                                                                                                    class="w-12 h-12 object-cover rounded-lg border"
-                                                                                                />
-                                                                                                <button
-                                                                                                    type="button"
-                                                                                                    onclick={() => removeAnswerAttachment(attachment.id)}
-                                                                                                    class="absolute -top-1 -right-1 w-4 h-4 bg-destructive text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
-                                                                                                >
-                                                                                                    <X class="w-2.5 h-2.5" />
-                                                                                                </button>
-                                                                                            </div>
-                                                                                        {/each}
-                                                                                    </div>
+                                                                <Card class="bg-background/50 border-border mt-4 overflow-hidden">
+                                                                    <div class="flex">
+                                                                        <!-- Sidebar - Same as question/answer cards -->
+                                                                        <div class="flex flex-col items-center gap-1 py-1 px-1 md:px-2 md:py-2 border-r border-border/60 md:min-w-[44px] min-w-[36px] shrink-0">
+                                                                            <Avatar.Root class="h-8 w-8">
+                                                                                {#if (user as any)?.avatar}
+                                                                                    <Avatar.Image src={(user as any).avatar} alt={user?.username || 'Kullanıcı'} />
                                                                                 {/if}
+                                                                                <Avatar.Fallback class="bg-primary/10 text-primary text-xs">
+                                                                                    {(user?.username?.[0] || 'U').toUpperCase()}
+                                                                                </Avatar.Fallback>
+                                                                            </Avatar.Root>
+                                                                        </div>
+                                                                        
+                                                                        <!-- Content Area -->
+                                                                        <div class="flex-1 min-w-0 p-3 md:p-4 space-y-3">
+                                                                            <!-- Content Editor -->
+                                                                            <div class="border rounded-lg overflow-hidden bg-background">
+                                                                                <EdraToolBar editor={answerEditors[question.id]} />
+                                                                                <EdraEditor
+                                                                                    bind:editor={answerEditors[question.id]}
+                                                                                    content={answerContent}
+                                                                                    onUpdate={() => {}}
+                                                                                    placeholder="Cevabınızı yazın..."
+                                                                                    class="min-h-[120px] max-h-[250px] overflow-y-auto p-3"
+                                                                                />
                                                                             </div>
                                                                             
                                                                             <!-- Publish Options (Moderators only) -->
                                                                             {#if isModerator}
-                                                                                <div class="flex items-center gap-2">
+                                                                                <div class="flex items-center gap-2 pt-2">
                                                                                     <input 
                                                                                         type="checkbox" 
                                                                                         id="publishImmediately-{question.id}" 
@@ -1856,7 +1804,7 @@
                                                                             {/if}
                                                                             
                                                                             <!-- Action Buttons -->
-                                                                            <div class="flex justify-end gap-2">
+                                                                            <div class="flex justify-end gap-2 pt-3">
                                                                                 <Button 
                                                                                     variant="ghost" 
                                                                                     size="sm" 
@@ -1864,13 +1812,13 @@
                                                                                 >
                                                                                     İptal
                                                                                 </Button>
-                                                                                <Button 
-                                                                                    size="sm" 
+                                                                                <Button
+                                                                                    size="sm"
                                                                                     onclick={() => {
                                                                                         console.log('Submit answer clicked (no answers)', question.id, editingAnswerId);
                                                                                         submitAnswer(question.id, editingAnswerId || undefined);
                                                                                     }}
-                                                                                    disabled={isAnswering || !answerContent.trim()}
+                                                                                    disabled={isAnswering}
                                                                                     class="gap-2"
                                                                                 >
                                                                                     {#if isAnswering}
@@ -1884,7 +1832,7 @@
                                                                             </div>
                                                                         </div>
                                                                     </div>
-                                                                </div>
+                                                                </Card>
                                                             {:else if user && !question.hasUserAnswered}
                                                                 <!-- Any logged-in user who hasn't answered can answer -->
                                                                 <Button 
@@ -1911,10 +1859,10 @@
                         <!-- Answer Section (Outside Card) -->
                         {#if question.answers?.length > 0}
                         {@const firstAnswer = question.answers[0]}
-                        <Accordion.Root type="single" class="border-x border-b rounded-b-lg -mt-5">
+                        <Accordion.Root type="single" bind:value={accordionValue} class="border-x border-b border-border/60 rounded-b-lg -mt-5 overflow-hidden">
                             <Accordion.Item value="answer-{question.id}" class="border-0">
                                 <Accordion.Trigger
-                                    class="pb-2 pt-3 pl-10 pr-3 hover:no-underline w-full justify-start gap-2 text-left [&[data-state=open]>svg]:rotate-180"
+                                    class="py-3 px-3 md:px-6 hover:no-underline w-full justify-start gap-2 text-left [&[data-state=open]>svg]:rotate-180"
                                     onclick={() => onQuestionExpand(question.id)}
                                 >
                                     <span class="text-xs flex items-center gap-2 font-medium">
@@ -1923,15 +1871,15 @@
                                         </span>
                                     </span>
                                 </Accordion.Trigger>
-                                <Accordion.Content class="pb-0">
-                                    <div>
+                                <Accordion.Content class="pb-0 px-0">
+                                    <div class="px-0">
                                         <!-- Loop through all answers -->
                                         {#each question.answers as answer, answerIndex}
                                         {@const answerReaction = answerReactions[answer.id] || null}
                                         {@const answerAuthorName = answer?.author?.nickname || answer?.author?.username || 'Moderatör'}
                                         <div class="{answerIndex > 0 ? 'border-t border-border/60 mt-4 pt-4' : ''}">
                                             <!-- Answer Content -->
-                                            <div class="flex">
+                                            <div class="flex bg-background/50">
                                                 <!-- Answer Actions Sidebar (Like/Dislike) - Matches Question Sidebar -->
                                                 <div class="flex flex-col items-center gap-1 py-1 px-1 md:px-2 md:py-2 border-r border-border/60 md:min-w-[44px] min-w-[36px] shrink-0">
                                                     <Tooltip.Root>
@@ -1999,8 +1947,9 @@
                                                             <MoreVertical class="w-3 h-3" />
                                                         </DropdownMenu.Trigger>
                                                         <DropdownMenu.Content align="start" class="w-48">
-                                                            <!-- Answer Owner: Edit & Delete -->
-                                                            {#if (user?.id && answer?.author?.id == user.id) || (user?.username && answer?.author?.username === user.username)}
+                                                            {@const isAnswerOwner = (user?.id && (answer?.authorId === user.id || answer?.author?.id === user.id)) || (user?.username && answer?.author?.username === user.username)}
+                                                            
+                                                            {#if isAnswerOwner}
                                                                 <DropdownMenu.Label>Sizin Cevabınız</DropdownMenu.Label>
                                                                 <DropdownMenu.Item onclick={() => openAnswerForm(question, answer)}>
                                                                     <Pencil class="w-4 h-4 mr-2" />
@@ -2015,8 +1964,7 @@
 
                                                             {#if user && (user.role === 'moderator' || user.role === 'admin')}
                                                                 <DropdownMenu.Label>Moderasyon</DropdownMenu.Label>
-                                                                {@const isAnswerOwnerCheck = (user?.id && answer?.author?.id == user.id) || (user?.username && answer?.author?.username === user.username)}
-                                                                {#if !isAnswerOwnerCheck}
+                                                                {#if !isAnswerOwner}
                                                                     <DropdownMenu.Item onclick={() => openAnswerForm(question, answer)}>
                                                                         <Pencil class="w-4 h-4 mr-2" />
                                                                         Düzenle
@@ -2033,7 +1981,7 @@
                                                                         En İyi Cevap Seç
                                                                     </DropdownMenu.Item>
                                                                 {/if}
-                                                                {#if !isAnswerOwnerCheck}
+                                                                {#if !isAnswerOwner}
                                                                     <DropdownMenu.Item onclick={() => openDeleteDialog('answer', question.id, answer.id)} class="text-destructive">
                                                                         <Trash2 class="w-4 h-4 mr-2" />
                                                                         Sil
@@ -2056,111 +2004,204 @@
                                                 </div>
 
                                                 <div class="flex flex-col py-2 px-3 md:px-6 md:py-4 gap-3 md:gap-4 flex-1 min-w-0">
-                                                    <!-- Answer Author Profile Card -->
-                                                    <div class="flex items-center gap-2.5 mb-3 pb-3 border-b border-border/60">
-                                                        <a href="/{lang}/{answer?.author?.username || ''}" class="!no-underline flex items-center gap-2.5 hover:opacity-80 transition-opacity">
-                                                            <Avatar.Root class="h-8 w-8">
-                                                                <Avatar.Image
-                                                                    src={answer?.author?.avatar}
-                                                                    alt={answerAuthorName}
-                                                                />
-                                                                <Avatar.Fallback class="bg-primary/10 text-primary text-xs">
-                                                                    {answerAuthorName[0]?.toUpperCase() || 'M'}
-                                                                </Avatar.Fallback>
-                                                            </Avatar.Root>
-                                                            <div class="min-w-0">
-                                                                <p class="font-medium text-sm truncate">
-                                                                    {answerAuthorName}
-                                                                </p>
-                                                                <div class="flex items-center gap-1.5 flex-wrap">
-                                                                    {#if question.acceptedAnswerId === answer.id}
-                                                                        <Badge variant="default" class="h-4 text-[10px] px-1">
-                                                                            <Award class="w-3 h-3 mr-1" />
-                                                                            En İyi
-                                                                        </Badge>
+                                                    {#if editingAnswerId === answer.id}
+                                                        <!-- Edit Mode - Inline Form -->
+                                                        <div class="space-y-3">
+                                                            <textarea
+                                                                bind:value={answerContent}
+                                                                placeholder="Cevabınızı yazın..."
+                                                                rows={4}
+                                                                maxlength="500"
+                                                                class="w-full bg-transparent border border-border rounded-md p-3 resize-none focus:outline-none focus:ring-2 focus:ring-primary/20 placeholder:text-muted-foreground/60 text-sm"
+                                                            ></textarea>
+                                                            
+                                                            <!-- Character Count & Attachments -->
+                                                            <div class="flex items-center justify-between pt-2 border-t border-border/60">
+                                                                <div class="flex items-center gap-2">
+                                                                    <input
+                                                                        bind:this={answerFileInput}
+                                                                        type="file"
+                                                                        accept="image/*"
+                                                                        multiple
+                                                                        class="hidden"
+                                                                        onchange={handleAnswerFileSelect}
+                                                                    />
+                                                                    <Button
+                                                                        type="button"
+                                                                        variant="ghost"
+                                                                        size="icon"
+                                                                        class="h-8 w-8 text-primary hover:bg-primary/10"
+                                                                        onclick={() => answerFileInput?.click()}
+                                                                    >
+                                                                        <ImageIcon class="w-5 h-5" />
+                                                                    </Button>
+                                                                    
+                                                                    {#if answerAttachments.length > 0}
+                                                                        <div class="flex flex-wrap gap-2">
+                                                                            {#each answerAttachments as attachment (attachment.id)}
+                                                                                <div class="relative group">
+                                                                                    <img
+                                                                                        src={attachment.preview}
+                                                                                        alt="Attachment"
+                                                                                        class="w-12 h-12 object-cover rounded-lg border"
+                                                                                    />
+                                                                                    <button
+                                                                                        type="button"
+                                                                                        onclick={() => removeAnswerAttachment(attachment.id)}
+                                                                                        class="absolute -top-1 -right-1 w-4 h-4 bg-destructive text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                                                                                    >
+                                                                                        <X class="w-2.5 h-2.5" />
+                                                                                    </button>
+                                                                                </div>
+                                                                            {/each}
+                                                                        </div>
                                                                     {/if}
-                                                                    <span class="text-xs text-muted-foreground">
-                                                                        {formatDate(answer.createdAt)}
-                                                                    </span>
                                                                 </div>
+                                                                <span class="text-xs text-muted-foreground">{answerContent.length}/500</span>
                                                             </div>
-                                                        </a>
-                                                    </div>
+                                                            
+                                                            <!-- Action Buttons -->
+                                                            <div class="flex justify-end gap-2 pt-2">
+                                                                <Button 
+                                                                    variant="ghost" 
+                                                                    size="sm" 
+                                                                    onclick={() => { editingAnswerId = null; answerContent = ''; answerAttachments = []; }}
+                                                                >
+                                                                    İptal
+                                                                </Button>
+                                                                <Button 
+                                                                    size="sm" 
+                                                                    onclick={() => submitAnswer(question.id, answer.id)}
+                                                                    disabled={isAnswering || !answerContent.trim()}
+                                                                    class="gap-2"
+                                                                >
+                                                                    {#if isAnswering}
+                                                                        <Loader2 class="w-4 h-4 animate-spin" />
+                                                                        Güncelleniyor...
+                                                                    {:else}
+                                                                        <Send class="w-4 h-4" />
+                                                                        Güncelle
+                                                                    {/if}
+                                                                </Button>
+                                                            </div>
+                                                        </div>
+                                                    {:else}
+                                                        <!-- View Mode - Normal Content -->
+                                                        <!-- Answer Content -->
+                                                        <div class="text-sm leading-relaxed prose prose-sm max-w-none text-foreground/90">
+                                                            {@html answer.contentHtml}
+                                                        </div>
 
-                                                    <div class="text-sm leading-relaxed prose prose-sm max-w-none text-foreground/90">
-                                                        {@html answer.contentHtml}
-                                                    </div>
+                                                        <!-- Answer Author Row - Same layout as question -->
+                                                        <div class="flex items-center justify-between gap-2 flex-wrap pt-2 border-t border-border/60">
+                                                            <div class="flex items-center gap-3 text-xs text-muted-foreground">
+                                                                <span class="flex items-center gap-1">
+                                                                    <Clock class="w-3.5 h-3.5" />
+                                                                    {formatDate(answer.createdAt)}
+                                                                </span>
+                                                                {#if question.acceptedAnswerId === answer.id}
+                                                                    <Badge variant="default" class="h-4 text-[10px] px-1 bg-green-500">
+                                                                        <Award class="w-3 h-3 mr-1" />
+                                                                        En İyi
+                                                                    </Badge>
+                                                                {/if}
+                                                            </div>
+
+                                                            <div class="flex items-center gap-2">
+                                                                <Avatar.Root class="h-5 w-5">
+                                                                    {#if answer?.author?.avatar}
+                                                                        <Avatar.Image src={answer.author.avatar} alt={answerAuthorName} />
+                                                                    {/if}
+                                                                    <Avatar.Fallback class="text-[10px] bg-muted">
+                                                                        {answerAuthorName[0]?.toUpperCase() || 'M'}
+                                                                    </Avatar.Fallback>
+                                                                </Avatar.Root>
+                                                                <span class="text-xs text-muted-foreground">
+                                                                    {answerAuthorName}
+                                                                </span>
+                                                            </div>
+                                                        </div>
+                                                    {/if}
                                                 </div>
                                             </div>
                                         </div>
                                         {/each}
 
-                                        <!-- Inline Answer Form or Answer Button -->
-                                        {#if answeringQuestionId === question.id}
+                                        <!-- Inline Answer Form or Answer Button - Only for new answers (not editing) -->
+                                        {#if answeringQuestionId === question.id && !editingAnswerId}
                                             <!-- Inline Answer Form -->
-                                            <div class="mt-4 pt-4 border-t border-border/60">
-                                                <div class="flex gap-3">
-                                                    <Avatar.Root class="h-10 w-10 shrink-0">
-                                                        {#if (user as any)?.avatar}
-                                                            <Avatar.Image src={(user as any).avatar} alt={user?.username || 'Kullanıcı'} />
-                                                        {/if}
-                                                        <Avatar.Fallback class="bg-primary/10 text-primary">
-                                                            {(user?.username?.[0] || 'U').toUpperCase()}
-                                                        </Avatar.Fallback>
-                                                    </Avatar.Root>
-                                                    <div class="flex-1 min-w-0 space-y-3">
+                                            <Card class="bg-background/50 border-border mt-4 overflow-hidden">
+                                                <div class="flex">
+                                                    <!-- Sidebar - Same as question/answer cards -->
+                                                    <div class="flex flex-col items-center gap-1 py-1 px-1 md:px-2 md:py-2 border-r border-border/60 md:min-w-[44px] min-w-[36px] shrink-0">
+                                                        <Avatar.Root class="h-8 w-8">
+                                                            {#if (user as any)?.avatar}
+                                                                <Avatar.Image src={(user as any).avatar} alt={user?.username || 'Kullanıcı'} />
+                                                            {/if}
+                                                            <Avatar.Fallback class="bg-primary/10 text-primary text-xs">
+                                                                {(user?.username?.[0] || 'U').toUpperCase()}
+                                                            </Avatar.Fallback>
+                                                        </Avatar.Root>
+                                                    </div>
+                                                    
+                                                    <!-- Content Area -->
+                                                    <div class="flex-1 min-w-0 p-3 md:p-4 space-y-3">
                                                         <textarea
                                                             bind:value={answerContent}
                                                             placeholder="Cevabınızı yazın..."
                                                             rows={3}
+                                                            maxlength="500"
                                                             class="w-full bg-transparent border-0 px-0 resize-none focus:outline-none focus:ring-0 placeholder:text-muted-foreground/60 text-sm"
                                                         ></textarea>
                                                         
-                                                        <!-- Attachments -->
-                                                        <div class="flex items-center gap-2">
-                                                            <input
-                                                                bind:this={answerFileInput}
-                                                                type="file"
-                                                                accept="image/*"
-                                                                multiple
-                                                                class="hidden"
-                                                                onchange={handleAnswerFileSelect}
-                                                            />
-                                                            <Button
-                                                                type="button"
-                                                                variant="ghost"
-                                                                size="icon"
-                                                                class="h-8 w-8 text-primary hover:bg-primary/10"
-                                                                onclick={() => answerFileInput?.click()}
-                                                            >
-                                                                <ImageIcon class="w-5 h-5" />
-                                                            </Button>
-                                                            
-                                                            {#if answerAttachments.length > 0}
-                                                                <div class="flex flex-wrap gap-2">
-                                                                    {#each answerAttachments as attachment (attachment.id)}
-                                                                        <div class="relative group">
-                                                                            <img
-                                                                                src={attachment.preview}
-                                                                                alt="Attachment"
-                                                                                class="w-12 h-12 object-cover rounded-lg border"
-                                                                            />
-                                                                            <button
-                                                                                type="button"
-                                                                                onclick={() => removeAnswerAttachment(attachment.id)}
-                                                                                class="absolute -top-1 -right-1 w-4 h-4 bg-destructive text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
-                                                                            >
-                                                                                <X class="w-2.5 h-2.5" />
-                                                                            </button>
-                                                                        </div>
-                                                                    {/each}
-                                                                </div>
-                                                            {/if}
+                                                        <!-- Character Count & Attachments -->
+                                                        <div class="flex items-center justify-between pt-2 border-t border-border/60">
+                                                            <div class="flex items-center gap-2">
+                                                                <input
+                                                                    bind:this={answerFileInput}
+                                                                    type="file"
+                                                                    accept="image/*"
+                                                                    multiple
+                                                                    class="hidden"
+                                                                    onchange={handleAnswerFileSelect}
+                                                                />
+                                                                <Button
+                                                                    type="button"
+                                                                    variant="ghost"
+                                                                    size="icon"
+                                                                    class="h-8 w-8 text-primary hover:bg-primary/10"
+                                                                    onclick={() => answerFileInput?.click()}
+                                                                >
+                                                                    <ImageIcon class="w-5 h-5" />
+                                                                </Button>
+                                                                
+                                                                {#if answerAttachments.length > 0}
+                                                                    <div class="flex flex-wrap gap-2">
+                                                                        {#each answerAttachments as attachment (attachment.id)}
+                                                                            <div class="relative group">
+                                                                                <img
+                                                                                    src={attachment.preview}
+                                                                                    alt="Attachment"
+                                                                                    class="w-12 h-12 object-cover rounded-lg border"
+                                                                                />
+                                                                                <button
+                                                                                    type="button"
+                                                                                    onclick={() => removeAnswerAttachment(attachment.id)}
+                                                                                    class="absolute -top-1 -right-1 w-4 h-4 bg-destructive text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                                                                                >
+                                                                                    <X class="w-2.5 h-2.5" />
+                                                                                </button>
+                                                                            </div>
+                                                                        {/each}
+                                                                    </div>
+                                                                {/if}
+                                                            </div>
+                                                            <span class="text-xs text-muted-foreground">{answerContent.length}/500</span>
                                                         </div>
                                                         
                                                         <!-- Publish Options (Moderators only) -->
                                                         {#if isModerator}
-                                                            <div class="flex items-center gap-2">
+                                                            <div class="flex items-center gap-2 pt-2">
                                                                 <input 
                                                                     type="checkbox" 
                                                                     id="publishImmediately-{question.id}" 
@@ -2174,7 +2215,7 @@
                                                         {/if}
                                                         
                                                         <!-- Action Buttons -->
-                                                        <div class="flex justify-end gap-2">
+                                                        <div class="flex justify-end gap-2 pt-3">
                                                             <Button 
                                                                 variant="ghost" 
                                                                 size="sm" 
@@ -2196,13 +2237,13 @@
                                                                     Gönderiliyor...
                                                                 {:else}
                                                                     <Send class="w-4 h-4" />
-                                                                    {editingAnswerId ? 'Güncelle' : 'Cevapla'}
+                                                                    Cevapla
                                                                 {/if}
                                                             </Button>
                                                         </div>
                                                     </div>
                                                 </div>
-                                            </div>
+                                            </Card>
                                         {:else if user && !question.hasUserAnswered}
                                             <div class="mt-4 pt-4 border-t border-border/60 flex justify-center">
                                                 <Button 

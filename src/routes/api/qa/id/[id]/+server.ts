@@ -36,36 +36,35 @@ export async function PUT({ request, params, locals }: RequestEvent) {
             title,
             content,
             contentHtml,
-            attachments,
             topicId,
             isAnonymous
         } = data;
-
-        // Process attachments - append to contentHtml as <img> tags
-        let finalContentHtml = contentHtml || '';
-        if (attachments && Array.isArray(attachments) && attachments.length > 0) {
-            const attachmentHtml = attachments
-                .filter((url: string) => url && url.startsWith('data:image/'))
-                .map((url: string) => `<br><img src="${url}" style="max-width:100%;height:auto;" /><br>`)
-                .join('');
-            finalContentHtml += attachmentHtml;
-        }
 
         // Validation
         if (!title || title.trim().length < 5) {
             return json({ error: 'Başlık en az 5 karakter olmalıdır' }, { status: 400 });
         }
 
+        if (title.trim().length > 50) {
+            return json({ error: 'Başlık en fazla 50 karakter olabilir' }, { status: 400 });
+        }
+
         if (!content || !contentHtml) {
             return json({ error: 'Soru içeriği gerekli' }, { status: 400 });
         }
 
+        // Edra editor content is JSON format - no strict character limit
+        // Content structure is validated by checking it's a valid doc format
+        if (typeof content !== 'object' || !content.type || content.type !== 'doc') {
+            return json({ error: 'Geçersiz içerik formatı' }, { status: 400 });
+        }
+
         // Update question
         const updateQuery = `
-            UPDATE questions 
-            SET title = $1, 
-                content = $2, 
-                content_html = $3, 
+            UPDATE questions
+            SET title = $1,
+                content = $2,
+                content_html = $3,
                 topic_id = $4,
                 is_anonymous = $5,
                 updated_at = NOW()
@@ -76,7 +75,7 @@ export async function PUT({ request, params, locals }: RequestEvent) {
         const result = await query(updateQuery, [
             title.trim(),
             JSON.stringify(content),
-            finalContentHtml,
+            contentHtml,
             topicId || null,
             isAnonymous || false,
             id

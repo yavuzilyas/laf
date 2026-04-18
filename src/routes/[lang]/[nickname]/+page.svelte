@@ -883,7 +883,7 @@
 <Navbar />
 
 <main class="min-h-screen bg-background">
-    <div class="container mx-auto px-3 py-10 sm:px-4 max-w-6xl">
+    <div class="container mx-auto px-3 py-10 sm:px-4 max-w-4xl">
         <!-- Hidden Profile Warning for Moderators/Admins -->
         {#if profileUser?.is_hidden && isModeratorOrAdmin}
             <div class="bg-orange-500/10 border border-orange-500/30 rounded-lg p-3 flex items-center gap-2 text-orange-700 dark:text-orange-400 mb-4">

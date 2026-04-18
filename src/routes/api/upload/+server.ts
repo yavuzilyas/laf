@@ -48,6 +48,7 @@ export async function POST({ request, locals }) {
   const folder = (form.get('folder') as string) || 'image';
   const articleIdRaw = form.get('articleId') as string | null;
   const commentIdRaw = form.get('commentId') as string | null;
+  const qaIdRaw = form.get('qaId') as string | null;
   const uploadType = (form.get('type') as string | null) || undefined;
   const previousUrl = (form.get('previousUrl') as string | null) || undefined;
   const articleStatus = (form.get('articleStatus') as string | null) || undefined;
@@ -91,6 +92,7 @@ export async function POST({ request, locals }) {
   const fileName = `${safeName}${ext}`;
   const safeArticleId = articleIdRaw ? articleIdRaw.replace(/[^a-zA-Z0-9-_]/g, '') : null;
   const safeCommentId = commentIdRaw ? commentIdRaw.replace(/[^a-zA-Z0-9-_]/g, '') : null;
+  const safeQaId = qaIdRaw ? qaIdRaw.replace(/[^a-zA-Z0-9-_]/g, '') : null;
 
   const rawNickname = typeof user.nickname === 'string' && user.nickname.trim().length
     ? user.nickname
@@ -137,6 +139,28 @@ export async function POST({ request, locals }) {
     })();
     dir = resolve(baseUploadsDir, 'users', safeUserId, 'comments', safeCommentId, section);
     publicBase = `/uploads/users/${safeUserId}/comments/${safeCommentId}/${section}`;
+  } else if (safeQaId) {
+    // QA uploads go to user's QA folder: /uploads/users/{userId}/QA/{qaId}/{type}/
+    const section = (() => {
+      if (uploadType) {
+        switch (uploadType) {
+          case 'sounds':
+            return 'sounds';
+          case 'videos':
+            return 'videos';
+          case 'files':
+            return 'files';
+          case 'photos':
+          default:
+            return 'photos';
+        }
+      }
+      if (type?.startsWith('audio/')) return 'sounds';
+      if (type?.startsWith('video/')) return 'videos';
+      return 'photos';
+    })();
+    dir = resolve(baseUploadsDir, 'users', safeUserId, 'QA', safeQaId, section);
+    publicBase = `/uploads/users/${safeUserId}/QA/${safeQaId}/${section}`;
   } else {
     // Generic uploads (e.g., comments) go to user's comments folder: /uploads/users/{userId}/comments/{type}/
     // Profile avatars and banners go to dedicated folders: /uploads/users/{userId}/avatars/ or /uploads/users/{userId}/banners/

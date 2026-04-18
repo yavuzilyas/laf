@@ -183,7 +183,9 @@ export const load: PageServerLoad = async ({ locals, url }) => {
                 voteScore: a.vote_score || 0,
                 likeCount: a.like_count || 0,
                 dislikeCount: a.dislike_count || 0,
+                authorId: a.author_id,
                 author: {
+                    id: a.author_id,
                     username: a.username,
                     nickname: a.nickname,
                     avatar: a.avatar_url
