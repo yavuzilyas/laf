@@ -10,6 +10,7 @@ export interface EdraEditorProps {
 	autofocus?: boolean;
 	onUpdate?: () => void;
 	class?: string;
+	qaId?: string | null;
 }
 
 export interface EdraToolbarProps {

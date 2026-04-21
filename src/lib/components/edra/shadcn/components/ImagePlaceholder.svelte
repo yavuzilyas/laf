@@ -28,7 +28,7 @@
 		console.log('[ImagePlaceholder] uploadFile started');
 		console.log('[ImagePlaceholder] editor exists:', !!editor);
 		console.log('[ImagePlaceholder] editor.storage:', editor?.storage);
-		
+
 		if (!isFileSizeValid(file, 'image')) {
 			throw new Error(getFileSizeError(file, 'image'));
 		}
@@ -36,18 +36,24 @@
 		const fd = new FormData();
 		fd.append('file', file);
 		fd.append('folder', 'photos');
-		
-		// Get commentId dynamically from editor.storage (for comment uploads)
-		// Otherwise use articleId from articleEditor
+
+		// Get context IDs from editor.storage (for comment/QA uploads)
+		// Priority: qaId > commentId > articleId
+		const currentQaId = (editor?.storage as any)?.qaId ?? null;
 		const currentCommentId = (editor?.storage as any)?.commentId ?? null;
+		console.log('[ImagePlaceholder] currentQaId:', currentQaId);
 		console.log('[ImagePlaceholder] currentCommentId:', currentCommentId);
-		
-		if (currentCommentId) {
+
+		if (currentQaId) {
+			fd.append('qaId', currentQaId);
+			fd.append('type', 'photos');
+			console.log('[ImagePlaceholder] Using qaId for upload:', currentQaId);
+		} else if (currentCommentId) {
 			fd.append('commentId', currentCommentId);
 			fd.append('type', 'photos');
 			console.log('[ImagePlaceholder] Using commentId for upload:', currentCommentId);
 		} else {
-			console.log('[ImagePlaceholder] No commentId, trying articleEditor');
+			console.log('[ImagePlaceholder] No qaId/commentId, trying articleEditor');
 			const articleId = await articleEditor.ensureArticleId();
 			console.log('[ImagePlaceholder] articleId:', articleId);
 			if (articleId) {

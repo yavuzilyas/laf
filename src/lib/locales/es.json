@@ -6,6 +6,14 @@
     "not_found": "Idioma no encontrado"
   },
   "QA": "S&C",
+  "books": {
+    "title": "Recursos Útiles",
+    "subtitle": "Comience a aprender descargando recursos adecuados para su nivel",
+    "beginner": "Principiante",
+    "intermediate": "Intermedio",
+    "advanced": "Avanzado",
+    "theorist": "Teórico"
+  },
   "seo": {
     "home": {
       "title": "Fundación Libertaria Anarquista",
@@ -4522,9 +4530,8 @@
   "bomb": "bomba",
   "bone": "hueso",
   "book": "libro",
-  "bookmark": "marcador",
-  "books": "libros",
-  "boot": "bota",
+  "bookmark": "Marcador",
+  "boot": "Bota",
   "bottom": "abajo",
   "bouquet": "ramo",
   "bowling": "bolos",

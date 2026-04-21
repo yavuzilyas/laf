@@ -103,7 +103,8 @@ export const handle: Handle = async ({ event, resolve }) => {
         event.locals.user = {
           id: user.id,
           email: user.email,
-          nickname: user.username,
+          username: user.username,
+          nickname: user.nickname ?? user.username,
           avatar: user.avatar_url ?? null,
           role: user.role ?? 'user'
         } as any;

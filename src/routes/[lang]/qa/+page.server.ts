@@ -24,8 +24,9 @@ export const load: PageServerLoad = async ({ locals, url }) => {
         }));
 
         // Get questions (published for all users, all statuses for moderators/admins)
+        // Get page from URL, default to 1
         const page = parseInt(url.searchParams.get('page') || '1');
-        const limit = isModerator ? 100 : 10; // More items for moderators
+        const limit = 10; // Items per page
         const offset = (page - 1) * limit;
         const selectedTopic = url.searchParams.get('topic');
 
@@ -212,7 +213,7 @@ export const load: PageServerLoad = async ({ locals, url }) => {
             topics,
             questions,
             pagination: {
-                page,
+                page: 1,
                 limit,
                 total,
                 totalPages: Math.ceil(total / limit)

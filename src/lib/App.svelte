@@ -59,6 +59,7 @@ import { cn } from "$lib/utils";
   import { Button } from "$lib/components/ui/button";
   import { Link } from '@lucide/svelte';
   import { showToast } from '$lib/hooks/toast';
+  import BookList from '$lib/components/BookList.svelte';
 
   import { onMount } from 'svelte';
   import { browser } from '$app/environment';
@@ -179,6 +180,8 @@ import { cn } from "$lib/utils";
         </p>
 
       </div>
+      <BookList />
+
       <img class="w-full md:w-1/2 h-auto mx-auto" src="An_Austrian_School_crest_-_Grey1.png" alt="An Austrian School crest" />
       <!-- Our Goal Column -->
       <div class="md:max-w-2xl m-auto mb-6">
@@ -287,6 +290,8 @@ import { cn } from "$lib/utils";
 
   <ContactForm />
 </div>
+
+
 <DonationsSection />
 
 

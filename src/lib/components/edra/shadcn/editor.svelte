@@ -57,8 +57,9 @@
 		class: className,
 		id = editorId,
 		commentId = null,
+		qaId = null,
 		dir = null
-	}: EdraEditorProps & { id?: string; commentId?: string | null; dir?: 'rtl' | 'ltr' | null } = $props();
+	}: EdraEditorProps & { id?: string; commentId?: string | null; qaId?: string | null; dir?: 'rtl' | 'ltr' | null } = $props();
 
 	const effectiveDir = $derived(dir || i18n.dir);
 
@@ -83,6 +84,14 @@
 		if (editor && commentId) {
 			editor.storage.commentId = commentId;
 			console.log('[EdraEditor] commentId updated in editor.storage:', commentId);
+		}
+	});
+
+	// Reactively update editor.storage when qaId changes
+	$effect(() => {
+		if (editor && qaId) {
+			editor.storage.qaId = qaId;
+			console.log('[EdraEditor] qaId updated in editor.storage:', qaId);
 		}
 	});
 

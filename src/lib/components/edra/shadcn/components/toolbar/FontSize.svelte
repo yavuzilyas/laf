@@ -22,7 +22,7 @@
 		{ label: 'extraLarge', value: '1.5rem' }
 	];
 
-	let currentSize = $derived.by(() => editor.getAttributes('textStyle').fontSize || '');
+	let currentSize = $derived.by(() => editor?.getAttributes('textStyle')?.fontSize || '');
 
 	const currentLabel = $derived.by(() => {
 		const l = FONT_SIZE.find((f) => f.value === currentSize);

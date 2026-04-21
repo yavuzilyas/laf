@@ -8,7 +8,7 @@
 	import ChevronDown from '@lucide/svelte/icons/chevron-down';
 	import { buttonVariants } from '$lib/components/ui/button/index.js';
 	import { cn } from '$lib/utils.js';
-	import { t } from '$lib/stores/i18n.svelte.js';
+	import { t, i18n } from '$lib/stores/i18n.svelte.js';
 
 	interface Props {
 		editor: Editor;
@@ -18,13 +18,15 @@
 	const alignments = commands['alignment'];
 
 	const isActive = $derived.by(() => {
+		if (!editor) return false;
 		return alignments.find((alignment) => alignment.isActive?.(editor)) !== undefined;
 	});
 
 	const AlignMentIcon = $derived.by(() => {
+		if (!editor) return i18n.dir === 'rtl' ? AlignRight : AlignLeft;
 		const a = alignments.find((alignment) => alignment.isActive?.(editor));
 		if (a) return a.icon;
-		else return t.dir === 'rtl' ? AlignRight : AlignLeft;
+		else return i18n.dir === 'rtl' ? AlignRight : AlignLeft;
 	});
 </script>
 

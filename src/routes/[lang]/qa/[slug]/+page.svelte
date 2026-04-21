@@ -7,13 +7,19 @@
     beforeNavigate(() => {
         reaction = null;
     });
+
+    // Edra Editor
+    import { EdraEditor, EdraToolBar } from '$lib/components/edra/shadcn/index.js';
+    import { nanoid } from 'nanoid';
+
     import { Button } from '$lib/components/ui/button';
     import { Badge } from '$lib/components/ui/badge';
+    import { Label } from '$lib/components/ui/label';
     import * as Avatar from '$lib/components/ui/avatar';
     import * as DropdownMenu from '$lib/components/ui/dropdown-menu';
     import * as AlertDialog from '$lib/components/ui/alert-dialog';
     import * as Dialog from '$lib/components/ui/dialog';
-    import { Textarea } from '$lib/components/ui/textarea';
+    import * as Accordion from '$lib/components/ui/accordion';
     import { ScrollArea } from '$lib/components/ui/scroll-area';
     import ReportDrawer from '$lib/components/ReportDrawer.svelte';
     import { showToast } from '$lib/hooks/toast';
@@ -31,10 +37,11 @@
         MoreVertical,
         Flag,
         CheckCircle,
-        Image as ImageIcon,
         X,
         Pencil,
-        Trash2
+        Trash2,
+        Send,
+        Loader2
     } from '@lucide/svelte';
     import { cn } from '$lib/utils';
     
@@ -59,12 +66,54 @@
     // Dialog states
     let reportDrawerOpen = $state(false);
     let shareAlertOpen = $state(false);
-    let showAnswerDialog = $state(false);
-    let answerContent = $state('');
+
+    // Inline answer form state (matching qa/+page.svelte)
+    let showAnswerForm = $state(false);
+    let answerContent = $state({ type: 'doc', content: [{ type: 'paragraph' }] }); // Edra editor JSON content
+    let answerEditor = $state<any>(null); // Edra editor instance
+    let answerCharCount = $state(0); // Character count for answer editor
     let isSubmittingAnswer = $state(false);
-    let answerAttachments: {id: string, file: File, preview?: string}[] = $state([]);
-    let answerFileInput: HTMLInputElement | null = $state(null);
     let editingAnswerId: string | null = $state(null);
+    let publishImmediately = $state(true);
+
+    // Character limit for answer Edra editor (links count as 1 character)
+    const ANSWER_CHAR_LIMIT = 1000;
+
+    // Calculate character count where each link counts as 1 character
+    function calculateCharCount(content: any): number {
+        if (!content || !content.content) return 0;
+
+        let count = 0;
+        let inLink = false;
+
+        function traverseNode(node: any) {
+            if (node.type === 'text') {
+                // Check if this text node has a link mark
+                const hasLinkMark = node.marks?.some((m: any) => m.type === 'link');
+
+                if (hasLinkMark) {
+                    if (!inLink) {
+                        // First text node with link mark - count as 1
+                        count += 1;
+                        inLink = true;
+                    }
+                    // Subsequent linked text nodes don't add to count
+                } else {
+                    // Normal text - add full length
+                    inLink = false;
+                    count += node.text?.length || 0;
+                }
+            } else if (node.content && Array.isArray(node.content)) {
+                // Reset inLink when entering a new container
+                const wasInLink = inLink;
+                node.content.forEach(traverseNode);
+                inLink = wasInLink;
+            }
+        }
+
+        content.content.forEach(traverseNode);
+        return count;
+    }
 
     // Image modal state
     let imageModalOpen = $state(false);
@@ -77,47 +126,92 @@
     let answerLikesCount = $state<Record<string, number>>({});
     let answerDislikesCount = $state<Record<string, number>>({});
 
-    // Answer handler (for moderators)
-    async function submitAnswer() {
-        if (!answerContent.trim()) {
+    // Open inline answer form (matching qa/+page.svelte pattern)
+    function openAnswerForm(answerId?: string) {
+        if (answerId) {
+            // Editing existing answer
+            const answer = answers.find((a: any) => a.id === answerId);
+            if (answer) {
+                editingAnswerId = answerId;
+                // Handle edra editor content format
+                if (answer.content && typeof answer.content === 'object' && answer.content.type === 'doc') {
+                    answerContent = answer.content;
+                } else if (answer.contentHtml) {
+                    // Convert HTML to plain text for the editor
+                    const tempDiv = document.createElement('div');
+                    tempDiv.innerHTML = answer.contentHtml;
+                    const text = tempDiv.textContent || tempDiv.innerText || '';
+                    answerContent = { type: 'doc', content: [{ type: 'paragraph', content: text ? [{ type: 'text', text }] : [] }] };
+                } else {
+                    answerContent = { type: 'doc', content: [{ type: 'paragraph' }] };
+                }
+            }
+        } else {
+            // New answer mode
+            editingAnswerId = null;
+            answerContent = { type: 'doc', content: [{ type: 'paragraph' }] };
+        }
+        showAnswerForm = true;
+    }
+
+    function cancelAnswerForm() {
+        showAnswerForm = false;
+        editingAnswerId = null;
+        answerContent = { type: 'doc', content: [{ type: 'paragraph' }] };
+        answerEditor = null;
+    }
+
+    // Answer handler (inline form - matching qa/+page.svelte)
+    async function submitAnswer(answerId?: string) {
+        // Get content from the Edra editor
+        const editor = answerEditor;
+        if (!editor) {
+            showToast('Editör yüklenemedi', 'error');
+            return;
+        }
+
+        const json = editor.getJSON();
+
+        // Check if content is empty (only has empty paragraphs)
+        const hasContent = json.content?.some((node: any) => {
+            if (node.type === 'paragraph') {
+                return node.content && node.content.length > 0;
+            }
+            return true;
+        });
+
+        if (!hasContent) {
             showToast('Cevap içeriği gerekli', 'error');
             return;
         }
-        
+
         if (!question?.id) return;
-        
-        // Convert newlines to HTML
-        const contentHtml = answerContent.replace(/\n/g, '<br>');
-        
-        // Process attachments
-        let finalContentHtml = contentHtml;
-        if (answerAttachments.length > 0) {
-            const attachmentHtml = answerAttachments
-                .map(a => `<br><img src="${a.preview}" style="max-width:100%;height:auto;" /><br>`)
-                .join('');
-            finalContentHtml += attachmentHtml;
-        }
-        
+
         isSubmittingAnswer = true;
         try {
-            const isEditing = !!editingAnswerId;
+            const isEditing = !!(answerId || editingAnswerId);
+            const targetAnswerId = answerId || editingAnswerId;
+
             const response = await fetch('/api/qa/answer', {
                 method: isEditing ? 'PUT' : 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     questionId: question.id,
-                    content: { text: answerContent },
-                    contentHtml: finalContentHtml,
-                    // Attachments are already embedded in contentHtml, don't send separately to avoid duplication
-                    publishImmediately: true,
-                    ...(isEditing && { answerId: editingAnswerId })
+                    content: json,
+                    contentHtml: editor.getHTML(),
+                    publishImmediately,
+                    ...(isEditing && { answerId: targetAnswerId })
                 })
             });
-            
+
             if (response.ok) {
                 const result = await response.json();
-                showToast(result.message || (editingAnswerId ? 'Cevap güncellendi' : 'Cevap gönderildi'), 'success');
-                closeAnswerDialog();
+                showToast(result.message || (targetAnswerId ? 'Cevap güncellendi' : 'Cevap gönderildi'), 'success');
+                // Reset form
+                showAnswerForm = false;
+                editingAnswerId = null;
+                answerContent = { type: 'doc', content: [{ type: 'paragraph' }] };
+                answerEditor = null;
                 // Refresh page to show new/updated answer
                 window.location.reload();
             } else {
@@ -129,72 +223,6 @@
         } finally {
             isSubmittingAnswer = false;
         }
-    }
-    
-    // Extract images from HTML and convert to attachments format
-    function extractImagesToAttachments(html: string): {id: string, file: File, preview: string}[] {
-        if (!html) return [];
-        const matches = html.matchAll(/<img[^>]+src="([^"]+)"/gi);
-        const images = Array.from(matches).map(m => m[1]);
-
-        return images.map((src, index) => ({
-            id: crypto.randomUUID(),
-            file: new File([], `existing-image-${index}.jpg`, { type: 'image/jpeg' }),
-            preview: src
-        }));
-    }
-
-    function openAnswerDialog(answerId?: string) {
-        if (answerId) {
-            // Editing existing answer
-            const answer = answers.find((a: any) => a.id === answerId);
-            if (answer) {
-                editingAnswerId = answerId;
-                answerContent = answer.content?.text || '';
-                // Extract images from contentHtml and load as attachments
-                answerAttachments = extractImagesToAttachments(answer.contentHtml || '');
-            }
-        } else {
-            // New answer
-            editingAnswerId = null;
-            answerContent = '';
-            answerAttachments = [];
-        }
-        if (answerFileInput) answerFileInput.value = '';
-        showAnswerDialog = true;
-    }
-
-    function closeAnswerDialog() {
-        showAnswerDialog = false;
-        editingAnswerId = null;
-        answerContent = '';
-        answerAttachments = [];
-        if (answerFileInput) answerFileInput.value = '';
-    }
-    
-    // File upload handlers
-    function handleAnswerFileSelect(event: Event) {
-        const input = event.target as HTMLInputElement;
-        if (input.files) {
-            const files = Array.from(input.files);
-            files.forEach(file => {
-                if (file.type.startsWith('image/')) {
-                    const reader = new FileReader();
-                    reader.onload = (e) => {
-                        answerAttachments = [...answerAttachments, {
-                            id: crypto.randomUUID(),
-                            file,
-                            preview: e.target?.result as string
-                        }];
-                    };
-                    reader.readAsDataURL(file);
-                }
-            });
-        }
-    }
-    
-    function removeAnswerAttachment(id: string) {
-        answerAttachments = answerAttachments.filter(a => a.id !== id);
     }
 
     // Image modal functions
@@ -367,6 +395,49 @@
         }
     }
 
+    // Delete question handler
+    async function deleteQuestion() {
+        if (!question?.id) return;
+        if (!confirm('Bu soruyu silmek istediğinizden emin misiniz? Bu işlem geri alınamaz.')) return;
+
+        try {
+            const response = await fetch(`/api/qa/id/${question.id}`, {
+                method: 'DELETE'
+            });
+
+            if (response.ok) {
+                showToast('Soru silindi', 'success');
+                goto(`/${lang}/qa`);
+            } else {
+                const error = await response.json();
+                showToast(error.error || 'Soru silinirken hata oluştu', 'error');
+            }
+        } catch (error) {
+            showToast('Soru silinirken hata oluştu', 'error');
+        }
+    }
+
+    // Delete answer handler
+    async function deleteAnswer(answerId: string) {
+        if (!confirm('Bu cevabı silmek istediğinizden emin misiniz?')) return;
+
+        try {
+            const response = await fetch(`/api/qa/answer/${answerId}`, {
+                method: 'DELETE'
+            });
+
+            if (response.ok) {
+                showToast('Cevap silindi', 'success');
+                window.location.reload();
+            } else {
+                const error = await response.json();
+                showToast(error.error || 'Cevap silinirken hata oluştu', 'error');
+            }
+        } catch (error) {
+            showToast('Cevap silinirken hata oluştu', 'error');
+        }
+    }
+
     // Initialize answer reactions from data
     $effect(() => {
         if (answers?.length > 0) {
@@ -426,27 +497,6 @@
             if (currentReaction === 'like') answerLikesCount[answerId] = (answerLikesCount[answerId] || 0) + 1;
             if (currentReaction === 'dislike') answerDislikesCount[answerId] = (answerDislikesCount[answerId] || 0) + 1;
             showToast(t('qa.reactionError') || 'İşlem sırasında hata oluştu', 'error');
-        }
-    }
-
-    // Delete answer handler
-    async function deleteAnswer(answerId: string) {
-        if (!confirm('Bu cevabı silmek istediğinizden emin misiniz?')) return;
-
-        try {
-            const response = await fetch(`/api/qa/answer/${answerId}`, {
-                method: 'DELETE'
-            });
-
-            if (response.ok) {
-                showToast('Cevap silindi', 'success');
-                window.location.reload();
-            } else {
-                const error = await response.json();
-                showToast(error.error || 'Cevap silinirken hata oluştu', 'error');
-            }
-        } catch (error) {
-            showToast('Cevap silinirken hata oluştu', 'error');
         }
     }
 
@@ -670,101 +720,6 @@
             </AlertDialog.Content>
         </AlertDialog.Root>
 
-        <!-- Answer Dialog (Logged-in Users) -->
-        {#if user}
-            <Dialog.Root open={showAnswerDialog} onOpenChange={(open) => {
-                showAnswerDialog = open;
-                if (!open) {
-                    answerContent = '';
-                    answerAttachments = [];
-                    if (answerFileInput) answerFileInput.value = '';
-                }
-            }}>
-                <Dialog.Content class="sm:max-w-3xl max-h-[90vh] flex flex-col">
-                    <Dialog.Header>
-                        <Dialog.Title>
-                            {question?.answer?.id ? 'Cevabı Düzenle' : 'Soruyu Cevapla'}
-                        </Dialog.Title>
-                        <Dialog.Description>
-                            {question?.title}
-                        </Dialog.Description>
-                    </Dialog.Header>
-
-                    <ScrollArea class="flex-1 my-4">
-                        <div class="px-1 space-y-4">
-                            <Textarea
-                                bind:value={answerContent}
-                                placeholder="Cevabınızı yazın..."
-                                class="min-h-[200px] resize-none"
-                            />
-                            
-                            <!-- Attachment Upload -->
-                            <div class="space-y-2">
-                                <input
-                                    bind:this={answerFileInput}
-                                    type="file"
-                                    accept="image/*"
-                                    multiple
-                                    class="hidden"
-                                    onchange={handleAnswerFileSelect}
-                                />
-                                <Button
-                                    type="button"
-                                    variant="outline"
-                                    size="sm"
-                                    class="gap-2"
-                                    onclick={() => answerFileInput?.click()}
-                                >
-                                    <ImageIcon class="w-4 h-4" />
-                                    Resim Ekle
-                                </Button>
-                                
-                                <!-- Attachment Previews -->
-                                {#if answerAttachments.length > 0}
-                                    <div class="flex flex-wrap gap-2 mt-2">
-                                        {#each answerAttachments as attachment (attachment.id)}
-                                            <div class="relative group">
-                                                <img
-                                                    src={attachment.preview}
-                                                    alt="Attachment"
-                                                    class="w-1/3 h-auto object-cover rounded-lg border"
-                                                />
-                                                <button
-                                                    type="button"
-                                                    onclick={() => removeAnswerAttachment(attachment.id)}
-                                                    class="absolute -top-2 -right-2 w-5 h-5 bg-destructive text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
-                                                >
-                                                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-                                                    </svg>
-                                                </button>
-                                            </div>
-                                        {/each}
-                                    </div>
-                                {/if}
-                            </div>
-                        </div>
-                    </ScrollArea>
-
-                    <Dialog.Footer class="mt-4">
-                        <Button size="sm" variant="outline" onclick={() => showAnswerDialog = false}>İptal</Button>
-                        <Button size="sm" onclick={submitAnswer} disabled={isSubmittingAnswer} class="gap-2">
-                            {#if isSubmittingAnswer}
-                                <svg class="w-4 h-4 animate-spin" viewBox="0 0 24 24">
-                                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" fill="none"/>
-                                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/>
-                                </svg>
-                                Gönderiliyor...
-                            {:else}
-                                <MessageCircle class="w-4 h-4" />
-                                {question?.answer?.id ? 'Güncelle' : 'Cevapla'}
-                            {/if}
-                        </Button>
-                    </Dialog.Footer>
-                </Dialog.Content>
-            </Dialog.Root>
-        {/if}
-
         <!-- Back Button -->
         <Button variant="ghost" class="mb-4 gap-2" onclick={() => goto(`/${lang}/qa`)}>
             <ChevronLeft class="w-4 h-4" />
@@ -788,22 +743,37 @@
                 <!-- Author Info -->
                 <div class="flex items-center justify-between">
                     <div class="flex items-center gap-3">
-                        <Avatar.Root class="h-8 w-8">
-                            {#if question.author?.avatar}
-                                <Avatar.Image src={question.author.avatar} alt={question.authorName || 'Anonim'} />
-                            {/if}
-                            <Avatar.Fallback class="text-xs">
-                                {question.isAnonymous ? '?' : (question.authorName?.[0] || 'U')}
-                            </Avatar.Fallback>
-                        </Avatar.Root>
-                        <div class="flex flex-col">
-                            <span class="text-sm font-medium">
-                                {question.isAnonymous ? 'Anonim' : (question.authorName || 'İsimsiz')}
-                            </span>
-                            <span class="text-xs text-muted-foreground">
-                                {formatRelativeTime(question.createdAt)}
-                            </span>
-                        </div>
+                        {#if question.isAnonymous}
+                            <Avatar.Root class="h-8 w-8">
+                                <Avatar.Fallback class="text-xs">?</Avatar.Fallback>
+                            </Avatar.Root>
+                            <div class="flex flex-col">
+                                <span class="text-sm font-medium">Anonim</span>
+                                <span class="text-xs text-muted-foreground">
+                                    {formatRelativeTime(question.createdAt)}
+                                </span>
+                            </div>
+                        {:else}
+                            {@const questionAuthorSlug = question.author?.username || question.author?.nickname}
+                            <a href="/{lang}/{questionAuthorSlug}" class="flex items-center gap-3 hover:opacity-80 transition-opacity">
+                                <Avatar.Root class="h-8 w-8">
+                                    {#if question.author?.avatar}
+                                        <Avatar.Image src={question.author.avatar} alt={question.authorName || 'Kullanıcı'} />
+                                    {/if}
+                                    <Avatar.Fallback class="text-xs">
+                                        {(question.authorName?.[0] || 'U').toUpperCase()}
+                                    </Avatar.Fallback>
+                                </Avatar.Root>
+                                <div class="flex flex-col">
+                                    <span class="text-sm font-medium hover:text-primary transition-colors">
+                                        {question.authorName || 'İsimsiz'}
+                                    </span>
+                                    <span class="text-xs text-muted-foreground">
+                                        {formatRelativeTime(question.createdAt)}
+                                    </span>
+                                </div>
+                            </a>
+                        {/if}
                     </div>
 
                     <div class="flex items-center gap-2">
@@ -825,8 +795,8 @@
             </div>
 
             <!-- Question Body -->
-            <div class="p-6">
-                <div class="prose prose-sm max-w-none dark:prose-invert w-1/2 md:w-1/3  h-auto rounded-md prose-img:rounded-lg prose-img:cursor-pointer">
+            <div class="p-6 overflow-hidden">
+                <div class="prose prose-sm max-w-none dark:prose-invert break-words [&_img]:max-w-full [&_img]:h-auto [&_img]:rounded-lg [&_img]:cursor-pointer">
                     {@html question.contentHtml}
                 </div>
             </div>
@@ -899,6 +869,17 @@
                                 </Button>
                             </DropdownMenu.Trigger>
                             <DropdownMenu.Content align="end">
+                                {#if isModerator || (user && question.author?.id === user.id)}
+                                    <DropdownMenu.Item onclick={() => goto(`/${lang}/qa/ask?edit=${question.id}`)}>
+                                        <Pencil class="w-4 h-4 mr-2" />
+                                        Düzenle
+                                    </DropdownMenu.Item>
+                                    <DropdownMenu.Item onclick={() => deleteQuestion()} class="text-destructive">
+                                        <Trash2 class="w-4 h-4 mr-2" />
+                                        Sil
+                                    </DropdownMenu.Item>
+                                    <DropdownMenu.Separator />
+                                {/if}
                                 <DropdownMenu.Item onclick={shareQuestion}>
                                     <Share2 class="w-4 h-4 mr-2" />
                                     {t('common.share')}
@@ -914,6 +895,90 @@
             </div>
         </div>
 
+        <!-- Answer Form (Inline - matching qa/+page.svelte) -->
+        {#if user && showAnswerForm}
+            <div class="bg-card border rounded-lg shadow-sm mb-6">
+                <Accordion.Root type="single" value="answer-form">
+                    <Accordion.Item value="answer-form" class="border-0">
+                        <Accordion.Trigger class="py-3 px-4 hover:no-underline w-full justify-start gap-2 text-left [&[data-state=open]>svg]:rotate-180">
+                            <span class="text-sm flex items-center gap-2 font-medium">
+                                <MessageCircle class="w-4 h-4" />
+                                {editingAnswerId ? 'Cevabı Düzenle' : 'Soruyu Cevapla'}
+                            </span>
+                        </Accordion.Trigger>
+                        <Accordion.Content class="pb-0">
+                            <div class="flex flex-col p-4">
+                                <!-- Content Editor -->
+                                <div class="border rounded-sm overflow-hidden bg-background">
+                                    <EdraToolBar editor={answerEditor}/>
+                                    <EdraEditor
+                                        bind:editor={answerEditor}
+                                        content={answerContent}
+                                        onUpdate={() => {
+                                            if (answerEditor) {
+                                                const currentContent = answerEditor.getJSON();
+                                                answerCharCount = calculateCharCount(currentContent);
+                                                if (answerCharCount > ANSWER_CHAR_LIMIT) {
+                                                    showToast(`Cevap içeriği ${ANSWER_CHAR_LIMIT} karakter limitini aşıyor (Linkler 1 harf sayılır)`, 'error');
+                                                }
+                                            }
+                                        }}
+                                        qaId={question.id}
+                                        class="min-h-[120px] max-h-[250px] overflow-y-auto p-3 text-sm"
+                                    />
+                                    <div class="px-3 py-1 text-xs text-muted-foreground text-right border-t bg-muted/30">
+                                        <span class={answerCharCount > ANSWER_CHAR_LIMIT ? 'text-red-500 font-medium' : ''}>
+                                            {answerCharCount}/{ANSWER_CHAR_LIMIT} (linkler 1 harf)
+                                        </span>
+                                    </div>
+                                </div>
+                                
+                                <!-- Publish Options (Moderators only) -->
+                                {#if isModerator}
+                                    <div class="flex items-center gap-2 pt-2">
+                                        <input 
+                                            type="checkbox" 
+                                            id="publishImmediately" 
+                                            bind:checked={publishImmediately}
+                                            class="rounded border-gray-300"
+                                        />
+                                        <Label for="publishImmediately" class="cursor-pointer text-xs text-muted-foreground">
+                                            Hemen yayınla
+                                        </Label>
+                                    </div>
+                                {/if}
+                                
+                                <!-- Action Buttons -->
+                                <div class="flex justify-end gap-2 pt-3">
+                                    <Button 
+                                        variant="ghost" 
+                                        size="xs" 
+                                        onclick={cancelAnswerForm}
+                                    >
+                                        İptal
+                                    </Button>
+                                    <Button 
+                                        size="xs" 
+                                        onclick={() => submitAnswer(editingAnswerId || undefined)}
+                                        disabled={isSubmittingAnswer}
+                                        class="gap-2"
+                                    >
+                                        {#if isSubmittingAnswer}
+                                            <Loader2 class="w-4 h-4 animate-spin" />
+                                            Gönderiliyor...
+                                        {:else}
+                                            <Send class="w-4 h-4" />
+                                            {editingAnswerId ? 'Güncelle' : 'Cevapla'}
+                                        {/if}
+                                    </Button>
+                                </div>
+                            </div>
+                        </Accordion.Content>
+                    </Accordion.Item>
+                </Accordion.Root>
+            </div>
+        {/if}
+
         <!-- Answers Section -->
         {#if answers.length > 0}
             <div class="space-y-4">
@@ -921,8 +986,8 @@
                     <h2 class="text-lg font-semibold">
                         {answers.length} Cevap
                     </h2>
-                    {#if user}
-                        <Button size="sm" variant="outline" onclick={() => openAnswerDialog()} class="gap-2">
+                    {#if user && !showAnswerForm}
+                        <Button size="sm" variant="outline" onclick={() => openAnswerForm()} class="gap-2">
                             <MessageCircle class="w-4 h-4" />
                             Cevap Ver
                         </Button>
@@ -948,22 +1013,34 @@
 
                             <!-- Answer Author -->
                             <div class="flex items-center gap-3">
-                                <Avatar.Root class="h-8 w-8">
-                                    {#if answer.author?.avatar}
-                                        <Avatar.Image src={answer.author.avatar} alt={answer.author.nickname || 'Moderatör'} />
-                                    {/if}
-                                    <Avatar.Fallback class="text-xs">
-                                        {answer.author?.nickname?.[0] || 'M'}
-                                    </Avatar.Fallback>
-                                </Avatar.Root>
-                                <div class="flex flex-col">
-                                    <span class="text-sm font-medium">
-                                        {answer.author?.nickname || 'Moderatör'}
-                                    </span>
-                                    <span class="text-xs text-muted-foreground">
-                                        {formatRelativeTime(answer.createdAt)}
-                                    </span>
-                                </div>
+                                <a href="/{lang}/{answer.author?.username || answer.author?.nickname}" class="flex items-center gap-3 hover:opacity-80 transition-opacity">
+                                    <Avatar.Root class="h-8 w-8">
+                                        {#if answer.author?.avatar}
+                                            {@const displayName = answer.author?.name && answer.author?.surname
+                                                ? `${answer.author.name} ${answer.author.surname}`
+                                                : (answer.author?.nickname || answer.author?.username || 'İsimsiz')}
+                                            <Avatar.Image src={answer.author.avatar} alt={displayName} />
+                                        {/if}
+                                        <Avatar.Fallback class="text-xs">
+                                            {@const fallbackName = answer.author?.name && answer.author?.surname
+                                                ? `${answer.author.name} ${answer.author.surname}`
+                                                : (answer.author?.nickname || answer.author?.username || 'İsimsiz')}
+                                            {fallbackName[0]?.toUpperCase() || 'U'}
+                                        </Avatar.Fallback>
+                                    </Avatar.Root>
+                                    <div class="flex flex-col">
+                                        <span class="text-sm font-medium hover:text-primary transition-colors">
+                                            {#if answer.author?.name && answer.author?.surname}
+                                                {answer.author.name} {answer.author.surname}
+                                            {:else}
+                                                {answer.author?.nickname || answer.author?.username || 'İsimsiz'}
+                                            {/if}
+                                        </span>
+                                        <span class="text-xs text-muted-foreground">
+                                            {formatRelativeTime(answer.createdAt)}
+                                        </span>
+                                    </div>
+                                </a>
 
                                 <!-- Answer Actions Dropdown -->
                                 <div class="ml-auto">
@@ -982,7 +1059,7 @@
                                         </DropdownMenu.Trigger>
                                         <DropdownMenu.Content align="end">
                                             {#if isModerator || (user && answer.author?.id === user.id)}
-                                                <DropdownMenu.Item onclick={() => openAnswerDialog(answer.id)}>
+                                                <DropdownMenu.Item onclick={() => openAnswerForm(answer.id)}>
                                                     <Pencil class="w-4 h-4 mr-2" />
                                                     Düzenle
                                                 </DropdownMenu.Item>
@@ -1003,8 +1080,8 @@
                         </div>
 
                         <!-- Answer Body -->
-                        <div class="p-6">
-                            <div class="prose prose-sm max-w-none dark:prose-invert prose-img:max-w-xs prose-img:max-h-64 prose-img:rounded-lg prose-img:cursor-pointer">
+                        <div class="p-6 overflow-hidden">
+                            <div class="prose prose-sm max-w-none dark:prose-invert break-words [&_img]:max-w-full [&_img]:h-auto [&_img]:rounded-lg [&_img]:cursor-pointer">
                                 {@html answer.contentHtml}
                             </div>
                         </div>
@@ -1068,8 +1145,8 @@
                 <p class="text-muted-foreground mb-4">
                     Bu soruya henüz cevap verilmemiş. İlk cevabı siz verin!
                 </p>
-                {#if user}
-                    <Button onclick={() => openAnswerDialog()} class="gap-2">
+                {#if user && !showAnswerForm}
+                    <Button onclick={() => openAnswerForm()} class="gap-2">
                         <MessageCircle class="w-4 h-4" />
                         Cevap Ver
                     </Button>

@@ -6,6 +6,14 @@
     "not_found": "Langue introuvable"
   },
   "QA": "S&C",
+  "books": {
+    "title": "Ressources Utiles",
+    "subtitle": "Commencez à apprendre en téléchargeant des ressources adaptées à votre niveau",
+    "beginner": "Débutant",
+    "intermediate": "Intermédiaire",
+    "advanced": "Avancé",
+    "theorist": "Théoricien"
+  },
   "seo": {
     "home": {
       "title": "Activité Anarchiste Libertarienne",

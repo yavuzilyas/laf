@@ -6,6 +6,14 @@
     "not_found": "Dil bulunamadı"
   },
   "QA": "S&C",
+  "books": {
+    "title": "Faydalı Kaynaklar",
+    "subtitle": "Seviyenize uygun kaynakları indirerek öğrenmeye başlayın",
+    "beginner": "Başlangıç",
+    "intermediate": "Orta",
+    "advanced": "İleri",
+    "theorist": "Teorisyen"
+  },
   "seo": {
     "home": {
       "title": "Liberteryen Anarşist Faaliyet",
@@ -4734,7 +4742,6 @@
   "bone": "kemik",
   "book": "kitap",
   "bookmark": "yer işareti",
-  "books": "kitaplar",
   "boot": "çizme",
   "bottom": "alt",
   "bouquet": "buket",

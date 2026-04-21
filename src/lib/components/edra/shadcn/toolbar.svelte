@@ -25,11 +25,10 @@
 
 	const toolbarCommands = Object.keys(commands).filter((key) => !excludedCommands?.includes(key));
 </script>
-<div class={cn('edra-toolbar', className)}>
-	
+<div class={cn('edra-toolbar flex flex-nowrap overflow-x-auto overflow-y-hidden gap-1 p-2 items-center', className)}>
 	{#if children}
 		{@render children()}
-	{:else}
+	{:else if editor}
 		{#each toolbarCommands as cmd (cmd)}
 			{#if cmd === 'headings'}
 				<Headings {editor} />
@@ -55,3 +54,18 @@
 		<SearchAndReplace {editor} />
 	{/if}
 </div>
+
+<style>
+	:global(.compact-toolbar .lucide-icon),
+	:global(.compact-toolbar svg[class*="lucide"]) {
+		width: 14px;
+		height: 14px;
+	}
+	:global(.compact-toolbar button) {
+		height: 28px;
+		width: 28px;
+		min-height: 28px;
+		min-width: 28px;
+		padding: 0;
+	}
+</style>

@@ -97,15 +97,18 @@ export async function GET({ params, locals }: RequestEvent) {
 
         // Get ALL answers for this question
         const answersQuery = `
-            SELECT 
+            SELECT
                 a.id,
                 a.content,
                 a.content_html,
                 a.created_at,
                 a.vote_score,
                 a.is_accepted,
+                u.id as author_id,
                 u.username,
                 u.nickname,
+                u.name,
+                u.surname,
                 u.avatar_url
             FROM answers a
             LEFT JOIN users u ON a.author_id = u.id
@@ -115,7 +118,7 @@ export async function GET({ params, locals }: RequestEvent) {
 
         const answersResult = await query(answersQuery, [question.id]);
 
-        const answers = answersResult.rows.map(a => ({
+        const answers = answersResult.rows.map((a: any) => ({
             id: a.id,
             content: a.content,
             contentHtml: a.content_html,
@@ -123,8 +126,11 @@ export async function GET({ params, locals }: RequestEvent) {
             voteScore: a.vote_score || 0,
             isAccepted: a.is_accepted,
             author: {
+                id: a.author_id,
                 username: a.username,
                 nickname: a.nickname,
+                name: a.name,
+                surname: a.surname,
                 avatar: a.avatar_url
             }
         }));

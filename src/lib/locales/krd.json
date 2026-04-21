@@ -6,6 +6,14 @@
     "not_found": "Ziman nehate dîtin"
   },
   "QA": "S&C",
+  "books": {
+    "title": "Çavkaniyên Kêrhatî",
+    "subtitle": "Bi dakêşandina çavkaniyên li gorî asta xwe dest bi fêrbûnê bikin",
+    "beginner": "Destpêk",
+    "intermediate": "Navîn",
+    "advanced": "Pêşkeftî",
+    "theorist": "Nerî"
+  },
   "seo": {
     "home": {
       "title": "Çalakiyên Anarşîstî yên Lîberteryen",
@@ -4720,7 +4728,6 @@
   "bone": "sê",
   "book": "pirtûk",
   "bookmark": "bookmark",
-  "books": "pirtûkan",
   "boot": "bot",
   "bottom": "jêr",
   "bouquet": "bouquet",

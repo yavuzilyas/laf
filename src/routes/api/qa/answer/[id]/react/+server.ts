@@ -63,12 +63,21 @@ export async function POST({ params, request, locals }: RequestEvent) {
         `;
         const countsResult = await query(countsQuery, [answerId]);
 
+        const likes = parseInt(countsResult.rows[0].likes);
+        const dislikes = parseInt(countsResult.rows[0].dislikes);
+
+        // Update the answers table with new counts
+        await query(
+            `UPDATE answers SET like_count = $1, dislike_count = $2 WHERE id = $3`,
+            [likes, dislikes, answerId]
+        );
+
         return json({
             success: true,
             reaction,
             stats: {
-                likes: parseInt(countsResult.rows[0].likes),
-                dislikes: parseInt(countsResult.rows[0].dislikes)
+                likes,
+                dislikes
             }
         });
 

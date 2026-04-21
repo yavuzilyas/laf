@@ -8,7 +8,7 @@
 	import Badge from '$lib/components/ui/badge/badge.svelte';
 	import { articleEditor } from '$lib/stores/article-editor.svelte.js';
 
-	const { node }: NodeViewProps = $props();
+	const { node, editor }: NodeViewProps = $props();
 
 	const url = node.attrs.url as string;
 	const filename = node.attrs.filename as string;
@@ -59,8 +59,10 @@
 	onDestroy(() => {
 		// Delete file from server when node is destroyed (e.g., keyboard deletion)
 		// But only if we're in article editor context AND the article wasn't just published
+		// Skip deletion for QA context (check for qaId in editor.storage)
+		const isQAContext = !!(editor?.storage as any)?.qaId;
 		const isArticleEditorContext = !!articleEditor.articleId;
-		if (isArticleEditorContext && !articleEditor.isPublished) {
+		if (isArticleEditorContext && !articleEditor.isPublished && !isQAContext) {
 			deleteFromServer(initialUrl);
 		}
 	});

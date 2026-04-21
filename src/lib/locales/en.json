@@ -6,6 +6,14 @@
     "not_found": "Language not found"
   },
   "QA": "Q&A",
+  "books": {
+    "title": "Useful Resources",
+    "subtitle": "Start learning by downloading resources suitable for your level",
+    "beginner": "Beginner",
+    "intermediate": "Intermediate",
+    "advanced": "Advanced",
+    "theorist": "Theorist"
+  },
   "seo": {
     "home": {
       "title": "Libertarian Anarchist Foundation",
@@ -4489,7 +4497,6 @@
   "bone": "bone",
   "book": "book",
   "bookmark": "bookmark",
-  "books": "books",
   "boot": "boot",
   "bottom": "bottom",
   "bouquet": "bouquet",

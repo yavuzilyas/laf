@@ -43,11 +43,16 @@
 		fd.append('file', file);
 		fd.append('folder', 'files');
 		fd.append('fileType', 'attachment');
-		
-		// Get commentId dynamically from editor.storage (for comment uploads)
-		// Otherwise use articleId from articleEditor
+
+		// Get context IDs from editor.storage (for comment/QA uploads)
+		// Priority: qaId > commentId > articleId
+		const currentQaId = (editor?.storage as any)?.qaId ?? null;
 		const currentCommentId = (editor?.storage as any)?.commentId ?? null;
-		if (currentCommentId) {
+
+		if (currentQaId) {
+			fd.append('qaId', currentQaId);
+			fd.append('type', 'files');
+		} else if (currentCommentId) {
 			fd.append('commentId', currentCommentId);
 			fd.append('type', 'files');
 		} else {
