@@ -61,12 +61,12 @@
   ];
 
   let downloadingFiles = $state<Set<string>>(new Set());
-  const DOWNLOAD_COOLDOWN_MS = 3000;
+  const DOWNLOAD_COOLDOWN_MS = 30000;
 
   function downloadFile(url: string, filename: string) {
     if (downloadingFiles.has(filename)) return;
 
-    downloadingFiles.add(filename);
+    downloadingFiles = new Set([...downloadingFiles, filename]);
     const link = document.createElement('a');
     link.href = url;
     link.download = filename;
@@ -75,7 +75,7 @@
     document.body.removeChild(link);
 
     setTimeout(() => {
-      downloadingFiles.delete(filename);
+      downloadingFiles = new Set([...downloadingFiles].filter(f => f !== filename));
     }, DOWNLOAD_COOLDOWN_MS);
   }
 </script>
@@ -83,7 +83,7 @@
 <section class="w-full px-4">
   <div class="max-w-3xl mx-auto">
     <h2 class="text-2xl font-bold mb-4 text-center text-foreground">
-      {t('books.title') || 'Eğitim Kitapları'}
+      {t('books.title')}
     </h2>
 
     <div class="grid sm:grid-cols-2 gap-4">
@@ -124,7 +124,7 @@
                   size="icon"
                   onclick={() => downloadFile(book.url, book.filename)}
                   disabled={downloadingFiles.has(book.filename)}
-                  class="shrink-0 h-7 w-7"
+                  class="shrink-0 h-7 w-7 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <Download size={14} />
                 </Button>
@@ -141,6 +141,7 @@
   .marquee-container {
     position: relative;
     overflow: hidden;
+    		margin-top: 7px;
     mask-image: linear-gradient(to right, transparent 0%, black 20%, black 80%, transparent 100%);
     -webkit-mask-image: linear-gradient(to right, transparent 0%, black 20%, black 80%, transparent 100%);
   }
