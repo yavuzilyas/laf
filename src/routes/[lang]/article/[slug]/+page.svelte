@@ -34,7 +34,8 @@
 		ThumbsUp,
 		Hammer,
 		Ellipsis,
-		Trash
+		Trash,
+		Star
 	} from '@lucide/svelte';
 	import { BarSpinner } from '$lib/components/spell/bar-spinner';
 
@@ -68,6 +69,8 @@
 	let dislikesCount = $state<number>(Number(data.article?.stats?.dislikes) || 0);
 	let reaction = $state<'like' | 'dislike' | null>(null);
 	let showReportDrawer = $state(false);
+	let isFeatured = $state(data.article?.isFeatured || false);
+	let isTogglingFeatured = $state(false);
 
 	// State for collaborator profile editing when the collaborator is the current user
 	let collaboratorProfileData = $state<Record<string, any>>({});
@@ -1399,6 +1402,45 @@
 		showHideDialog = true;
 	}
 
+	async function onToggleFeatured() {
+		if (!data.isAdmin || !article?.id) return;
+
+		isTogglingFeatured = true;
+		const newFeaturedState = !isFeatured;
+
+		try {
+			const response = await fetch(`/api/articles/${article.id}/featured`, {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ isFeatured: newFeaturedState })
+			});
+
+			if (response.ok) {
+				const result = await response.json();
+				isFeatured = result.isFeatured;
+				showToast(
+					result.isFeatured ? t('articles.featuredSuccess') || 'Makale öne çıkarıldı' : t('articles.unfeaturedSuccess') || 'Makale öne çıkarma kaldırıldı',
+					'success',
+					2000
+				);
+			} else {
+				showToast(
+					t('articles.featuredError') || 'İşlem başarısız oldu',
+					'error',
+					2000
+				);
+			}
+		} catch (error) {
+			showToast(
+				t('articles.featuredError') || 'İşlem başarısız oldu',
+				'error',
+				2000
+			);
+		} finally {
+			isTogglingFeatured = false;
+		}
+	}
+
 	function isCommentOwner(a: any): boolean {
 		const uid = $page.data.user?.id;
 		return Boolean(uid && (a?.author?.id === uid || a?.userId === uid));
@@ -2373,6 +2415,21 @@
 												<DropdownMenu.Item onclick={onHideArticle}>
 													<EyeOffIcon triggers={{ hover: false }} class=" h-4 w-4" />
 													{t('articles.comments.hide')}
+												</DropdownMenu.Item>
+											{/if}
+
+											<!-- Featured toggle for admins -->
+											{#if data.isAdmin}
+												<DropdownMenu.Separator />
+												<DropdownMenu.Item onclick={onToggleFeatured} disabled={isTogglingFeatured}>
+													{#if isTogglingFeatured}
+														<div class="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent"></div>
+													{:else}
+														<Star
+															class="h-4 w-4 {isFeatured ? 'fill-yellow-400 text-yellow-400' : ''}"
+														/>
+													{/if}
+													{isFeatured ? (t('articles.unfeature') || 'Öne Çıkarma Kaldır') : (t('articles.feature') || 'Öne Çıkar')}
 												</DropdownMenu.Item>
 											{/if}
 										{/if}

@@ -557,8 +557,14 @@
   },
   "articles": {
     "similarArticles": "Benzer Makaleler",
+    "featuredArticles": "Öne Çıkarılan Makaleler",
     "popularArticles": "Popüler Makaleler",
     "allArticles": "Tüm Makaleler",
+    "feature": "Öne Çıkar",
+    "unfeature": "Öne Çıkarma Kaldır",
+    "featuredSuccess": "Makale öne çıkarıldı",
+    "unfeaturedSuccess": "Makale öne çıkarma kaldırıldı",
+    "featuredError": "İşlem başarısız oldu",
     "rssFeed": {
       "title": "RSS Feed",
       "description": "Makalelerimize RSS feed ile abone olun: {url}"

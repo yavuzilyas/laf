@@ -2459,3 +2459,125 @@ export const getQuestion = async (id: string) => {
     
     return result.rows[0] || null;
 };
+
+// ==================== FEATURED ARTICLES QUERIES ====================
+
+// Get featured articles - randomly selects from featured articles
+// If language is provided, prioritizes that language's translation
+export const getFeaturedArticles = async (limit: number = 3, excludeId?: string, language?: string) => {
+    let sql = `
+        SELECT a.*, 
+               u.username as author_name, 
+               u.avatar_url as author_avatar,
+               u.name as author_full_name,
+               u.surname as author_surname,
+               u.nickname as author_nickname
+        FROM articles a
+        JOIN users u ON a.author_id = u.id
+        WHERE a.status = 'published'
+        AND a.deleted_at IS NULL
+        AND a.is_hidden = FALSE
+        AND a.is_featured = TRUE
+    `;
+    const params: any[] = [];
+
+    if (excludeId) {
+        sql += ` AND a.id <> $${params.length + 1}`;
+        params.push(excludeId);
+    }
+    
+    // Randomly order and limit
+    sql += `
+        ORDER BY RANDOM()
+        LIMIT $${params.length + 1}
+    `;
+    params.push(limit);
+    
+    const result = await query(sql, params);
+    
+    // Fetch collaborator details for each article
+    const articlesWithCollaborators = await Promise.all(
+        result.rows.map(async (row: any) => {
+            const collaboratorIds = row.collaborators || [];
+            const collaboratorDetails = await getCollaboratorDetails(collaboratorIds);
+            
+            // Determine which translation to use:
+            // 1. Requested language if available
+            // 2. Fallback to English if available
+            // 3. Fallback to default language
+            const translations = row.translations || {};
+            const defaultLang = row.default_language || 'tr';
+            const hasTranslation = language && translations[language] && translations[language].title;
+            const hasEnglish = translations['en'] && translations['en'].title;
+            
+            let displayLang: string;
+            if (hasTranslation) {
+                displayLang = language!;
+            } else if (hasEnglish) {
+                displayLang = 'en';
+            } else {
+                displayLang = defaultLang;
+            }
+            
+            const translation = translations[displayLang] || {};
+            
+            return {
+                ...row,
+                id: row.id,
+                slug: translation.slug || row.slug || `article-${row.id}`,
+                title: translation.title || row.title || 'Untitled',
+                excerpt: translation.excerpt || 
+                         (translation.content?.substring(0, 200) + '...') || 
+                         (row.content?.substring(0, 200) + '...') || '',
+                author: {
+                    id: row.author_id,
+                    name: row.author_full_name || row.author_name || 'Unknown',
+                    surname: row.author_surname,
+                    avatar: row.author_avatar,
+                    nickname: row.author_nickname || row.author_name
+                },
+                author_nickname: row.author_nickname || row.author_name,
+                publishedAt: row.published_at,
+                readTime: Math.ceil((translation.content?.length || row.content?.length || 0) / 1000) || 5,
+                category: row.category,
+                coverImage: row.thumbnail,
+                views: row.views || 0,
+                likes: row.likes_count || 0,
+                comments: row.comments_count || 0,
+                dislikes: row.dislikes || 0,
+                collaborators: collaboratorDetails,
+                language: displayLang,
+                translations: translations,
+                isFeatured: row.is_featured,
+                featuredAt: row.featured_at,
+                featuredBy: row.featured_by
+            };
+        })
+    );
+    
+    return articlesWithCollaborators;
+};
+
+// Toggle article featured status (admin only)
+export const toggleArticleFeatured = async (articleId: string, userId: string, isFeatured: boolean) => {
+    const sql = `
+        UPDATE articles
+        SET is_featured = $1,
+            featured_at = CASE WHEN $1 THEN NOW() ELSE NULL END,
+            featured_by = CASE WHEN $1 THEN $2::uuid ELSE NULL END
+        WHERE id = $3
+        RETURNING id, is_featured, featured_at, featured_by
+    `;
+
+    const result = await query(sql, [isFeatured, userId, articleId]);
+    return result.rows[0] || null;
+};
+
+// Get article featured status
+export const getArticleFeaturedStatus = async (articleId: string) => {
+    const result = await query(
+        `SELECT is_featured, featured_at, featured_by FROM articles WHERE id = $1`,
+        [articleId]
+    );
+    return result.rows[0] || { is_featured: false, featured_at: null, featured_by: null };
+};

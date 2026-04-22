@@ -1,19 +1,19 @@
 import type { PageServerLoad } from './$types';
-import { getPopularArticles } from '$db/queries';
+import { getFeaturedArticles } from '$db/queries';
 
 export const load: PageServerLoad = async ({ params }) => {
     try {
         const currentLocale = params.lang || 'tr';
-        const popularArticles = await getPopularArticles(3, undefined, currentLocale);
-        
+        const featuredArticles = await getFeaturedArticles(3, undefined, currentLocale);
+
         return {
-            popularArticles,
+            featuredArticles,
             lang: params.lang
         };
     } catch (error) {
-        console.error('Error loading popular articles:', error);
+        console.error('Error loading featured articles:', error);
         return {
-            popularArticles: [],
+            featuredArticles: [],
             lang: params.lang
         };
     }

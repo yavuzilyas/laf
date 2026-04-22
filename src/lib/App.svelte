@@ -230,13 +230,13 @@ import { cn } from "$lib/utils";
 		</Pointer>
   </section>
 {/if}
-<!-- Popular Articles Section -->
-{#if data.popularArticles && data.popularArticles.length > 0}
+<!-- Featured Articles Section -->
+{#if data.featuredArticles && data.featuredArticles.length > 0}
   <section class="w-full py-12 px-4 sm:px-6 lg:px-8 ">
     <div class="max-w-7xl mx-auto">
       <ArticleRecommendation
-        articles={data.popularArticles}
-        title={t('articles.popularArticles') || 'Popüler Makaleler'}
+        articles={data.featuredArticles}
+        title={t('articles.featuredArticles') || 'Öne Çıkarılan Makaleler'}
       />
     </div>
   </section>

@@ -1,7 +1,7 @@
 // src/routes/article/[slug]/+page.server.ts
 import type { PageServerLoad } from './$types';
 import { error, redirect } from '@sveltejs/kit';
-import { getArticleBySlug, getArticleById, getArticles, incrementArticleViews, getUsers, getBlockedUsers, getFollows, getSimilarArticles } from '$db/queries';
+import { getArticleBySlug, getArticleById, getArticles, incrementArticleViews, getUsers, getBlockedUsers, getFollows, getSimilarArticles, getArticleFeaturedStatus } from '$db/queries';
 import { getApprovedTranslatorsForArticle } from '$db/queries-translation-status';
 
 const toSerializableId = (value: unknown) => {
@@ -537,6 +537,9 @@ export const load: PageServerLoad = async ({ params, locals, cookies }) => {
     currentLang
   );
 
+  // Get featured status for this article
+  const featuredStatus = await getArticleFeaturedStatus(article.id);
+
   // Create a serializable article object
   const serializedArticle = {
     _id: article.id,
@@ -563,7 +566,8 @@ export const load: PageServerLoad = async ({ params, locals, cookies }) => {
     updatedAt: article.updated_at ? new Date(article.updated_at).toISOString() : undefined,
     publishedAt: article.published_at ? new Date(article.published_at).toISOString() : undefined,
     availableTranslations,
-    fullyTranslated
+    fullyTranslated,
+    isFeatured: featuredStatus.is_featured || false
   };
 
   // Create a safe profile user object
@@ -597,6 +601,7 @@ export const load: PageServerLoad = async ({ params, locals, cookies }) => {
     currentUser: safeCurrentUser,
     canEdit,
     canFullEdit,
+    isAdmin,
     stats: {
       totalArticles: Number(totalArticles) || 0,
       totalViews: Number(totalViews) || 0,

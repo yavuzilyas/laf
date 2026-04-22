@@ -639,8 +639,14 @@
   },
   "articles": {
     "similarArticles": "Similar Articles",
+    "featuredArticles": "Featured Articles",
     "popularArticles": "Popular Articles",
     "allArticles": "All Articles",
+    "feature": "Feature",
+    "unfeature": "Unfeature",
+    "featuredSuccess": "Article featured successfully",
+    "unfeaturedSuccess": "Article unfeatured successfully",
+    "featuredError": "Operation failed",
     "rssFeed": {
       "title": "RSS Feed",
       "description": "Subscribe to our articles via RSS feed: {url}"
