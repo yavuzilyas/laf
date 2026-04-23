@@ -2466,8 +2466,8 @@ export const getQuestion = async (id: string) => {
 // If language is provided, prioritizes that language's translation
 export const getFeaturedArticles = async (limit: number = 3, excludeId?: string, language?: string) => {
     let sql = `
-        SELECT a.*, 
-               u.username as author_name, 
+        SELECT a.*,
+               u.username as author_name,
                u.avatar_url as author_avatar,
                u.name as author_full_name,
                u.surname as author_surname,
@@ -2485,22 +2485,22 @@ export const getFeaturedArticles = async (limit: number = 3, excludeId?: string,
         sql += ` AND a.id <> $${params.length + 1}`;
         params.push(excludeId);
     }
-    
+
     // Randomly order and limit
     sql += `
         ORDER BY RANDOM()
         LIMIT $${params.length + 1}
     `;
     params.push(limit);
-    
+
     const result = await query(sql, params);
-    
+
     // Fetch collaborator details for each article
     const articlesWithCollaborators = await Promise.all(
         result.rows.map(async (row: any) => {
             const collaboratorIds = row.collaborators || [];
             const collaboratorDetails = await getCollaboratorDetails(collaboratorIds);
-            
+
             // Determine which translation to use:
             // 1. Requested language if available
             // 2. Fallback to English if available
@@ -2509,7 +2509,7 @@ export const getFeaturedArticles = async (limit: number = 3, excludeId?: string,
             const defaultLang = row.default_language || 'tr';
             const hasTranslation = language && translations[language] && translations[language].title;
             const hasEnglish = translations['en'] && translations['en'].title;
-            
+
             let displayLang: string;
             if (hasTranslation) {
                 displayLang = language!;
@@ -2518,16 +2518,16 @@ export const getFeaturedArticles = async (limit: number = 3, excludeId?: string,
             } else {
                 displayLang = defaultLang;
             }
-            
-            const translation = translations[displayLang] || {};
-            
+
+            const translation = translations[displayLang] || translations[defaultLang] || {};
+
             return {
                 ...row,
                 id: row.id,
                 slug: translation.slug || row.slug || `article-${row.id}`,
                 title: translation.title || row.title || 'Untitled',
-                excerpt: translation.excerpt || 
-                         (translation.content?.substring(0, 200) + '...') || 
+                excerpt: translation.excerpt ||
+                         (translation.content?.substring(0, 200) + '...') ||
                          (row.content?.substring(0, 200) + '...') || '',
                 author: {
                     id: row.author_id,
@@ -2554,7 +2554,7 @@ export const getFeaturedArticles = async (limit: number = 3, excludeId?: string,
             };
         })
     );
-    
+
     return articlesWithCollaborators;
 };
 
