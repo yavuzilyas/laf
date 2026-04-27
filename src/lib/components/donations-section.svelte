@@ -395,8 +395,8 @@ import { BarSpinner } from "$lib/components/spell/bar-spinner";
           </Marquee>
 
           <!-- Gradient Overlays for smooth edges -->
-          <div class="pointer-events-none absolute inset-y-0 left-0 w-20 bg-gradient-to-r from-background to-transparent z-10"></div>
-          <div class="pointer-events-none absolute inset-y-0 right-0 w-20 bg-gradient-to-l from-background to-transparent z-10"></div>
+          <div class="pointer-events-none absolute inset-y-0 left-0 w-20 bg-gradient-to-r from-background to-transparent z-5"></div>
+          <div class="pointer-events-none absolute inset-y-0 right-0 w-20 bg-gradient-to-l from-background to-transparent z-5"></div>
         </div>
       {/if}
   <!-- Header Section -->

@@ -329,6 +329,7 @@
 
 <svelte:head>
     <title>{seoTitle}</title>
+    <meta name="robots" content="noindex, nofollow" />
     <meta name="description" content={seoDescription} />
     <meta name="keywords" content={seoKeywords} />
     <link rel="canonical" href={canonicalUrl} />

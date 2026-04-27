@@ -1,9 +1,16 @@
 import type { PageServerLoad } from './$types';
 import { query } from '$db/pg';
+import { error } from '@sveltejs/kit';
 
 export const load: PageServerLoad = async ({ locals }) => {
+  const currentUser = locals.user;
+
+  // Only members can access events page
+  if (!currentUser) {
+    throw error(404, 'Bu sayfayı bulamadık');
+  }
+
   try {
-    const currentUser = locals.user;
     
     // Fetch all active events and announcements
     const result = await query(`

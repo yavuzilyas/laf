@@ -47,9 +47,10 @@ import { ScrollProgress } from "$lib/components/magic/scroll-progress";
   const l = (path: string) => `/${currentLocale}${path}`;
 
   // Reaktif menu array'i - dil değiştiğinde otomatik güncellenir
+  // Events only visible to logged-in users
   let menu = $derived([
     { isconstruction: "false", name: t('Articles'), href: l("/articles") },
-    { isconstruction: "false", name: t('Events'), href: l("/events") },
+    ...(currentUser ? [{ isconstruction: "false", name: t('Events'), href: l("/events") }] : []),
     // { isconstruction: "false", name: t('QA'), href: l("/qa") },
     // { isconstruction: "true", name: t('Bicorpus'), href: "bicorpus" },
     // { isconstruction: "true", name: t('Tacicat'), href: "tacicat" },

@@ -810,7 +810,7 @@ function handleOpenChange(newOpen: boolean) {
 				<Tabs.Content value="interface">
 					<ScrollArea orientation="vertical" class="h-full">
 						<header class="flex h-16 shrink-0 items-center gap-2 transition-[width,height] ease-linear group-has-[[data-collapsible=icon]]/sidebar-wrapper:h-12 border-b">
-							<div class="flex items-center gap-2 px-4">
+							<div class="flex items-center gap-2 px-4 md:pl-8">
 								<Breadcrumb.Root>
 									<Breadcrumb.List>
 										<Breadcrumb.Item class="hidden md:block">
@@ -820,7 +820,7 @@ function handleOpenChange(newOpen: boolean) {
 								</Breadcrumb.Root>
 							</div>
 						</header>
-						<main class="flex h-full flex-1 flex-col py-6 px-4 gapy-6">
+						<main class="flex h-full flex-1 flex-col py-6 px-4 md:pl-8 gapy-6">
 							<div class="space-y-2">
 								<div class="flex items-center justify-between py-2 px-3 rounded-lg border">
 									<Label for="dark-mode" class="cursor-pointer text-xs">{t('DarkMode')}</Label>
