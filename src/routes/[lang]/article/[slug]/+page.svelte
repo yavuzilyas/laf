@@ -72,6 +72,12 @@
 	let isFeatured = $state(data.article?.isFeatured || false);
 	let isTogglingFeatured = $state(false);
 
+	// Thumbnail load error tracking
+	let thumbnailError = $state(false);
+	const handleThumbnailError = () => {
+		thumbnailError = true;
+	};
+
 	// State for collaborator profile editing when the collaborator is the current user
 	let collaboratorProfileData = $state<Record<string, any>>({});
 	let collaboratorEditing = $state<Record<string, boolean>>({});
@@ -2488,13 +2494,14 @@
 						{/if}
 					</div>
 
-					{#if article.thumbnail}
+					{#if article.thumbnail && !thumbnailError}
 						<div class="mb-3 rounded-lg overflow-hidden">
 							<Lens>
 								<img
 									src={article.thumbnail}
 									alt={article.title}
 									class="w-full h-auto max-h-[500px] object-cover"
+									onerror={handleThumbnailError}
 								/>
 							</Lens>
 						</div>

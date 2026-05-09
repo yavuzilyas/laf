@@ -87,6 +87,12 @@
     return text.slice(0, maxLength).trim() + '...';
   };
 
+  // Track cover image load errors per article
+  let coverImageErrors = $state<Record<string, boolean>>({});
+  const handleCoverImageError = (articleId: string) => {
+    coverImageErrors[articleId] = true;
+  };
+
   const getAuthorIdentifier = (article: Article) => {
     return article.author?.nickname || article.author_nickname || 'user';
   };
@@ -158,12 +164,13 @@
         >
           <article class="h-full flex flex-col" dir={getLanguageDirection(article.language || 'tr')}>
             <!-- Cover Image -->
-            {#if article.coverImage}
+            {#if article.coverImage && !coverImageErrors[article.id]}
               <div class="relative overflow-hidden aspect-[16/10]">
                 <img
                   src={article.coverImage}
                   alt={article.title}
                   class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                  onerror={() => handleCoverImageError(article.id)}
                 />
                 <div class="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent"></div>
                 <Badge class="absolute top-4 left-4 bg-primary/90 text-primary-foreground">
@@ -176,7 +183,7 @@
             <div class="flex flex-col flex-1 p-5 space-y-3">
               <!-- Category & Meta -->
               <div class="flex items-center gap-3 text-xs text-muted-foreground">
-                {#if !article.coverImage}
+                {#if !article.coverImage || coverImageErrors[article.id]}
                   <Badge variant="secondary" class="text-xs">
                     {t(`categories.${article.category}`)}
                   </Badge>

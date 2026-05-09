@@ -125,6 +125,13 @@
     if (num < 10000000) return (num / 1000000).toFixed(1) + 'm';
     return (num / 1000000).toFixed(0) + 'm';
   };
+
+  // Thumbnail load error tracking
+  let coverImageError = $state(false);
+  const handleCoverImageError = () => {
+    coverImageError = true;
+  };
+
   import * as Tooltip from "$lib/components/ui/tooltip";
   import { Motion, useMotionValue, useMotionTemplate } from "svelte-motion";
   import { browser } from '$app/environment';
@@ -145,12 +152,13 @@
   )} 
   dir={getLanguageDirection(article.language || article.defaultLanguage || 'tr')}
   {...restProps}>
-    {#if article.coverImage}
+    {#if article.coverImage && !coverImageError}
       <div class="relative overflow-hidden md:order-2">
         <img 
           src={article.coverImage} 
           alt={translatedContent.title}
           class="aspect-[16/9] w-full object-cover transition-transform duration-300 group-hover:scale-105 md:aspect-[4/3]"
+          onerror={handleCoverImageError}
         />
         <div class="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent" />
         {#if article.featured}
@@ -274,12 +282,13 @@
   )} 
   dir={getLanguageDirection(article.language || article.defaultLanguage || 'tr')}
   {...restProps}>
-    {#if article.coverImage}
+    {#if article.coverImage && !coverImageError}
       <div class="relative flex-shrink-0 overflow-hidden rounded-md">
         <img 
           src={article.coverImage} 
           alt={translatedContent.title}
           class="h-32 w-full object-cover transition-transform duration-300 group-hover:scale-105"
+          onerror={handleCoverImageError}
         />
       </div>
     {/if}
@@ -471,7 +480,7 @@
   )} 
   dir={getLanguageDirection(article.language || article.defaultLanguage || 'tr')}
   {...restProps}>
-    {#if article.coverImage}
+    {#if article.coverImage && !coverImageError}
       <div class="relative p-3 pb-0 sm:p-4 sm:pb-0 overflow-hidden">
         <Lens>
         <A href={translatedContent.slug ? l(`/article/${translatedContent.slug}`) : undefined}>
@@ -479,6 +488,7 @@
             src={article.coverImage} 
             alt={translatedContent.title}
             class="aspect-[16/9] rounded-xl w-full object-cover transition-transform duration-300 "
+            onerror={handleCoverImageError}
           />
         </A>
         </Lens>
