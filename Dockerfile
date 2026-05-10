@@ -5,7 +5,8 @@ WORKDIR /app
 # Corepack, bağımlılık kurulumu ve build tek RUN içinde
 COPY package.json pnpm-lock.yaml .npmrc svelte.config.js ./
 RUN corepack enable \
-    && pnpm install --frozen-lockfile
+    && pnpm install --frozen-lockfile --ignore-scripts \
+    && pnpm rebuild argon2 core-js esbuild
 
 # Proje dosyaları
 COPY . .
