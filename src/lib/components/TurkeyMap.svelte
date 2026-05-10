@@ -330,6 +330,7 @@
 	}
 
 	const currentUserId = $derived($page.data.user?.id || $page.data.user?._id);
+	const isMember = $derived(!!$page.data.user);
 
 	async function handleFollowUser(userId: string) {
 		if (!currentUserId || userId === currentUserId) return;
@@ -492,10 +493,17 @@
 		</h3>
 		{#if selectedCity}
 			<div class="flex gap-2">
-				<Button size="xs" onclick={fetchUsersByCity}>
-					<Users />
-					{t('common.showUsers') || 'Kullanıcıları Göster'}
-				</Button>
+				{#if isMember}
+					<Button size="xs" onclick={fetchUsersByCity}>
+						<Users />
+						{t('common.showUsers') || 'Kullanıcıları Göster'}
+					</Button>
+				{:else}
+					<Button size="xs" variant="outline" disabled title="Üyeler bu özelliği kullanabilir">
+						<Users />
+						{t('common.showUsers') || 'Kullanıcıları Göster'}
+					</Button>
+				{/if}
 				<Button variant="outline" size="xs" onclick={clearSelection}>
 					{t('common.clear') || 'Temizle'}
 				</Button>
