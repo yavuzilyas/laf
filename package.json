@@ -3,6 +3,13 @@
 	"private": true,
 	"version": "0.0.1",
 	"type": "module",
+	"pnpm": {
+		"onlyBuiltDependencies": [
+			"argon2",
+			"core-js",
+			"esbuild"
+		]
+	},
 	"overrides": {
 		"cookie": "^0.7.0"
 	},
