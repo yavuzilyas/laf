@@ -498,11 +498,6 @@
 						<Users />
 						{t('common.showUsers') || 'Kullanıcıları Göster'}
 					</Button>
-				{:else}
-					<Button size="xs" variant="outline" disabled title="Üyeler bu özelliği kullanabilir">
-						<Users />
-						{t('common.showUsers') || 'Kullanıcıları Göster'}
-					</Button>
 				{/if}
 				<Button variant="outline" size="xs" onclick={clearSelection}>
 					{t('common.clear') || 'Temizle'}

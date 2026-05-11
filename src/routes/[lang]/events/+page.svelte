@@ -755,33 +755,29 @@
         
         <Dialog.Footer class="flex flex-col gap-2">
             <!-- Attendees List in Dialog -->
-                {#if selectedEvent?.type === 'event' && selectedEvent?.attendees && selectedEvent.attendees.length > 0}
+                {#if selectedEvent?.type === 'event' && selectedEvent?.attendees && selectedEvent.attendees.length > 0 && isMember}
                 <div class="w-full border-t pt-4 mb-2">
                     <p class="text-sm font-medium mb-2">{t('events.attendees')} ({selectedEvent.attendees.length})</p>
-                    {#if isMember}
-                        <div class="flex flex-wrap gap-2 max-h-32 overflow-y-auto">
-                            {#each selectedEvent.attendees as attendee}
-                                {@const tooltipId = 'tooltip-' + attendee.id}
-                                <div class="relative group">
-                                    <a href={l(`/${attendee.name}`)} class="block">
-                                        <div class="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center overflow-hidden border border-border hover:border-primary transition-colors">
-                                            {#if attendee.avatar_url}
-                                                <img src={attendee.avatar_url} alt={attendee.name} class="w-full h-full object-cover" />
-                                            {:else}
-                                                <span class="text-xs font-medium">{attendee.name.charAt(0).toUpperCase()}</span>
-                                            {/if}
-                                        </div>
-                                    </a>
-                                    <!-- Custom Tooltip -->
-                                    <div class="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 px-2 py-1 bg-popover text-popover-foreground text-xs rounded shadow-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-[200]">
-                                        @{attendee.name}
+                    <div class="flex flex-wrap gap-2 max-h-32 overflow-y-auto">
+                        {#each selectedEvent.attendees as attendee}
+                            {@const tooltipId = 'tooltip-' + attendee.id}
+                            <div class="relative group">
+                                <a href={l(`/${attendee.name}`)} class="block">
+                                    <div class="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center overflow-hidden border border-border hover:border-primary transition-colors">
+                                        {#if attendee.avatar_url}
+                                            <img src={attendee.avatar_url} alt={attendee.name} class="w-full h-full object-cover" />
+                                        {:else}
+                                            <span class="text-xs font-medium">{attendee.name.charAt(0).toUpperCase()}</span>
+                                        {/if}
                                     </div>
+                                </a>
+                                <!-- Custom Tooltip -->
+                                <div class="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 px-2 py-1 bg-popover text-popover-foreground text-xs rounded shadow-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-[200]">
+                                    @{attendee.name}
                                 </div>
-                            {/each}
-                        </div>
-                    {:else}
-                        <p class="text-sm text-muted-foreground">Katılımcı detaylarını görmek için üye olmanız gerekmektedir.</p>
-                    {/if}
+                            </div>
+                        {/each}
+                    </div>
                 </div>
             {/if}
         </Dialog.Footer>
