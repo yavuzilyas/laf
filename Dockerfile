@@ -25,7 +25,7 @@ RUN mkdir -p /app/uploads
 
 # Build (cache temizleyerek ve memory limitini zorlayarak)
 # Not: Eğer build hala hata veriyorsa, sunucu/docker RAM limitini (1GB -> 2GB+) artırmanız gerekebilir.
-RUN NODE_OPTIONS="--max-old-space-size=4096" pnpm exec vite build
+RUN NODE_OPTIONS="--max-old-space-size=4096" npx vite build
 
 EXPOSE 3000
 ENTRYPOINT ["node", "build"]
