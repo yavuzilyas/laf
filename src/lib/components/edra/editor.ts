@@ -46,7 +46,12 @@ export default (
 					autolink: true,
 					linkOnPaste: true
 				},
-				codeBlock: false
+				codeBlock: false,
+				blockquote: {
+					HTMLAttributes: {
+						class: 'blockquote'
+					}
+				}
 			}),
 			Highlight.configure({
 				multicolor: true

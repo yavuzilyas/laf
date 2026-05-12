@@ -28,6 +28,7 @@ import Audio from '@lucide/svelte/icons/audio-lines';
 import IFrame from '@lucide/svelte/icons/code-xml';
 import Table from '@lucide/svelte/icons/table';
 import FileIcon from '@lucide/svelte/icons/file';
+import Minus from '@lucide/svelte/icons/minus';
 
 const commands: Record<string, EdraToolBarCommands[]> = {
 	'undo-redo': [
@@ -309,6 +310,93 @@ const commands: Record<string, EdraToolBarCommands[]> = {
 			}
 		},
 		{
+			icon: Quote,
+			name: 'blockquote',
+			tooltip: 'Blockquote',
+			shortCut: `${isMac ? '⌘⇧' : 'Ctrl+Shift+'}B`,
+			onClick: (editor) => {
+				try {
+					console.log('Quote button clicked, editor:', editor);
+					console.log('Editor state exists:', !!editor?.state);
+					
+					if (!editor) {
+						console.error('Editor is null or undefined');
+						return;
+					}
+					
+					const chain = editor.chain();
+					console.log('Chain created:', !!chain);
+					
+					const focused = chain.focus();
+					console.log('Focus applied:', !!focused);
+					
+					const toggleCommand = focused.toggleBlockquote();
+					console.log('Toggle command created:', !!toggleCommand);
+					
+					const result = toggleCommand.run();
+					console.log('Blockquote toggle executed:', result);
+				} catch (e: any) {
+					console.error('Error toggling blockquote:', e);
+					console.error('Error stack:', e?.stack);
+				}
+			},
+			clickable: (editor) => {
+				try {
+					const canToggle = editor?.can?.()?.toggleBlockquote?.() ?? false;
+					console.log('Can toggle blockquote:', canToggle);
+					return canToggle;
+				} catch (e) {
+					console.error('Error checking if blockquote is clickable:', e);
+					return false;
+				}
+			},
+			isActive: (editor) => {
+				try {
+					const isActive = editor?.isActive?.('blockquote') ?? false;
+					console.log('Blockquote active state:', isActive);
+					return isActive;
+				} catch (e) {
+					console.error('Error checking blockquote active state:', e);
+					return false;
+				}
+			}
+		},
+		{
+			icon: Minus,
+			name: 'horizontalRule',
+			tooltip: 'Horizontal Rule',
+			shortCut: `${isMac ? '⌘' : 'Ctrl+'}Shift+M`,
+			onClick: (editor) => {
+				try {
+					console.log('Line button clicked, editor:', editor);
+					const result = editor?.chain()?.focus()?.setHorizontalRule()?.run();
+					console.log('Horizontal rule insert result:', result);
+				} catch (e) {
+					console.error('Error inserting horizontal rule:', e);
+				}
+			},
+			clickable: (editor) => {
+				try {
+					const canInsert = editor?.can?.()?.setHorizontalRule?.() ?? false;
+					console.log('Can insert horizontal rule:', canInsert);
+					return canInsert;
+				} catch (e) {
+					console.error('Error checking if horizontal rule is clickable:', e);
+					return false;
+				}
+			},
+			isActive: (editor) => {
+				try {
+					const isActive = editor?.isActive?.('horizontalRule') ?? false;
+					console.log('Horizontal rule active state:', isActive);
+					return isActive;
+				} catch (e) {
+					console.error('Error checking horizontal rule active state:', e);
+					return false;
+				}
+			}
+		},
+		{
 			icon: StrikeThrough,
 			name: 'strikethrough',
 			tooltip: 'Strikethrough',
@@ -337,36 +425,7 @@ const commands: Record<string, EdraToolBarCommands[]> = {
 				}
 			}
 		},
-		{
-			icon: Quote,
-			name: 'blockquote',
-			tooltip: 'Blockquote',
-			shortCut: `${isMac ? '⌘⇧' : 'Ctrl+Shift+'}B`,
-			onClick: (editor) => {
-				try {
-					editor?.chain()?.focus()?.toggleBlockquote()?.run();
-				} catch (e) {
-					console.error('Error toggling blockquote:', e);
-				}
-			},
-			clickable: (editor) => {
-				try {
-					return editor?.can?.()?.toggleBlockquote?.() ?? false;
-				} catch (e) {
-					console.error('Error checking if blockquote is clickable:', e);
-					return false;
-				}
-			},
-			isActive: (editor) => {
-				try {
-					return editor?.isActive?.('blockquote') ?? false;
-				} catch (e) {
-					console.error('Error checking blockquote active state:', e);
-					return false;
-				}
-			}
-		},
-		{
+				{
 			icon: Code,
 			name: 'code',
 			tooltip: 'Inline Code',

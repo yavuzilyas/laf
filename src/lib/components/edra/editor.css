@@ -208,7 +208,8 @@ ol > li > .drag-handle {
 	font-weight: 600;
 }
 
-.tiptap blockquote {
+.tiptap blockquote,
+.blockquote {
 	margin: 1rem 0rem;
 	padding: 0.5rem 0;
 	padding-left: 0.75rem;
@@ -217,7 +218,8 @@ ol > li > .drag-handle {
 	position: relative;
 }
 
-.tiptap blockquote::before {
+.tiptap blockquote::before,
+.blockquote::before {
 	content: '';
 	position: absolute;
 	left: 0;
@@ -228,15 +230,19 @@ ol > li > .drag-handle {
 	border-radius: var(--radius-md);
 }
 
-.tiptap blockquote p {
+.tiptap blockquote p,
+.blockquote p {
 	margin: 0;
 }
 
 /* Horizontal Rule */
 .tiptap hr {
 	border: none;
-	border-top: 1px solid var(--border-color);
-	margin: 1rem 0;
+	border-top: 2px solid var(--primary);
+	margin: 1.5rem 0;
+	height: 2px;
+	background: var(--primary);
+	border-radius: 1px;
 }
 
 /* Inline Code */
@@ -620,12 +626,14 @@ input[type='checkbox'] {
 	margin: 0.5rem 0.4rem 0.5rem 1rem;
 }
 
-.tiptap[dir="rtl"] blockquote {
+.tiptap[dir="rtl"] blockquote,
+.blockquote[dir="rtl"] {
 	padding-left: 0;
 	padding-right: 0.75rem;
 }
 
-.tiptap[dir="rtl"] blockquote::before {
+.tiptap[dir="rtl"] blockquote::before,
+.blockquote[dir="rtl"]::before {
 	left: auto;
 	right: 0;
 }

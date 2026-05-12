@@ -1130,10 +1130,10 @@
         "extraLarge": "Çok Büyük"
       },
       "alignments": {
-        "left": "Sola Hizala",
-        "center": "Ortala",
-        "right": "Sağa Hizala",
-        "justify": "İki Yana Yasla"
+        "align-left": "Sola Hizala",
+        "align-center": "Ortala", 
+        "align-right": "Sağa Hizala",
+        "align-justify": "İki Yana Yasla"
       },
       "colors": {
         "text": "Metin Renkleri",
@@ -1161,7 +1161,7 @@
       "blocks": {
         "blockquote": "Alıntı",
         "codeBlock": "Kod Bloğu",
-        "horizontalRule": "Ayırıcı Çizgi"
+        "horizontalRule": "Çizgi Ekle"
       },
       "media": {
         "image": "Resim",

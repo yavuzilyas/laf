@@ -1066,38 +1066,38 @@
         "large": "Large",
         "extraLarge": "Extra Large"
       },"alignments": {
-        "left": "Sola Hizala",
-        "center": "Ortala",
-        "right": "Sağa Hizala",
-        "justify": "İki Yana Yasla"
+        "align-left": "Align Left",
+        "align-center": "Align Center",
+        "align-right": "Align Right",
+        "align-justify": "Justify"
       },
       "colors": {
-        "text": "Metin Renkleri",
-        "background": "Arka Plan Renkleri"
+        "text": "Text Colors",
+        "background": "Background Colors"
       },
       "searchAndReplace": {
-        "title": "Bul ve Değiştir",
-        "search": "Ara",
-        "replace": "Değiştir",
-        "caseSensitive": "Büyük/Küçük Harf Duyarlı",
-        "replaceAll": "Tümünü Değiştir"
+        "title": "Search and Replace",
+        "search": "Search",
+        "replace": "Replace",
+        "caseSensitive": "Case Sensitive",
+        "replaceAll": "Replace All"
       },
       "textFormatting": {
-        "bold": "Kalın",
-        "italic": "İtalik",
-        "underline": "Altı Çizili",
-        "strike": "Üstü Çizili",
-        "code": "Kod"
+        "bold": "Bold",
+        "italic": "Italic",
+        "underline": "Underline",
+        "strike": "Strikethrough",
+        "code": "Code"
       },
       "lists": {
-        "bullet": "Madde İmi",
-        "ordered": "Numaralı Liste",
-        "task": "Görev Listesi"
+        "bullet": "Bullet",
+        "ordered": "Ordered",
+        "task": "Task"
       },
       "blocks": {
-        "blockquote": "Alıntı",
-        "codeBlock": "Kod Bloğu",
-        "horizontalRule": "Ayırıcı Çizgi"
+        "blockquote": "Blockquote",
+        "codeBlock": "Code Block",
+        "horizontalRule": "Horizontal Rule"
       },
       "media": {
         "image": "Resim",

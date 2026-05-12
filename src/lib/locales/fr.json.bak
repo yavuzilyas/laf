@@ -1146,16 +1146,6 @@
         "blockquote": "Citation",
         "codeBlock": "Bloc de Code",
         "horizontalRule": "Ligne Horizontale"
-      ,"lineStyles": {
-        "default": "Default Line",
-        "thin": "Thin Line",
-        "thick": "Thick Line",
-        "dotted": "Dotted Line",
-        "dashed": "Dashed Line",
-        "secondary": "Secondary Color",
-        "destructive": "Destructive Color",
-        "success": "Success Color"
-      }
       },
       "media": {
         "image": "Image",
