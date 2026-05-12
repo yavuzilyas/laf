@@ -13,10 +13,20 @@ export const fromObjectId = (obj: any) => {
 };
 
 // Helper function to calculate reading time excluding links
-const calculateReadTime = (content: string | null | undefined): number => {
+const calculateReadTime = (content: any): number => {
     if (!content) return 5; // Default reading time
     
-    const cleanText = content
+    // Convert content to string if it's not already
+    let textContent: string;
+    if (typeof content === 'string') {
+        textContent = content;
+    } else if (typeof content === 'object' && content !== null) {
+        textContent = JSON.stringify(content);
+    } else {
+        textContent = String(content);
+    }
+    
+    const cleanText = textContent
         .replace(/<[^>]*>/g, ' ') // Remove HTML tags
         .replace(/https?:\/\/[^\s]+/g, '') // Remove HTTP/HTTPS URLs
         .replace(/www\.[^\s]+/g, '') // Remove www URLs
