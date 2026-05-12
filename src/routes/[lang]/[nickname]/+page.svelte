@@ -1014,6 +1014,7 @@
                     {itemsPerPage}
                     bind:currentPage={currentPage}
                     onPageChange={handlePageChange}
+                    maxColumns={2}
                 />
             </CardContent>
         </Card>

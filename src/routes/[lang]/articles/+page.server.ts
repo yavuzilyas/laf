@@ -13,7 +13,12 @@ const sanitizeContent = (content: unknown): string => {
 };
 
 const calculateReadTime = (content: unknown): number => {
-  const text = sanitizeContent(content).replace(/<[^>]*>/g, ' ').trim();
+  const text = sanitizeContent(content)
+    .replace(/<[^>]*>/g, ' ') // Remove HTML tags
+    .replace(/https?:\/\/[^\s]+/g, '') // Remove HTTP/HTTPS URLs
+    .replace(/www\.[^\s]+/g, '') // Remove www URLs
+    .replace(/\[([^\]]+)\]\([^\)]+\)/g, '$1') // Remove markdown links, keep text
+    .trim();
   if (!text) return 1;
 
   const wordCount = text.split(/\s+/).filter(Boolean).length;

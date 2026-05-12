@@ -1,6 +1,23 @@
 import { json } from '@sveltejs/kit';
 import { getArticles } from '$db/queries';
 
+// Helper function to calculate reading time excluding links
+const calculateReadTime = (content: string | null | undefined): number => {
+    if (!content) return 5; // Default reading time
+    
+    const cleanText = content
+        .replace(/<[^>]*>/g, ' ') // Remove HTML tags
+        .replace(/https?:\/\/[^\s]+/g, '') // Remove HTTP/HTTPS URLs
+        .replace(/www\.[^\s]+/g, '') // Remove www URLs
+        .replace(/\[([^\]]+)\]\([^\)]+\)/g, '$1') // Remove markdown links, keep text
+        .trim();
+    
+    if (!cleanText) return 5;
+    
+    const wordCount = cleanText.split(/\s+/).filter(Boolean).length;
+    return Math.max(1, Math.ceil(wordCount / 200));
+};
+
 export async function GET({ url, locals }) {
   
   try {
@@ -96,7 +113,7 @@ export async function GET({ url, locals }) {
       author_nickname: article.author_nickname,
       publishedAt: article.published_at,
       published_at: article.published_at,
-      readTime: Math.ceil(article.content?.length / 1000) || 5,
+      readTime: calculateReadTime(article.content),
       tags: article.tags || [],
       views: article.views || 0,
       comments: article.comments_count || 0,

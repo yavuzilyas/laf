@@ -1529,7 +1529,13 @@
 	const calculateReadTime = (content: string) => {
 		const wordsPerMinute = 200;
 		const text = typeof content === 'string' ? content : JSON.stringify(content);
-		const wordCount = text.replace(/<[^>]*>/g, '').split(/\s+/).length;
+		const cleanText = text
+			.replace(/<[^>]*>/g, '') // Remove HTML tags
+			.replace(/https?:\/\/[^\s]+/g, '') // Remove HTTP/HTTPS URLs
+			.replace(/www\.[^\s]+/g, '') // Remove www URLs
+			.replace(/\[([^\]]+)\]\([^\)]+\)/g, '$1') // Remove markdown links, keep text
+			.trim();
+		const wordCount = cleanText.split(/\s+/).filter(Boolean).length;
 		return Math.ceil(wordCount / wordsPerMinute);
 	};
 

@@ -12,6 +12,23 @@ export const fromObjectId = (obj: any) => {
     return obj; // No conversion needed in PostgreSQL
 };
 
+// Helper function to calculate reading time excluding links
+const calculateReadTime = (content: string | null | undefined): number => {
+    if (!content) return 5; // Default reading time
+    
+    const cleanText = content
+        .replace(/<[^>]*>/g, ' ') // Remove HTML tags
+        .replace(/https?:\/\/[^\s]+/g, '') // Remove HTTP/HTTPS URLs
+        .replace(/www\.[^\s]+/g, '') // Remove www URLs
+        .replace(/\[([^\]]+)\]\([^\)]+\)/g, '$1') // Remove markdown links, keep text
+        .trim();
+    
+    if (!cleanText) return 5;
+    
+    const wordCount = cleanText.split(/\s+/).filter(Boolean).length;
+    return Math.max(1, Math.ceil(wordCount / 200));
+};
+
 // Collection helpers (these return query functions, not actual collections)
 export const getUsersCollection = () => {
     return {
@@ -2205,7 +2222,7 @@ export const getPopularArticles = async (limit: number = 3, excludeId?: string, 
                 },
                 author_nickname: row.author_nickname || row.author_name,
                 publishedAt: row.published_at,
-                readTime: Math.ceil((translation.content?.length || row.content?.length || 0) / 1000) || 5,
+                readTime: calculateReadTime(translation.content || row.content),
                 category: row.category,
                 coverImage: row.thumbnail,
                 views: row.views || 0,
@@ -2418,7 +2435,7 @@ export const getSimilarArticles = async (articleId: string, category: string, ta
                 },
                 author_nickname: row.author_nickname || row.author_name,
                 publishedAt: row.published_at,
-                readTime: Math.ceil((translation.content?.length || row.content?.length || 0) / 1000) || 5,
+                readTime: calculateReadTime(translation.content || row.content),
                 category: row.category,
                 coverImage: row.thumbnail,
                 views: row.views || 0,
@@ -2538,7 +2555,7 @@ export const getFeaturedArticles = async (limit: number = 3, excludeId?: string,
                 },
                 author_nickname: row.author_nickname || row.author_name,
                 publishedAt: row.published_at,
-                readTime: Math.ceil((translation.content?.length || row.content?.length || 0) / 1000) || 5,
+                readTime: calculateReadTime(translation.content || row.content),
                 category: row.category,
                 coverImage: row.thumbnail,
                 views: row.views || 0,
