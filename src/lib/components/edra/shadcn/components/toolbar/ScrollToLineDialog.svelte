@@ -7,6 +7,9 @@
 	import { cn } from '$lib/utils.js';
 	import EdraToolTip from '../EdraToolTip.svelte';
 	import { t } from '$lib/stores/i18n.svelte.js';
+	import Heading1 from '@lucide/svelte/icons/heading-1';
+	import Heading2 from '@lucide/svelte/icons/heading-2';
+	import Heading3 from '@lucide/svelte/icons/heading-3';
 
 	interface Props {
 		editor: Editor | null;
@@ -14,70 +17,78 @@
 
 	const { editor = null }: Props = $props();
 
-	let lineNumber = $state(1);
+	let selectedHeading = $state<{ text: string; level: number; pos: number } | null>(null);
 	let isOpen = $state(false);
-	let inputRef: HTMLInputElement;
 
-	// Get text content from a specific line in the editor
-	const getTextAtLine = (editor: Editor, lineNum: number): string => {
+	interface Heading {
+		text: string;
+		level: number;
+		pos: number;
+	}
+
+	// Get all h1, h2, h3 headings from the editor
+	const getHeadings = (editor: Editor): Heading[] => {
+		const headings: Heading[] = [];
 		const doc = editor.state.doc;
-		let currentLine = 1;
-		let text = '';
 
 		doc.descendants((node, pos) => {
-			if (currentLine === lineNum) {
-				if (node.isTextblock) {
-					text = node.textContent.trim();
-					return false; // Stop traversal
+			if (node.type.name === 'heading') {
+				const level = node.attrs.level;
+				if (level >= 1 && level <= 3) {
+					headings.push({
+						text: node.textContent.trim(),
+						level,
+						pos
+					});
 				}
-			}
-			if (node.isBlock) {
-				currentLine++;
 			}
 			return true;
 		});
 
-		return text || `Satır ${lineNum}`;
+		return headings;
 	};
 
-	const setScrollLink = () => {
-		if (!editor) return;
+	const headings = $derived.by(() => {
+		if (!editor || editor.isDestroyed) return [];
+		return getHeadings(editor);
+	});
 
-		const href = `#line-${lineNumber}`;
-		const linkText = getTextAtLine(editor, lineNumber);
+	const setScrollLink = () => {
+		if (!editor || !selectedHeading) return;
+
+		const href = `#heading-${selectedHeading.pos}`;
+		const linkText = selectedHeading.text;
 
 		editor
 			.chain()
 			.focus()
-			.insertContent(`<a href="${href}" class="scroll-to-line-link" data-line="${lineNumber}" target="_self" onclick="event.preventDefault(); window.location.hash='${href}'; return false;">${linkText}</a>`)
+			.insertContent(`<a href="${href}" class="scroll-to-heading-link" data-pos="${selectedHeading.pos}" target="_self" onclick="event.preventDefault(); window.location.hash='${href}'; return false;">${linkText}</a>`)
 			.run();
 
 		isOpen = false;
-	};
-
-	const handleKeyDown = (e: KeyboardEvent) => {
-		if (e.key === 'Enter') {
-			e.preventDefault();
-			setScrollLink();
-		}
+		selectedHeading = null;
 	};
 
 	const handleOpenChange = (open: boolean) => {
 		isOpen = open;
-		if (open) {
-			lineNumber = 1;
-			// Focus the input after a small delay to ensure it's rendered
-			setTimeout(() => {
-				inputRef?.focus();
-				inputRef?.select();
-			}, 10);
+		if (!open) {
+			selectedHeading = null;
+		}
+	};
+
+	const getHeadingIcon = (level: number) => {
+		switch (level) {
+			case 1: return Heading1;
+			case 2: return Heading2;
+			case 3: return Heading3;
+			default: return Heading1;
 		}
 	};
 </script>
 
 <AlertDialog.Root open={isOpen} onOpenChange={handleOpenChange}>
 	<AlertDialog.Trigger>
-		<EdraToolTip tooltip="Satıra Git Linki Ekle">
+		<EdraToolTip tooltip="Başlığa Git Linki Ekle">
 			<div
 				class={cn(
 					buttonVariants({
@@ -90,27 +101,35 @@
 			</div>
 		</EdraToolTip>
 	</AlertDialog.Trigger>
-	<AlertDialog.Content class="sm:max-w-[425px]">
+	<AlertDialog.Content class="sm:max-w-[500px] max-h-[80vh] overflow-hidden flex flex-col">
 		<AlertDialog.Header>
-			<AlertDialog.Title>Satıra Git Linki Ekle</AlertDialog.Title>
-			<AlertDialog.Description>Hangi satıra atlamak istediğinizi girin. O satırda yazılan yazı link metni olacaktır.</AlertDialog.Description>
+			<AlertDialog.Title>Başlığa Git Linki Ekle</AlertDialog.Title>
+			<AlertDialog.Description>Bağlantı vermek istediğiniz başlığı seçin.</AlertDialog.Description>
 		</AlertDialog.Header>
-		<div class="grid gap-4 py-4">
-			<div class="grid grid-cols-4 items-center gap-4">
-				<label for="lineNumber" class="col-span-4 text-sm font-medium">
-					Satır Numarası
-				</label>
-				<input
-					id="lineNumber"
-					type="number"
-					min="1"
-					class="col-span-4 h-10 rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-					bind:this={inputRef}
-					bind:value={lineNumber}
-					onkeydown={handleKeyDown}
-					placeholder="1"
-				/>
-			</div>
+		<div class="flex-1 overflow-y-auto py-4">
+			{#if headings.length === 0}
+				<p class="text-sm text-muted-foreground text-center py-8">
+					Henüz hiç başlık yok (H1, H2, H3)
+				</p>
+			{:else}
+				<div class="space-y-1">
+					{#each headings as heading (heading.pos)}
+						{@const Icon = getHeadingIcon(heading.level)}
+						<button
+							class={cn(
+								"w-full text-left px-3 py-2 rounded-md text-sm flex items-center gap-2 transition-colors",
+								selectedHeading?.pos === heading.pos
+									? "bg-primary text-primary-foreground"
+									: "hover:bg-accent hover:text-accent-foreground"
+							)}
+							onclick={() => selectedHeading = heading}
+						>
+							<Icon class="h-4 w-4 flex-shrink-0" />
+							<span class="truncate">{heading.text || 'Başlıksız'}</span>
+						</button>
+					{/each}
+				</div>
+			{/if}
 		</div>
 		<AlertDialog.Footer>
 			<AlertDialog.Cancel class={buttonVariants({ variant: 'outline' })}>
@@ -119,6 +138,7 @@
 			<AlertDialog.Action
 				class={buttonVariants({ variant: 'default' })}
 				onclick={setScrollLink}
+				disabled={!selectedHeading}
 			>
 				{t('common.save')}
 			</AlertDialog.Action>

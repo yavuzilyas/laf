@@ -213,6 +213,13 @@ export const getUsers = async (filters: any = {}) => {
         sql += ' WHERE ' + conditions.join(' AND ');
     }
     
+    sql += ' ORDER BY created_at DESC';
+    
+    if (filters.limit) {
+        sql += ' LIMIT $' + (params.length + 1);
+        params.push(filters.limit);
+    }
+    
     const result = await query(sql, params);
     return result.rows;
 };
