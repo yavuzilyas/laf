@@ -26,6 +26,8 @@
 		pos: number;
 	}
 
+	let headings = $state<Heading[]>([]);
+
 	// Get all h1, h2, h3 headings from the editor
 	const getHeadings = (editor: Editor): Heading[] => {
 		const headings: Heading[] = [];
@@ -48,11 +50,6 @@
 		return headings;
 	};
 
-	const headings = $derived.by(() => {
-		if (!editor || editor.isDestroyed) return [];
-		return getHeadings(editor);
-	});
-
 	const setScrollLink = () => {
 		if (!editor || !selectedHeading) return;
 
@@ -62,7 +59,9 @@
 		editor
 			.chain()
 			.focus()
-			.insertContent(`<a href="${href}" class="scroll-to-heading-link" data-pos="${selectedHeading.pos}" target="_self" onclick="event.preventDefault(); window.location.hash='${href}'; return false;">${linkText}</a>`)
+			.insertContent(
+				`<a href="${href}" class="scroll-to-heading-link" data-pos="${selectedHeading.pos}" target="_self">${linkText}</a>`
+			)
 			.run();
 
 		isOpen = false;
@@ -71,24 +70,34 @@
 
 	const handleOpenChange = (open: boolean) => {
 		isOpen = open;
-		if (!open) {
+		if (open) {
+			if (editor && !editor.isDestroyed) {
+				headings = getHeadings(editor);
+			} else {
+				headings = [];
+			}
+		} else {
 			selectedHeading = null;
 		}
 	};
 
 	const getHeadingIcon = (level: number) => {
 		switch (level) {
-			case 1: return Heading1;
-			case 2: return Heading2;
-			case 3: return Heading3;
-			default: return Heading1;
+			case 1:
+				return Heading1;
+			case 2:
+				return Heading2;
+			case 3:
+				return Heading3;
+			default:
+				return Heading1;
 		}
 	};
 </script>
 
 <AlertDialog.Root open={isOpen} onOpenChange={handleOpenChange}>
 	<AlertDialog.Trigger>
-		<EdraToolTip tooltip="Başlığa Git Linki Ekle">
+		<EdraToolTip tooltip={t('editor.toolbar.scrollToHeading.title')}>
 			<div
 				class={cn(
 					buttonVariants({
@@ -103,13 +112,15 @@
 	</AlertDialog.Trigger>
 	<AlertDialog.Content class="sm:max-w-[500px] max-h-[80vh] overflow-hidden flex flex-col">
 		<AlertDialog.Header>
-			<AlertDialog.Title>Başlığa Git Linki Ekle</AlertDialog.Title>
-			<AlertDialog.Description>Bağlantı vermek istediğiniz başlığı seçin.</AlertDialog.Description>
+			<AlertDialog.Title>{t('editor.toolbar.scrollToHeading.title')}</AlertDialog.Title>
+			<AlertDialog.Description
+				>{t('editor.toolbar.scrollToHeading.description')}</AlertDialog.Description
+			>
 		</AlertDialog.Header>
 		<div class="flex-1 overflow-y-auto py-4">
 			{#if headings.length === 0}
 				<p class="text-sm text-muted-foreground text-center py-8">
-					Henüz hiç başlık yok (H1, H2, H3)
+					{t('editor.toolbar.scrollToHeading.noHeadings')}
 				</p>
 			{:else}
 				<div class="space-y-1">
@@ -117,15 +128,17 @@
 						{@const Icon = getHeadingIcon(heading.level)}
 						<button
 							class={cn(
-								"w-full text-left px-3 py-2 rounded-md text-sm flex items-center gap-2 transition-colors",
+								'w-full text-left px-3 py-2 rounded-md text-sm flex items-center gap-2 transition-colors',
 								selectedHeading?.pos === heading.pos
-									? "bg-primary text-primary-foreground"
-									: "hover:bg-accent hover:text-accent-foreground"
+									? 'bg-primary text-primary-foreground'
+									: 'hover:bg-accent hover:text-accent-foreground'
 							)}
-							onclick={() => selectedHeading = heading}
+							onclick={() => (selectedHeading = heading)}
 						>
 							<Icon class="h-4 w-4 flex-shrink-0" />
-							<span class="truncate">{heading.text || 'Başlıksız'}</span>
+							<span class="truncate"
+								>{heading.text || t('editor.toolbar.scrollToHeading.untitled')}</span
+							>
 						</button>
 					{/each}
 				</div>

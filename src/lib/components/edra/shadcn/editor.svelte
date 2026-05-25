@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { onDestroy, onMount, setContext } from 'svelte';
 	import { nanoid } from 'nanoid';
+	import { replaceState } from '$app/navigation';
 	import DragHandle from '../components/DragHandle.svelte';
 	import type { EdraEditorProps } from '../types.js';
 	import initEditor from '../editor.js';
@@ -47,7 +48,7 @@
 	 */
 	let element = $state<HTMLElement>();
 	const editorId = `editor-${nanoid(8)}`;
-	
+
 	let {
 		editor = $bindable(),
 		editable = true,
@@ -59,7 +60,12 @@
 		commentId = null,
 		qaId = null,
 		dir = null
-	}: EdraEditorProps & { id?: string; commentId?: string | null; qaId?: string | null; dir?: 'rtl' | 'ltr' | null } = $props();
+	}: EdraEditorProps & {
+		id?: string;
+		commentId?: string | null;
+		qaId?: string | null;
+		dir?: 'rtl' | 'ltr' | null;
+	} = $props();
 
 	const effectiveDir = $derived(dir || i18n.dir);
 
@@ -126,8 +132,7 @@
 		if (editor && !editor.isDestroyed) {
 			try {
 				editor.destroy();
-			} catch (e) {
-			}
+			} catch (e) {}
 		}
 
 		try {
@@ -163,6 +168,87 @@
 							'data-editor-id': id,
 							class: `edra-editor tiptap ${id}`,
 							dir: effectiveDir
+						},
+						handleClick(view, pos, event) {
+							const target = event.target as HTMLElement;
+							const link = target.closest('a.scroll-to-heading-link');
+
+							if (link) {
+								event.preventDefault();
+								event.stopPropagation();
+
+								let targetPos = -1;
+								const posAttr = link.getAttribute('data-pos');
+								if (posAttr) {
+									targetPos = parseInt(posAttr, 10);
+								} else {
+									const href = link.getAttribute('href');
+									if (href && href.startsWith('#heading-')) {
+										targetPos = parseInt(href.replace('#heading-', ''), 10);
+									}
+								}
+
+								if (targetPos >= 0 && !isNaN(targetPos)) {
+									try {
+										const resolved = view.domAtPos(targetPos);
+										if (resolved) {
+											let domNode = resolved.node;
+											if (
+												domNode.nodeType === 1 &&
+												domNode.childNodes &&
+												domNode.childNodes.length > 0
+											) {
+												const child =
+													domNode.childNodes[
+														Math.min(resolved.offset, domNode.childNodes.length - 1)
+													];
+												if (child) {
+													domNode = child;
+												}
+											}
+											if (domNode.nodeType === 3) {
+												domNode = domNode.parentElement || domNode;
+											}
+
+											if (domNode && domNode.nodeType === 1) {
+												const elementToScroll = domNode as HTMLElement;
+												elementToScroll.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+												// Add temporary visual highlight
+												elementToScroll.classList.add(
+													'bg-yellow-100',
+													'dark:bg-yellow-900/30',
+													'transition-colors',
+													'duration-1000'
+												);
+												setTimeout(() => {
+													elementToScroll.classList.remove(
+														'bg-yellow-100',
+														'dark:bg-yellow-900/30',
+														'transition-colors',
+														'duration-1000'
+													);
+												}, 2000);
+											}
+										}
+									} catch (e) {
+										console.error('[EdraEditor] Error resolving DOM node for scroll:', e);
+									}
+								}
+
+								// Clean up hash from the URL in case it got set (e.g., in saved database content with inline onclicks)
+								setTimeout(() => {
+									if (
+										typeof window !== 'undefined' &&
+										window.location.hash.startsWith('#heading-')
+									) {
+										replaceState(window.location.pathname + window.location.search, {});
+									}
+								}, 10);
+
+								return true; // Handled
+							}
+							return false; // Not handled
 						}
 					}
 				}
@@ -200,16 +286,14 @@
 				}
 				window.__edraEditors.set(element, editor);
 			}
-		} catch (e) {
-		}
+		} catch (e) {}
 	});
 
 	onDestroy(() => {
 		if (editor && !editor.isDestroyed) {
 			try {
 				editor.destroy();
-			} catch (e) {
-			}
+			} catch (e) {}
 		}
 
 		// Clean up from window reference if it exists
@@ -237,5 +321,8 @@
 		}
 	}}
 	dir={effectiveDir}
-	class={cn('edra-editor selection:bg-primary selection:text-primary-foreground h-full w-full cursor-auto *:outline-none', className)}
+	class={cn(
+		'edra-editor selection:bg-primary selection:text-primary-foreground h-full w-full cursor-auto *:outline-none',
+		className
+	)}
 ></div>

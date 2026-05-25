@@ -1143,17 +1143,17 @@
       "blocks": {
         "blockquote": "Մեջբերում",
         "codeBlock": "Կոդի բլոկ",
-        "horizontalRule": "Հորիզոնական գծիկ"
-      ,"lineStyles": {
-        "default": "Default Line",
-        "thin": "Thin Line",
-        "thick": "Thick Line",
-        "dotted": "Dotted Line",
-        "dashed": "Dashed Line",
-        "secondary": "Secondary Color",
-        "destructive": "Destructive Color",
-        "success": "Success Color"
-      }
+        "horizontalRule": "Հորիզոնական գծիկ",
+        "lineStyles": {
+          "default": "Default Line",
+          "thin": "Thin Line",
+          "thick": "Thick Line",
+          "dotted": "Dotted Line",
+          "dashed": "Dashed Line",
+          "secondary": "Secondary Color",
+          "destructive": "Destructive Color",
+          "success": "Success Color"
+        }
       },
       "media": {
         "image": "Պատկեր",
@@ -1198,7 +1198,13 @@
         "upload": "Բեռնեք"
       },
       "fileAttachment": "Ֆայլի Կցում",
-      "goToLine": "Անցնել Տողին"
+      "goToLine": "Անցնել Տողին",
+      "scrollToHeading": {
+        "title": "Ավելացնել հղում վերնագրին",
+        "description": "Ընտրեք վերնագիրը, որին ցանկանում եք հղում կատարել։",
+        "noHeadings": "Դեռևս չկան վերնագրեր (H1, H2, H3)",
+        "untitled": "Անվերնագիր"
+      }
     }
   },
   "notLoggedIn": "Չէ մուտքագրված",
@@ -5378,7 +5384,7 @@
   "sketch": "նկարագիր",
   "skier": "ձի",
   "skiing": "սկինգ",
-    "skis": "սքիներ",
+  "skis": "սքիներ",
   "skull": "չորագլուխ",
   "skunk": "կոկարջ",
   "sled": "սլեդ",

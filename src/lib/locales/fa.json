@@ -1081,17 +1081,17 @@
       "blocks": {
         "blockquote": "نقل‌قول",
         "codeBlock": "بلوک کد",
-        "horizontalRule": "خط جداکننده"
-      ,"lineStyles": {
-        "default": "Default Line",
-        "thin": "Thin Line",
-        "thick": "Thick Line",
-        "dotted": "Dotted Line",
-        "dashed": "Dashed Line",
-        "secondary": "Secondary Color",
-        "destructive": "Destructive Color",
-        "success": "Success Color"
-      }
+        "horizontalRule": "خط جداکننده",
+        "lineStyles": {
+          "default": "Default Line",
+          "thin": "Thin Line",
+          "thick": "Thick Line",
+          "dotted": "Dotted Line",
+          "dashed": "Dashed Line",
+          "secondary": "Secondary Color",
+          "destructive": "Destructive Color",
+          "success": "Success Color"
+        }
       },
       "media": {
         "image": "تصویر",
@@ -1136,7 +1136,13 @@
         "upload": "بارگذاری"
       },
       "fileAttachment": "پیوست فایل",
-      "goToLine": "برو به خط"
+      "goToLine": "برو به خط",
+      "scrollToHeading": {
+        "title": "افزودن لینک به عنوان",
+        "description": "عنوانی را که می‌خواهید به آن لینک دهید انتخاب کنید.",
+        "noHeadings": "هنوز هیچ عنوانی وجود ندارد (H1, H2, H3)",
+        "untitled": "بدون عنوان"
+      }
     }
   },
   "notifications": {
@@ -5451,5 +5457,4 @@
   "zebra": "گورخر",
   "zinc": "روی",
   "Moderation": "نظارت"
-
 }

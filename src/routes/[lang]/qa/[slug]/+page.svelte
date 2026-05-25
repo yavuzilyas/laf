@@ -15,6 +15,8 @@
     import { Button } from '$lib/components/ui/button';
     import { Badge } from '$lib/components/ui/badge';
     import { Label } from '$lib/components/ui/label';
+    import { Input } from '$lib/components/ui/input';
+    import * as Select from '$lib/components/ui/select';
     import * as Avatar from '$lib/components/ui/avatar';
     import * as DropdownMenu from '$lib/components/ui/dropdown-menu';
     import * as AlertDialog from '$lib/components/ui/alert-dialog';
@@ -55,6 +57,17 @@
     let answers = $derived(data.answers || []);
     let user = $derived(data.user);
     let isModerator = $derived(data.isModerator || false);
+    let topics = $derived(data.topics || []);
+
+    // Question edit state
+    let showEditQuestionDialog = $state(false);
+    let questionTitle = $state('');
+    let questionTopicId = $state('');
+    let questionContent = $state({ type: 'doc', content: [{ type: 'paragraph' }] });
+    let questionEditor = $state<any>(null);
+    let questionCharCount = $state(0);
+    let isSubmittingQuestion = $state(false);
+    const QUESTION_CHAR_LIMIT = 300;
     
     // Like/Dislike state (similar to article page)
     let likesCount = $state<number>(Number(data.question?.likeCount) || 0);
@@ -573,6 +586,89 @@
     function onReported() {
         showToast(t('qa.reportSubmitted'), 'success');
     }
+
+    function openEditQuestionDialog() {
+        if (question) {
+            questionTitle = question.title || '';
+            questionTopicId = question.topic?.id || '';
+            // Handle edra editor content format
+            if (question.content && typeof question.content === 'object' && question.content.type === 'doc') {
+                questionContent = question.content;
+            } else if (question.contentHtml) {
+                // Convert HTML to plain text for the editor
+                const tempDiv = document.createElement('div');
+                tempDiv.innerHTML = question.contentHtml;
+                const text = tempDiv.textContent || tempDiv.innerText || '';
+                questionContent = { type: 'doc', content: [{ type: 'paragraph', content: text ? [{ type: 'text', text }] : [] }] };
+            } else {
+                questionContent = { type: 'doc', content: [{ type: 'paragraph' }] };
+            }
+            showEditQuestionDialog = true;
+        }
+    }
+
+    async function submitQuestion() {
+        if (!questionTitle.trim() || questionTitle.trim().length < 5) {
+            showToast('Başlık en az 5 karakter olmalıdır', 'error');
+            return;
+        }
+
+        const editor = questionEditor;
+        if (!editor) {
+            showToast('Editör yüklenemedi', 'error');
+            return;
+        }
+
+        const editorContent = editor.getJSON();
+        const hasContent = editorContent && (
+            editorContent.content?.length > 1 ||
+            (editorContent.content?.[0]?.content?.length > 0) ||
+            (editorContent.content?.[0]?.type !== 'paragraph')
+        );
+
+        if (!hasContent) {
+            showToast('Soru içeriği gerekli', 'error');
+            return;
+        }
+
+        if (!question?.id) return;
+
+        isSubmittingQuestion = true;
+        try {
+            const contentHtml = editor.getHTML();
+            const response = await fetch(`/api/qa/id/${question.id}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    title: questionTitle.trim(),
+                    content: editorContent,
+                    contentHtml,
+                    topicId: questionTopicId || null,
+                    isAnonymous: question.isAnonymous || false
+                })
+            });
+
+            if (response.ok) {
+                const result = await response.json();
+                showToast(result.message || 'Soru güncellendi', 'success');
+                showEditQuestionDialog = false;
+                if (result.question?.slug) {
+                    goto(`/${lang}/qa/${result.question.slug}`, { replaceState: true }).then(() => {
+                        window.location.reload();
+                    });
+                } else {
+                    window.location.reload();
+                }
+            } else {
+                const error = await response.json();
+                showToast(error.error || 'Soru güncellenirken hata oluştu', 'error');
+            }
+        } catch (error) {
+            showToast('Soru güncellenirken hata oluştu', 'error');
+        } finally {
+            isSubmittingQuestion = false;
+        }
+    }
 </script>
 
 <svelte:head>
@@ -870,7 +966,7 @@
                             </DropdownMenu.Trigger>
                             <DropdownMenu.Content align="end">
                                 {#if isModerator || (user && question.author?.id === user.id)}
-                                    <DropdownMenu.Item onclick={() => goto(`/${lang}/qa/ask?edit=${question.id}`)}>
+                                    <DropdownMenu.Item onclick={openEditQuestionDialog}>
                                         <Pencil class="w-4 h-4 mr-2" />
                                         Düzenle
                                     </DropdownMenu.Item>
@@ -1155,6 +1251,96 @@
         {/if}
     </div>
 </div>
+
+<!-- Edit Question Dialog -->
+<Dialog.Root bind:open={showEditQuestionDialog}>
+    <Dialog.Content class="max-w-2xl bg-background border border-border rounded-lg p-6 shadow-lg">
+        <Dialog.Header>
+            <Dialog.Title>Soruyu Düzenle</Dialog.Title>
+            <Dialog.Description>
+                Sorunun başlığını, konusunu ve içeriğini güncelleyin.
+            </Dialog.Description>
+        </Dialog.Header>
+        <div class="space-y-4 py-4">
+            <!-- Topic Selection -->
+            <div class="flex flex-col gap-2">
+                <Label for="edit-topic" class="text-sm font-medium">Konu</Label>
+                <Select.Root type="single" bind:value={questionTopicId}>
+                    <Select.Trigger id="edit-topic" class="w-full text-sm">
+                        <span>{questionTopicId ? topics.find((t: any) => t.id === questionTopicId)?.name : 'Konu seçin'}</span>
+                    </Select.Trigger>
+                    <Select.Content class="z-50">
+                        <Select.Item value="">Konu seçin</Select.Item>
+                        {#each topics as topic (topic.id)}
+                            <Select.Item value={topic.id}>{topic.name}</Select.Item>
+                        {/each}
+                    </Select.Content>
+                </Select.Root>
+            </div>
+            
+            <!-- Title Input -->
+            <div class="flex flex-col gap-2">
+                <Label for="edit-title" class="text-sm font-medium">Başlık</Label>
+                <Input
+                    id="edit-title"
+                    bind:value={questionTitle}
+                    placeholder="Soru başlığı..."
+                    maxlength="50"
+                    class="text-sm"
+                />
+            </div>
+            
+            <!-- Content Editor -->
+            <div class="flex flex-col gap-2">
+                <Label class="text-sm font-medium">İçerik</Label>
+                <div class="border rounded-sm overflow-hidden bg-background">
+                    <EdraToolBar editor={questionEditor} />
+                    <EdraEditor
+                        bind:editor={questionEditor}
+                        content={questionContent}
+                        onUpdate={() => {
+                            if (questionEditor) {
+                                const currentContent = questionEditor.getJSON();
+                                questionCharCount = calculateCharCount(currentContent);
+                                if (questionCharCount > QUESTION_CHAR_LIMIT) {
+                                    showToast(`Soru içeriği ${QUESTION_CHAR_LIMIT} karakter limitini aşıyor (Linkler 1 harf sayılır)`, 'error');
+                                }
+                            }
+                        }}
+                        qaId={question.id}
+                        class="min-h-[150px] max-h-[300px] overflow-y-auto p-3 text-sm"
+                    />
+                    <div class="px-3 py-1 text-xs text-muted-foreground text-right border-t bg-muted/30">
+                        <span class={questionCharCount > QUESTION_CHAR_LIMIT ? 'text-red-500 font-medium' : ''}>
+                            {questionCharCount}/{QUESTION_CHAR_LIMIT} (linkler 1 harf)
+                        </span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="flex justify-end gap-2 mt-4">
+            <Button
+                variant="ghost"
+                onclick={() => showEditQuestionDialog = false}
+            >
+                İptal
+            </Button>
+            <Button
+                onclick={submitQuestion}
+                disabled={isSubmittingQuestion || !questionTitle.trim() || questionTitle.trim().length < 5 || questionCharCount > QUESTION_CHAR_LIMIT}
+                class="gap-2"
+            >
+                {#if isSubmittingQuestion}
+                    <Loader2 class="w-4 h-4 animate-spin" />
+                    Güncelleniyor...
+                {:else}
+                    <Send class="w-4 h-4" />
+                    Güncelle
+                {/if}
+            </Button>
+        </div>
+    </Dialog.Content>
+</Dialog.Root>
 
 <!-- Image Modal -->
 <Dialog.Root bind:open={imageModalOpen} onOpenChange={(open) => { if (!open) closeImageModal(); }}>

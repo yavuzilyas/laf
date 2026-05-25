@@ -1141,17 +1141,17 @@
       "blocks": {
         "blockquote": "Alıntî",
         "codeBlock": "Bloka kodê",
-        "horizontalRule": "Xêzê cihê"
-      ,"lineStyles": {
-        "default": "Default Line",
-        "thin": "Thin Line",
-        "thick": "Thick Line",
-        "dotted": "Dotted Line",
-        "dashed": "Dashed Line",
-        "secondary": "Secondary Color",
-        "destructive": "Destructive Color",
-        "success": "Success Color"
-      }
+        "horizontalRule": "Xêzê cihê",
+        "lineStyles": {
+          "default": "Default Line",
+          "thin": "Thin Line",
+          "thick": "Thick Line",
+          "dotted": "Dotted Line",
+          "dashed": "Dashed Line",
+          "secondary": "Secondary Color",
+          "destructive": "Destructive Color",
+          "success": "Success Color"
+        }
       },
       "media": {
         "image": "Wêne",
@@ -1196,7 +1196,13 @@
         "upload": "Bar bike"
       },
       "fileAttachment": "Pêvekê Dosyeyê",
-      "goToLine": "Here Rêzê"
+      "goToLine": "Here Rêzê",
+      "scrollToHeading": {
+        "title": "Girêdana Biçe Sernavê Zêde Bikin",
+        "description": "Sernavê ku hûn dixwazin pê ve girêdin hilbijêrin.",
+        "noHeadings": "Hîn tu sernav nîn e (H1, H2, H3)",
+        "untitled": "Bêsersax"
+      }
     }
   },
   "notLoggedIn": "Têketin nehatiye kirin",
@@ -1707,7 +1713,7 @@
   "Accra": "Akra",
   "Achievements": "Serkeftinên",
   "Acknowledgements": "Spas",
-    "Acknowledgment": "Pejirandin",
+  "Acknowledgment": "Pejirandin",
   "Acne": "Qilaw",
   "Acoustic": "Aksê",
   "Action": "Çalakî",
@@ -2449,9 +2455,6 @@
   "Dither": "Titreme",
   "Diverted": "Divert etti",
   "Dizziness": "Baş dönmesi",
-  "Djibouti": "Cibuti",
-  "Dock": "Yerleştir",
-  "Doctor": "Doktor",
   "Djibouti": "Cîbûtî",
   "Dock": "Dêk",
   "Doctor": "Doktor",
@@ -5716,5 +5719,4 @@
   "yesterday": "dû",
   "zinc": "zînck",
   "zombie": "zombi"
-
 }

@@ -1131,7 +1131,7 @@
       },
       "alignments": {
         "align-left": "Sola Hizala",
-        "align-center": "Ortala", 
+        "align-center": "Ortala",
         "align-right": "Sağa Hizala",
         "align-justify": "İki Yana Yasla"
       },
@@ -1206,7 +1206,13 @@
         "upload": "Yükle"
       },
       "fileAttachment": "Dosya Eki",
-      "goToLine": "Satıra Git"
+      "goToLine": "Satıra Git",
+      "scrollToHeading": {
+        "title": "Başlığa Git Linki Ekle",
+        "description": "Bağlantı vermek istediğiniz başlığı seçin.",
+        "noHeadings": "Henüz hiç başlık yok (H1, H2, H3)",
+        "untitled": "Başlıksız"
+      }
     }
   },
   "notLoggedIn": "Giriş Yapılmadı",
@@ -1420,7 +1426,7 @@
     "attendeeCount": "Katılımcı Sayısı",
     "cleanupDeletedUsers": "Silinenleri Kontrol Et"
   },
-    "notifications": {
+  "notifications": {
     "title": "Bildirimler",
     "markAll": "Tümünü Okundu İşaretle",
     "markAllRead": "Tümünü Okundu İşaretle",
@@ -5726,5 +5732,4 @@
   "yesterday": "dün",
   "zinc": "Çinko",
   "zombie": "zombi"
-
 }

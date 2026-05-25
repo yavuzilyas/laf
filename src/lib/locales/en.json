@@ -1065,7 +1065,8 @@
         "medium": "Medium",
         "large": "Large",
         "extraLarge": "Extra Large"
-      },"alignments": {
+      },
+      "alignments": {
         "align-left": "Align Left",
         "align-center": "Align Center",
         "align-right": "Align Right",
@@ -1142,7 +1143,13 @@
         "upload": "Upload"
       },
       "fileAttachment": "File Attachment",
-      "goToLine": "Go to Line"
+      "goToLine": "Go to Line",
+      "scrollToHeading": {
+        "title": "Add Link to Heading",
+        "description": "Select the heading you want to link to.",
+        "noHeadings": "No headings found yet (H1, H2, H3)",
+        "untitled": "Untitled"
+      }
     }
   },
   "notifications": {
