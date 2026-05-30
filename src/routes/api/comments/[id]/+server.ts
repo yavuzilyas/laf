@@ -9,21 +9,23 @@ import { slugify } from '$lib/utils/slugify';
 export async function DELETE({ params, locals }) {
   const user = (locals as any)?.user;
 
-  // Only admin can delete comments
-  if (!user || user.role !== 'admin') {
-    return json({ error: 'Unauthorized - Admin access required' }, { status: 403 });
-  }
-
   const commentId = params.id;
-  // const userId = user.id;
 
   // Get comment
   const commentData = await getComments({ id: commentId });
   const comment = commentData[0];
 
-
   if (!comment) {
     return json({ error: 'Comment not found' }, { status: 404 });
+  }
+
+  // Allow admin or comment author to delete
+  if (!user) {
+    return json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
+  if (user.role !== 'admin' && comment.author_id !== user.id) {
+    return json({ error: 'Unauthorized - You can only delete your own comments' }, { status: 403 });
   }
 
   // Get author info for user folder path
