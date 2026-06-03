@@ -159,7 +159,7 @@ export const POST: RequestHandler = async ({ request, cookies }) => {
     httpOnly: true,
     sameSite: "strict",
     secure: false,
-    maxAge: 60 * 60 * 24 * 7
+    maxAge: 60 * 60 * 24 * 365
   });
 
   // reset auth fields on success
