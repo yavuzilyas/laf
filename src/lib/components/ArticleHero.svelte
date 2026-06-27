@@ -118,22 +118,6 @@
             <span>{article.readTime} {t('articles.minRead')}</span>
           </div>
           
-          {#if showStats}
-            <div class="flex items-center gap-4">
-              <div class="flex items-center gap-1">
-                <Eye class="h-4 w-4" />
-                <span>{article.views}</span>
-              </div>
-              <div class="flex items-center gap-1">
-                <MessageCircle class="h-4 w-4" />
-                <span>{article.comments}</span>
-              </div>
-              <div class="flex items-center gap-1">
-                <Heart class="h-4 w-4" />
-                <span>{article.likes}</span>
-              </div>
-            </div>
-          {/if}
         </div>
         
         <Button size="lg" class="bg-white text-black hover:bg-white/90">
@@ -276,22 +260,6 @@
             </div>
           </div>
           
-          {#if showStats}
-            <div class="flex items-center gap-4 text-sm text-muted-foreground">
-              <div class="flex items-center gap-1">
-                <Eye class="h-4 w-4" />
-                <span>{article.views}</span>
-              </div>
-              <div class="flex items-center gap-1">
-                <MessageCircle class="h-4 w-4" />
-                <span>{article.comments}</span>
-              </div>
-              <div class="flex items-center gap-1">
-                <Heart class="h-4 w-4" />
-                <span>{article.likes}</span>
-              </div>
-            </div>
-          {/if}
         </div>
         
         <Button size="lg" class="w-fit">

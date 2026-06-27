@@ -371,14 +371,6 @@
         </div>
         <div class="flex items-center gap-3 text-xs text-muted-foreground">
           <div class="flex items-center gap-1">
-            <Eye class="h-3 w-3" />
-            <span>{article.views}</span>
-          </div>
-          <div class="flex items-center gap-1">
-            <MessageCircle class="h-3 w-3" />
-            <span>{article.comments}</span>
-          </div>
-          <div class="flex items-center gap-1">
             <Clock class="h-3 w-3" />
             <span>{article.readTime} {t('articles.min')}</span>
           </div>
@@ -434,16 +426,6 @@
         </div>
       </div>
       
-      <div class="flex items-center gap-3 text-xs text-muted-foreground">
-        <div class="flex items-center gap-1">
-          <Eye class="h-3 w-3" />
-          <span>{article.views}</span>
-        </div>
-        <div class="flex items-center gap-1">
-          <ThumbsUp class="h-3 w-3" />
-          <span>{article.likes}</span>
-        </div>
-      </div>
     </div>
   </article>
 
@@ -589,63 +571,6 @@
           {/if}
         </div>
         
-        <div class="flex items-center gap-2 sm:gap-4 text-xs text-muted-foreground">
-          <Tooltip.Provider>
-            <Tooltip.Root>
-              <Tooltip.Trigger>
-                <div class="flex items-center gap-1">
-                  <Eye class="h-3 w-3" />
-                  <span>{formatNumber(article.views)}</span>
-                </div>
-              </Tooltip.Trigger>
-              <Tooltip.Content>
-                <p>{article.views.toLocaleString()} {t('articles.stats.view')}</p>
-              </Tooltip.Content>
-            </Tooltip.Root>
-          </Tooltip.Provider>
-
-          <Tooltip.Provider>
-            <Tooltip.Root>
-              <Tooltip.Trigger>
-                <div class="flex items-center gap-1">
-                  <MessageCircle class="h-3 w-3" />
-                  <span>{formatNumber(article.comments)}</span>
-                </div>
-              </Tooltip.Trigger>
-              <Tooltip.Content>
-                <p>{article.comments.toLocaleString()} {t('articles.stats.comment')}</p>
-              </Tooltip.Content>
-            </Tooltip.Root>
-          </Tooltip.Provider>
-
-          <Tooltip.Provider>
-            <Tooltip.Root>
-              <Tooltip.Trigger>
-                <div class="flex items-center gap-1">
-                  <ThumbsUp class="h-3 w-3" />
-                  <span>{formatNumber(article.likes)}</span>
-                </div>
-              </Tooltip.Trigger>
-              <Tooltip.Content>
-                <p>{article.likes.toLocaleString()} {t('articles.stats.like')}</p>
-              </Tooltip.Content>
-            </Tooltip.Root>
-          </Tooltip.Provider>
-
-          <Tooltip.Provider>
-            <Tooltip.Root>
-              <Tooltip.Trigger>
-                <div class="flex items-center gap-1">
-                  <ThumbsDown class="h-3 w-3" />
-                  <span>{formatNumber(article.dislikes || 0)}</span>
-                </div>
-              </Tooltip.Trigger>
-              <Tooltip.Content>
-                <p>{(article.dislikes || 0).toLocaleString()} {t('articles.stats.dislike')}</p>
-              </Tooltip.Content>
-            </Tooltip.Root>
-          </Tooltip.Provider>
-        </div>
       </div>
     </div>
   </article>

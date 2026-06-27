@@ -208,66 +208,6 @@
                 {truncateText(article.excerpt, 180)}
               </p>
 
-              <!-- Stats Row -->
-              <div class="flex items-center gap-3 text-xs text-muted-foreground">
-                <Tooltip.Provider>
-                  <Tooltip.Root>
-                    <Tooltip.Trigger>
-                      <div class="flex items-center gap-1">
-                        <Eye class="h-3 w-3" />
-                        <span>{formatNumber(article.views || 0)}</span>
-                      </div>
-                    </Tooltip.Trigger>
-                    <Tooltip.Content>
-                      <p>{(article.views || 0).toLocaleString()} {t('articles.stats.view')}</p>
-                    </Tooltip.Content>
-                  </Tooltip.Root>
-                </Tooltip.Provider>
-
-                <Tooltip.Provider>
-                  <Tooltip.Root>
-                    <Tooltip.Trigger>
-                      <div class="flex items-center gap-1">
-                        <MessageCircle class="h-3 w-3" />
-                        <span>{formatNumber(article.comments || 0)}</span>
-                      </div>
-                    </Tooltip.Trigger>
-                    <Tooltip.Content>
-                      <p>{(article.comments || 0).toLocaleString()} {t('articles.stats.comment')}</p>
-                    </Tooltip.Content>
-                  </Tooltip.Root>
-                </Tooltip.Provider>
-
-                <Tooltip.Provider>
-                  <Tooltip.Root>
-                    <Tooltip.Trigger>
-                      <div class="flex items-center gap-1">
-                        <ThumbsUp class="h-3 w-3" />
-                        <span>{formatNumber(article.likes || 0)}</span>
-                      </div>
-                    </Tooltip.Trigger>
-                    <Tooltip.Content>
-                      <p>{(article.likes || 0).toLocaleString()} {t('articles.stats.like')}</p>
-                    </Tooltip.Content>
-                  </Tooltip.Root>
-                </Tooltip.Provider>
-
-                {#if article.dislikes}
-                  <Tooltip.Provider>
-                    <Tooltip.Root>
-                      <Tooltip.Trigger>
-                        <div class="flex items-center gap-1">
-                          <ThumbsDown class="h-3 w-3" />
-                          <span>{formatNumber(article.dislikes)}</span>
-                        </div>
-                      </Tooltip.Trigger>
-                      <Tooltip.Content>
-                        <p>{article.dislikes.toLocaleString()} {t('articles.stats.dislike')}</p>
-                      </Tooltip.Content>
-                    </Tooltip.Root>
-                  </Tooltip.Provider>
-                {/if}
-              </div>
 
               <!-- Author & Collaborators -->
               <div class="flex items-center gap-3 pt-3 border-t border-border/50">
